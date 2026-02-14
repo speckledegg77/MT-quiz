@@ -3,6 +3,8 @@
 Live URL: https://mt-quiz.vercel.app  
 Context last updated: 2026-02-14  
 Repo commit: 4a76ee7
+Repo URL: https://github.com/speckledegg77/MT-quiz
+
 
 ## How we work in this project (chat conventions)
 
