@@ -17,8 +17,11 @@ export default function PlayerPage() {
   const [lastQuestionId, setLastQuestionId] = useState<string | null>(null)
 
   const [isDark, setIsDark] = useState(false)
+
   const [audioEnabled, setAudioEnabled] = useState(false)
   const [playedForQ, setPlayedForQ] = useState<string | null>(null)
+  const [preparedForQ, setPreparedForQ] = useState<string | null>(null)
+  const [autoplayFailed, setAutoplayFailed] = useState(false)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
@@ -61,6 +64,9 @@ export default function PlayerPage() {
     if (qid !== lastQuestionId) {
       setLastQuestionId(qid)
       setSelectedIndex(null)
+      setPlayedForQ(null)
+      setPreparedForQ(null)
+      setAutoplayFailed(false)
     }
   }, [state?.question?.id, lastQuestionId])
 
@@ -130,37 +136,119 @@ export default function PlayerPage() {
     colorScheme: isDark ? ("dark" as any) : ("light" as any)
   }
 
-  async function enableAudio() {
+  async function unlockAudio() {
     setAudioEnabled(true)
-  }
-
-  async function playClip() {
-    const q = state?.question
-    const el = audioRef.current
-    if (!q?.audioUrl || !el) return
+    setAutoplayFailed(false)
 
     try {
-      el.pause()
-      el.src = q.audioUrl
-      el.load()
-      await el.play()
+      const AnyWindow = window as any
+      const Ctx = AnyWindow.AudioContext || AnyWindow.webkitAudioContext
+      if (Ctx) {
+        const ctx = new Ctx()
+        await ctx.resume()
+
+        const buf = ctx.createBuffer(1, 1, 22050)
+        const src = ctx.createBufferSource()
+        src.buffer = buf
+        src.connect(ctx.destination)
+        src.start(0)
+        src.stop(0.01)
+
+        await new Promise(r => setTimeout(r, 20))
+        await ctx.close()
+      }
     } catch {
     }
   }
 
-  useEffect(() => {
+  function prepareClip() {
     const q = state?.question
-    if (!q) return
+    const el = audioRef.current
+    if (!q?.audioUrl || !el) return
+    if (preparedForQ === q.id) return
+
+    try {
+      el.pause()
+      el.currentTime = 0
+    } catch {
+    }
+
+    el.src = q.audioUrl
+    el.preload = "auto"
+    el.load()
+    setPreparedForQ(q.id)
+  }
+
+  async function playClip(): Promise<boolean> {
+    const q = state?.question
+    const el = audioRef.current
+    if (!q?.audioUrl || !el) return false
+
+    try {
+      if (preparedForQ !== q.id) {
+        el.src = q.audioUrl
+        el.preload = "auto"
+        el.load()
+        setPreparedForQ(q.id)
+      }
+
+      await el.play()
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  const isAudioQ = state?.question?.roundType === "audio"
+  const correctIndex = state?.reveal?.answerIndex ?? null
+
+  useEffect(() => {
+    if (!shouldPlayOnPhone) return
+    if (!isAudioQ) return
+    if (!state?.question?.audioUrl) return
+    prepareClip()
+  }, [shouldPlayOnPhone, isAudioQ, state?.question?.id, state?.question?.audioUrl])
+
+  useEffect(() => {
     if (!shouldPlayOnPhone) return
     if (!audioEnabled) return
-    if (q.roundType !== "audio") return
-    if (state.stage !== "open") return
-    if (!q.audioUrl) return
-    if (playedForQ === q.id) return
+    if (!isAudioQ) return
+    if (state?.stage !== "open") return
+    if (!state?.question?.audioUrl) return
+    if (playedForQ === state.question.id) return
 
-    setPlayedForQ(q.id)
-    playClip().catch(() => {})
-  }, [state, shouldPlayOnPhone, audioEnabled, playedForQ])
+    let cancelled = false
+
+    async function attempt() {
+      const ok = await playClip()
+      if (cancelled) return
+
+      if (ok) {
+        setPlayedForQ(state.question.id)
+        setAutoplayFailed(false)
+        return
+      }
+
+      setAutoplayFailed(true)
+
+      setTimeout(async () => {
+        if (cancelled) return
+        if (state?.stage !== "open") return
+        const ok2 = await playClip()
+        if (cancelled) return
+        if (ok2) {
+          setPlayedForQ(state.question.id)
+          setAutoplayFailed(false)
+        }
+      }, 400)
+    }
+
+    attempt().catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [shouldPlayOnPhone, audioEnabled, isAudioQ, state?.stage, state?.question?.id, state?.question?.audioUrl, playedForQ])
 
   if (!code) {
     return (
@@ -182,7 +270,7 @@ export default function PlayerPage() {
           <div style={{ marginTop: 14 }}>
             {!audioEnabled ? (
               <button
-                onClick={enableAudio}
+                onClick={unlockAudio}
                 style={{
                   padding: 12,
                   border: `1px solid ${theme.border}`,
@@ -199,6 +287,8 @@ export default function PlayerPage() {
             )}
           </div>
         )}
+
+        <audio ref={audioRef} preload="auto" />
       </main>
     )
   }
@@ -212,9 +302,6 @@ export default function PlayerPage() {
     )
   }
 
-  const correctIndex = state?.reveal?.answerIndex ?? null
-  const isAudioQ = state?.question?.roundType === "audio"
-
   return (
     <main style={pageStyle}>
       <h1 style={{ fontSize: 22, marginBottom: 6 }}>Room {code}</h1>
@@ -225,7 +312,7 @@ export default function PlayerPage() {
         <div style={{ marginBottom: 10 }}>
           {!audioEnabled ? (
             <button
-              onClick={enableAudio}
+              onClick={unlockAudio}
               style={{
                 padding: 12,
                 border: `1px solid ${theme.border}`,
@@ -238,7 +325,9 @@ export default function PlayerPage() {
               Enable audio on this phone
             </button>
           ) : (
-            <p style={{ color: theme.muted, marginTop: 0 }}>Audio enabled.</p>
+            <p style={{ color: theme.muted, marginTop: 0 }}>
+              Audio enabled{autoplayFailed ? ". Tap Play clip if needed." : "."}
+            </p>
           )}
         </div>
       )}
@@ -252,7 +341,10 @@ export default function PlayerPage() {
           {isAudioQ && shouldPlayOnPhone && audioEnabled && (
             <div style={{ marginTop: 10 }}>
               <button
-                onClick={playClip}
+                onClick={async () => {
+                  setAutoplayFailed(false)
+                  await playClip()
+                }}
                 style={{
                   padding: 12,
                   border: `1px solid ${theme.border}`,
@@ -264,6 +356,11 @@ export default function PlayerPage() {
               >
                 Play clip
               </button>
+              {autoplayFailed && (
+                <p style={{ marginTop: 8, color: theme.muted }}>
+                  Your phone blocked autoplay. Tap Play clip.
+                </p>
+              )}
             </div>
           )}
 
