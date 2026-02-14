@@ -15,6 +15,16 @@ export default function PlayerPage() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [lastQuestionId, setLastQuestionId] = useState<string | null>(null)
 
+  const [isDark, setIsDark] = useState(false)
+
+  useEffect(() => {
+    const m = window.matchMedia("(prefers-color-scheme: dark)")
+    const apply = () => setIsDark(Boolean(m.matches))
+    apply()
+    m.addEventListener("change", apply)
+    return () => m.removeEventListener("change", apply)
+  }, [])
+
   useEffect(() => {
     if (!code) return
     setPlayerId(localStorage.getItem(`mtq_player_${code}`))
@@ -66,9 +76,57 @@ export default function PlayerPage() {
     }).catch(() => {})
   }
 
+  const theme = useMemo(() => {
+    if (isDark) {
+      return {
+        pageBg: "#0b0f14",
+        text: "#f3f4f6",
+        muted: "#a1a1aa",
+        cardBg: "#0f172a",
+        border: "#334155",
+        btnBg: "#111827",
+        btnText: "#f9fafb",
+        selectedBg: "#064e3b",
+        selectedText: "#ecfdf5",
+        correctBg: "#065f46",
+        correctText: "#ecfdf5",
+        wrongBg: "#7f1d1d",
+        wrongText: "#fff1f2"
+      }
+    }
+
+    return {
+      pageBg: "#ffffff",
+      text: "#111111",
+      muted: "#555555",
+      cardBg: "#ffffff",
+      border: "#bbbbbb",
+      btnBg: "#ffffff",
+      btnText: "#111111",
+      selectedBg: "#e9ffe9",
+      selectedText: "#111111",
+      correctBg: "#e9ffe9",
+      correctText: "#111111",
+      wrongBg: "#ffe9e9",
+      wrongText: "#111111"
+    }
+  }, [isDark])
+
+  const pageStyle: React.CSSProperties = {
+    maxWidth: 520,
+    margin: "40px auto",
+    padding: 16,
+    fontFamily: "system-ui",
+    background: theme.pageBg,
+    color: theme.text,
+    minHeight: "100vh",
+    boxSizing: "border-box",
+    colorScheme: isDark ? ("dark" as any) : ("light" as any)
+  }
+
   if (!code) {
     return (
-      <main style={{ maxWidth: 520, margin: "40px auto", padding: 16, fontFamily: "system-ui", color: "#111" }}>
+      <main style={pageStyle}>
         <p>Missing room code in the URL.</p>
       </main>
     )
@@ -78,18 +136,18 @@ export default function PlayerPage() {
 
   if (state.phase === "lobby") {
     return (
-      <main style={{ maxWidth: 520, margin: "40px auto", padding: 16, fontFamily: "system-ui", color: "#111" }}>
+      <main style={pageStyle}>
         <h1 style={{ fontSize: 22, marginBottom: 6 }}>Room {code}</h1>
-        <p>Joined. Waiting for the host to start the game.</p>
+        <p style={{ color: theme.text }}>Joined. Waiting for the host to start the game.</p>
       </main>
     )
   }
 
   if (state.phase === "finished") {
     return (
-      <main style={{ maxWidth: 520, margin: "40px auto", padding: 16, fontFamily: "system-ui", color: "#111" }}>
+      <main style={pageStyle}>
         <h1 style={{ fontSize: 22, marginBottom: 6 }}>Room {code}</h1>
-        <p>The game has finished.</p>
+        <p style={{ color: theme.text }}>The game has finished.</p>
       </main>
     )
   }
@@ -97,14 +155,14 @@ export default function PlayerPage() {
   const correctIndex = state?.reveal?.answerIndex ?? null
 
   return (
-    <main style={{ maxWidth: 520, margin: "40px auto", padding: 16, fontFamily: "system-ui", color: "#111" }}>
+    <main style={pageStyle}>
       <h1 style={{ fontSize: 22, marginBottom: 6 }}>Room {code}</h1>
 
-      {state.stage === "countdown" && <p>Get ready.</p>}
+      {state.stage === "countdown" && <p style={{ color: theme.muted }}>Get ready.</p>}
 
       {state.question && (
         <>
-          <h2 style={{ fontSize: 18, lineHeight: 1.3, color: "#111" }}>{state.question.text}</h2>
+          <h2 style={{ fontSize: 18, lineHeight: 1.3, color: theme.text }}>{state.question.text}</h2>
 
           <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
             {state.question.options.map((opt: string, i: number) => {
@@ -112,10 +170,23 @@ export default function PlayerPage() {
               const isCorrect = correctIndex !== null && i === correctIndex
               const isWrongSelected = correctIndex !== null && isSelected && !isCorrect
 
-              let bg = "#ffffff"
-              if (isSelected) bg = "#e9ffe9"
-              if (isCorrect) bg = "#e9ffe9"
-              if (isWrongSelected) bg = "#ffe9e9"
+              let bg = theme.btnBg
+              let fg = theme.btnText
+
+              if (isSelected && correctIndex === null) {
+                bg = theme.selectedBg
+                fg = theme.selectedText
+              }
+
+              if (isCorrect) {
+                bg = theme.correctBg
+                fg = theme.correctText
+              }
+
+              if (isWrongSelected) {
+                bg = theme.wrongBg
+                fg = theme.wrongText
+              }
 
               return (
                 <button
@@ -124,13 +195,15 @@ export default function PlayerPage() {
                   disabled={!canAnswer && !isSelected}
                   style={{
                     padding: 14,
-                    border: "1px solid #bbb",
+                    border: `1px solid ${theme.border}`,
                     borderRadius: 12,
                     textAlign: "left",
                     background: bg,
-                    color: "#111",
+                    color: fg,
                     fontSize: 18,
-                    lineHeight: 1.25
+                    lineHeight: 1.25,
+                    width: "100%",
+                    touchAction: "manipulation"
                   }}
                 >
                   {opt}
@@ -139,10 +212,12 @@ export default function PlayerPage() {
             })}
           </div>
 
-          {selectedIndex !== null && correctIndex === null && <p style={{ marginTop: 12 }}>Answer locked in.</p>}
+          {selectedIndex !== null && correctIndex === null && (
+            <p style={{ marginTop: 12, color: theme.muted }}>Answer locked in.</p>
+          )}
 
           {correctIndex !== null && selectedIndex !== null && (
-            <p style={{ marginTop: 12 }}>
+            <p style={{ marginTop: 12, color: theme.text }}>
               {selectedIndex === correctIndex ? "You got it right." : "You got it wrong."}
             </p>
           )}
