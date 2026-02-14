@@ -71,20 +71,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ accepted: false, reason: "already_answered" })
   }
 
-  let wasFastestCorrect = false
-
   if (isCorrect) {
-    const winRes = await supabaseAdmin.from("round_results").insert({
-      room_id: room.id,
-      question_id: questionId,
-      winner_player_id: playerId,
-      winner_received_at: new Date().toISOString()
-    })
-
-    if (!winRes.error) {
-      wasFastestCorrect = true
-      await supabaseAdmin.rpc("increment_player_score", { p_player_id: playerId })
-    }
+    await supabaseAdmin.rpc("increment_player_score", { p_player_id: playerId })
   }
 
   const playersCountRes = await supabaseAdmin
@@ -116,5 +104,5 @@ export async function POST(req: Request) {
       .eq("id", room.id)
   }
 
-  return NextResponse.json({ accepted: true, isCorrect, wasFastestCorrect })
+  return NextResponse.json({ accepted: true, isCorrect })
 }

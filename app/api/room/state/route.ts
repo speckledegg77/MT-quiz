@@ -59,7 +59,6 @@ export async function GET(req: Request) {
 
   let questionPublic: any = null
   let revealData: any = null
-  let winner: any = null
 
   if (canShowQuestion && currentQuestionId) {
     const q = getQuestionById(String(currentQuestionId))
@@ -77,15 +76,6 @@ export async function GET(req: Request) {
       if (stage === "reveal" || room.phase === "finished") {
         revealData = { answerIndex: q.answerIndex, explanation: q.explanation }
       }
-
-      const resultRes = await supabaseAdmin
-        .from("round_results")
-        .select("winner_player_id, winner_received_at")
-        .eq("room_id", room.id)
-        .eq("question_id", q.id)
-        .maybeSingle()
-
-      if (!resultRes.error && resultRes.data?.winner_player_id) winner = resultRes.data
     }
   }
 
@@ -107,7 +97,6 @@ export async function GET(req: Request) {
     },
     question: questionPublic,
     reveal: revealData,
-    winner,
     players: playersRes.data ?? []
   })
 }
