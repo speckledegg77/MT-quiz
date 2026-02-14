@@ -1,20 +1,22 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 
 export default function HostCreatePage() {
   const router = useRouter()
   const [questionCount, setQuestionCount] = useState(20)
   const [countdownSeconds, setCountdownSeconds] = useState(3)
-  const [answerSeconds, setAnswerSeconds] = useState(12)
+  const [answerSeconds, setAnswerSeconds] = useState(60)
   const [revealDelaySeconds, setRevealDelaySeconds] = useState(2)
   const [revealSeconds, setRevealSeconds] = useState(5)
+
   const [code, setCode] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   async function createRoom() {
     setError(null)
+
     const res = await fetch("/api/room/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -27,29 +29,59 @@ export default function HostCreatePage() {
         pack: "general"
       })
     })
+
     const data = await res.json()
+
     if (!res.ok) {
       setError(data.error ?? "Could not create room")
       return
     }
+
     setCode(data.code)
   }
 
   async function startGame() {
     if (!code) return
+
     await fetch("/api/room/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code })
     })
+
     router.push(`/display/${code}`)
   }
 
-  const joinUrl = code ? `${typeof window !== "undefined" ? window.location.origin : ""}/join?code=${code}` : ""
+  function resetRoom() {
+    setCode(null)
+    setError(null)
+  }
+
+  const origin = typeof window !== "undefined" ? window.location.origin : ""
+  const joinUrl = useMemo(() => (code ? `${origin}/join?code=${code}` : ""), [code, origin])
+  const displayUrl = useMemo(() => (code ? `${origin}/display/${code}` : ""), [code, origin])
 
   return (
-    <main style={{ maxWidth: 720, margin: "40px auto", padding: 16, fontFamily: "system-ui" }}>
+    <main style={{ maxWidth: 820, margin: "40px auto", padding: 16, fontFamily: "system-ui" }}>
       <h1 style={{ fontSize: 28, marginBottom: 8 }}>Host</h1>
+
+      {code && (
+        <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+          <button
+            onClick={resetRoom}
+            style={{ padding: "10px 12px", border: "1px solid #ccc", borderRadius: 10 }}
+          >
+            Create new room
+          </button>
+
+          <button
+            onClick={startGame}
+            style={{ padding: "10px 12px", border: "1px solid #ccc", borderRadius: 10, marginLeft: "auto" }}
+          >
+            Start game
+          </button>
+        </div>
+      )}
 
       {!code && (
         <>
@@ -63,47 +95,52 @@ export default function HostCreatePage() {
             />
           </label>
 
-          <label style={{ display: "block", marginBottom: 10 }}>
-            Countdown seconds
-            <input
-              type="number"
-              value={countdownSeconds}
-              onChange={e => setCountdownSeconds(Number(e.target.value))}
-              style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
-            />
-          </label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <label style={{ display: "block", marginBottom: 10 }}>
+              Countdown seconds
+              <input
+                type="number"
+                value={countdownSeconds}
+                onChange={e => setCountdownSeconds(Number(e.target.value))}
+                style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
+              />
+            </label>
 
-          <label style={{ display: "block", marginBottom: 10 }}>
-            Answer seconds
-            <input
-              type="number"
-              value={answerSeconds}
-              onChange={e => setAnswerSeconds(Number(e.target.value))}
-              style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
-            />
-          </label>
+            <label style={{ display: "block", marginBottom: 10 }}>
+              Max answer seconds
+              <input
+                type="number"
+                value={answerSeconds}
+                onChange={e => setAnswerSeconds(Number(e.target.value))}
+                style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
+              />
+            </label>
 
-          <label style={{ display: "block", marginBottom: 10 }}>
-            Wait before reveal (seconds)
-            <input
-              type="number"
-              value={revealDelaySeconds}
-              onChange={e => setRevealDelaySeconds(Number(e.target.value))}
-              style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
-            />
-          </label>
+            <label style={{ display: "block", marginBottom: 10 }}>
+              Wait before reveal
+              <input
+                type="number"
+                value={revealDelaySeconds}
+                onChange={e => setRevealDelaySeconds(Number(e.target.value))}
+                style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
+              />
+            </label>
 
-          <label style={{ display: "block", marginBottom: 10 }}>
-            Reveal time (seconds)
-            <input
-              type="number"
-              value={revealSeconds}
-              onChange={e => setRevealSeconds(Number(e.target.value))}
-              style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
-            />
-          </label>
+            <label style={{ display: "block", marginBottom: 10 }}>
+              Reveal seconds
+              <input
+                type="number"
+                value={revealSeconds}
+                onChange={e => setRevealSeconds(Number(e.target.value))}
+                style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
+              />
+            </label>
+          </div>
 
-          <button onClick={createRoom} style={{ padding: "12px 16px", border: "1px solid #ccc", borderRadius: 10, width: "100%" }}>
+          <button
+            onClick={createRoom}
+            style={{ padding: "12px 16px", border: "1px solid #ccc", borderRadius: 10, width: "100%" }}
+          >
             Create room
           </button>
 
@@ -112,19 +149,23 @@ export default function HostCreatePage() {
       )}
 
       {code && (
-        <>
-          <p style={{ fontSize: 18, marginBottom: 8 }}>Room code: {code}</p>
-          <p style={{ marginTop: 0 }}>Players join at: {joinUrl}</p>
+        <div style={{ border: "1px solid #ccc", borderRadius: 12, padding: 12 }}>
+          <p style={{ marginTop: 0, fontSize: 18 }}>Room code: {code}</p>
 
-          <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-            <a href={`/display/${code}`}>Open TV display</a>
-            <a href={`/join?code=${code}`}>Open join page</a>
-          </div>
+          <p style={{ marginBottom: 6 }}>Players join at:</p>
+          <p style={{ marginTop: 0 }}>
+            <a href={joinUrl}>{joinUrl}</a>
+          </p>
 
-          <button onClick={startGame} style={{ marginTop: 16, padding: "12px 16px", border: "1px solid #ccc", borderRadius: 10, width: "100%" }}>
-            Start game
-          </button>
-        </>
+          <p style={{ marginBottom: 6 }}>TV display:</p>
+          <p style={{ marginTop: 0 }}>
+            <a href={displayUrl}>{displayUrl}</a>
+          </p>
+
+          <p style={{ marginBottom: 0, color: "#555" }}>
+            If you see this screen again later, press Create new room to reset.
+          </p>
+        </div>
       )}
     </main>
   )
