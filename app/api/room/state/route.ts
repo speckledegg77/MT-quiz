@@ -13,12 +13,10 @@ function stageFromTimes(
   nextAt?: string
 ) {
   if (phase !== "running") return phase
-
   const open = openAt ? Date.parse(openAt) : 0
   const close = closeAt ? Date.parse(closeAt) : 0
   const reveal = revealAt ? Date.parse(revealAt) : 0
   const next = nextAt ? Date.parse(nextAt) : 0
-
   if (nowMs < open) return "countdown"
   if (nowMs < close) return "open"
   if (nowMs < reveal) return "wait"
@@ -31,12 +29,7 @@ export async function GET(req: Request) {
   const code = String(searchParams.get("code") ?? "").trim().toUpperCase()
   if (!code) return NextResponse.json({ error: "Missing code" }, { status: 400 })
 
-  const roomRes = await supabaseAdmin
-    .from("rooms")
-    .select("*")
-    .eq("code", code)
-    .single()
-
+  const roomRes = await supabaseAdmin.from("rooms").select("*").eq("code", code).single()
   if (roomRes.error) return NextResponse.json({ error: "Room not found" }, { status: 404 })
   const room = roomRes.data
 
@@ -53,26 +46,17 @@ export async function GET(req: Request) {
   const stage = stageFromTimes(room.phase, now.getTime(), room.open_at, room.close_at, room.reveal_at, room.next_at)
 
   const canShowQuestion = room.phase === "running" || room.phase === "finished"
-
   const audioMode = String(room.audio_mode ?? "display")
-  const selectedPacks = Array.isArray(room.selected_packs) ? room.selected_packs : ["general"]
+  const selectedPacks = Array.isArray(room.selected_packs) ? room.selected_packs : []
 
   let questionPublic: any = null
   let revealData: any = null
 
   if (canShowQuestion && currentQuestionId) {
-    const q = getQuestionById(String(currentQuestionId))
+    const q = await getQuestionById(String(currentQuestionId))
     if (q) {
       const audioUrl = q.audioPath ? `/api/audio?path=${encodeURIComponent(q.audioPath)}` : null
-
-      questionPublic = {
-        id: q.id,
-        roundType: q.roundType,
-        text: q.text,
-        options: q.options,
-        audioUrl
-      }
-
+      questionPublic = { id: q.id, roundType: q.roundType, text: q.text, options: q.options, audioUrl }
       if (stage === "reveal" || room.phase === "finished") {
         revealData = { answerIndex: q.answerIndex, explanation: q.explanation }
       }
@@ -89,14 +73,9 @@ export async function GET(req: Request) {
     selectedPacks,
     questionIndex: room.question_index,
     questionCount: questionIds.length,
-    times: {
-      openAt: room.open_at,
-      closeAt: room.close_at,
-      revealAt: room.reveal_at,
-      nextAt: room.next_at
-    },
+    times: { openAt: room.open_at, closeAt: room.close_at, revealAt: room.reveal_at, nextAt: room.next_at },
     question: questionPublic,
     reveal: revealData,
-    players: playersRes.data ?? []
+    players: playersRes.data ?? [],
   })
 }

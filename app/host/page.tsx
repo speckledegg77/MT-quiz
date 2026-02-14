@@ -169,7 +169,7 @@ export default function HostCreatePage() {
 
             {!loadingPacks && packs.length === 0 && (
               <p style={{ marginTop: 0, color: "#555" }}>
-                No packs found in the question bank. Add packs in data/questions.ts.
+                No packs found in the question bank. Add packs in Supabase.
               </p>
             )}
 
@@ -192,7 +192,7 @@ export default function HostCreatePage() {
             )}
 
             <p style={{ marginBottom: 0, color: "#555", marginTop: 10 }}>
-              These come from the packs fields in data/questions.ts.
+              These come from the packs table in Supabase.
             </p>
           </div>
 

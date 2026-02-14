@@ -10,6 +10,7 @@ function addSeconds(date: Date, seconds: number) {
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}))
+
   const code = String(body.code ?? "").trim().toUpperCase()
   const playerId = String(body.playerId ?? "").trim()
   const questionId = String(body.questionId ?? "").trim()
@@ -19,12 +20,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 })
   }
 
-  const roomRes = await supabaseAdmin
-    .from("rooms")
-    .select("*")
-    .eq("code", code)
-    .single()
-
+  const roomRes = await supabaseAdmin.from("rooms").select("*").eq("code", code).single()
   if (roomRes.error) return NextResponse.json({ error: "Room not found" }, { status: 404 })
   const room = roomRes.data
 
@@ -39,22 +35,16 @@ export async function POST(req: Request) {
   const nowMs = Date.now()
   const openMs = room.open_at ? Date.parse(room.open_at) : 0
   const closeMs = room.close_at ? Date.parse(room.close_at) : 0
-
   if (!(nowMs >= openMs && nowMs < closeMs)) {
     return NextResponse.json({ accepted: false, reason: "not_open" })
   }
 
-  const playerRes = await supabaseAdmin
-    .from("players")
-    .select("id, room_id")
-    .eq("id", playerId)
-    .single()
-
+  const playerRes = await supabaseAdmin.from("players").select("id, room_id").eq("id", playerId).single()
   if (playerRes.error || playerRes.data.room_id !== room.id) {
     return NextResponse.json({ accepted: false, reason: "bad_player" })
   }
 
-  const q = getQuestionById(questionId)
+  const q = await getQuestionById(questionId)
   if (!q) return NextResponse.json({ accepted: false, reason: "bad_question" })
 
   const isCorrect = optionIndex === q.answerIndex
@@ -64,7 +54,7 @@ export async function POST(req: Request) {
     player_id: playerId,
     question_id: questionId,
     option_index: optionIndex,
-    is_correct: isCorrect
+    is_correct: isCorrect,
   })
 
   if (ansRes.error) {
@@ -93,14 +83,9 @@ export async function POST(req: Request) {
     const now = new Date()
     const revealAt = addSeconds(now, room.reveal_delay_seconds)
     const nextAt = addSeconds(revealAt, room.reveal_seconds)
-
     await supabaseAdmin
       .from("rooms")
-      .update({
-        close_at: now.toISOString(),
-        reveal_at: revealAt.toISOString(),
-        next_at: nextAt.toISOString()
-      })
+      .update({ close_at: now.toISOString(), reveal_at: revealAt.toISOString(), next_at: nextAt.toISOString() })
       .eq("id", room.id)
   }
 
