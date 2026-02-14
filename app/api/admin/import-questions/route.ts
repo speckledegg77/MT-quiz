@@ -51,18 +51,21 @@ export async function POST(req: Request) {
 
   const form = await req.formData()
   const file = form.get("file")
+
   if (!file || typeof (file as any).text !== "function") {
     return NextResponse.json({ error: "Missing file field in form data" }, { status: 400 })
   }
 
   const csvText = await (file as any).text()
 
-  let rows: CsvRow[] = []
+  let rows: CsvRow[]
   try {
     rows = parse(csvText, {
       columns: true,
       skip_empty_lines: true,
       trim: true,
+      bom: true,
+      relax_quotes: true,
     }) as CsvRow[]
   } catch {
     return NextResponse.json({ error: "Could not parse CSV" }, { status: 400 })
