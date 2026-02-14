@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
+import { QRCodeSVG } from "qrcode.react"
 
 export default function HostCreatePage() {
   const router = useRouter()
+
   const [questionCount, setQuestionCount] = useState(20)
   const [countdownSeconds, setCountdownSeconds] = useState(3)
   const [answerSeconds, setAnswerSeconds] = useState(60)
@@ -58,8 +60,16 @@ export default function HostCreatePage() {
   }
 
   const origin = typeof window !== "undefined" ? window.location.origin : ""
-  const joinUrl = useMemo(() => (code ? `${origin}/join?code=${code}` : ""), [code, origin])
-  const displayUrl = useMemo(() => (code ? `${origin}/display/${code}` : ""), [code, origin])
+
+  const joinUrl = useMemo(() => {
+    if (!code || !origin) return ""
+    return `${origin}/join?code=${code}`
+  }, [code, origin])
+
+  const displayUrl = useMemo(() => {
+    if (!code || !origin) return ""
+    return `${origin}/display/${code}`
+  }, [code, origin])
 
   return (
     <main style={{ maxWidth: 820, margin: "40px auto", padding: 16, fontFamily: "system-ui" }}>
@@ -76,7 +86,12 @@ export default function HostCreatePage() {
 
           <button
             onClick={startGame}
-            style={{ padding: "10px 12px", border: "1px solid #ccc", borderRadius: 10, marginLeft: "auto" }}
+            style={{
+              padding: "10px 12px",
+              border: "1px solid #ccc",
+              borderRadius: 10,
+              marginLeft: "auto"
+            }}
           >
             Start game
           </button>
@@ -91,7 +106,14 @@ export default function HostCreatePage() {
               type="number"
               value={questionCount}
               onChange={e => setQuestionCount(Number(e.target.value))}
-              style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: 10,
+                border: "1px solid #ccc",
+                borderRadius: 8,
+                marginTop: 6
+              }}
             />
           </label>
 
@@ -102,7 +124,14 @@ export default function HostCreatePage() {
                 type="number"
                 value={countdownSeconds}
                 onChange={e => setCountdownSeconds(Number(e.target.value))}
-                style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  padding: 10,
+                  border: "1px solid #ccc",
+                  borderRadius: 8,
+                  marginTop: 6
+                }}
               />
             </label>
 
@@ -112,7 +141,14 @@ export default function HostCreatePage() {
                 type="number"
                 value={answerSeconds}
                 onChange={e => setAnswerSeconds(Number(e.target.value))}
-                style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  padding: 10,
+                  border: "1px solid #ccc",
+                  borderRadius: 8,
+                  marginTop: 6
+                }}
               />
             </label>
 
@@ -122,7 +158,14 @@ export default function HostCreatePage() {
                 type="number"
                 value={revealDelaySeconds}
                 onChange={e => setRevealDelaySeconds(Number(e.target.value))}
-                style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  padding: 10,
+                  border: "1px solid #ccc",
+                  borderRadius: 8,
+                  marginTop: 6
+                }}
               />
             </label>
 
@@ -132,7 +175,14 @@ export default function HostCreatePage() {
                 type="number"
                 value={revealSeconds}
                 onChange={e => setRevealSeconds(Number(e.target.value))}
-                style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  padding: 10,
+                  border: "1px solid #ccc",
+                  borderRadius: 8,
+                  marginTop: 6
+                }}
               />
             </label>
           </div>
@@ -152,19 +202,32 @@ export default function HostCreatePage() {
         <div style={{ border: "1px solid #ccc", borderRadius: 12, padding: 12 }}>
           <p style={{ marginTop: 0, fontSize: 18 }}>Room code: {code}</p>
 
-          <p style={{ marginBottom: 6 }}>Players join at:</p>
-          <p style={{ marginTop: 0 }}>
-            <a href={joinUrl}>{joinUrl}</a>
-          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16, alignItems: "start" }}>
+            <div>
+              <p style={{ marginBottom: 6 }}>Players join at:</p>
+              <p style={{ marginTop: 0 }}>
+                <a href={joinUrl}>{joinUrl}</a>
+              </p>
 
-          <p style={{ marginBottom: 6 }}>TV display:</p>
-          <p style={{ marginTop: 0 }}>
-            <a href={displayUrl}>{displayUrl}</a>
-          </p>
+              <p style={{ marginBottom: 6 }}>TV display:</p>
+              <p style={{ marginTop: 0 }}>
+                <a href={displayUrl}>{displayUrl}</a>
+              </p>
 
-          <p style={{ marginBottom: 0, color: "#555" }}>
-            If you see this screen again later, press Create new room to reset.
-          </p>
+              <p style={{ marginBottom: 0, color: "#555" }}>
+                If you see this screen again later, press Create new room to reset.
+              </p>
+            </div>
+
+            {joinUrl && (
+              <div style={{ display: "grid", gap: 8, justifyItems: "center" }}>
+                <div style={{ border: "1px solid #ccc", borderRadius: 12, padding: 12, background: "white" }}>
+                  <QRCodeSVG value={joinUrl} size={220} />
+                </div>
+                <div style={{ color: "#555" }}>Scan to join</div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </main>
