@@ -68,7 +68,7 @@ export default function PlayerPage() {
 
   if (!code) {
     return (
-      <main style={{ maxWidth: 520, margin: "40px auto", padding: 16, fontFamily: "system-ui" }}>
+      <main style={{ maxWidth: 520, margin: "40px auto", padding: 16, fontFamily: "system-ui", color: "#111" }}>
         <p>Missing room code in the URL.</p>
       </main>
     )
@@ -78,7 +78,7 @@ export default function PlayerPage() {
 
   if (state.phase === "lobby") {
     return (
-      <main style={{ maxWidth: 520, margin: "40px auto", padding: 16, fontFamily: "system-ui" }}>
+      <main style={{ maxWidth: 520, margin: "40px auto", padding: 16, fontFamily: "system-ui", color: "#111" }}>
         <h1 style={{ fontSize: 22, marginBottom: 6 }}>Room {code}</h1>
         <p>Joined. Waiting for the host to start the game.</p>
       </main>
@@ -87,7 +87,7 @@ export default function PlayerPage() {
 
   if (state.phase === "finished") {
     return (
-      <main style={{ maxWidth: 520, margin: "40px auto", padding: 16, fontFamily: "system-ui" }}>
+      <main style={{ maxWidth: 520, margin: "40px auto", padding: 16, fontFamily: "system-ui", color: "#111" }}>
         <h1 style={{ fontSize: 22, marginBottom: 6 }}>Room {code}</h1>
         <p>The game has finished.</p>
       </main>
@@ -97,15 +97,14 @@ export default function PlayerPage() {
   const correctIndex = state?.reveal?.answerIndex ?? null
 
   return (
-    <main style={{ maxWidth: 520, margin: "40px auto", padding: 16, fontFamily: "system-ui" }}>
+    <main style={{ maxWidth: 520, margin: "40px auto", padding: 16, fontFamily: "system-ui", color: "#111" }}>
       <h1 style={{ fontSize: 22, marginBottom: 6 }}>Room {code}</h1>
 
       {state.stage === "countdown" && <p>Get ready.</p>}
-      {state.stage === "wait" && <p>Waiting for reveal.</p>}
 
       {state.question && (
         <>
-          <h2 style={{ fontSize: 18, lineHeight: 1.3 }}>{state.question.text}</h2>
+          <h2 style={{ fontSize: 18, lineHeight: 1.3, color: "#111" }}>{state.question.text}</h2>
 
           <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
             {state.question.options.map((opt: string, i: number) => {
@@ -113,7 +112,7 @@ export default function PlayerPage() {
               const isCorrect = correctIndex !== null && i === correctIndex
               const isWrongSelected = correctIndex !== null && isSelected && !isCorrect
 
-              let bg = "white"
+              let bg = "#ffffff"
               if (isSelected) bg = "#e9ffe9"
               if (isCorrect) bg = "#e9ffe9"
               if (isWrongSelected) bg = "#ffe9e9"
@@ -124,11 +123,14 @@ export default function PlayerPage() {
                   onClick={() => answer(i)}
                   disabled={!canAnswer && !isSelected}
                   style={{
-                    padding: 12,
-                    border: "1px solid #ccc",
-                    borderRadius: 10,
+                    padding: 14,
+                    border: "1px solid #bbb",
+                    borderRadius: 12,
                     textAlign: "left",
-                    background: bg
+                    background: bg,
+                    color: "#111",
+                    fontSize: 18,
+                    lineHeight: 1.25
                   }}
                 >
                   {opt}
