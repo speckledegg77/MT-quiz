@@ -4,6 +4,17 @@ import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { QRCodeSVG } from "qrcode.react"
 
+const ROUND_OPTIONS = [
+  { id: "general", label: "General trivia" },
+  { id: "quickfire", label: "Quickfire" },
+  { id: "lyrics", label: "Guess the lyrics" },
+  { id: "intros", label: "Guess the intros" },
+  { id: "karaoke", label: "Karaoke" },
+  { id: "picture", label: "Picture round" }
+] as const
+
+type AudioMode = "display" | "phones" | "both"
+
 export default function HostCreatePage() {
   const router = useRouter()
 
@@ -13,11 +24,23 @@ export default function HostCreatePage() {
   const [revealDelaySeconds, setRevealDelaySeconds] = useState(2)
   const [revealSeconds, setRevealSeconds] = useState(5)
 
+  const [audioMode, setAudioMode] = useState<AudioMode>("display")
+  const [selectedPacks, setSelectedPacks] = useState<string[]>(["general"])
+
   const [code, setCode] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  function togglePack(id: string) {
+    setSelectedPacks(prev => {
+      if (prev.includes(id)) return prev.filter(x => x !== id)
+      return [...prev, id]
+    })
+  }
+
   async function createRoom() {
     setError(null)
+
+    const packs = selectedPacks.length ? selectedPacks : ["general"]
 
     const res = await fetch("/api/room/create", {
       method: "POST",
@@ -28,7 +51,8 @@ export default function HostCreatePage() {
         answerSeconds,
         revealDelaySeconds,
         revealSeconds,
-        pack: "general"
+        audioMode,
+        selectedPacks: packs
       })
     })
 
@@ -72,7 +96,7 @@ export default function HostCreatePage() {
   }, [code, origin])
 
   return (
-    <main style={{ maxWidth: 820, margin: "40px auto", padding: 16, fontFamily: "system-ui" }}>
+    <main style={{ maxWidth: 860, margin: "40px auto", padding: 16, fontFamily: "system-ui" }}>
       <h1 style={{ fontSize: 28, marginBottom: 8 }}>Host</h1>
 
       {code && (
@@ -100,6 +124,65 @@ export default function HostCreatePage() {
 
       {!code && (
         <>
+          <div style={{ border: "1px solid #ccc", borderRadius: 12, padding: 12, marginBottom: 14 }}>
+            <h2 style={{ fontSize: 18, marginTop: 0, marginBottom: 10 }}>Rounds to include</h2>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {ROUND_OPTIONS.map(r => (
+                <label key={r.id} style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedPacks.includes(r.id)}
+                    onChange={() => togglePack(r.id)}
+                  />
+                  <span>{r.label}</span>
+                </label>
+              ))}
+            </div>
+
+            <p style={{ marginBottom: 0, color: "#555", marginTop: 10 }}>
+              These map to the packs you tag on each question in data/questions.ts.
+            </p>
+          </div>
+
+          <div style={{ border: "1px solid #ccc", borderRadius: 12, padding: 12, marginBottom: 14 }}>
+            <h2 style={{ fontSize: 18, marginTop: 0, marginBottom: 10 }}>Audio playback</h2>
+
+            <label style={{ display: "block", marginBottom: 6 }}>
+              <input
+                type="radio"
+                name="audioMode"
+                checked={audioMode === "display"}
+                onChange={() => setAudioMode("display")}
+              />{" "}
+              Play audio on TV display
+            </label>
+
+            <label style={{ display: "block", marginBottom: 6 }}>
+              <input
+                type="radio"
+                name="audioMode"
+                checked={audioMode === "phones"}
+                onChange={() => setAudioMode("phones")}
+              />{" "}
+              Play audio on phones (remote friendly)
+            </label>
+
+            <label style={{ display: "block" }}>
+              <input
+                type="radio"
+                name="audioMode"
+                checked={audioMode === "both"}
+                onChange={() => setAudioMode("both")}
+              />{" "}
+              Play audio on both
+            </label>
+
+            <p style={{ marginBottom: 0, color: "#555", marginTop: 10 }}>
+              Phones will need one tap to enable audio before clips can play.
+            </p>
+          </div>
+
           <label style={{ display: "block", marginBottom: 10 }}>
             Total questions
             <input
@@ -215,7 +298,7 @@ export default function HostCreatePage() {
               </p>
 
               <p style={{ marginBottom: 0, color: "#555" }}>
-                If you see this screen again later, press Create new room to reset.
+                Audio mode: {audioMode}. Rounds: {selectedPacks.length ? selectedPacks.join(", ") : "general"}.
               </p>
             </div>
 

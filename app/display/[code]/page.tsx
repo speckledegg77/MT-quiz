@@ -61,9 +61,13 @@ export default function DisplayPage() {
     }
   }, [code])
 
+  const audioMode = String(state?.audioMode ?? "display")
+  const shouldPlayOnDisplay = audioMode === "display" || audioMode === "both"
+
   useEffect(() => {
     const q = state?.question
     if (!q) return
+    if (!shouldPlayOnDisplay) return
     if (!audioEnabled) return
     if (q.roundType !== "audio") return
     if (state.stage !== "open") return
@@ -72,7 +76,7 @@ export default function DisplayPage() {
 
     setPlayedForQ(q.id)
     playClip().catch(() => {})
-  }, [state, audioEnabled, playedForQ])
+  }, [state, audioEnabled, playedForQ, shouldPlayOnDisplay])
 
   const scoreboard = useMemo(() => {
     const players = state?.players ?? []
@@ -110,7 +114,7 @@ export default function DisplayPage() {
             </p>
           )}
 
-          {!audioEnabled && (
+          {shouldPlayOnDisplay && !audioEnabled && (
             <button
               onClick={unlockAudio}
               style={{ padding: "12px 16px", border: "1px solid #ccc", borderRadius: 10, marginBottom: 8 }}
@@ -146,7 +150,11 @@ export default function DisplayPage() {
 
           <h2 style={{ fontSize: 34, lineHeight: 1.15, marginTop: 10 }}>{state.question.text}</h2>
 
-          {isAudioQ && audioEnabled && (
+          {isAudioQ && audioMode === "phones" && (
+            <p style={{ marginTop: 10, color: "#555" }}>Audio plays on phones for this game.</p>
+          )}
+
+          {isAudioQ && shouldPlayOnDisplay && audioEnabled && (
             <div style={{ marginTop: 12 }}>
               <button
                 onClick={playClip}

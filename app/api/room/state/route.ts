@@ -54,13 +54,15 @@ export async function GET(req: Request) {
 
   const canShowQuestion = room.phase === "running" || room.phase === "finished"
 
+  const audioMode = String(room.audio_mode ?? "display")
+  const selectedPacks = Array.isArray(room.selected_packs) ? room.selected_packs : ["general"]
+
   let questionPublic: any = null
   let revealData: any = null
   let winner: any = null
 
   if (canShowQuestion && currentQuestionId) {
     const q = getQuestionById(String(currentQuestionId))
-
     if (q) {
       const audioUrl = q.audioPath ? `/api/audio?path=${encodeURIComponent(q.audioPath)}` : null
 
@@ -93,6 +95,8 @@ export async function GET(req: Request) {
     roomId: room.id,
     phase: room.phase,
     stage,
+    audioMode,
+    selectedPacks,
     questionIndex: room.question_index,
     questionCount: questionIds.length,
     times: {

@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams } from "next/navigation"
+import type { CSSProperties } from "react"
 
 type RoomState = any
 
@@ -16,6 +17,10 @@ export default function PlayerPage() {
   const [lastQuestionId, setLastQuestionId] = useState<string | null>(null)
 
   const [isDark, setIsDark] = useState(false)
+  const [audioEnabled, setAudioEnabled] = useState(false)
+  const [playedForQ, setPlayedForQ] = useState<string | null>(null)
+
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     const m = window.matchMedia("(prefers-color-scheme: dark)")
@@ -59,6 +64,9 @@ export default function PlayerPage() {
     }
   }, [state?.question?.id, lastQuestionId])
 
+  const audioMode = String(state?.audioMode ?? "display")
+  const shouldPlayOnPhone = audioMode === "phones" || audioMode === "both"
+
   const canAnswer = useMemo(() => {
     return state?.stage === "open" && state?.question?.id && selectedIndex === null
   }, [state, selectedIndex])
@@ -82,7 +90,6 @@ export default function PlayerPage() {
         pageBg: "#0b0f14",
         text: "#f3f4f6",
         muted: "#a1a1aa",
-        cardBg: "#0f172a",
         border: "#334155",
         btnBg: "#111827",
         btnText: "#f9fafb",
@@ -99,7 +106,6 @@ export default function PlayerPage() {
       pageBg: "#ffffff",
       text: "#111111",
       muted: "#555555",
-      cardBg: "#ffffff",
       border: "#bbbbbb",
       btnBg: "#ffffff",
       btnText: "#111111",
@@ -112,7 +118,7 @@ export default function PlayerPage() {
     }
   }, [isDark])
 
-  const pageStyle: React.CSSProperties = {
+  const pageStyle: CSSProperties = {
     maxWidth: 520,
     margin: "40px auto",
     padding: 16,
@@ -123,6 +129,38 @@ export default function PlayerPage() {
     boxSizing: "border-box",
     colorScheme: isDark ? ("dark" as any) : ("light" as any)
   }
+
+  async function enableAudio() {
+    setAudioEnabled(true)
+  }
+
+  async function playClip() {
+    const q = state?.question
+    const el = audioRef.current
+    if (!q?.audioUrl || !el) return
+
+    try {
+      el.pause()
+      el.src = q.audioUrl
+      el.load()
+      await el.play()
+    } catch {
+    }
+  }
+
+  useEffect(() => {
+    const q = state?.question
+    if (!q) return
+    if (!shouldPlayOnPhone) return
+    if (!audioEnabled) return
+    if (q.roundType !== "audio") return
+    if (state.stage !== "open") return
+    if (!q.audioUrl) return
+    if (playedForQ === q.id) return
+
+    setPlayedForQ(q.id)
+    playClip().catch(() => {})
+  }, [state, shouldPlayOnPhone, audioEnabled, playedForQ])
 
   if (!code) {
     return (
@@ -138,7 +176,29 @@ export default function PlayerPage() {
     return (
       <main style={pageStyle}>
         <h1 style={{ fontSize: 22, marginBottom: 6 }}>Room {code}</h1>
-        <p style={{ color: theme.text }}>Joined. Waiting for the host to start the game.</p>
+        <p>Joined. Waiting for the host to start the game.</p>
+
+        {shouldPlayOnPhone && (
+          <div style={{ marginTop: 14 }}>
+            {!audioEnabled ? (
+              <button
+                onClick={enableAudio}
+                style={{
+                  padding: 12,
+                  border: `1px solid ${theme.border}`,
+                  borderRadius: 12,
+                  background: theme.btnBg,
+                  color: theme.btnText,
+                  width: "100%"
+                }}
+              >
+                Enable audio on this phone
+              </button>
+            ) : (
+              <p style={{ color: theme.muted, marginTop: 10 }}>Audio enabled for this phone.</p>
+            )}
+          </div>
+        )}
       </main>
     )
   }
@@ -147,12 +207,13 @@ export default function PlayerPage() {
     return (
       <main style={pageStyle}>
         <h1 style={{ fontSize: 22, marginBottom: 6 }}>Room {code}</h1>
-        <p style={{ color: theme.text }}>The game has finished.</p>
+        <p>The game has finished.</p>
       </main>
     )
   }
 
   const correctIndex = state?.reveal?.answerIndex ?? null
+  const isAudioQ = state?.question?.roundType === "audio"
 
   return (
     <main style={pageStyle}>
@@ -160,9 +221,51 @@ export default function PlayerPage() {
 
       {state.stage === "countdown" && <p style={{ color: theme.muted }}>Get ready.</p>}
 
+      {shouldPlayOnPhone && (
+        <div style={{ marginBottom: 10 }}>
+          {!audioEnabled ? (
+            <button
+              onClick={enableAudio}
+              style={{
+                padding: 12,
+                border: `1px solid ${theme.border}`,
+                borderRadius: 12,
+                background: theme.btnBg,
+                color: theme.btnText,
+                width: "100%"
+              }}
+            >
+              Enable audio on this phone
+            </button>
+          ) : (
+            <p style={{ color: theme.muted, marginTop: 0 }}>Audio enabled.</p>
+          )}
+        </div>
+      )}
+
+      <audio ref={audioRef} preload="auto" />
+
       {state.question && (
         <>
           <h2 style={{ fontSize: 18, lineHeight: 1.3, color: theme.text }}>{state.question.text}</h2>
+
+          {isAudioQ && shouldPlayOnPhone && audioEnabled && (
+            <div style={{ marginTop: 10 }}>
+              <button
+                onClick={playClip}
+                style={{
+                  padding: 12,
+                  border: `1px solid ${theme.border}`,
+                  borderRadius: 12,
+                  background: theme.btnBg,
+                  color: theme.btnText,
+                  width: "100%"
+                }}
+              >
+                Play clip
+              </button>
+            </div>
+          )}
 
           <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
             {state.question.options.map((opt: string, i: number) => {
@@ -177,12 +280,10 @@ export default function PlayerPage() {
                 bg = theme.selectedBg
                 fg = theme.selectedText
               }
-
               if (isCorrect) {
                 bg = theme.correctBg
                 fg = theme.correctText
               }
-
               if (isWrongSelected) {
                 bg = theme.wrongBg
                 fg = theme.wrongText
