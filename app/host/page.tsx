@@ -1,19 +1,17 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { QRCodeSVG } from "qrcode.react"
 
-const ROUND_OPTIONS = [
-  { id: "general", label: "General trivia" },
-  { id: "quickfire", label: "Quickfire" },
-  { id: "lyrics", label: "Guess the lyrics" },
-  { id: "intros", label: "Guess the intros" },
-  { id: "karaoke", label: "Karaoke" },
-  { id: "picture", label: "Picture round" }
-] as const
-
 type AudioMode = "display" | "phones" | "both"
+
+type PackInfo = {
+  id: string
+  label: string
+  questionCount: number
+  audioCount: number
+}
 
 export default function HostCreatePage() {
   const router = useRouter()
@@ -25,10 +23,50 @@ export default function HostCreatePage() {
   const [revealSeconds, setRevealSeconds] = useState(5)
 
   const [audioMode, setAudioMode] = useState<AudioMode>("display")
+
+  const [packs, setPacks] = useState<PackInfo[]>([])
   const [selectedPacks, setSelectedPacks] = useState<string[]>(["general"])
 
   const [code, setCode] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [loadingPacks, setLoadingPacks] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      setLoadingPacks(true)
+      try {
+        const res = await fetch("/api/packs", { cache: "no-store" })
+        const data = await res.json()
+        if (cancelled) return
+
+        const list: PackInfo[] = Array.isArray(data?.packs) ? data.packs : []
+        setPacks(list)
+
+        const ids = new Set(list.map(p => p.id))
+        const filtered = selectedPacks.filter(p => ids.has(p))
+
+        if (filtered.length > 0) {
+          setSelectedPacks(filtered)
+        } else if (list.length > 0) {
+          setSelectedPacks([list[0].id])
+        } else {
+          setSelectedPacks(["general"])
+        }
+      } catch {
+        if (!cancelled) setError("Could not load round list")
+      } finally {
+        if (!cancelled) setLoadingPacks(false)
+      }
+    }
+
+    load()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   function togglePack(id: string) {
     setSelectedPacks(prev => {
@@ -40,7 +78,7 @@ export default function HostCreatePage() {
   async function createRoom() {
     setError(null)
 
-    const packs = selectedPacks.length ? selectedPacks : ["general"]
+    const packsToUse = selectedPacks.length ? selectedPacks : ["general"]
 
     const res = await fetch("/api/room/create", {
       method: "POST",
@@ -52,7 +90,7 @@ export default function HostCreatePage() {
         revealDelaySeconds,
         revealSeconds,
         audioMode,
-        selectedPacks: packs
+        selectedPacks: packsToUse
       })
     })
 
@@ -127,21 +165,34 @@ export default function HostCreatePage() {
           <div style={{ border: "1px solid #ccc", borderRadius: 12, padding: 12, marginBottom: 14 }}>
             <h2 style={{ fontSize: 18, marginTop: 0, marginBottom: 10 }}>Rounds to include</h2>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {ROUND_OPTIONS.map(r => (
-                <label key={r.id} style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  <input
-                    type="checkbox"
-                    checked={selectedPacks.includes(r.id)}
-                    onChange={() => togglePack(r.id)}
-                  />
-                  <span>{r.label}</span>
-                </label>
-              ))}
-            </div>
+            {loadingPacks && <p style={{ marginTop: 0, color: "#555" }}>Loading rounds…</p>}
+
+            {!loadingPacks && packs.length === 0 && (
+              <p style={{ marginTop: 0, color: "#555" }}>
+                No packs found in the question bank. Add packs in data/questions.ts.
+              </p>
+            )}
+
+            {!loadingPacks && packs.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {packs.map(p => (
+                  <label key={p.id} style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedPacks.includes(p.id)}
+                      onChange={() => togglePack(p.id)}
+                    />
+                    <span>
+                      {p.label} ({p.questionCount} q{p.questionCount === 1 ? "" : "s"}
+                      {p.audioCount > 0 ? `, ${p.audioCount} audio` : ""})
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
 
             <p style={{ marginBottom: 0, color: "#555", marginTop: 10 }}>
-              These map to the packs you tag on each question in data/questions.ts.
+              These come from the packs fields in data/questions.ts.
             </p>
           </div>
 
@@ -177,10 +228,6 @@ export default function HostCreatePage() {
               />{" "}
               Play audio on both
             </label>
-
-            <p style={{ marginBottom: 0, color: "#555", marginTop: 10 }}>
-              Phones will need one tap to enable audio before clips can play.
-            </p>
           </div>
 
           <label style={{ display: "block", marginBottom: 10 }}>
@@ -298,7 +345,7 @@ export default function HostCreatePage() {
               </p>
 
               <p style={{ marginBottom: 0, color: "#555" }}>
-                Audio mode: {audioMode}. Rounds: {selectedPacks.length ? selectedPacks.join(", ") : "general"}.
+                Audio mode: {audioMode}. Packs: {selectedPacks.length ? selectedPacks.join(", ") : "general"}.
               </p>
             </div>
 
