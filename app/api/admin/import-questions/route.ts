@@ -2,7 +2,7 @@ export const runtime = "nodejs"
 
 import { NextResponse } from "next/server"
 import { parse } from "csv-parse/sync"
-import { supabaseAdmin } from "../../../../../lib/supabaseAdmin"
+import { supabaseAdmin } from "../../../../lib/supabaseAdmin"
 
 type CsvRow = {
   pack_id: string
@@ -26,17 +26,36 @@ function unauthorised() {
   return NextResponse.json({ error: "Unauthorised" }, { status: 401 })
 }
 
+function dedupeBy<T>(items: T[], keyFn: (t: T) => string): T[] {
+  const seen = new Set<string>()
+  const out: T[] = []
+  for (const it of items) {
+    const key = keyFn(it)
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(it)
+  }
+  return out
+}
+
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    message: "Admin import route is live. Use POST with multipart form-data field 'file' and header 'x-admin-token'.",
+  })
+}
+
 export async function POST(req: Request) {
   const token = req.headers.get("x-admin-token")
   if (!token || token !== process.env.ADMIN_TOKEN) return unauthorised()
 
   const form = await req.formData()
   const file = form.get("file")
-  if (!(file instanceof File)) {
+  if (!file || typeof (file as any).text !== "function") {
     return NextResponse.json({ error: "Missing file field in form data" }, { status: 400 })
   }
 
-  const csvText = await file.text()
+  const csvText = await (file as any).text()
 
   let rows: CsvRow[] = []
   try {
@@ -131,7 +150,9 @@ export async function POST(req: Request) {
   const qRes = await supabaseAdmin.from("questions").upsert(uniqueQuestions, { onConflict: "id" })
   if (qRes.error) return NextResponse.json({ error: qRes.error.message }, { status: 500 })
 
-  const linkRes = await supabaseAdmin.from("pack_questions").upsert(uniqueLinks, { onConflict: "pack_id,question_id" })
+  const linkRes = await supabaseAdmin
+    .from("pack_questions")
+    .upsert(uniqueLinks, { onConflict: "pack_id,question_id" })
   if (linkRes.error) return NextResponse.json({ error: linkRes.error.message }, { status: 500 })
 
   return NextResponse.json({
@@ -140,16 +161,4 @@ export async function POST(req: Request) {
     questionsUpserted: uniqueQuestions.length,
     linksUpserted: uniqueLinks.length,
   })
-}
-
-function dedupeBy<T>(items: T[], keyFn: (t: T) => string): T[] {
-  const seen = new Set<string>()
-  const out: T[] = []
-  for (const it of items) {
-    const key = keyFn(it)
-    if (seen.has(key)) continue
-    seen.add(key)
-    out.push(it)
-  }
-  return out
 }
