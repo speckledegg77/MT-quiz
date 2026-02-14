@@ -10,12 +10,10 @@ export default function PlayerPage() {
   const params = useParams<{ code?: string }>()
   const code = String(params?.code ?? "").toUpperCase()
 
-  const [state, setState] = useState<RoomState | null>(null)
+  const [state, setState] = useState<RoomState>(null)
   const [playerId, setPlayerId] = useState<string | null>(null)
-
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [lastQuestionId, setLastQuestionId] = useState<string | null>(null)
-
   const [isDark, setIsDark] = useState(false)
 
   const [audioEnabled, setAudioEnabled] = useState(false)
@@ -60,7 +58,6 @@ export default function PlayerPage() {
   useEffect(() => {
     const qid = state?.question?.id ?? null
     if (!qid) return
-
     if (qid !== lastQuestionId) {
       setLastQuestionId(qid)
       setSelectedIndex(null)
@@ -86,7 +83,7 @@ export default function PlayerPage() {
     await fetch("/api/room/answer", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, playerId, questionId: state.question.id, optionIndex })
+      body: JSON.stringify({ code, playerId, questionId: state.question.id, optionIndex }),
     }).catch(() => {})
   }
 
@@ -104,7 +101,7 @@ export default function PlayerPage() {
         correctBg: "#065f46",
         correctText: "#ecfdf5",
         wrongBg: "#7f1d1d",
-        wrongText: "#fff1f2"
+        wrongText: "#fff1f2",
       }
     }
 
@@ -120,7 +117,7 @@ export default function PlayerPage() {
       correctBg: "#e9ffe9",
       correctText: "#111111",
       wrongBg: "#ffe9e9",
-      wrongText: "#111111"
+      wrongText: "#111111",
     }
   }, [isDark])
 
@@ -133,7 +130,7 @@ export default function PlayerPage() {
     color: theme.text,
     minHeight: "100vh",
     boxSizing: "border-box",
-    colorScheme: isDark ? ("dark" as any) : ("light" as any)
+    colorScheme: isDark ? ("dark" as any) : ("light" as any),
   }
 
   async function unlockAudio() {
@@ -158,6 +155,7 @@ export default function PlayerPage() {
         await ctx.close()
       }
     } catch {
+      // ignore
     }
   }
 
@@ -171,6 +169,7 @@ export default function PlayerPage() {
       el.pause()
       el.currentTime = 0
     } catch {
+      // ignore
     }
 
     el.src = q.audioUrl
@@ -191,7 +190,6 @@ export default function PlayerPage() {
         el.load()
         setPreparedForQ(q.id)
       }
-
       await el.play()
       return true
     } catch {
@@ -234,8 +232,10 @@ export default function PlayerPage() {
       setTimeout(async () => {
         if (cancelled) return
         if (state?.stage !== "open") return
+
         const ok2 = await playClip()
         if (cancelled) return
+
         if (ok2) {
           setPlayedForQ(state.question.id)
           setAutoplayFailed(false)
@@ -244,18 +244,13 @@ export default function PlayerPage() {
     }
 
     attempt().catch(() => {})
-
     return () => {
       cancelled = true
     }
   }, [shouldPlayOnPhone, audioEnabled, isAudioQ, state?.stage, state?.question?.id, state?.question?.audioUrl, playedForQ])
 
   if (!code) {
-    return (
-      <main style={pageStyle}>
-        <p>Missing room code in the URL.</p>
-      </main>
-    )
+    return <main style={pageStyle}>Missing room code in the URL.</main>
   }
 
   if (!state) return null
@@ -263,13 +258,15 @@ export default function PlayerPage() {
   if (state.phase === "lobby") {
     return (
       <main style={pageStyle}>
-        <h1 style={{ fontSize: 22, marginBottom: 6 }}>Room {code}</h1>
+        <h1>Room {code}</h1>
+
         <p>Joined. Waiting for the host to start the game.</p>
 
         {shouldPlayOnPhone && (
-          <div style={{ marginTop: 14 }}>
+          <div>
             {!audioEnabled ? (
               <button
+                type="button"
                 onClick={unlockAudio}
                 style={{
                   padding: 12,
@@ -277,18 +274,16 @@ export default function PlayerPage() {
                   borderRadius: 12,
                   background: theme.btnBg,
                   color: theme.btnText,
-                  width: "100%"
+                  width: "100%",
                 }}
               >
                 Enable audio on this phone
               </button>
             ) : (
-              <p style={{ color: theme.muted, marginTop: 10 }}>Audio enabled for this phone.</p>
+              <p>Audio enabled for this phone.</p>
             )}
           </div>
         )}
-
-        <audio ref={audioRef} preload="auto" />
       </main>
     )
   }
@@ -296,22 +291,36 @@ export default function PlayerPage() {
   if (state.phase === "finished") {
     return (
       <main style={pageStyle}>
-        <h1 style={{ fontSize: 22, marginBottom: 6 }}>Room {code}</h1>
+        <h1>Room {code}</h1>
         <p>The game has finished.</p>
       </main>
     )
   }
 
+  const countdownText = state.stage === "countdown" ? "Get ready." : "\u00A0"
+
   return (
     <main style={pageStyle}>
-      <h1 style={{ fontSize: 22, marginBottom: 6 }}>Room {code}</h1>
+      <h1>Room {code}</h1>
 
-      {state.stage === "countdown" && <p style={{ color: theme.muted }}>Get ready.</p>}
+      <audio ref={audioRef} />
+
+      <div
+        style={{
+          minHeight: 24,
+          marginTop: 6,
+          marginBottom: 10,
+          color: theme.muted,
+        }}
+      >
+        {countdownText}
+      </div>
 
       {shouldPlayOnPhone && (
-        <div style={{ marginBottom: 10 }}>
+        <div style={{ marginBottom: 12 }}>
           {!audioEnabled ? (
             <button
+              type="button"
               onClick={unlockAudio}
               style={{
                 padding: 12,
@@ -319,28 +328,27 @@ export default function PlayerPage() {
                 borderRadius: 12,
                 background: theme.btnBg,
                 color: theme.btnText,
-                width: "100%"
+                width: "100%",
               }}
             >
               Enable audio on this phone
             </button>
           ) : (
-            <p style={{ color: theme.muted, marginTop: 0 }}>
+            <div style={{ color: theme.muted }}>
               Audio enabled{autoplayFailed ? ". Tap Play clip if needed." : "."}
-            </p>
+            </div>
           )}
         </div>
       )}
 
-      <audio ref={audioRef} preload="auto" />
-
       {state.question && (
         <>
-          <h2 style={{ fontSize: 18, lineHeight: 1.3, color: theme.text }}>{state.question.text}</h2>
+          <h2 style={{ marginTop: 0 }}>{state.question.text}</h2>
 
           {isAudioQ && shouldPlayOnPhone && audioEnabled && (
-            <div style={{ marginTop: 10 }}>
+            <div style={{ marginBottom: 10 }}>
               <button
+                type="button"
                 onClick={async () => {
                   setAutoplayFailed(false)
                   await playClip()
@@ -351,20 +359,21 @@ export default function PlayerPage() {
                   borderRadius: 12,
                   background: theme.btnBg,
                   color: theme.btnText,
-                  width: "100%"
+                  width: "100%",
                 }}
               >
                 Play clip
               </button>
+
               {autoplayFailed && (
-                <p style={{ marginTop: 8, color: theme.muted }}>
+                <div style={{ marginTop: 8, color: theme.muted }}>
                   Your phone blocked autoplay. Tap Play clip.
-                </p>
+                </div>
               )}
             </div>
           )}
 
-          <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+          <div style={{ display: "grid", gap: 10 }}>
             {state.question.options.map((opt: string, i: number) => {
               const isSelected = selectedIndex === i
               const isCorrect = correctIndex !== null && i === correctIndex
@@ -388,7 +397,8 @@ export default function PlayerPage() {
 
               return (
                 <button
-                  key={`${state.question.id}-${i}`}
+                  key={i}
+                  type="button"
                   onClick={() => answer(i)}
                   disabled={!canAnswer && !isSelected}
                   style={{
@@ -401,7 +411,7 @@ export default function PlayerPage() {
                     fontSize: 18,
                     lineHeight: 1.25,
                     width: "100%",
-                    touchAction: "manipulation"
+                    touchAction: "manipulation",
                   }}
                 >
                   {opt}
@@ -415,7 +425,7 @@ export default function PlayerPage() {
           )}
 
           {correctIndex !== null && selectedIndex !== null && (
-            <p style={{ marginTop: 12, color: theme.text }}>
+            <p style={{ marginTop: 12, color: theme.muted }}>
               {selectedIndex === correctIndex ? "You got it right." : "You got it wrong."}
             </p>
           )}
