@@ -96,13 +96,15 @@ export default function DisplayPage() {
   if (!state) return null
 
   const isAudioQ = state?.question?.roundType === "audio"
+  const showJoin = state.phase === "lobby"
 
   return (
     <main style={{ maxWidth: 1200, margin: "16px auto", padding: 16, fontFamily: "system-ui" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 240px", gap: 16, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: showJoin ? "1fr 240px" : "1fr", gap: 16, alignItems: "start" }}>
         <div>
           <h1 style={{ fontSize: 34, marginBottom: 6 }}>Room {code}</h1>
-          {joinUrl && (
+
+          {showJoin && joinUrl && (
             <p style={{ marginTop: 0, color: "#555" }}>
               Join at: <a href={joinUrl}>{joinUrl}</a>
             </p>
@@ -123,7 +125,7 @@ export default function DisplayPage() {
           {state.phase === "finished" && <p>Game finished.</p>}
         </div>
 
-        {joinUrl && (
+        {showJoin && joinUrl && (
           <div style={{ display: "grid", gap: 8, justifyItems: "center" }}>
             <div style={{ border: "1px solid #ccc", borderRadius: 12, padding: 12, background: "white" }}>
               <QRCodeSVG value={joinUrl} size={210} />
