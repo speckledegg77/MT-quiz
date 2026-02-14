@@ -27,6 +27,44 @@ const inputStyle: React.CSSProperties = {
   marginTop: 6,
 }
 
+const selectStyle: React.CSSProperties = {
+  padding: 8,
+  borderRadius: 8,
+  border: "1px solid #ccc",
+}
+
+const buttonBase: React.CSSProperties = {
+  padding: "10px 12px",
+  borderRadius: 8,
+  border: "1px solid #111",
+  cursor: "pointer",
+  userSelect: "none",
+}
+
+const buttonPrimary: React.CSSProperties = {
+  ...buttonBase,
+  background: "#111",
+  color: "#fff",
+}
+
+const buttonSecondary: React.CSSProperties = {
+  ...buttonBase,
+  background: "#fff",
+  color: "#111",
+}
+
+const buttonDanger: React.CSSProperties = {
+  ...buttonBase,
+  background: "#fff",
+  color: "#b00020",
+  border: "1px solid #b00020",
+}
+
+function withDisabled(style: React.CSSProperties, disabled: boolean): React.CSSProperties {
+  if (!disabled) return style
+  return { ...style, opacity: 0.5, cursor: "not-allowed" }
+}
+
 export default function HostCreatePage() {
   const router = useRouter()
 
@@ -44,6 +82,7 @@ export default function HostCreatePage() {
   const [code, setCode] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loadingPacks, setLoadingPacks] = useState<boolean>(true)
+  const [creating, setCreating] = useState<boolean>(false)
 
   useEffect(() => {
     let cancelled = false
@@ -94,7 +133,8 @@ export default function HostCreatePage() {
   function addRound() {
     const firstPack = packs[0]?.id ?? ""
     if (!firstPack) return
-    setRounds(prev => [...prev, { packId: firstPack, count: Math.min(10, packs[0]?.questionCount ?? 10) }])
+    const max = packs[0]?.questionCount ?? 10
+    setRounds(prev => [...prev, { packId: firstPack, count: Math.min(10, max) }])
   }
 
   function removeRound(index: number) {
@@ -125,42 +165,47 @@ export default function HostCreatePage() {
 
   async function createRoom() {
     setError(null)
+    setCreating(true)
 
-    const usingRounds = rounds.length > 0
+    try {
+      const usingRounds = rounds.length > 0
 
-    const packsToUse = usingRounds
-      ? roundsPacks
-      : selectedPacks.length
-        ? selectedPacks
-        : packs.length
-          ? [packs[0].id]
-          : []
+      const packsToUse = usingRounds
+        ? roundsPacks
+        : selectedPacks.length
+          ? selectedPacks
+          : packs.length
+            ? [packs[0].id]
+            : []
 
-    const totalQuestions = usingRounds ? roundsTotal : questionCount
+      const totalQuestions = usingRounds ? roundsTotal : questionCount
 
-    const res = await fetch("/api/room/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        questionCount: totalQuestions,
-        countdownSeconds,
-        answerSeconds,
-        revealDelaySeconds,
-        revealSeconds,
-        audioMode,
-        selectedPacks: packsToUse,
-        rounds,
-      }),
-    })
+      const res = await fetch("/api/room/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          questionCount: totalQuestions,
+          countdownSeconds,
+          answerSeconds,
+          revealDelaySeconds,
+          revealSeconds,
+          audioMode,
+          selectedPacks: packsToUse,
+          rounds,
+        }),
+      })
 
-    const data = await res.json()
+      const data = await res.json()
 
-    if (!res.ok) {
-      setError(data.error ?? "Could not create room")
-      return
+      if (!res.ok) {
+        setError(data.error ?? "Could not create room")
+        return
+      }
+
+      setCode(data.code)
+    } finally {
+      setCreating(false)
     }
-
-    setCode(data.code)
   }
 
   async function startGame() {
@@ -190,16 +235,18 @@ export default function HostCreatePage() {
     return `${origin}/display/${code}`
   }, [code, origin])
 
+  const createDisabled = loadingPacks || creating || packs.length === 0
+
   return (
     <main style={{ maxWidth: 720, margin: "0 auto", padding: 16 }}>
       <h1>Host</h1>
 
       {code && (
-        <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-          <button type="button" onClick={resetRoom}>
+        <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+          <button type="button" onClick={resetRoom} style={buttonSecondary}>
             Create new room
           </button>
-          <button type="button" onClick={startGame}>
+          <button type="button" onClick={startGame} style={buttonPrimary}>
             Start game
           </button>
         </div>
@@ -240,7 +287,7 @@ export default function HostCreatePage() {
                         <select
                           value={r.packId}
                           onChange={e => updateRoundPack(index, e.target.value)}
-                          style={{ padding: 8, borderRadius: 8, border: "1px solid #ccc" }}
+                          style={selectStyle}
                         >
                           {packs.map(p => (
                             <option key={p.id} value={p.id}>
@@ -255,10 +302,10 @@ export default function HostCreatePage() {
                           max={max}
                           value={r.count}
                           onChange={e => updateRoundCount(index, Number(e.target.value))}
-                          style={{ width: 110, padding: 8, borderRadius: 8, border: "1px solid #ccc" }}
+                          style={{ ...selectStyle, width: 110 }}
                         />
 
-                        <button type="button" onClick={() => removeRound(index)}>
+                        <button type="button" onClick={() => removeRound(index)} style={buttonDanger}>
                           Remove
                         </button>
                       </div>
@@ -267,8 +314,8 @@ export default function HostCreatePage() {
                 </div>
               )}
 
-              <div style={{ display: "flex", gap: 10, marginTop: 10, alignItems: "center" }}>
-                <button type="button" onClick={addRound} disabled={!packs.length}>
+              <div style={{ display: "flex", gap: 10, marginTop: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <button type="button" onClick={addRound} disabled={!packs.length} style={withDisabled(buttonSecondary, !packs.length)}>
                   Add round
                 </button>
 
@@ -388,8 +435,13 @@ export default function HostCreatePage() {
           </label>
 
           <div style={{ marginTop: 16 }}>
-            <button type="button" onClick={createRoom} disabled={loadingPacks}>
-              Create room
+            <button
+              type="button"
+              onClick={createRoom}
+              disabled={createDisabled}
+              style={withDisabled(buttonPrimary, createDisabled)}
+            >
+              {creating ? "Creating…" : "Create room"}
             </button>
           </div>
 
