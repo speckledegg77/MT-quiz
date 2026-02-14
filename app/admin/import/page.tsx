@@ -1,8 +1,43 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: 10,
+  border: "1px solid #ccc",
+  borderRadius: 8,
+  pointerEvents: "auto",
+}
+
+const buttonBase: React.CSSProperties = {
+  padding: "10px 12px",
+  borderRadius: 8,
+  border: "1px solid #111",
+  cursor: "pointer",
+  userSelect: "none",
+}
+
+const buttonPrimary: React.CSSProperties = {
+  ...buttonBase,
+  background: "#111",
+  color: "#fff",
+}
+
+const buttonSecondary: React.CSSProperties = {
+  ...buttonBase,
+  background: "#fff",
+  color: "#111",
+}
+
+function withDisabled(style: React.CSSProperties, disabled: boolean): React.CSSProperties {
+  if (!disabled) return style
+  return { ...style, opacity: 0.5, cursor: "not-allowed" }
+}
 
 export default function AdminImportPage() {
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
   const [token, setToken] = useState("")
   const [file, setFile] = useState<File | null>(null)
   const [csvText, setCsvText] = useState("")
@@ -76,13 +111,17 @@ export default function AdminImportPage() {
     }
   }
 
+  function openFilePicker() {
+    fileInputRef.current?.click()
+  }
+
   return (
     <main style={{ maxWidth: 720, margin: "0 auto", padding: 16 }}>
       <h1>Admin: Import questions</h1>
 
       <p>
-        Paste your admin token, then either choose a CSV file or paste CSV content. This page stores the token in browser
-        session storage for this tab only.
+        Paste your admin token, then choose a CSV file or paste CSV content. This page stores the token in browser session
+        storage for this tab only.
       </p>
 
       <h2>Admin token</h2>
@@ -95,44 +134,34 @@ export default function AdminImportPage() {
           placeholder="Paste ADMIN_TOKEN here"
           autoComplete="off"
           spellCheck={false}
-          style={{
-            flex: "1 1 320px",
-            padding: 10,
-            border: "1px solid #ccc",
-            borderRadius: 8,
-            pointerEvents: "auto",
-          }}
+          style={{ ...inputStyle, flex: "1 1 320px" }}
         />
 
-        <button
-          type="button"
-          onClick={clearToken}
-          style={{
-            padding: "10px 12px",
-            borderRadius: 8,
-            border: "1px solid #111",
-            background: "#fff",
-            cursor: "pointer",
-          }}
-        >
+        <button type="button" onClick={clearToken} style={buttonSecondary}>
           Clear token
         </button>
       </div>
 
       <h2 style={{ marginTop: 16 }}>Upload CSV file</h2>
 
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <button type="button" onClick={openFilePicker} style={buttonSecondary}>
+          Choose CSV file
+        </button>
+
+        <div style={{ color: "#555" }}>
+          {file ? `Selected: ${file.name} (${Math.round(file.size / 1024)} KB)` : "No file selected."}
+        </div>
+      </div>
+
       <input
+        ref={fileInputRef}
         type="file"
         accept=".csv,text/csv"
         onChange={e => setFile(e.target.files?.[0] ?? null)}
-        style={{ pointerEvents: "auto" }}
+        style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }}
+        tabIndex={-1}
       />
-
-      {file && (
-        <div style={{ marginTop: 8, color: "#555" }}>
-          Selected: {file.name} ({Math.round(file.size / 1024)} KB)
-        </div>
-      )}
 
       <h2 style={{ marginTop: 16 }}>Or paste CSV</h2>
 
@@ -141,13 +170,7 @@ export default function AdminImportPage() {
         onChange={e => setCsvText(e.target.value)}
         placeholder="Paste CSV here if you do not want to upload a file"
         rows={8}
-        style={{
-          width: "100%",
-          padding: 10,
-          border: "1px solid #ccc",
-          borderRadius: 8,
-          pointerEvents: "auto",
-        }}
+        style={inputStyle}
       />
 
       <div style={{ marginTop: 16 }}>
@@ -155,14 +178,7 @@ export default function AdminImportPage() {
           type="button"
           disabled={!canUpload}
           onClick={upload}
-          style={{
-            padding: "10px 12px",
-            borderRadius: 8,
-            border: "1px solid #111",
-            background: canUpload ? "#111" : "#999",
-            color: "#fff",
-            cursor: canUpload ? "pointer" : "not-allowed",
-          }}
+          style={withDisabled(buttonPrimary, !canUpload)}
         >
           {busy ? "Uploading…" : "Upload to question bank"}
         </button>
