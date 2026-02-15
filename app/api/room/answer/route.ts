@@ -9,14 +9,20 @@ function addSeconds(date: Date, seconds: number) {
 }
 
 function normalise(s: string) {
-  return String(s ?? "")
+  let out = String(s ?? "")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/&/g, " and ")
+    .replace(/['’]/g, "")
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")
     .trim()
+
+  // People often include or omit a leading "the"
+  out = out.replace(/^the\s+/, "")
+
+  return out
 }
 
 function tokenise(s: string) {
@@ -24,8 +30,9 @@ function tokenise(s: string) {
   return n ? n.split(" ").filter(Boolean) : []
 }
 
+// Better for common musical acronyms: POTO, NTN, DEH
 function initialsForAnswer(answerTokens: string[]) {
-  const stop = new Set(["the", "a", "an", "and", "of", "to", "in", "for", "on", "at", "with", "from", "by"])
+  const stop = new Set(["the", "a", "an", "and"])
   const kept = answerTokens.filter(t => t && !stop.has(t))
   return kept.map(t => t[0]).join("")
 }
@@ -51,6 +58,7 @@ function levenshtein(a: string, b: string) {
       dp[i * (m + 1) + j] = Math.min(del, ins, sub)
     }
   }
+
   return dp[n * (m + 1) + m]
 }
 
@@ -81,25 +89,32 @@ function isTextCorrect(input: string, answer: string, accepted?: string[]) {
   const inputNorm = normalise(input)
   if (!inputNorm) return false
 
-  const candidates = [answer, ...(accepted ?? [])].map(x => String(x ?? "")).filter(Boolean)
+  const candidates = [answer, ...(accepted ?? [])]
+    .map(x => String(x ?? ""))
+    .filter(Boolean)
+
   if (candidates.length === 0) return false
 
   const candNorms = candidates.map(normalise).filter(Boolean)
   if (candNorms.includes(inputNorm)) return true
 
+  // Acronym check, eg "POTO", "NTN", "DEH"
   const inputCompact = inputNorm.replace(/\s+/g, "")
-  if (/^[a-z0-9]{2,6}$/.test(inputCompact)) {
+  if (/^[a-z0-9]{2,8}$/.test(inputCompact)) {
     const ansTokens = tokenise(answer)
     const init = initialsForAnswer(ansTokens)
     if (init && inputCompact === init) return true
   }
 
   const inTokens = tokenise(inputNorm)
+
+  // Token prefix check, eg "phant op" for "phantom of the opera"
   for (const c of candidates) {
     const aTokens = tokenise(c)
     if (tokenPrefixMatch(inTokens, aTokens)) return true
   }
 
+  // Fuzzy match for minor typos
   for (const c of candNorms) {
     const maxLen = Math.max(inputNorm.length, c.length)
     if (maxLen <= 4) continue
@@ -118,7 +133,7 @@ function isTextCorrect(input: string, answer: string, accepted?: string[]) {
 }
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}))
+  const body = await req.json().catch(() => ({} as any))
 
   const code = String(body.code ?? "").trim().toUpperCase()
   const playerId = String(body.playerId ?? "").trim()
@@ -135,8 +150,8 @@ export async function POST(req: Request) {
 
   const roomRes = await supabaseAdmin.from("rooms").select("*").eq("code", code).single()
   if (roomRes.error) return NextResponse.json({ error: "Room not found" }, { status: 404 })
-  const room = roomRes.data
 
+  const room = roomRes.data
   if (room.phase !== "running") return NextResponse.json({ accepted: false, reason: "not_running" })
 
   const ids = Array.isArray(room.question_ids) ? room.question_ids : []
@@ -163,10 +178,14 @@ export async function POST(req: Request) {
   let isCorrect = false
 
   if (q.answerType === "mcq") {
-    if (!Number.isFinite(optionIndex)) return NextResponse.json({ error: "Missing optionIndex" }, { status: 400 })
+    if (!Number.isFinite(optionIndex)) {
+      return NextResponse.json({ error: "Missing optionIndex" }, { status: 400 })
+    }
     isCorrect = optionIndex === q.answerIndex
   } else {
-    if (!answerText) return NextResponse.json({ error: "Missing answerText" }, { status: 400 })
+    if (!answerText) {
+      return NextResponse.json({ error: "Missing answerText" }, { status: 400 })
+    }
     isCorrect = isTextCorrect(answerText, q.answerText ?? "", q.acceptedAnswers)
   }
 
@@ -205,9 +224,14 @@ export async function POST(req: Request) {
     const now = new Date()
     const revealAt = addSeconds(now, room.reveal_delay_seconds)
     const nextAt = addSeconds(revealAt, room.reveal_seconds)
+
     await supabaseAdmin
       .from("rooms")
-      .update({ close_at: now.toISOString(), reveal_at: revealAt.toISOString(), next_at: nextAt.toISOString() })
+      .update({
+        close_at: now.toISOString(),
+        reveal_at: revealAt.toISOString(),
+        next_at: nextAt.toISOString(),
+      })
       .eq("id", room.id)
   }
 
