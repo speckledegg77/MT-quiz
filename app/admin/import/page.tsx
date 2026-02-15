@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
+import type { CSSProperties } from "react"
 
-const inputStyle: React.CSSProperties = {
+const inputStyle: CSSProperties = {
   width: "100%",
   padding: 10,
   border: "1px solid #ccc",
@@ -10,7 +11,7 @@ const inputStyle: React.CSSProperties = {
   pointerEvents: "auto",
 }
 
-const buttonBase: React.CSSProperties = {
+const buttonBase: CSSProperties = {
   padding: "10px 12px",
   borderRadius: 8,
   border: "1px solid #111",
@@ -18,31 +19,34 @@ const buttonBase: React.CSSProperties = {
   userSelect: "none",
 }
 
-const buttonPrimary: React.CSSProperties = {
-  ...buttonBase,
-  background: "#111",
-  color: "#fff",
-}
+const buttonPrimary: CSSProperties = { ...buttonBase, background: "#111", color: "#fff" }
+const buttonSecondary: CSSProperties = { ...buttonBase, background: "#fff", color: "#111" }
 
-const buttonSecondary: React.CSSProperties = {
-  ...buttonBase,
-  background: "#fff",
-  color: "#111",
-}
-
-function withDisabled(style: React.CSSProperties, disabled: boolean): React.CSSProperties {
+function withDisabled(style: CSSProperties, disabled: boolean): CSSProperties {
   if (!disabled) return style
   return { ...style, opacity: 0.5, cursor: "not-allowed" }
 }
 
 export default function AdminImportPage() {
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const csvFileInputRef = useRef<HTMLInputElement | null>(null)
+  const audioFileInputRef = useRef<HTMLInputElement | null>(null)
+  const imageFileInputRef = useRef<HTMLInputElement | null>(null)
 
   const [token, setToken] = useState("")
-  const [file, setFile] = useState<File | null>(null)
+  const [csvFile, setCsvFile] = useState<File | null>(null)
   const [csvText, setCsvText] = useState("")
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState("")
+
+  const [audioFile, setAudioFile] = useState<File | null>(null)
+  const [audioTargetPath, setAudioTargetPath] = useState("")
+  const [audioBusy, setAudioBusy] = useState(false)
+  const [audioResult, setAudioResult] = useState("")
+
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imageTargetPath, setImageTargetPath] = useState("")
+  const [imageBusy, setImageBusy] = useState(false)
+  const [imageResult, setImageResult] = useState("")
 
   useEffect(() => {
     try {
@@ -53,25 +57,33 @@ export default function AdminImportPage() {
     }
   }, [])
 
-  const canUpload = useMemo(() => {
-    const hasToken = token.trim().length > 0
-    const hasData = !!file || csvText.trim().length > 0
-    return hasToken && hasData && !busy
-  }, [token, file, csvText, busy])
+  const cleanToken = token.trim()
 
-  async function upload() {
+  const canUploadCsv = useMemo(() => {
+    const hasToken = cleanToken.length > 0
+    const hasData = !!csvFile || csvText.trim().length > 0
+    return hasToken && hasData && !busy
+  }, [cleanToken, csvFile, csvText, busy])
+
+  const canUploadAudio = useMemo(() => {
+    return cleanToken.length > 0 && !!audioFile && !audioBusy
+  }, [cleanToken, audioFile, audioBusy])
+
+  const canUploadImage = useMemo(() => {
+    return cleanToken.length > 0 && !!imageFile && !imageBusy
+  }, [cleanToken, imageFile, imageBusy])
+
+  async function uploadCsv() {
     setBusy(true)
     setResult("")
-
     try {
-      const cleanToken = token.trim()
       if (!cleanToken) {
         setResult('{"error":"Missing admin token"}')
         return
       }
 
       let textToSend = csvText
-      if (file) textToSend = await file.text()
+      if (csvFile) textToSend = await csvFile.text()
 
       if (!textToSend || !textToSend.trim()) {
         setResult('{"error":"No CSV content to upload"}')
@@ -102,6 +114,55 @@ export default function AdminImportPage() {
     }
   }
 
+  async function uploadMedia(kind: "audio" | "image") {
+    const file = kind === "audio" ? audioFile : imageFile
+    const targetPath = kind === "audio" ? audioTargetPath : imageTargetPath
+
+    if (!cleanToken) {
+      const msg = '{"error":"Missing admin token"}'
+      if (kind === "audio") setAudioResult(msg)
+      else setImageResult(msg)
+      return
+    }
+    if (!file) {
+      const msg = '{"error":"No file selected"}'
+      if (kind === "audio") setAudioResult(msg)
+      else setImageResult(msg)
+      return
+    }
+
+    if (kind === "audio") {
+      setAudioBusy(true)
+      setAudioResult("")
+    } else {
+      setImageBusy(true)
+      setImageResult("")
+    }
+
+    try {
+      const fd = new FormData()
+      fd.append("file", file)
+      if (targetPath.trim()) fd.append("path", targetPath.trim())
+
+      const res = await fetch(kind === "audio" ? "/api/admin/upload-audio" : "/api/admin/upload-image", {
+        method: "POST",
+        headers: { "x-admin-token": cleanToken },
+        body: fd,
+      })
+
+      const body = await res.text()
+      if (kind === "audio") setAudioResult(body || `(no response body, status ${res.status})`)
+      else setImageResult(body || `(no response body, status ${res.status})`)
+    } catch (e: any) {
+      const msg = e?.message ?? "Upload failed"
+      if (kind === "audio") setAudioResult(msg)
+      else setImageResult(msg)
+    } finally {
+      if (kind === "audio") setAudioBusy(false)
+      else setImageBusy(false)
+    }
+  }
+
   function clearToken() {
     setToken("")
     try {
@@ -111,24 +172,26 @@ export default function AdminImportPage() {
     }
   }
 
-  function openFilePicker() {
-    fileInputRef.current?.click()
+  function openCsvPicker() {
+    csvFileInputRef.current?.click()
+  }
+
+  function openAudioPicker() {
+    audioFileInputRef.current?.click()
+  }
+
+  function openImagePicker() {
+    imageFileInputRef.current?.click()
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: "0 auto", padding: 16 }}>
+    <main style={{ maxWidth: 900, margin: "0 auto", padding: 16, fontFamily: "system-ui" }}>
       <h1>Admin: Import questions</h1>
-
-      <p>
-        Paste your admin token, then choose a CSV file or paste CSV content. This page stores the token in browser session
-        storage for this tab only.
-      </p>
+      <p>Paste your admin token, then upload CSV or paste CSV content.</p>
 
       <h2>Admin token</h2>
-
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <input
-          type="text"
           value={token}
           onChange={e => setToken(e.target.value)}
           placeholder="Paste ADMIN_TOKEN here"
@@ -136,35 +199,33 @@ export default function AdminImportPage() {
           spellCheck={false}
           style={{ ...inputStyle, flex: "1 1 320px" }}
         />
-
         <button type="button" onClick={clearToken} style={buttonSecondary}>
           Clear token
         </button>
       </div>
 
-      <h2 style={{ marginTop: 16 }}>Upload CSV file</h2>
+      <hr style={{ margin: "18px 0" }} />
 
+      <h2>Upload CSV file</h2>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <button type="button" onClick={openFilePicker} style={buttonSecondary}>
+        <button type="button" onClick={openCsvPicker} style={buttonSecondary}>
           Choose CSV file
         </button>
-
         <div style={{ color: "#555" }}>
-          {file ? `Selected: ${file.name} (${Math.round(file.size / 1024)} KB)` : "No file selected."}
+          {csvFile ? `Selected: ${csvFile.name} (${Math.round(csvFile.size / 1024)} KB)` : "No file selected."}
         </div>
       </div>
 
       <input
-        ref={fileInputRef}
+        ref={csvFileInputRef}
         type="file"
         accept=".csv,text/csv"
-        onChange={e => setFile(e.target.files?.[0] ?? null)}
+        onChange={e => setCsvFile(e.target.files?.[0] ?? null)}
         style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }}
         tabIndex={-1}
       />
 
       <h2 style={{ marginTop: 16 }}>Or paste CSV</h2>
-
       <textarea
         value={csvText}
         onChange={e => setCsvText(e.target.value)}
@@ -174,18 +235,12 @@ export default function AdminImportPage() {
       />
 
       <div style={{ marginTop: 16 }}>
-        <button
-          type="button"
-          disabled={!canUpload}
-          onClick={upload}
-          style={withDisabled(buttonPrimary, !canUpload)}
-        >
-          {busy ? "Uploading…" : "Upload to question bank"}
+        <button type="button" disabled={!canUploadCsv} onClick={uploadCsv} style={withDisabled(buttonPrimary, !canUploadCsv)}>
+          {busy ? "Uploading..." : "Upload to question bank"}
         </button>
       </div>
 
       <h2 style={{ marginTop: 20 }}>Result</h2>
-
       <pre
         style={{
           whiteSpace: "pre-wrap",
@@ -199,18 +254,101 @@ export default function AdminImportPage() {
         {result || "No upload yet."}
       </pre>
 
-      <h2 style={{ marginTop: 20 }}>CSV columns</h2>
+      <hr style={{ margin: "18px 0" }} />
 
-      <pre
-        style={{
-          whiteSpace: "pre-wrap",
-          padding: 12,
-          border: "1px solid #ccc",
-          borderRadius: 8,
-          background: "#fafafa",
-        }}
-      >
-pack_id,pack_name,pack_round_type,pack_sort_order,question_id,question_round_type,question_text,option_a,option_b,option_c,option_d,answer_index,explanation,audio_path
+      <h2>Upload media</h2>
+      <p>Upload audio and images to Supabase Storage, then copy the returned path into your CSV.</p>
+
+      <h3>Upload audio file</h3>
+      <div style={{ display: "grid", gap: 10 }}>
+        <input
+          value={audioTargetPath}
+          onChange={e => setAudioTargetPath(e.target.value)}
+          placeholder="Optional target path, eg 2026-02-15/warmup-001.mp3 (leave blank to auto-name)"
+          style={inputStyle}
+        />
+
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <button type="button" onClick={openAudioPicker} style={buttonSecondary}>
+            Choose audio file
+          </button>
+          <div style={{ color: "#555" }}>
+            {audioFile ? `Selected: ${audioFile.name} (${Math.round(audioFile.size / 1024)} KB)` : "No file selected."}
+          </div>
+        </div>
+
+        <input
+          ref={audioFileInputRef}
+          type="file"
+          accept="audio/*"
+          onChange={e => setAudioFile(e.target.files?.[0] ?? null)}
+          style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }}
+          tabIndex={-1}
+        />
+
+        <button
+          type="button"
+          disabled={!canUploadAudio}
+          onClick={() => uploadMedia("audio")}
+          style={withDisabled(buttonPrimary, !canUploadAudio)}
+        >
+          {audioBusy ? "Uploading..." : "Upload audio"}
+        </button>
+
+        <pre style={{ whiteSpace: "pre-wrap", padding: 12, border: "1px solid #ccc", borderRadius: 8, background: "#fafafa" }}>
+          {audioResult || "No audio upload yet."}
+        </pre>
+      </div>
+
+      <h3 style={{ marginTop: 16 }}>Upload image file</h3>
+      <div style={{ display: "grid", gap: 10 }}>
+        <input
+          value={imageTargetPath}
+          onChange={e => setImageTargetPath(e.target.value)}
+          placeholder="Optional target path, eg 2026-02-15/pic-001.png (leave blank to auto-name)"
+          style={inputStyle}
+        />
+
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <button type="button" onClick={openImagePicker} style={buttonSecondary}>
+            Choose image file
+          </button>
+          <div style={{ color: "#555" }}>
+            {imageFile ? `Selected: ${imageFile.name} (${Math.round(imageFile.size / 1024)} KB)` : "No file selected."}
+          </div>
+        </div>
+
+        <input
+          ref={imageFileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={e => setImageFile(e.target.files?.[0] ?? null)}
+          style={{ position: "absolute", left: -9999, width: 1, height: 1, opacity: 0 }}
+          tabIndex={-1}
+        />
+
+        <button
+          type="button"
+          disabled={!canUploadImage}
+          onClick={() => uploadMedia("image")}
+          style={withDisabled(buttonPrimary, !canUploadImage)}
+        >
+          {imageBusy ? "Uploading..." : "Upload image"}
+        </button>
+
+        <pre style={{ whiteSpace: "pre-wrap", padding: 12, border: "1px solid #ccc", borderRadius: 8, background: "#fafafa" }}>
+          {imageResult || "No image upload yet."}
+        </pre>
+      </div>
+
+      <hr style={{ margin: "18px 0" }} />
+
+      <h2>CSV columns</h2>
+      <pre style={{ whiteSpace: "pre-wrap", padding: 12, border: "1px solid #ccc", borderRadius: 8, background: "#fafafa" }}>
+pack_id,pack_name,pack_round_type,pack_sort_order,
+question_id,question_round_type,answer_type,question_text,
+option_a,option_b,option_c,option_d,answer_index,
+answer_text,accepted_answers,explanation,audio_path,image_path
       </pre>
     </main>
   )
