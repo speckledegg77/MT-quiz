@@ -1,26 +1,38 @@
 import { supabaseAdmin } from "./supabaseAdmin"
 
+export type RoundType = "mcq" | "audio" | "picture"
+export type AnswerType = "mcq" | "text"
+
 export type Question = {
   id: string
-  roundType: "mcq" | "audio"
+  roundType: RoundType
+  answerType: AnswerType
   text: string
   options: string[]
-  answerIndex: number
+  answerIndex: number | null
+  answerText?: string
+  acceptedAnswers?: string[]
   explanation: string
   audioPath?: string
+  imagePath?: string
 }
 
 type DbQuestionRow = {
   id: string
-  round_type: "general" | "audio"
+  round_type: "general" | "audio" | "picture"
+  answer_type: "mcq" | "text" | null
   text: string
   options: any
-  answer_index: number
+  answer_index: number | null
+  answer_text: string | null
+  accepted_answers: string[] | null
   explanation: string | null
   audio_path: string | null
+  image_path: string | null
 }
 
 const CACHE_TTL_MS = 10 * 60 * 1000
+
 const cache = new Map<string, { at: number; q: Question }>()
 
 function shuffleInPlace<T>(arr: T[]) {
@@ -33,16 +45,33 @@ function shuffleInPlace<T>(arr: T[]) {
 }
 
 function mapDbRow(row: DbQuestionRow): Question {
-  const roundType: "mcq" | "audio" = row.round_type === "audio" ? "audio" : "mcq"
-  const options: string[] = Array.isArray(row.options) ? row.options.map(String) : []
+  const roundType: RoundType =
+    row.round_type === "audio" ? "audio" : row.round_type === "picture" ? "picture" : "mcq"
+
+  const answerType: AnswerType = row.answer_type === "text" ? "text" : "mcq"
+
+  const options: string[] =
+    answerType === "mcq" && Array.isArray(row.options) ? row.options.map(String) : []
+
+  const answerIndex = answerType === "mcq" ? (Number.isFinite(Number(row.answer_index)) ? Number(row.answer_index) : null) : null
+
+  const answerText = answerType === "text" ? (row.answer_text ?? "") : undefined
+
+  const acceptedAnswers =
+    answerType === "text" && Array.isArray(row.accepted_answers) ? row.accepted_answers.map(String) : undefined
+
   return {
     id: row.id,
     roundType,
+    answerType,
     text: row.text,
     options,
-    answerIndex: row.answer_index,
+    answerIndex,
+    answerText,
+    acceptedAnswers,
     explanation: row.explanation ?? "",
     audioPath: row.audio_path ?? undefined,
+    imagePath: row.image_path ?? undefined,
   }
 }
 
@@ -56,7 +85,7 @@ export async function getQuestionById(id: string): Promise<Question | null> {
 
   const res = await supabaseAdmin
     .from("questions")
-    .select("id, round_type, text, options, answer_index, explanation, audio_path")
+    .select("id, round_type, answer_type, text, options, answer_index, answer_text, accepted_answers, explanation, audio_path, image_path")
     .eq("id", key)
     .single()
 
@@ -71,18 +100,12 @@ export async function pickQuestionIdsForPacks(count: number, packIds: string[]):
   const n = Math.max(0, Math.floor(Number(count)))
   if (n <= 0) return []
 
-  const packs = (Array.isArray(packIds) ? packIds : [])
-    .map(x => String(x ?? "").trim())
-    .filter(Boolean)
+  const packs = (Array.isArray(packIds) ? packIds : []).map(x => String(x ?? "").trim()).filter(Boolean)
 
   let ids: string[] = []
 
   if (packs.length > 0) {
-    const linksRes = await supabaseAdmin
-      .from("pack_questions")
-      .select("question_id")
-      .in("pack_id", packs)
-
+    const linksRes = await supabaseAdmin.from("pack_questions").select("question_id").in("pack_id", packs)
     if (linksRes.error) return []
 
     const raw = (linksRes.data ?? []).map(r => String((r as any).question_id ?? "")).filter(Boolean)
@@ -90,11 +113,11 @@ export async function pickQuestionIdsForPacks(count: number, packIds: string[]):
   } else {
     const allRes = await supabaseAdmin.from("questions").select("id")
     if (allRes.error) return []
+
     ids = (allRes.data ?? []).map(r => String((r as any).id ?? "")).filter(Boolean)
   }
 
   if (ids.length === 0) return []
-
   shuffleInPlace(ids)
   return ids.slice(0, Math.min(n, ids.length))
 }

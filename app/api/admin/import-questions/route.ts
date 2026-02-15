@@ -7,19 +7,27 @@ import { supabaseAdmin } from "../../../../lib/supabaseAdmin"
 type CsvRow = {
   pack_id: string
   pack_name: string
-  pack_round_type: "general" | "audio"
+  pack_round_type: string
   pack_sort_order: string
 
   question_id: string
-  question_round_type: "general" | "audio"
+  question_round_type: string
+
+  answer_type?: string
   question_text: string
-  option_a: string
-  option_b: string
-  option_c: string
-  option_d: string
-  answer_index: string
-  explanation: string
-  audio_path: string
+
+  option_a?: string
+  option_b?: string
+  option_c?: string
+  option_d?: string
+
+  answer_index?: string
+  answer_text?: string
+  accepted_answers?: string
+
+  explanation?: string
+  audio_path?: string
+  image_path?: string
 }
 
 function unauthorised() {
@@ -52,17 +60,20 @@ async function readCsvText(req: Request): Promise<string> {
   if (contentType.includes("multipart/form-data")) {
     const form = await req.formData()
     const file = form.get("file")
-
-    if (!file || typeof (file as any).text !== "function") {
-      throw new Error("Missing file field in form data")
-    }
-
+    if (!file || typeof (file as any).text !== "function") throw new Error("Missing file field in form data")
     return await (file as any).text()
   }
 
   const text = await req.text()
   if (!text || !text.trim()) throw new Error("Empty request body")
   return text
+}
+
+function parseAcceptedAnswers(raw: string) {
+  const s = String(raw ?? "").trim()
+  if (!s) return null
+  const parts = s.split("|").map(x => x.trim()).filter(Boolean)
+  return parts.length ? parts : null
 }
 
 export async function POST(req: Request) {
@@ -72,7 +83,7 @@ export async function POST(req: Request) {
 
     const csvText = await readCsvText(req)
 
-    let rows: CsvRow[]
+    let rows: CsvRow[] = []
     try {
       rows = parse(csvText, {
         columns: true,
@@ -99,39 +110,67 @@ export async function POST(req: Request) {
 
       const questionId = String(r.question_id ?? "").trim()
       const questionRoundType = String(r.question_round_type ?? "").trim()
+
+      const answerTypeRaw = String((r as any).answer_type ?? "").trim().toLowerCase()
+      const answerType = answerTypeRaw === "text" || answerTypeRaw === "typed" ? "text" : "mcq"
+
       const text = String(r.question_text ?? "").trim()
 
-      const optionA = String(r.option_a ?? "").trim()
-      const optionB = String(r.option_b ?? "").trim()
-      const optionC = String(r.option_c ?? "").trim()
-      const optionD = String(r.option_d ?? "").trim()
+      const explanation = String((r as any).explanation ?? "").trim()
 
-      const answerIndex = Number(r.answer_index)
-      const explanation = String(r.explanation ?? "").trim()
-      const audioPathRaw = String(r.audio_path ?? "").trim()
+      const audioPathRaw = String((r as any).audio_path ?? "").trim()
       const audioPath = audioPathRaw.length ? audioPathRaw : null
+
+      const imagePathRaw = String((r as any).image_path ?? "").trim()
+      const imagePath = imagePathRaw.length ? imagePathRaw : null
 
       if (!packId || !packName) {
         return NextResponse.json({ error: "Each row must include pack_id and pack_name" }, { status: 400 })
       }
-      if (packRoundType !== "general" && packRoundType !== "audio") {
+
+      if (packRoundType !== "general" && packRoundType !== "audio" && packRoundType !== "picture") {
         return NextResponse.json({ error: `Invalid pack_round_type for pack ${packId}` }, { status: 400 })
       }
 
       if (!questionId || !text) {
         return NextResponse.json({ error: `Missing question_id or question_text in pack ${packId}` }, { status: 400 })
       }
-      if (questionRoundType !== "general" && questionRoundType !== "audio") {
+
+      if (questionRoundType !== "general" && questionRoundType !== "audio" && questionRoundType !== "picture") {
         return NextResponse.json({ error: `Invalid question_round_type for question ${questionId}` }, { status: 400 })
       }
 
-      if (![0, 1, 2, 3].includes(answerIndex)) {
-        return NextResponse.json({ error: `Invalid answer_index for question ${questionId}` }, { status: 400 })
-      }
+      let options: string[] | null = null
+      let answerIndex: number | null = null
+      let answerText: string | null = null
+      let acceptedAnswers: string[] | null = null
 
-      const options = [optionA, optionB, optionC, optionD]
-      if (options.some(o => !o)) {
-        return NextResponse.json({ error: `All four options must be set for question ${questionId}` }, { status: 400 })
+      if (answerType === "mcq") {
+        const optionA = String((r as any).option_a ?? "").trim()
+        const optionB = String((r as any).option_b ?? "").trim()
+        const optionC = String((r as any).option_c ?? "").trim()
+        const optionD = String((r as any).option_d ?? "").trim()
+
+        const idxRaw = String((r as any).answer_index ?? "").trim()
+        const idx = Number(idxRaw)
+
+        if (![0, 1, 2, 3].includes(idx)) {
+          return NextResponse.json({ error: `Invalid answer_index for question ${questionId}` }, { status: 400 })
+        }
+
+        options = [optionA, optionB, optionC, optionD]
+        if (options.some(o => !o)) {
+          return NextResponse.json({ error: `All four options must be set for question ${questionId}` }, { status: 400 })
+        }
+
+        answerIndex = idx
+      } else {
+        const at = String((r as any).answer_text ?? "").trim()
+        if (!at) {
+          return NextResponse.json({ error: `Missing answer_text for typed question ${questionId}` }, { status: 400 })
+        }
+        answerText = at
+        acceptedAnswers = parseAcceptedAnswers(String((r as any).accepted_answers ?? ""))
       }
 
       packUpserts.push({
@@ -146,11 +185,15 @@ export async function POST(req: Request) {
       questionUpserts.push({
         id: questionId,
         round_type: questionRoundType,
+        answer_type: answerType,
         text,
         options,
         answer_index: answerIndex,
+        answer_text: answerText,
+        accepted_answers: acceptedAnswers,
         explanation: explanation || null,
         audio_path: audioPath,
+        image_path: imagePath,
         updated_at: new Date().toISOString(),
       })
 
@@ -167,9 +210,7 @@ export async function POST(req: Request) {
     const qRes = await supabaseAdmin.from("questions").upsert(uniqueQuestions, { onConflict: "id" })
     if (qRes.error) return NextResponse.json({ error: qRes.error.message }, { status: 500 })
 
-    const linkRes = await supabaseAdmin
-      .from("pack_questions")
-      .upsert(uniqueLinks, { onConflict: "pack_id,question_id" })
+    const linkRes = await supabaseAdmin.from("pack_questions").upsert(uniqueLinks, { onConflict: "pack_id,question_id" })
     if (linkRes.error) return NextResponse.json({ error: linkRes.error.message }, { status: 500 })
 
     return NextResponse.json({

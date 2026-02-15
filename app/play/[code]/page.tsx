@@ -10,10 +10,17 @@ export default function PlayerPage() {
   const params = useParams<{ code?: string }>()
   const code = String(params?.code ?? "").toUpperCase()
 
-  const [state, setState] = useState<RoomState>(null)
+  const [state, setState] = useState<RoomState | null>(null)
   const [playerId, setPlayerId] = useState<string | null>(null)
+
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const [typedValue, setTypedValue] = useState("")
+  const [typedSubmitted, setTypedSubmitted] = useState(false)
+  const [typedIsCorrect, setTypedIsCorrect] = useState<boolean | null>(null)
+  const [answerError, setAnswerError] = useState<string | null>(null)
+
   const [lastQuestionId, setLastQuestionId] = useState<string | null>(null)
+
   const [isDark, setIsDark] = useState(false)
 
   const [audioEnabled, setAudioEnabled] = useState(false)
@@ -48,7 +55,6 @@ export default function PlayerPage() {
 
     tick()
     const id = setInterval(tick, 500)
-
     return () => {
       cancelled = true
       clearInterval(id)
@@ -61,6 +67,10 @@ export default function PlayerPage() {
     if (qid !== lastQuestionId) {
       setLastQuestionId(qid)
       setSelectedIndex(null)
+      setTypedValue("")
+      setTypedSubmitted(false)
+      setTypedIsCorrect(null)
+      setAnswerError(null)
       setPlayedForQ(null)
       setPreparedForQ(null)
       setAutoplayFailed(false)
@@ -70,14 +80,20 @@ export default function PlayerPage() {
   const audioMode = String(state?.audioMode ?? "display")
   const shouldPlayOnPhone = audioMode === "phones" || audioMode === "both"
 
+  const answerType = String(state?.question?.answerType ?? "mcq")
+
   const canAnswer = useMemo(() => {
-    return state?.stage === "open" && state?.question?.id && selectedIndex === null
-  }, [state, selectedIndex])
+    if (state?.stage !== "open") return false
+    if (!state?.question?.id) return false
+    if (answerType === "text") return !typedSubmitted
+    return selectedIndex === null
+  }, [state, selectedIndex, typedSubmitted, answerType])
 
   async function answer(optionIndex: number) {
     if (!playerId || !state?.question?.id) return
     if (!canAnswer) return
 
+    setAnswerError(null)
     setSelectedIndex(optionIndex)
 
     await fetch("/api/room/answer", {
@@ -85,6 +101,38 @@ export default function PlayerPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code, playerId, questionId: state.question.id, optionIndex }),
     }).catch(() => {})
+  }
+
+  async function submitTyped() {
+    if (!playerId || !state?.question?.id) return
+    if (!canAnswer) return
+
+    const trimmed = typedValue.trim()
+    if (!trimmed) {
+      setAnswerError("Type an answer first.")
+      return
+    }
+
+    setAnswerError(null)
+    setTypedSubmitted(true)
+
+    try {
+      const res = await fetch("/api/room/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, playerId, questionId: state.question.id, answerText: trimmed }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || data?.accepted === false) {
+        setAnswerError(data?.error ?? "Answer not accepted.")
+        setTypedSubmitted(false)
+        return
+      }
+      setTypedIsCorrect(Boolean(data?.isCorrect))
+    } catch {
+      setAnswerError("Could not send answer.")
+      setTypedSubmitted(false)
+    }
   }
 
   const theme = useMemo(() => {
@@ -104,7 +152,6 @@ export default function PlayerPage() {
         wrongText: "#fff1f2",
       }
     }
-
     return {
       pageBg: "#ffffff",
       text: "#111111",
@@ -143,14 +190,12 @@ export default function PlayerPage() {
       if (Ctx) {
         const ctx = new Ctx()
         await ctx.resume()
-
         const buf = ctx.createBuffer(1, 1, 22050)
         const src = ctx.createBufferSource()
         src.buffer = buf
         src.connect(ctx.destination)
         src.start(0)
         src.stop(0.01)
-
         await new Promise(r => setTimeout(r, 20))
         await ctx.close()
       }
@@ -197,7 +242,11 @@ export default function PlayerPage() {
     }
   }
 
-  const isAudioQ = state?.question?.roundType === "audio"
+  const q = state?.question
+  const isAudioQ = q?.roundType === "audio"
+  const isPictureQ = q?.roundType === "picture"
+  const isTextQ = q?.answerType === "text"
+
   const correctIndex = state?.reveal?.answerIndex ?? null
 
   useEffect(() => {
@@ -220,22 +269,17 @@ export default function PlayerPage() {
     async function attempt() {
       const ok = await playClip()
       if (cancelled) return
-
       if (ok) {
         setPlayedForQ(state.question.id)
         setAutoplayFailed(false)
         return
       }
-
       setAutoplayFailed(true)
-
       setTimeout(async () => {
         if (cancelled) return
         if (state?.stage !== "open") return
-
         const ok2 = await playClip()
         if (cancelled) return
-
         if (ok2) {
           setPlayedForQ(state.question.id)
           setAutoplayFailed(false)
@@ -250,86 +294,59 @@ export default function PlayerPage() {
   }, [shouldPlayOnPhone, audioEnabled, isAudioQ, state?.stage, state?.question?.id, state?.question?.audioUrl, playedForQ])
 
   if (!code) {
-    return <main style={pageStyle}>Missing room code in the URL.</main>
+    return <div style={pageStyle}>Missing room code in the URL.</div>
   }
-
   if (!state) return null
 
   if (state.phase === "lobby") {
     return (
-      <main style={pageStyle}>
+      <div style={pageStyle}>
         <h1>Room {code}</h1>
-
         <p>Joined. Waiting for the host to start the game.</p>
 
         {shouldPlayOnPhone && (
-          <div>
+          <div style={{ marginTop: 12 }}>
             {!audioEnabled ? (
               <button
-                type="button"
                 onClick={unlockAudio}
-                style={{
-                  padding: 12,
-                  border: `1px solid ${theme.border}`,
-                  borderRadius: 12,
-                  background: theme.btnBg,
-                  color: theme.btnText,
-                  width: "100%",
-                }}
+                style={{ padding: 12, border: `1px solid ${theme.border}`, borderRadius: 12, background: theme.btnBg, color: theme.btnText }}
               >
                 Enable audio on this phone
               </button>
             ) : (
-              <p>Audio enabled for this phone.</p>
+              <p style={{ color: theme.muted }}>Audio enabled for this phone.</p>
             )}
           </div>
         )}
-      </main>
+
+        <audio ref={audioRef} />
+      </div>
     )
   }
 
   if (state.phase === "finished") {
     return (
-      <main style={pageStyle}>
+      <div style={pageStyle}>
         <h1>Room {code}</h1>
         <p>The game has finished.</p>
-      </main>
+      </div>
     )
   }
 
   const countdownText = state.stage === "countdown" ? "Get ready." : "\u00A0"
 
   return (
-    <main style={pageStyle}>
+    <div style={pageStyle}>
       <h1>Room {code}</h1>
 
-      <audio ref={audioRef} />
-
-      <div
-        style={{
-          minHeight: 24,
-          marginTop: 6,
-          marginBottom: 10,
-          color: theme.muted,
-        }}
-      >
-        {countdownText}
-      </div>
+      <div style={{ minHeight: 22, marginBottom: 10, color: theme.muted }}>{countdownText}</div>
 
       {shouldPlayOnPhone && (
-        <div style={{ marginBottom: 12 }}>
+        <div style={{ marginBottom: 10 }}>
           {!audioEnabled ? (
             <button
-              type="button"
               onClick={unlockAudio}
-              style={{
-                padding: 12,
-                border: `1px solid ${theme.border}`,
-                borderRadius: 12,
-                background: theme.btnBg,
-                color: theme.btnText,
-                width: "100%",
-              }}
+              style={{ padding: 12, border: `1px solid ${theme.border}`, borderRadius: 12, background: theme.btnBg, color: theme.btnText, width: "100%" }}
             >
               Enable audio on this phone
             </button>
@@ -341,14 +358,25 @@ export default function PlayerPage() {
         </div>
       )}
 
-      {state.question && (
+      <audio ref={audioRef} />
+
+      {q && (
         <>
-          <h2 style={{ marginTop: 0 }}>{state.question.text}</h2>
+          {isPictureQ && q.imageUrl && (
+            <div style={{ marginBottom: 12 }}>
+              <img
+                src={q.imageUrl}
+                alt="Question image"
+                style={{ maxWidth: "100%", height: "auto", borderRadius: 12, border: `1px solid ${theme.border}` }}
+              />
+            </div>
+          )}
+
+          <h2>{q.text}</h2>
 
           {isAudioQ && shouldPlayOnPhone && audioEnabled && (
-            <div style={{ marginBottom: 10 }}>
+            <div style={{ marginTop: 10 }}>
               <button
-                type="button"
                 onClick={async () => {
                   setAutoplayFailed(false)
                   await playClip()
@@ -373,64 +401,103 @@ export default function PlayerPage() {
             </div>
           )}
 
-          <div style={{ display: "grid", gap: 10 }}>
-            {state.question.options.map((opt: string, i: number) => {
-              const isSelected = selectedIndex === i
-              const isCorrect = correctIndex !== null && i === correctIndex
-              const isWrongSelected = correctIndex !== null && isSelected && !isCorrect
+          {isTextQ ? (
+            <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+              <input
+                value={typedValue}
+                onChange={e => setTypedValue(e.target.value)}
+                disabled={!canAnswer}
+                placeholder="Type your answer"
+                style={{
+                  padding: 12,
+                  border: `1px solid ${theme.border}`,
+                  borderRadius: 12,
+                  background: theme.btnBg,
+                  color: theme.btnText,
+                  fontSize: 18,
+                }}
+              />
 
-              let bg = theme.btnBg
-              let fg = theme.btnText
+              <button
+                onClick={submitTyped}
+                disabled={!canAnswer}
+                style={{
+                  padding: 12,
+                  border: `1px solid ${theme.border}`,
+                  borderRadius: 12,
+                  background: theme.btnBg,
+                  color: theme.btnText,
+                  width: "100%",
+                  cursor: canAnswer ? "pointer" : "not-allowed",
+                  opacity: canAnswer ? 1 : 0.6,
+                }}
+              >
+                Submit answer
+              </button>
 
-              if (isSelected && correctIndex === null) {
-                bg = theme.selectedBg
-                fg = theme.selectedText
-              }
-              if (isCorrect) {
-                bg = theme.correctBg
-                fg = theme.correctText
-              }
-              if (isWrongSelected) {
-                bg = theme.wrongBg
-                fg = theme.wrongText
-              }
+              {answerError && <div style={{ color: theme.muted }}>{answerError}</div>}
 
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => answer(i)}
-                  disabled={!canAnswer && !isSelected}
-                  style={{
-                    padding: 14,
-                    border: `1px solid ${theme.border}`,
-                    borderRadius: 12,
-                    textAlign: "left",
-                    background: bg,
-                    color: fg,
-                    fontSize: 18,
-                    lineHeight: 1.25,
-                    width: "100%",
-                    touchAction: "manipulation",
-                  }}
-                >
-                  {opt}
-                </button>
-              )
-            })}
-          </div>
+              {typedSubmitted && state?.reveal?.answerText === null && <div style={{ color: theme.muted }}>Answer locked in.</div>}
 
-          {selectedIndex !== null && correctIndex === null && (
-            <p style={{ marginTop: 12, color: theme.muted }}>Answer locked in.</p>
-          )}
+              {state?.reveal?.answerText && typedIsCorrect !== null && (
+                <div style={{ color: theme.muted }}>{typedIsCorrect ? "You got it right." : "You got it wrong."}</div>
+              )}
+            </div>
+          ) : (
+            <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+              {(q.options ?? []).map((opt: string, i: number) => {
+                const isSelected = selectedIndex === i
+                const isCorrect = correctIndex !== null && i === correctIndex
+                const isWrongSelected = correctIndex !== null && isSelected && !isCorrect
 
-          {correctIndex !== null && selectedIndex !== null && (
-            <p style={{ marginTop: 12, color: theme.muted }}>
-              {selectedIndex === correctIndex ? "You got it right." : "You got it wrong."}
-            </p>
+                let bg = theme.btnBg
+                let fg = theme.btnText
+
+                if (isSelected && correctIndex === null) {
+                  bg = theme.selectedBg
+                  fg = theme.selectedText
+                }
+                if (isCorrect) {
+                  bg = theme.correctBg
+                  fg = theme.correctText
+                }
+                if (isWrongSelected) {
+                  bg = theme.wrongBg
+                  fg = theme.wrongText
+                }
+
+                return (
+                  <button
+                    key={i}
+                    onClick={() => answer(i)}
+                    disabled={!canAnswer && !isSelected}
+                    style={{
+                      padding: 14,
+                      border: `1px solid ${theme.border}`,
+                      borderRadius: 12,
+                      textAlign: "left",
+                      background: bg,
+                      color: fg,
+                      fontSize: 18,
+                      lineHeight: 1.25,
+                      width: "100%",
+                      touchAction: "manipulation",
+                    }}
+                  >
+                    {opt}
+                  </button>
+                )
+              })}
+
+              {selectedIndex !== null && correctIndex === null && <div style={{ color: theme.muted }}>Answer locked in.</div>}
+
+              {correctIndex !== null && selectedIndex !== null && (
+                <div style={{ color: theme.muted }}>{selectedIndex === correctIndex ? "You got it right." : "You got it wrong."}</div>
+              )}
+            </div>
           )}
         </>
       )}
-    </main>
+    </div>
   )
 }

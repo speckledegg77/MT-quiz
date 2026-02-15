@@ -24,19 +24,18 @@ export default function DisplayPage() {
     const q = state?.question
     const el = audioRef.current
     if (!q?.audioUrl || !el) return
-
     try {
       el.pause()
       el.src = q.audioUrl
       el.load()
       await el.play()
     } catch {
+      // ignore
     }
   }
 
   useEffect(() => {
     if (!code) return
-
     let cancelled = false
 
     async function tick() {
@@ -48,7 +47,7 @@ export default function DisplayPage() {
         await fetch("/api/room/advance", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code })
+          body: JSON.stringify({ code }),
         })
       }
     }
@@ -70,10 +69,9 @@ export default function DisplayPage() {
     if (!shouldPlayOnDisplay) return
     if (!audioEnabled) return
     if (q.roundType !== "audio") return
-    if (state.stage !== "open") return
+    if (state?.stage !== "open") return
     if (!q.audioUrl) return
     if (playedForQ === q.id) return
-
     setPlayedForQ(q.id)
     playClip().catch(() => {})
   }, [state, audioEnabled, playedForQ, shouldPlayOnDisplay])
@@ -90,123 +88,128 @@ export default function DisplayPage() {
   }, [code, origin])
 
   if (!code) {
-    return (
-      <main style={{ maxWidth: 1200, margin: "20px auto", padding: 16, fontFamily: "system-ui" }}>
-        <p>Missing room code in the URL.</p>
-      </main>
-    )
+    return <div style={{ padding: 16 }}>Missing room code in the URL.</div>
   }
-
   if (!state) return null
 
-  const isAudioQ = state?.question?.roundType === "audio"
   const showJoin = state.phase === "lobby"
+  const q = state.question
+  const isAudioQ = q?.roundType === "audio"
+  const isPictureQ = q?.roundType === "picture"
+  const isTextQ = q?.answerType === "text"
+
+  const status =
+    state.stage === "countdown"
+      ? "Get ready"
+      : state.stage === "open"
+      ? "Answer now"
+      : state.stage === "wait"
+      ? "Waiting for answers"
+      : state.stage === "reveal"
+      ? "Reveal"
+      : ""
 
   return (
-    <main style={{ maxWidth: 1200, margin: "16px auto", padding: 16, fontFamily: "system-ui" }}>
-      <div style={{ display: "grid", gridTemplateColumns: showJoin ? "1fr 240px" : "1fr", gap: 16, alignItems: "start" }}>
-        <div>
-          <h1 style={{ fontSize: 34, marginBottom: 6 }}>Room {code}</h1>
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: 16, fontFamily: "system-ui" }}>
+      <h1>Room {code}</h1>
 
-          {showJoin && joinUrl && (
-            <p style={{ marginTop: 0, color: "#555" }}>
-              Join at: <a href={joinUrl}>{joinUrl}</a>
-            </p>
+      {showJoin && joinUrl && (
+        <div style={{ marginBottom: 10 }}>
+          <div>Join at: <a href={joinUrl}>{joinUrl}</a></div>
+          <div style={{ marginTop: 10 }}>
+            <div>Scan to join</div>
+            <QRCodeSVG value={joinUrl} />
+          </div>
+        </div>
+      )}
+
+      {shouldPlayOnDisplay && !audioEnabled && (
+        <button onClick={unlockAudio} style={{ padding: 10, borderRadius: 8, border: "1px solid #111" }}>
+          Enable audio
+        </button>
+      )}
+
+      {state.phase === "lobby" && <p>Waiting for host to start.</p>}
+      {state.phase === "finished" && <p>Game finished.</p>}
+
+      <audio ref={audioRef} />
+
+      {q && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ minHeight: 24, marginBottom: 8, color: "#555" }}>{status}</div>
+
+          {isPictureQ && q.imageUrl && (
+            <div style={{ marginBottom: 12 }}>
+              <img
+                src={q.imageUrl}
+                alt="Question image"
+                style={{ maxWidth: "100%", height: "auto", borderRadius: 12, border: "1px solid #ddd" }}
+              />
+            </div>
           )}
 
-          {shouldPlayOnDisplay && !audioEnabled && (
-            <button
-              onClick={unlockAudio}
-              style={{ padding: "12px 16px", border: "1px solid #ccc", borderRadius: 10, marginBottom: 8 }}
-            >
-              Enable audio
+          <h2>{q.text}</h2>
+
+          {isAudioQ && audioMode === "phones" && <p>Audio plays on phones for this game.</p>}
+
+          {isAudioQ && shouldPlayOnDisplay && audioEnabled && (
+            <button onClick={() => playClip()} style={{ padding: 10, borderRadius: 8, border: "1px solid #111" }}>
+              Play clip
             </button>
           )}
 
-          <audio ref={audioRef} preload="auto" />
-
-          {state.phase === "lobby" && <p>Waiting for host to start.</p>}
-          {state.phase === "finished" && <p>Game finished.</p>}
-        </div>
-
-        {showJoin && joinUrl && (
-          <div style={{ display: "grid", gap: 8, justifyItems: "center" }}>
-            <div style={{ border: "1px solid #ccc", borderRadius: 12, padding: 12, background: "white" }}>
-              <QRCodeSVG value={joinUrl} size={210} />
-            </div>
-            <div style={{ color: "#555" }}>Scan to join</div>
-          </div>
-        )}
-      </div>
-
-      {state.question && (
-        <>
-          <div style={{ fontSize: 18, color: "#555", marginTop: 10 }}>
-            {state.stage === "countdown" && "Get ready"}
-            {state.stage === "open" && "Answer now"}
-            {state.stage === "wait" && "Waiting for answers"}
-            {state.stage === "reveal" && "Reveal"}
-          </div>
-
-          <h2 style={{ fontSize: 34, lineHeight: 1.15, marginTop: 10 }}>{state.question.text}</h2>
-
-          {isAudioQ && audioMode === "phones" && (
-            <p style={{ marginTop: 10, color: "#555" }}>Audio plays on phones for this game.</p>
-          )}
-
-          {isAudioQ && shouldPlayOnDisplay && audioEnabled && (
-            <div style={{ marginTop: 12 }}>
-              <button
-                onClick={playClip}
-                style={{ padding: "12px 16px", border: "1px solid #ccc", borderRadius: 10 }}
-              >
-                Play clip
-              </button>
+          {!isTextQ && Array.isArray(q.options) && q.options.length > 0 && (
+            <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+              {q.options.map((opt: string, i: number) => {
+                const isCorrect = state.reveal && i === state.reveal.answerIndex
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      padding: 12,
+                      borderRadius: 12,
+                      border: "1px solid #ddd",
+                      background: isCorrect ? "#e9ffe9" : "#fff",
+                    }}
+                  >
+                    {opt}
+                  </div>
+                )
+              })}
             </div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
-            {state.question.options.map((opt: string, i: number) => {
-              const isCorrect = state.reveal && i === state.reveal.answerIndex
-              return (
-                <div
-                  key={`${state.question.id}-${i}`}
-                  style={{
-                    padding: 16,
-                    border: "1px solid #ccc",
-                    borderRadius: 14,
-                    fontSize: 22,
-                    background: isCorrect ? "#e9ffe9" : "white"
-                  }}
-                >
-                  {opt}
-                </div>
-              )
-            })}
-          </div>
+          {isTextQ && <p>Type your answer on your phone.</p>}
 
           {state.reveal && (
-            <div style={{ marginTop: 14, padding: 12, border: "1px solid #ccc", borderRadius: 12 }}>
-              <p style={{ marginTop: 0, fontSize: 20 }}>
-                Correct: {state.question.options[state.reveal.answerIndex]}
-              </p>
-              <p style={{ marginBottom: 0 }}>{state.reveal.explanation}</p>
+            <div style={{ marginTop: 14 }}>
+              {!isTextQ && state.reveal.answerIndex !== null && Array.isArray(q.options) && q.options[state.reveal.answerIndex] && (
+                <p>
+                  Correct: {q.options[state.reveal.answerIndex]}
+                </p>
+              )}
+
+              {isTextQ && state.reveal.answerText && (
+                <p>
+                  Correct: {state.reveal.answerText}
+                </p>
+              )}
+
+              {state.reveal.explanation && <p>{state.reveal.explanation}</p>}
             </div>
           )}
-        </>
+        </div>
       )}
 
-      <section style={{ marginTop: 18 }}>
-        <h3 style={{ fontSize: 20, marginBottom: 8 }}>Scoreboard</h3>
-        <div style={{ display: "grid", gap: 6, maxWidth: 520 }}>
-          {scoreboard.map((p: any) => (
-            <div key={p.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 18 }}>
-              <div>{p.name}</div>
-              <div>{p.score}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-    </main>
+      <h3 style={{ marginTop: 20 }}>Scoreboard</h3>
+      <div style={{ display: "grid", gap: 6 }}>
+        {scoreboard.map((p: any) => (
+          <div key={p.id} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #eee", paddingBottom: 6 }}>
+            <div>{p.name}</div>
+            <div>{p.score}</div>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
