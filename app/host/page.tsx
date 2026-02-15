@@ -13,76 +13,24 @@ type PackInfo = {
   audioCount: number
 }
 
-type HostRound = {
-  packId: string
-  count: number
-}
-
-const inputStyle: React.CSSProperties = {
-  display: "block",
-  width: "100%",
-  padding: 10,
-  border: "1px solid #ccc",
-  borderRadius: 8,
-  marginTop: 6,
-}
-
-const selectStyle: React.CSSProperties = {
-  padding: 8,
-  borderRadius: 8,
-  border: "1px solid #ccc",
-}
-
-const buttonBase: React.CSSProperties = {
-  padding: "10px 12px",
-  borderRadius: 8,
-  border: "1px solid #111",
-  cursor: "pointer",
-  userSelect: "none",
-}
-
-const buttonPrimary: React.CSSProperties = {
-  ...buttonBase,
-  background: "#111",
-  color: "#fff",
-}
-
-const buttonSecondary: React.CSSProperties = {
-  ...buttonBase,
-  background: "#fff",
-  color: "#111",
-}
-
-const buttonDanger: React.CSSProperties = {
-  ...buttonBase,
-  background: "#fff",
-  color: "#b00020",
-  border: "1px solid #b00020",
-}
-
-function withDisabled(style: React.CSSProperties, disabled: boolean): React.CSSProperties {
-  if (!disabled) return style
-  return { ...style, opacity: 0.5, cursor: "not-allowed" }
-}
+type RoundRequest = { packId: string; count: number }
 
 export default function HostCreatePage() {
   const router = useRouter()
 
-  const [questionCount, setQuestionCount] = useState<number>(20)
-  const [countdownSeconds, setCountdownSeconds] = useState<number>(3)
-  const [answerSeconds, setAnswerSeconds] = useState<number>(60)
-  const [revealDelaySeconds, setRevealDelaySeconds] = useState<number>(2)
-  const [revealSeconds, setRevealSeconds] = useState<number>(5)
+  const [countdownSeconds, setCountdownSeconds] = useState(3)
+  const [answerSeconds, setAnswerSeconds] = useState(60)
+  const [revealDelaySeconds, setRevealDelaySeconds] = useState(2)
+  const [revealSeconds, setRevealSeconds] = useState(5)
   const [audioMode, setAudioMode] = useState<AudioMode>("display")
 
   const [packs, setPacks] = useState<PackInfo[]>([])
   const [selectedPacks, setSelectedPacks] = useState<string[]>([])
-  const [rounds, setRounds] = useState<HostRound[]>([])
+  const [packCounts, setPackCounts] = useState<Record<string, number>>({})
 
   const [code, setCode] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [loadingPacks, setLoadingPacks] = useState<boolean>(true)
-  const [creating, setCreating] = useState<boolean>(false)
+  const [loadingPacks, setLoadingPacks] = useState(true)
 
   useEffect(() => {
     let cancelled = false
@@ -94,24 +42,31 @@ export default function HostCreatePage() {
       try {
         const res = await fetch("/api/packs", { cache: "no-store" })
         const data = await res.json()
-
         if (cancelled) return
 
         const list: PackInfo[] = Array.isArray(data?.packs) ? data.packs : []
         setPacks(list)
 
-        const ids = new Set(list.map(p => p.id))
+        // Pick defaults on first load
+        if (list.length > 0) {
+          setSelectedPacks(prev => {
+            if (prev.length > 0) return prev
+            return [list[0].id]
+          })
 
-        setSelectedPacks(prev => {
-          const filtered = prev.filter(p => ids.has(p))
-          if (filtered.length > 0) return filtered
-          if (list.length > 0) return [list[0].id]
-          return []
-        })
-
-        setRounds(prev => prev.filter(r => ids.has(r.packId)))
+          setPackCounts(prev => {
+            const next = { ...prev }
+            for (const p of list) {
+              if (next[p.id] == null) {
+                const def = Math.min(10, Math.max(1, Number(p.questionCount || 10)))
+                next[p.id] = def
+              }
+            }
+            return next
+          })
+        }
       } catch {
-        if (!cancelled) setError("Could not load round list")
+        if (!cancelled) setError("Could not load pack list")
       } finally {
         if (!cancelled) setLoadingPacks(false)
       }
@@ -125,96 +80,80 @@ export default function HostCreatePage() {
 
   function togglePack(id: string) {
     setSelectedPacks(prev => {
-      if (prev.includes(id)) return prev.filter(x => x !== id)
+      const on = prev.includes(id)
+      if (on) return prev.filter(x => x !== id)
       return [...prev, id]
+    })
+
+    setPackCounts(prev => {
+      if (prev[id] != null) return prev
+      return { ...prev, [id]: 10 }
     })
   }
 
-  function addRound() {
-    const firstPack = packs[0]?.id ?? ""
-    if (!firstPack) return
-    const max = packs[0]?.questionCount ?? 10
-    setRounds(prev => [...prev, { packId: firstPack, count: Math.min(10, max) }])
+  function setCountForPack(id: string, value: number, maxForPack: number) {
+    const n = Math.max(1, Math.floor(Number(value)))
+    const clamped = Math.min(n, Math.max(1, Math.floor(Number(maxForPack || n))))
+    setPackCounts(prev => ({ ...prev, [id]: clamped }))
   }
 
-  function removeRound(index: number) {
-    setRounds(prev => prev.filter((_, i) => i !== index))
-  }
+  const rounds: RoundRequest[] = useMemo(() => {
+    const map = new Map(packs.map(p => [p.id, p.questionCount]))
+    return selectedPacks
+      .map(packId => {
+        const count = Number(packCounts[packId] ?? 0)
+        const max = Number(map.get(packId) ?? count)
+        const safe = Math.min(Math.max(1, Math.floor(count)), Math.max(1, Math.floor(max || count)))
+        return { packId, count: safe }
+      })
+      .filter(r => r.packId && r.count > 0)
+  }, [selectedPacks, packCounts, packs])
 
-  function updateRoundPack(index: number, packId: string) {
-    setRounds(prev => prev.map((r, i) => (i === index ? { ...r, packId } : r)))
-  }
-
-  function updateRoundCount(index: number, count: number) {
-    const safe = Math.max(1, Math.floor(Number(count)))
-    setRounds(prev => prev.map((r, i) => (i === index ? { ...r, count: safe } : r)))
-  }
-
-  const roundsTotal = useMemo(() => {
-    return rounds.reduce((sum, r) => sum + (Number.isFinite(r.count) ? r.count : 0), 0)
-  }, [rounds])
-
-  const roundsPacks = useMemo(() => {
-    const s = new Set<string>()
-    for (const r of rounds) {
-      const pid = String(r.packId ?? "").trim()
-      if (pid) s.add(pid)
-    }
-    return Array.from(s)
+  const totalQuestions = useMemo(() => {
+    return rounds.reduce((sum, r) => sum + r.count, 0)
   }, [rounds])
 
   async function createRoom() {
     setError(null)
-    setCreating(true)
 
-    try {
-      const usingRounds = rounds.length > 0
-
-      const packsToUse = usingRounds
-        ? roundsPacks
-        : selectedPacks.length
-          ? selectedPacks
-          : packs.length
-            ? [packs[0].id]
-            : []
-
-      const totalQuestions = usingRounds ? roundsTotal : questionCount
-
-      const res = await fetch("/api/room/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          questionCount: totalQuestions,
-          countdownSeconds,
-          answerSeconds,
-          revealDelaySeconds,
-          revealSeconds,
-          audioMode,
-          selectedPacks: packsToUse,
-          rounds,
-        }),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        setError(data.error ?? "Could not create room")
-        return
-      }
-
-      setCode(data.code)
-    } finally {
-      setCreating(false)
+    if (rounds.length === 0) {
+      setError("Pick at least one pack")
+      return
     }
+
+    const res = await fetch("/api/room/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rounds,
+        selectedPacks: rounds.map(r => r.packId),
+        questionCount: totalQuestions,
+        countdownSeconds,
+        answerSeconds,
+        revealDelaySeconds,
+        revealSeconds,
+        audioMode,
+      }),
+    })
+
+    const data = await res.json()
+    if (!res.ok) {
+      setError(data.error ?? "Could not create room")
+      return
+    }
+
+    setCode(data.code)
   }
 
   async function startGame() {
     if (!code) return
+
     await fetch("/api/room/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code }),
     })
+
     router.push(`/display/${code}`)
   }
 
@@ -235,18 +174,17 @@ export default function HostCreatePage() {
     return `${origin}/display/${code}`
   }, [code, origin])
 
-  const createDisabled = loadingPacks || creating || packs.length === 0
-
   return (
-    <main style={{ maxWidth: 720, margin: "0 auto", padding: 16 }}>
+    <main style={{ maxWidth: 720, margin: "0 auto", padding: 20 }}>
       <h1>Host</h1>
 
       {code && (
-        <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
-          <button type="button" onClick={resetRoom} style={buttonSecondary}>
+        <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+          <button onClick={resetRoom} style={{ padding: "10px 14px" }}>
             Create new room
           </button>
-          <button type="button" onClick={startGame} style={buttonPrimary}>
+
+          <button onClick={startGame} style={{ padding: "10px 14px" }}>
             Start game
           </button>
         </div>
@@ -254,141 +192,109 @@ export default function HostCreatePage() {
 
       {!code && (
         <>
-          <h2>Rounds</h2>
+          <h2>Packs and question counts</h2>
 
-          {loadingPacks && <p>Loading rounds…</p>}
+          {loadingPacks && <p>Loading packs…</p>}
 
           {!loadingPacks && packs.length === 0 && (
-            <p>No packs found in the question bank. Add packs in Supabase.</p>
+            <p>No packs found in the database. Add packs and questions via the admin import page.</p>
           )}
 
           {!loadingPacks && packs.length > 0 && (
-            <>
-              {rounds.length === 0 ? (
-                <p>No rounds added yet.</p>
-              ) : (
-                <div style={{ display: "grid", gap: 8 }}>
-                  {rounds.map((r, index) => {
-                    const pack = packs.find(p => p.id === r.packId)
-                    const max = pack?.questionCount ?? 300
+            <div style={{ display: "grid", gap: 10 }}>
+              {packs.map(p => {
+                const checked = selectedPacks.includes(p.id)
+                const value = packCounts[p.id] ?? Math.min(10, Math.max(1, p.questionCount || 10))
 
-                    return (
-                      <div
-                        key={index}
+                return (
+                  <div
+                    key={p.id}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 110px",
+                      gap: 10,
+                      alignItems: "center",
+                      padding: 10,
+                      border: "1px solid #e5e5e5",
+                      borderRadius: 10,
+                    }}
+                  >
+                    <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => togglePack(p.id)}
+                      />
+                      <span>
+                        {p.label} ({p.questionCount} q{p.questionCount === 1 ? "" : "s"}
+                        {p.audioCount > 0 ? `, ${p.audioCount} audio` : ""})
+                      </span>
+                    </label>
+
+                    <div style={{ display: "grid", gap: 6 }}>
+                      <input
+                        type="number"
+                        min={1}
+                        max={Math.max(1, p.questionCount)}
+                        value={value}
+                        disabled={!checked}
+                        onChange={e => setCountForPack(p.id, Number(e.target.value), p.questionCount)}
                         style={{
-                          display: "flex",
-                          gap: 8,
-                          alignItems: "center",
-                          flexWrap: "wrap",
+                          width: "100%",
+                          padding: 10,
+                          border: "1px solid #ccc",
+                          borderRadius: 8,
                         }}
-                      >
-                        <div style={{ minWidth: 90 }}>Round {index + 1}</div>
-
-                        <select
-                          value={r.packId}
-                          onChange={e => updateRoundPack(index, e.target.value)}
-                          style={selectStyle}
-                        >
-                          {packs.map(p => (
-                            <option key={p.id} value={p.id}>
-                              {p.label} ({p.questionCount} qs)
-                            </option>
-                          ))}
-                        </select>
-
-                        <input
-                          type="number"
-                          min={1}
-                          max={max}
-                          value={r.count}
-                          onChange={e => updateRoundCount(index, Number(e.target.value))}
-                          style={{ ...selectStyle, width: 110 }}
-                        />
-
-                        <button type="button" onClick={() => removeRound(index)} style={buttonDanger}>
-                          Remove
-                        </button>
+                      />
+                      <div style={{ fontSize: 12, opacity: 0.8 }}>
+                        max {Math.max(1, p.questionCount)}
                       </div>
-                    )
-                  })}
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: 10, marginTop: 10, alignItems: "center", flexWrap: "wrap" }}>
-                <button type="button" onClick={addRound} disabled={!packs.length} style={withDisabled(buttonSecondary, !packs.length)}>
-                  Add round
-                </button>
-
-                <div>
-                  Total from rounds: <strong>{roundsTotal}</strong>
-                </div>
-              </div>
-
-              <hr style={{ margin: "18px 0" }} />
-
-              <h2>Quick setup</h2>
-
-              <p>Pick packs and a total question count.</p>
-
-              <div style={{ display: "grid", gap: 6 }}>
-                {packs.map(p => (
-                  <label key={p.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <input
-                      type="checkbox"
-                      checked={selectedPacks.includes(p.id)}
-                      onChange={() => togglePack(p.id)}
-                    />
-                    <span>
-                      {p.label} ({p.questionCount} q{p.questionCount === 1 ? "" : "s"}
-                      {p.audioCount > 0 ? `, ${p.audioCount} audio` : ""})
-                    </span>
-                  </label>
-                ))}
-              </div>
-
-              <p>These come from the packs table in Supabase.</p>
-            </>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           )}
 
-          <h2>Audio playback</h2>
-          <label style={{ display: "block", marginTop: 6 }}>
-            <input
-              type="radio"
-              name="audioMode"
-              checked={audioMode === "display"}
-              onChange={() => setAudioMode("display")}
-            />{" "}
-            Play audio on TV display
-          </label>
-          <label style={{ display: "block", marginTop: 6 }}>
-            <input
-              type="radio"
-              name="audioMode"
-              checked={audioMode === "phones"}
-              onChange={() => setAudioMode("phones")}
-            />{" "}
-            Play audio on phones (remote friendly)
-          </label>
-          <label style={{ display: "block", marginTop: 6 }}>
-            <input
-              type="radio"
-              name="audioMode"
-              checked={audioMode === "both"}
-              onChange={() => setAudioMode("both")}
-            />{" "}
-            Play audio on both
-          </label>
+          <p style={{ marginTop: 12 }}>
+            Total questions: {totalQuestions}
+          </p>
 
-          <label style={{ display: "block", marginTop: 14 }}>
-            Total questions
-            <input
-              type="number"
-              value={questionCount}
-              min={1}
-              onChange={e => setQuestionCount(Number(e.target.value))}
-              style={inputStyle}
-            />
-          </label>
+          <h2>Audio playback</h2>
+
+          <div style={{ display: "grid", gap: 8 }}>
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                type="radio"
+                name="audioMode"
+                checked={audioMode === "display"}
+                onChange={() => setAudioMode("display")}
+              />
+              Play audio on TV display
+            </label>
+
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                type="radio"
+                name="audioMode"
+                checked={audioMode === "phones"}
+                onChange={() => setAudioMode("phones")}
+              />
+              Play audio on phones
+            </label>
+
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                type="radio"
+                name="audioMode"
+                checked={audioMode === "both"}
+                onChange={() => setAudioMode("both")}
+              />
+              Play audio on both
+            </label>
+          </div>
+
+          <h2>Timing</h2>
 
           <label style={{ display: "block", marginTop: 10 }}>
             Countdown seconds
@@ -397,7 +303,7 @@ export default function HostCreatePage() {
               value={countdownSeconds}
               min={0}
               onChange={e => setCountdownSeconds(Number(e.target.value))}
-              style={inputStyle}
+              style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
             />
           </label>
 
@@ -408,7 +314,7 @@ export default function HostCreatePage() {
               value={answerSeconds}
               min={1}
               onChange={e => setAnswerSeconds(Number(e.target.value))}
-              style={inputStyle}
+              style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
             />
           </label>
 
@@ -419,7 +325,7 @@ export default function HostCreatePage() {
               value={revealDelaySeconds}
               min={0}
               onChange={e => setRevealDelaySeconds(Number(e.target.value))}
-              style={inputStyle}
+              style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
             />
           </label>
 
@@ -430,59 +336,53 @@ export default function HostCreatePage() {
               value={revealSeconds}
               min={0}
               onChange={e => setRevealSeconds(Number(e.target.value))}
-              style={inputStyle}
+              style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
             />
           </label>
 
-          <div style={{ marginTop: 16 }}>
-            <button
-              type="button"
-              onClick={createRoom}
-              disabled={createDisabled}
-              style={withDisabled(buttonPrimary, createDisabled)}
-            >
-              {creating ? "Creating…" : "Create room"}
+          <div style={{ marginTop: 14 }}>
+            <button onClick={createRoom} style={{ padding: "10px 14px" }}>
+              Create room
             </button>
           </div>
 
           {error && (
-            <div style={{ marginTop: 10, color: "crimson" }}>
-              <strong>{error}</strong>
+            <div style={{ marginTop: 12, padding: 10, background: "#fee", border: "1px solid #f99", borderRadius: 10 }}>
+              {error}
             </div>
           )}
         </>
       )}
 
       {code && (
-        <div style={{ marginTop: 10 }}>
+        <section style={{ marginTop: 14 }}>
           <p>
-            <strong>Room code:</strong> {code}
+            Room code: <b>{code}</b>
           </p>
 
           <p>
-            <strong>Players join at:</strong>
+            Players join at:
             <br />
             <a href={joinUrl}>{joinUrl}</a>
           </p>
 
           <p>
-            <strong>TV display:</strong>
+            TV display:
             <br />
             <a href={displayUrl}>{displayUrl}</a>
           </p>
 
           <p>
-            Audio mode: {audioMode}. Packs:{" "}
-            {selectedPacks.length ? selectedPacks.join(", ") : packs.length ? packs[0].id : "none"}.
+            Audio mode: {audioMode}. Packs: {rounds.map(r => `${r.packId} (${r.count})`).join(", ")}.
           </p>
 
           {joinUrl && (
-            <div style={{ marginTop: 14 }}>
-              <h3>Scan to join</h3>
-              <QRCodeSVG value={joinUrl} size={192} />
+            <div style={{ marginTop: 10 }}>
+              <p>Scan to join</p>
+              <QRCodeSVG value={joinUrl} size={180} />
             </div>
           )}
-        </div>
+        </section>
       )}
     </main>
   )
