@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import type { CSSProperties } from "react"
+import { createClient } from "@supabase/supabase-js"
 
 const inputStyle: CSSProperties = {
   width: "100%",
@@ -124,8 +125,19 @@ export default function AdminImportPage() {
       else setImageResult(msg)
       return
     }
+
     if (!file) {
       const msg = '{"error":"No file selected"}'
+      if (kind === "audio") setAudioResult(msg)
+      else setImageResult(msg)
+      return
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      const msg = '{"error":"Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY"}'
       if (kind === "audio") setAudioResult(msg)
       else setImageResult(msg)
       return
@@ -140,19 +152,63 @@ export default function AdminImportPage() {
     }
 
     try {
-      const fd = new FormData()
-      fd.append("file", file)
-      if (targetPath.trim()) fd.append("path", targetPath.trim())
-
-      const res = await fetch(kind === "audio" ? "/api/admin/upload-audio" : "/api/admin/upload-image", {
+      const initEndpoint = kind === "audio" ? "/api/admin/upload-audio" : "/api/admin/upload-image"
+      const initRes = await fetch(initEndpoint, {
         method: "POST",
-        headers: { "x-admin-token": cleanToken },
-        body: fd,
+        headers: {
+          "x-admin-token": cleanToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          filename: file.name,
+          path: targetPath.trim() || undefined,
+        }),
       })
 
-      const body = await res.text()
-      if (kind === "audio") setAudioResult(body || `(no response body, status ${res.status})`)
-      else setImageResult(body || `(no response body, status ${res.status})`)
+      const initText = await initRes.text()
+      if (!initRes.ok) {
+        if (kind === "audio") setAudioResult(initText || `(init failed, status ${initRes.status})`)
+        else setImageResult(initText || `(init failed, status ${initRes.status})`)
+        return
+      }
+
+      let initJson: any = null
+      try {
+        initJson = JSON.parse(initText)
+      } catch {
+        const msg = initText || "Could not parse init response JSON"
+        if (kind === "audio") setAudioResult(msg)
+        else setImageResult(msg)
+        return
+      }
+
+      const bucket = kind === "audio" ? "audio" : "images"
+      const path = String(initJson?.path ?? "").trim()
+      const signedToken = String(initJson?.token ?? "").trim()
+
+      if (!path || !signedToken) {
+        const msg = JSON.stringify({ error: "Missing path or token from server", initJson }, null, 2)
+        if (kind === "audio") setAudioResult(msg)
+        else setImageResult(msg)
+        return
+      }
+
+      const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+      const { error } = await supabase.storage
+        .from(bucket)
+        .uploadToSignedUrl(path, signedToken, file, { contentType: file.type || "application/octet-stream" })
+
+      if (error) {
+        const msg = JSON.stringify({ error: error.message }, null, 2)
+        if (kind === "audio") setAudioResult(msg)
+        else setImageResult(msg)
+        return
+      }
+
+      const okMsg = JSON.stringify({ ok: true, bucket, path }, null, 2)
+      if (kind === "audio") setAudioResult(okMsg)
+      else setImageResult(okMsg)
     } catch (e: any) {
       const msg = e?.message ?? "Upload failed"
       if (kind === "audio") setAudioResult(msg)
@@ -187,7 +243,7 @@ export default function AdminImportPage() {
   return (
     <main style={{ maxWidth: 900, margin: "0 auto", padding: 16, fontFamily: "system-ui" }}>
       <h1>Admin: Import questions</h1>
-      <p>Paste your admin token, then upload CSV or paste CSV content.</p>
+      <p>Paste your admin token, then upload CSV or paste CSV content. This tab stores the token in session storage.</p>
 
       <h2>Admin token</h2>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
