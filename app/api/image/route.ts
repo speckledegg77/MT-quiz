@@ -2,30 +2,27 @@ export const runtime = "nodejs"
 
 import { supabaseAdmin } from "../../../lib/supabaseAdmin"
 
-function contentTypeForPath(path: string) {
-  const lower = path.toLowerCase()
-  if (lower.endsWith(".png")) return "image/png"
-  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg"
-  if (lower.endsWith(".webp")) return "image/webp"
-  if (lower.endsWith(".gif")) return "image/gif"
-  return "application/octet-stream"
-}
-
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const path = String(searchParams.get("path") ?? "").trim()
+  const raw = String(searchParams.get("path") ?? "").trim()
 
+  // Normalise: no leading slashes
+  const path = raw.replace(/^\/+/, "")
   if (!path) return new Response("Missing path", { status: 400 })
 
-  const { data, error } = await supabaseAdmin.storage.from("images").download(path)
-  if (error || !data) return new Response("Image not found", { status: 404 })
+  // Make a signed URL valid for 1 hour
+  const { data, error } = await supabaseAdmin.storage.from("images").createSignedUrl(path, 60 * 60)
 
-  const buf = await data.arrayBuffer()
-  return new Response(buf, {
-    status: 200,
+  if (error || !data?.signedUrl) {
+    return new Response("Image not found", { status: 404 })
+  }
+
+  // Redirect so the file does NOT pass through Vercel
+  return new Response(null, {
+    status: 302,
     headers: {
-      "Content-Type": contentTypeForPath(path),
-      "Cache-Control": "public, max-age=3600",
+      Location: data.signedUrl,
+      "Cache-Control": "private, max-age=300",
     },
   })
 }
