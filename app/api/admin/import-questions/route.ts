@@ -50,7 +50,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     message:
-      "Admin import route is live. Use POST with either (a) raw CSV body Content-Type: text/csv or (b) multipart form-data field 'file'. Header: x-admin-token.",
+      "Admin import route is live. POST raw CSV (Content-Type: text/csv) or multipart form-data field 'file'. Header: x-admin-token. Supports answer_type=mcq|text and round_type=general|audio|picture.",
   })
 }
 
@@ -69,7 +69,7 @@ async function readCsvText(req: Request): Promise<string> {
   return text
 }
 
-function parseAcceptedAnswers(raw: string) {
+function parseAcceptedAnswers(raw: string | undefined) {
   const s = String(raw ?? "").trim()
   if (!s) return null
   const parts = s.split("|").map(x => x.trim()).filter(Boolean)
@@ -91,9 +91,13 @@ export async function POST(req: Request) {
         trim: true,
         bom: true,
         relax_quotes: true,
+        relax_column_count: true,
       }) as CsvRow[]
-    } catch {
-      return NextResponse.json({ error: "Could not parse CSV" }, { status: 400 })
+    } catch (e: any) {
+      return NextResponse.json(
+        { error: "Could not parse CSV", detail: String(e?.message ?? "") },
+        { status: 400 }
+      )
     }
 
     if (!rows.length) return NextResponse.json({ error: "CSV has no rows" }, { status: 400 })
@@ -111,24 +115,24 @@ export async function POST(req: Request) {
       const questionId = String(r.question_id ?? "").trim()
       const questionRoundType = String(r.question_round_type ?? "").trim()
 
-      const answerTypeRaw = String((r as any).answer_type ?? "").trim().toLowerCase()
+      const answerTypeRaw = String(r.answer_type ?? "").trim().toLowerCase()
       const answerType = answerTypeRaw === "text" || answerTypeRaw === "typed" ? "text" : "mcq"
 
       const text = String(r.question_text ?? "").trim()
 
-      const explanation = String((r as any).explanation ?? "").trim()
+      const explanation = String(r.explanation ?? "").trim() || null
 
-      const audioPathRaw = String((r as any).audio_path ?? "").trim()
-      const audioPath = audioPathRaw.length ? audioPathRaw : null
+      const audioPathRaw = String(r.audio_path ?? "").trim()
+      const audioPath = audioPathRaw ? audioPathRaw : null
 
-      const imagePathRaw = String((r as any).image_path ?? "").trim()
-      const imagePath = imagePathRaw.length ? imagePathRaw : null
+      const imagePathRaw = String(r.image_path ?? "").trim()
+      const imagePath = imagePathRaw ? imagePathRaw : null
 
       if (!packId || !packName) {
         return NextResponse.json({ error: "Each row must include pack_id and pack_name" }, { status: 400 })
       }
 
-      if (packRoundType !== "general" && packRoundType !== "audio" && packRoundType !== "picture") {
+      if (!["general", "audio", "picture"].includes(packRoundType)) {
         return NextResponse.json({ error: `Invalid pack_round_type for pack ${packId}` }, { status: 400 })
       }
 
@@ -136,8 +140,16 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: `Missing question_id or question_text in pack ${packId}` }, { status: 400 })
       }
 
-      if (questionRoundType !== "general" && questionRoundType !== "audio" && questionRoundType !== "picture") {
+      if (!["general", "audio", "picture"].includes(questionRoundType)) {
         return NextResponse.json({ error: `Invalid question_round_type for question ${questionId}` }, { status: 400 })
+      }
+
+      if (questionRoundType === "audio" && !audioPath) {
+        return NextResponse.json({ error: `Audio question ${questionId} needs audio_path` }, { status: 400 })
+      }
+
+      if (questionRoundType === "picture" && !imagePath) {
+        return NextResponse.json({ error: `Picture question ${questionId} needs image_path` }, { status: 400 })
       }
 
       let options: string[] | null = null
@@ -146,14 +158,12 @@ export async function POST(req: Request) {
       let acceptedAnswers: string[] | null = null
 
       if (answerType === "mcq") {
-        const optionA = String((r as any).option_a ?? "").trim()
-        const optionB = String((r as any).option_b ?? "").trim()
-        const optionC = String((r as any).option_c ?? "").trim()
-        const optionD = String((r as any).option_d ?? "").trim()
+        const optionA = String(r.option_a ?? "").trim()
+        const optionB = String(r.option_b ?? "").trim()
+        const optionC = String(r.option_c ?? "").trim()
+        const optionD = String(r.option_d ?? "").trim()
 
-        const idxRaw = String((r as any).answer_index ?? "").trim()
-        const idx = Number(idxRaw)
-
+        const idx = Number(String(r.answer_index ?? "").trim())
         if (![0, 1, 2, 3].includes(idx)) {
           return NextResponse.json({ error: `Invalid answer_index for question ${questionId}` }, { status: 400 })
         }
@@ -165,12 +175,12 @@ export async function POST(req: Request) {
 
         answerIndex = idx
       } else {
-        const at = String((r as any).answer_text ?? "").trim()
+        const at = String(r.answer_text ?? "").trim()
         if (!at) {
           return NextResponse.json({ error: `Missing answer_text for typed question ${questionId}` }, { status: 400 })
         }
         answerText = at
-        acceptedAnswers = parseAcceptedAnswers(String((r as any).accepted_answers ?? ""))
+        acceptedAnswers = parseAcceptedAnswers(r.accepted_answers)
       }
 
       packUpserts.push({
@@ -191,7 +201,7 @@ export async function POST(req: Request) {
         answer_index: answerIndex,
         answer_text: answerText,
         accepted_answers: acceptedAnswers,
-        explanation: explanation || null,
+        explanation,
         audio_path: audioPath,
         image_path: imagePath,
         updated_at: new Date().toISOString(),
@@ -200,9 +210,9 @@ export async function POST(req: Request) {
       links.push({ pack_id: packId, question_id: questionId })
     }
 
-    const uniquePacks = dedupeBy(packUpserts, (x: any) => x.id)
-    const uniqueQuestions = dedupeBy(questionUpserts, (x: any) => x.id)
-    const uniqueLinks = dedupeBy(links, (x: any) => `${x.pack_id}::${x.question_id}`)
+    const uniquePacks = dedupeBy(packUpserts, x => (x as any).id)
+    const uniqueQuestions = dedupeBy(questionUpserts, x => (x as any).id)
+    const uniqueLinks = dedupeBy(links, x => `${(x as any).pack_id}::${(x as any).question_id}`)
 
     const packsRes = await supabaseAdmin.from("packs").upsert(uniquePacks, { onConflict: "id" })
     if (packsRes.error) return NextResponse.json({ error: packsRes.error.message }, { status: 500 })
@@ -210,7 +220,9 @@ export async function POST(req: Request) {
     const qRes = await supabaseAdmin.from("questions").upsert(uniqueQuestions, { onConflict: "id" })
     if (qRes.error) return NextResponse.json({ error: qRes.error.message }, { status: 500 })
 
-    const linkRes = await supabaseAdmin.from("pack_questions").upsert(uniqueLinks, { onConflict: "pack_id,question_id" })
+    const linkRes = await supabaseAdmin
+      .from("pack_questions")
+      .upsert(uniqueLinks, { onConflict: "pack_id,question_id" })
     if (linkRes.error) return NextResponse.json({ error: linkRes.error.message }, { status: 500 })
 
     return NextResponse.json({
