@@ -1,0 +1,3 @@
+pack_id,pack_name,pack_round_type,pack_sort_order,question_id,question_round_type,answer_type,question_text,option_a,option_b,option_c,option_d,answer_index,answer_text,accepted_answers,explanation,audio_path,image_path
+audio1,05 Audio Round,audio,50,audio1-001,audio,mcq,"Audio round: identify the show from the clip",Wicked,Les Miserables,Hamilton,Chicago,0,,,,audio/karaoke,
+pic1,06 Picture Round,picture,60,pic1-001,picture,mcq,"Picture round: what show is this from?",Wicked,Les Miserables,Hamilton,Chicago,0,,,,,images/posters

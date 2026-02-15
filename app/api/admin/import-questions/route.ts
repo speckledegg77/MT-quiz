@@ -132,7 +132,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Each row must include pack_id and pack_name" }, { status: 400 })
       }
 
-      if (!["general", "audio", "picture"].includes(packRoundType)) {
+      if (!["general", "audio", "picture", "mixed"].includes(packRoundType)) {
         return NextResponse.json({ error: `Invalid pack_round_type for pack ${packId}` }, { status: 400 })
       }
 
@@ -140,7 +140,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: `Missing question_id or question_text in pack ${packId}` }, { status: 400 })
       }
 
-      if (!["general", "audio", "picture"].includes(questionRoundType)) {
+      if (!["general", "audio", "picture", "mixed"].includes(questionRoundType)) {
         return NextResponse.json({ error: `Invalid question_round_type for question ${questionId}` }, { status: 400 })
       }
 

@@ -19,7 +19,7 @@ export type Question = {
 
 type DbQuestionRow = {
   id: string
-  round_type: "general" | "audio" | "picture"
+  round_type: "general" | "audio" | "picture"| "mixed"
   answer_type: "mcq" | "text" | null
   text: string
   options: any
