@@ -20,25 +20,25 @@ export async function POST(req: Request) {
   const token = req.headers.get("x-admin-token")
   if (!token || token !== process.env.ADMIN_TOKEN) return unauthorised()
 
-  const form = await req.formData()
-  const file = form.get("file") as File | null
-  const desiredPath = String(form.get("path") ?? "").trim()
+  const contentType = String(req.headers.get("content-type") ?? "").toLowerCase()
+  if (!contentType.includes("application/json")) {
+    return NextResponse.json(
+      { error: "Send JSON body with { filename, path? }. Do not upload the file to this endpoint." },
+      { status: 400 }
+    )
+  }
 
-  if (!file) return NextResponse.json({ error: "Missing file field" }, { status: 400 })
-  if (typeof (file as any).arrayBuffer !== "function") return NextResponse.json({ error: "Invalid file" }, { status: 400 })
+  const body = (await req.json().catch(() => null)) as null | { filename?: string; path?: string }
+  const filename = safeName(body?.filename || "image")
+  const desiredPath = String(body?.path ?? "").trim()
 
-  const originalName = safeName((file as any).name || "image")
   const folder = new Date().toISOString().slice(0, 10)
-  const path = desiredPath ? desiredPath : `${folder}/${Date.now()}-${originalName}`
+  const path = desiredPath ? desiredPath : `${folder}/${Date.now()}-${filename}`
 
-  const bytes = new Uint8Array(await file.arrayBuffer())
-
-  const { error } = await supabaseAdmin.storage.from("images").upload(path, bytes, {
-    contentType: (file as any).type || "application/octet-stream",
-    upsert: true,
-  })
+  const { data, error } = await supabaseAdmin.storage.from("images").createSignedUploadUrl(path, { upsert: true })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!data?.token) return NextResponse.json({ error: "No signed upload token returned" }, { status: 500 })
 
-  return NextResponse.json({ ok: true, bucket: "images", path })
+  return NextResponse.json({ ok: true, bucket: "images", path: data.path ?? path, token: data.token })
 }
