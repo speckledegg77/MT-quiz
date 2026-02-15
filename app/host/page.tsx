@@ -15,6 +15,43 @@ type PackInfo = {
 
 type RoundRequest = { packId: string; count: number }
 
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: 10,
+  border: "1px solid #ccc",
+  borderRadius: 8,
+}
+
+const buttonBase: React.CSSProperties = {
+  padding: "10px 14px",
+  borderRadius: 8,
+  border: "1px solid #111",
+  background: "#fff",
+  color: "#111",
+  cursor: "pointer",
+  userSelect: "none",
+  font: "inherit",
+  appearance: "button",
+  WebkitAppearance: "button",
+}
+
+const buttonPrimary: React.CSSProperties = {
+  ...buttonBase,
+  background: "#111",
+  color: "#fff",
+}
+
+const buttonSecondary: React.CSSProperties = {
+  ...buttonBase,
+  background: "#fff",
+  color: "#111",
+}
+
+function withDisabled(style: React.CSSProperties, disabled: boolean) {
+  if (!disabled) return style
+  return { ...style, opacity: 0.5, cursor: "not-allowed" }
+}
+
 export default function HostCreatePage() {
   const router = useRouter()
 
@@ -47,7 +84,6 @@ export default function HostCreatePage() {
         const list: PackInfo[] = Array.isArray(data?.packs) ? data.packs : []
         setPacks(list)
 
-        // Pick defaults on first load
         if (list.length > 0) {
           setSelectedPacks(prev => {
             if (prev.length > 0) return prev
@@ -109,9 +145,7 @@ export default function HostCreatePage() {
       .filter(r => r.packId && r.count > 0)
   }, [selectedPacks, packCounts, packs])
 
-  const totalQuestions = useMemo(() => {
-    return rounds.reduce((sum, r) => sum + r.count, 0)
-  }, [rounds])
+  const totalQuestions = useMemo(() => rounds.reduce((sum, r) => sum + r.count, 0), [rounds])
 
   async function createRoom() {
     setError(null)
@@ -163,28 +197,22 @@ export default function HostCreatePage() {
   }
 
   const origin = typeof window !== "undefined" ? window.location.origin : ""
+  const joinUrl = useMemo(() => (code && origin ? `${origin}/join?code=${code}` : ""), [code, origin])
+  const displayUrl = useMemo(() => (code && origin ? `${origin}/display/${code}` : ""), [code, origin])
 
-  const joinUrl = useMemo(() => {
-    if (!code || !origin) return ""
-    return `${origin}/join?code=${code}`
-  }, [code, origin])
-
-  const displayUrl = useMemo(() => {
-    if (!code || !origin) return ""
-    return `${origin}/display/${code}`
-  }, [code, origin])
+  const canCreate = !loadingPacks && rounds.length > 0
 
   return (
-    <main style={{ maxWidth: 720, margin: "0 auto", padding: 20 }}>
+    <main style={{ maxWidth: 720, margin: "0 auto", padding: 20, fontFamily: "system-ui" }}>
       <h1>Host</h1>
 
       {code && (
-        <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-          <button onClick={resetRoom} style={{ padding: "10px 14px" }}>
+        <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+          <button type="button" onClick={resetRoom} style={buttonSecondary}>
             Create new room
           </button>
 
-          <button onClick={startGame} style={{ padding: "10px 14px" }}>
+          <button type="button" onClick={startGame} style={buttonPrimary}>
             Start game
           </button>
         </div>
@@ -194,7 +222,7 @@ export default function HostCreatePage() {
         <>
           <h2>Packs and question counts</h2>
 
-          {loadingPacks && <p>Loading packs…</p>}
+          {loadingPacks && <p>Loading packs...</p>}
 
           {!loadingPacks && packs.length === 0 && (
             <p>No packs found in the database. Add packs and questions via the admin import page.</p>
@@ -220,11 +248,7 @@ export default function HostCreatePage() {
                     }}
                   >
                     <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => togglePack(p.id)}
-                      />
+                      <input type="checkbox" checked={checked} onChange={() => togglePack(p.id)} />
                       <span>
                         {p.label} ({p.questionCount} q{p.questionCount === 1 ? "" : "s"}
                         {p.audioCount > 0 ? `, ${p.audioCount} audio` : ""})
@@ -239,16 +263,9 @@ export default function HostCreatePage() {
                         value={value}
                         disabled={!checked}
                         onChange={e => setCountForPack(p.id, Number(e.target.value), p.questionCount)}
-                        style={{
-                          width: "100%",
-                          padding: 10,
-                          border: "1px solid #ccc",
-                          borderRadius: 8,
-                        }}
+                        style={inputStyle}
                       />
-                      <div style={{ fontSize: 12, opacity: 0.8 }}>
-                        max {Math.max(1, p.questionCount)}
-                      </div>
+                      <div style={{ fontSize: 12, opacity: 0.8 }}>max {Math.max(1, p.questionCount)}</div>
                     </div>
                   </div>
                 )
@@ -256,40 +273,23 @@ export default function HostCreatePage() {
             </div>
           )}
 
-          <p style={{ marginTop: 12 }}>
-            Total questions: {totalQuestions}
-          </p>
+          <p style={{ marginTop: 12 }}>Total questions: {totalQuestions}</p>
 
           <h2>Audio playback</h2>
 
           <div style={{ display: "grid", gap: 8 }}>
             <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input
-                type="radio"
-                name="audioMode"
-                checked={audioMode === "display"}
-                onChange={() => setAudioMode("display")}
-              />
+              <input type="radio" name="audioMode" checked={audioMode === "display"} onChange={() => setAudioMode("display")} />
               Play audio on TV display
             </label>
 
             <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input
-                type="radio"
-                name="audioMode"
-                checked={audioMode === "phones"}
-                onChange={() => setAudioMode("phones")}
-              />
+              <input type="radio" name="audioMode" checked={audioMode === "phones"} onChange={() => setAudioMode("phones")} />
               Play audio on phones
             </label>
 
             <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input
-                type="radio"
-                name="audioMode"
-                checked={audioMode === "both"}
-                onChange={() => setAudioMode("both")}
-              />
+              <input type="radio" name="audioMode" checked={audioMode === "both"} onChange={() => setAudioMode("both")} />
               Play audio on both
             </label>
           </div>
@@ -303,7 +303,7 @@ export default function HostCreatePage() {
               value={countdownSeconds}
               min={0}
               onChange={e => setCountdownSeconds(Number(e.target.value))}
-              style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
+              style={{ ...inputStyle, marginTop: 6 }}
             />
           </label>
 
@@ -314,7 +314,7 @@ export default function HostCreatePage() {
               value={answerSeconds}
               min={1}
               onChange={e => setAnswerSeconds(Number(e.target.value))}
-              style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
+              style={{ ...inputStyle, marginTop: 6 }}
             />
           </label>
 
@@ -325,7 +325,7 @@ export default function HostCreatePage() {
               value={revealDelaySeconds}
               min={0}
               onChange={e => setRevealDelaySeconds(Number(e.target.value))}
-              style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
+              style={{ ...inputStyle, marginTop: 6 }}
             />
           </label>
 
@@ -336,12 +336,12 @@ export default function HostCreatePage() {
               value={revealSeconds}
               min={0}
               onChange={e => setRevealSeconds(Number(e.target.value))}
-              style={{ display: "block", width: "100%", padding: 10, border: "1px solid #ccc", borderRadius: 8, marginTop: 6 }}
+              style={{ ...inputStyle, marginTop: 6 }}
             />
           </label>
 
           <div style={{ marginTop: 14 }}>
-            <button onClick={createRoom} style={{ padding: "10px 14px" }}>
+            <button type="button" onClick={createRoom} disabled={!canCreate} style={withDisabled(buttonPrimary, !canCreate)}>
               Create room
             </button>
           </div>
