@@ -3,6 +3,7 @@ export const runtime = "nodejs"
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "../../../../lib/supabaseAdmin"
 import { getQuestionById } from "../../../../lib/questionBank"
+import { shuffleMcqForRoom } from "../../../../lib/mcqShuffle"
 
 function stageFromTimes(
   phase: string,
@@ -31,7 +32,6 @@ export async function GET(req: Request) {
 
   const roomRes = await supabaseAdmin.from("rooms").select("*").eq("code", code).single()
   if (roomRes.error) return NextResponse.json({ error: "Room not found" }, { status: 404 })
-
   const room = roomRes.data
 
   const playersRes = await supabaseAdmin
@@ -45,8 +45,8 @@ export async function GET(req: Request) {
 
   const now = new Date()
   const stage = stageFromTimes(room.phase, now.getTime(), room.open_at, room.close_at, room.reveal_at, room.next_at)
-  const canShowQuestion = room.phase === "running" || room.phase === "finished"
 
+  const canShowQuestion = room.phase === "running" || room.phase === "finished"
   const audioMode = String(room.audio_mode ?? "display")
   const selectedPacks = Array.isArray(room.selected_packs) ? room.selected_packs : []
 
@@ -56,6 +56,15 @@ export async function GET(req: Request) {
   if (canShowQuestion && currentQuestionId) {
     const q = await getQuestionById(String(currentQuestionId))
     if (q) {
+      let options = q.options
+      let revealAnswerIndex = q.answerIndex
+
+      if (q.answerType === "mcq" && q.answerIndex !== null && Array.isArray(q.options) && q.options.length > 1) {
+        const shuffled = shuffleMcqForRoom(q.options, q.answerIndex, room.id, q.id)
+        options = shuffled.options
+        revealAnswerIndex = shuffled.answerIndex
+      }
+
       const audioUrl = q.audioPath ? `/api/audio?path=${encodeURIComponent(q.audioPath)}` : null
       const imageUrl = q.imagePath ? `/api/image?path=${encodeURIComponent(q.imagePath)}` : null
 
@@ -64,7 +73,7 @@ export async function GET(req: Request) {
         roundType: q.roundType,
         answerType: q.answerType,
         text: q.text,
-        options: q.options,
+        options,
         audioUrl,
         imageUrl,
       }
@@ -72,7 +81,7 @@ export async function GET(req: Request) {
       if (stage === "reveal" || room.phase === "finished") {
         revealData = {
           answerType: q.answerType,
-          answerIndex: q.answerType === "mcq" ? q.answerIndex : null,
+          answerIndex: q.answerType === "mcq" ? revealAnswerIndex : null,
           answerText: q.answerType === "text" ? (q.answerText ?? "") : null,
           explanation: q.explanation,
         }
