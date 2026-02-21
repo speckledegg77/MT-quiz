@@ -2,7 +2,17 @@
 
 export type QuestionRoundType = "general" | "audio" | "picture";
 
-export type RoundFilter = "mixed" | "no_audio" | "audio_only" | "picture_only";
+// Added:
+// - no_image: exclude picture questions
+// - audio_and_image: include audio + picture only (exclude general)
+export type RoundFilter =
+  | "mixed"
+  | "no_audio"
+  | "no_image"
+  | "audio_only"
+  | "picture_only"
+  | "audio_and_image";
+
 export type SelectionStrategy = "per_pack" | "all_packs";
 
 export type QuestionMeta = {
@@ -47,9 +57,17 @@ function dedupeById(items: QuestionMeta[]): QuestionMeta[] {
 
 function applyRoundFilter(items: QuestionMeta[], filter: RoundFilter): QuestionMeta[] {
   if (filter === "mixed") return items;
+
   if (filter === "no_audio") return items.filter((q) => q.round_type !== "audio");
+
+  if (filter === "no_image") return items.filter((q) => q.round_type !== "picture");
+
   if (filter === "audio_only") return items.filter((q) => q.round_type === "audio");
+
   if (filter === "picture_only") return items.filter((q) => q.round_type === "picture");
+
+  if (filter === "audio_and_image") return items.filter((q) => q.round_type !== "general");
+
   return items;
 }
 
@@ -74,10 +92,10 @@ export function buildQuestionIdList(params: {
 
   const warnings: string[] = [];
 
-  // If the host forces audio-only or picture-only, treat it as an all-packs draw.
+  // Single-type filters behave best as one total across all selected packs.
   if (roundFilter === "audio_only" || roundFilter === "picture_only") {
     if (strategy !== "all_packs") {
-      warnings.push("Audio-only and picture-only use a single total across all selected packs.");
+      warnings.push("Audio only and picture only use a single total across all selected packs.");
       strategy = "all_packs";
     }
   }
@@ -103,7 +121,6 @@ export function buildQuestionIdList(params: {
       allChosenIds.push(...takeRandomIds(filtered, count));
     }
 
-    // Shuffle the final list so the game does not run pack-by-pack.
     return { questionIds: shuffle(allChosenIds), warnings };
   }
 

@@ -23,9 +23,13 @@ function randomCode(len = 8) {
 
 function normaliseRoundFilter(raw: any): RoundFilter {
   const v = String(raw ?? "").toLowerCase();
+
   if (v === "no_audio") return "no_audio";
+  if (v === "no_image") return "no_image";
   if (v === "audio_only") return "audio_only";
   if (v === "picture_only") return "picture_only";
+  if (v === "audio_and_image") return "audio_and_image";
+
   return "mixed";
 }
 
