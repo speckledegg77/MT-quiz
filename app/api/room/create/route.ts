@@ -1,116 +1,151 @@
-export const runtime = "nodejs"
+export const runtime = "nodejs";
 
-import { NextResponse } from "next/server"
-import { supabaseAdmin } from "../../../../lib/supabaseAdmin"
-import { pickQuestionIdsForPacks } from "../../../../lib/questionBank"
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
 
-type RoundRequest = { packId: string; count: number }
+import {
+  buildQuestionIdList,
+  SelectionError,
+  type PackSelectionInput,
+  type QuestionMeta,
+  type RoundFilter,
+  type SelectionStrategy,
+} from "../../../../lib/questionSelection";
+
+type RoundRequest = { packId: string; count: number };
 
 function randomCode(len = 8) {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-  let out = ""
-  for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)]
-  return out
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
 }
 
-function shuffleInPlace<T>(arr: T[]) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    const tmp = arr[i]
-    arr[i] = arr[j]
-    arr[j] = tmp
-  }
+function normaliseRoundFilter(raw: any): RoundFilter {
+  const v = String(raw ?? "").toLowerCase();
+  if (v === "no_audio") return "no_audio";
+  if (v === "audio_only") return "audio_only";
+  if (v === "picture_only") return "picture_only";
+  return "mixed";
 }
 
-async function pickQuestionIdsForRounds(rounds: RoundRequest[]): Promise<string[]> {
-  const out: string[] = []
-
-  for (const r of rounds) {
-    const packId = String(r.packId ?? "").trim()
-    const count = Math.max(0, Math.floor(Number(r.count)))
-
-    if (!packId || count <= 0) {
-      throw new Error("Each round needs packId and count > 0")
-    }
-
-    const linksRes = await supabaseAdmin
-      .from("pack_questions")
-      .select("question_id")
-      .eq("pack_id", packId)
-
-    if (linksRes.error) throw new Error(linksRes.error.message)
-
-    const ids = (linksRes.data ?? [])
-      .map(row => String((row as any).question_id ?? ""))
-      .filter(Boolean)
-
-    const unique = Array.from(new Set(ids))
-
-    if (unique.length < count) {
-      throw new Error(`Pack ${packId} only has ${unique.length} questions (asked for ${count})`)
-    }
-
-    shuffleInPlace(unique)
-    out.push(...unique.slice(0, count))
-  }
-
-  return out
+function normaliseStrategy(raw: any): SelectionStrategy | null {
+  const v = String(raw ?? "").toLowerCase();
+  if (v === "per_pack") return "per_pack";
+  if (v === "all_packs") return "all_packs";
+  return null;
 }
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}))
+  const body = await req.json().catch(() => ({}));
 
-  const countdownSeconds = Number(body.countdownSeconds ?? 3)
-  const answerSeconds = Number(body.answerSeconds ?? 60)
-  const revealDelaySeconds = Number(body.revealDelaySeconds ?? 2)
-  const revealSeconds = Number(body.revealSeconds ?? 5)
+  const countdownSeconds = Number(body.countdownSeconds ?? 3);
+  const answerSeconds = Number(body.answerSeconds ?? 60);
+  const revealDelaySeconds = Number(body.revealDelaySeconds ?? 2);
+  const revealSeconds = Number(body.revealSeconds ?? 5);
 
-  const audioModeRaw = String(body.audioMode ?? "display").toLowerCase()
-  const audioMode = audioModeRaw === "phones" || audioModeRaw === "both" ? audioModeRaw : "display"
+  const audioModeRaw = String(body.audioMode ?? "display").toLowerCase();
+  const audioMode = audioModeRaw === "phones" || audioModeRaw === "both" ? audioModeRaw : "display";
 
-  const roundsInput: RoundRequest[] = Array.isArray(body.rounds) ? body.rounds : []
+  const roundFilter: RoundFilter = normaliseRoundFilter(body.roundFilter);
+
+  const roundsInput: any[] = Array.isArray(body.rounds) ? body.rounds : [];
   const rounds: RoundRequest[] = roundsInput
-    .map(r => ({ packId: String((r as any)?.packId ?? "").trim(), count: Number((r as any)?.count ?? 0) }))
-    .filter(r => r.packId && Number.isFinite(r.count) && r.count > 0)
+    .map((r) => ({
+      packId: String(r?.packId ?? "").trim(),
+      count: Number(r?.count ?? 0),
+    }))
+    .filter((r) => r.packId && Number.isFinite(r.count) && r.count > 0);
 
-  const selectedPacksInput = Array.isArray(body.selectedPacks) ? body.selectedPacks : []
-  const selectedPacks = selectedPacksInput
-    .map((x: any) => String(x ?? "").trim())
-    .filter((x: string) => x.length > 0)
+  const roundsTotal = rounds.reduce((sum, r) => sum + Math.max(0, Math.floor(Number(r.count))), 0);
 
-  const questionCount = Number(body.questionCount ?? 20)
+  const selectedPacksInput: any[] = Array.isArray(body.selectedPacks) ? body.selectedPacks : [];
+  const selectedPacks: string[] = selectedPacksInput
+    .map((x) => String(x ?? "").trim())
+    .filter((x) => x.length > 0);
 
-  let pickedIds: string[] = []
-  let packsToStore: string[] = []
+  // Backwards compatible total:
+  // - old host sends questionCount
+  // - new host sends totalQuestions
+  const totalQuestionsRaw =
+    body.totalQuestions != null ? Number(body.totalQuestions) : body.questionCount != null ? Number(body.questionCount) : roundsTotal;
+
+  const totalQuestions = Number.isFinite(totalQuestionsRaw) && totalQuestionsRaw > 0 ? Math.floor(totalQuestionsRaw) : 20;
+
+  const strategyFromBody = normaliseStrategy(body.selectionStrategy);
+  const inferredStrategy: SelectionStrategy = rounds.length > 0 ? "per_pack" : "all_packs";
+  const strategy: SelectionStrategy = strategyFromBody ?? inferredStrategy;
+
+  const packIdsFromRounds = Array.from(new Set(rounds.map((r) => r.packId)));
+  const packIds = Array.from(new Set([...(selectedPacks.length ? selectedPacks : []), ...packIdsFromRounds])).filter(Boolean);
+
+  if (packIds.length === 0) {
+    return NextResponse.json({ error: "Pick at least one pack" }, { status: 400 });
+  }
+
+  // Build the selector input list
+  let selectionPacks: PackSelectionInput[] = [];
+  if (strategy === "per_pack" && rounds.length > 0) {
+    selectionPacks = rounds.map((r) => ({ pack_id: r.packId, count: Math.max(1, Math.floor(Number(r.count))) }));
+  } else {
+    selectionPacks = packIds.map((id) => ({ pack_id: id }));
+  }
+
+  // Fetch question ids and round types for each selected pack
+  const packQuestionsById: Record<string, QuestionMeta[]> = {};
+  for (const pid of packIds) packQuestionsById[pid] = [];
+
+  const linksRes = await supabaseAdmin
+    .from("pack_questions")
+    .select("pack_id, question_id, questions(round_type)")
+    .in("pack_id", packIds);
+
+  if (linksRes.error) {
+    return NextResponse.json({ error: linksRes.error.message }, { status: 500 });
+  }
+
+  for (const row of (linksRes.data ?? []) as any[]) {
+    const pid = String(row.pack_id ?? "").trim();
+    const qid = String(row.question_id ?? "").trim();
+    const rt = row.questions?.round_type;
+
+    if (!pid || !qid) continue;
+
+    const round_type: "general" | "audio" | "picture" =
+      rt === "audio" ? "audio" : rt === "picture" ? "picture" : "general";
+
+    packQuestionsById[pid] ??= [];
+    packQuestionsById[pid].push({ id: qid, round_type });
+  }
+
+  let pickedIds: string[] = [];
 
   try {
-    if (rounds.length > 0) {
-      pickedIds = await pickQuestionIdsForRounds(rounds)
-      packsToStore = Array.from(new Set(rounds.map(r => r.packId)))
-    } else {
-      pickedIds = await pickQuestionIdsForPacks(questionCount, selectedPacks)
-      packsToStore = selectedPacks
-    }
+    const result = buildQuestionIdList({
+      packs: selectionPacks,
+      packQuestionsById,
+      strategy,
+      totalQuestions,
+      roundFilter,
+    });
+
+    pickedIds = result.questionIds;
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Could not pick questions" }, { status: 400 })
+    if (e instanceof SelectionError) {
+      return NextResponse.json({ error: e.message }, { status: 400 });
+    }
+    return NextResponse.json({ error: e?.message ?? "Could not pick questions" }, { status: 400 });
   }
 
   if (pickedIds.length === 0) {
     return NextResponse.json(
-      { error: packsToStore.length ? `No questions found for packs: ${packsToStore.join(", ")}` : "No questions found" },
+      { error: packIds.length ? `No questions found for packs: ${packIds.join(", ")}` : "No questions found" },
       { status: 400 }
-    )
-  }
-
-  if (rounds.length === 0 && pickedIds.length < questionCount) {
-    return NextResponse.json(
-      { error: `Not enough questions. You asked for ${questionCount} but only ${pickedIds.length} match those rounds.` },
-      { status: 400 }
-    )
+    );
   }
 
   for (let attempt = 0; attempt < 8; attempt++) {
-    const code = randomCode(8)
+    const code = randomCode(8);
 
     const ins = await supabaseAdmin
       .from("rooms")
@@ -124,13 +159,13 @@ export async function POST(req: Request) {
         reveal_delay_seconds: revealDelaySeconds,
         reveal_seconds: revealSeconds,
         audio_mode: audioMode,
-        selected_packs: packsToStore,
+        selected_packs: packIds,
       })
       .select("code")
-      .single()
+      .single();
 
-    if (!ins.error) return NextResponse.json({ code: ins.data.code })
+    if (!ins.error) return NextResponse.json({ code: ins.data.code });
   }
 
-  return NextResponse.json({ error: "Could not create room" }, { status: 500 })
+  return NextResponse.json({ error: "Could not create room" }, { status: 500 });
 }
