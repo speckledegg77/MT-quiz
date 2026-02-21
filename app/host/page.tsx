@@ -61,7 +61,6 @@ export default function HostCreatePage() {
   const [selectedPacks, setSelectedPacks] = useState<string[]>([]);
   const [packCounts, setPackCounts] = useState<Record<string, number>>({});
 
-  // Pack selection toggle
   const [choosePacks, setChoosePacks] = useState(false);
 
   const [selectionStrategy, setSelectionStrategy] = useState<SelectionStrategy>("per_pack");
@@ -123,7 +122,6 @@ export default function HostCreatePage() {
   }, []);
 
   useEffect(() => {
-    // Single-type filters behave best as one total across the chosen set.
     if (roundFilter === "audio_only" || roundFilter === "picture_only") {
       setSelectionStrategy("all_packs");
     }
@@ -386,17 +384,203 @@ export default function HostCreatePage() {
           </Card>
         </div>
       ) : (
-        <div className={choosePacks ? "grid gap-4 lg:grid-cols-2" : "grid gap-4"}>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className={choosePacks ? "grid gap-4 lg:order-1" : "grid gap-4 lg:col-span-2 lg:max-w-2xl lg:mx-auto"}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Setup</CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-6">
+                <div className="grid gap-2">
+                  <div className="text-sm font-medium">Pack selection</div>
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="radio" name="packMode" checked={!choosePacks} onChange={() => setChoosePacks(false)} />
+                      <span>Use all packs ({packs.length})</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="radio" name="packMode" checked={choosePacks} onChange={() => setChoosePacks(true)} />
+                      <span>Choose packs</span>
+                    </label>
+                  </div>
+
+                  {!choosePacks ? (
+                    <div className="text-xs text-[var(--muted-foreground)]">
+                      The game will pick questions at random from every pack in your database.
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="grid gap-2">
+                  <div className="text-sm font-medium">Question selection</div>
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        name="strategy"
+                        checked={effectiveStrategy === "per_pack"}
+                        onChange={() => setSelectionStrategy("per_pack")}
+                        disabled={!choosePacks || roundFilter === "audio_only" || roundFilter === "picture_only"}
+                      />
+                      <span>Pick counts per pack</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        name="strategy"
+                        checked={effectiveStrategy === "all_packs"}
+                        onChange={() => setSelectionStrategy("all_packs")}
+                      />
+                      <span>Pick one total across the chosen set</span>
+                    </label>
+                  </div>
+
+                  {effectiveStrategy === "per_pack" ? (
+                    <div className="text-sm text-[var(--muted-foreground)]">Total questions: {totalQuestionsFromPacks}</div>
+                  ) : (
+                    <div className="grid gap-2 sm:max-w-xs">
+                      <div className="text-sm text-[var(--muted-foreground)]">Total questions</div>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={totalQuestionsAllPacks}
+                        onChange={(e) => setTotalQuestionsAllPacks(Number(e.target.value))}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid gap-2">
+                  <div className="text-sm font-medium">Question types</div>
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="radio" name="roundFilter" checked={roundFilter === "mixed"} onChange={() => setRoundFilter("mixed")} />
+                      <span>Mixed</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="radio" name="roundFilter" checked={roundFilter === "no_audio"} onChange={() => setRoundFilter("no_audio")} />
+                      <span>No audio</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="radio" name="roundFilter" checked={roundFilter === "no_image"} onChange={() => setRoundFilter("no_image")} />
+                      <span>No image</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        name="roundFilter"
+                        checked={roundFilter === "audio_and_image"}
+                        onChange={() => setRoundFilter("audio_and_image")}
+                      />
+                      <span>Audio and image only</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="radio" name="roundFilter" checked={roundFilter === "audio_only"} onChange={() => setRoundFilter("audio_only")} />
+                      <span>Audio only</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="radio" name="roundFilter" checked={roundFilter === "picture_only"} onChange={() => setRoundFilter("picture_only")} />
+                      <span>Picture only</span>
+                    </label>
+                  </div>
+
+                  <div className="text-xs text-[var(--muted-foreground)]">
+                    Audio only and picture only use one total across the chosen set.
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <div className="text-sm font-medium">Audio playback</div>
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="radio" name="audioMode" checked={audioMode === "display"} onChange={() => setAudioMode("display")} />
+                      <span>TV display</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="radio" name="audioMode" checked={audioMode === "phones"} onChange={() => setAudioMode("phones")} />
+                      <span>Phones</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 text-sm sm:col-span-2">
+                      <input type="radio" name="audioMode" checked={audioMode === "both"} onChange={() => setAudioMode("both")} />
+                      <span>TV and phones</span>
+                    </label>
+                  </div>
+                </div>
+
+                <details className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
+                  <summary className="cursor-pointer text-sm font-medium">Advanced timing</summary>
+
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-1">
+                      <div className="text-xs text-[var(--muted-foreground)]">Countdown</div>
+                      <Input type="number" min={0} value={countdownSeconds} onChange={(e) => setCountdownSeconds(Number(e.target.value))} />
+                    </div>
+
+                    <div className="grid gap-1">
+                      <div className="text-xs text-[var(--muted-foreground)]">Answer time</div>
+                      <Input type="number" min={1} value={answerSeconds} onChange={(e) => setAnswerSeconds(Number(e.target.value))} />
+                    </div>
+
+                    <div className="grid gap-1">
+                      <div className="text-xs text-[var(--muted-foreground)]">Wait before reveal</div>
+                      <Input type="number" min={0} value={revealDelaySeconds} onChange={(e) => setRevealDelaySeconds(Number(e.target.value))} />
+                    </div>
+
+                    <div className="grid gap-1">
+                      <div className="text-xs text-[var(--muted-foreground)]">Reveal time</div>
+                      <Input type="number" min={1} value={revealSeconds} onChange={(e) => setRevealSeconds(Number(e.target.value))} />
+                    </div>
+                  </div>
+                </details>
+              </CardContent>
+
+              <CardFooter className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-sm text-[var(--muted-foreground)]">
+                  <span className="font-medium text-[var(--foreground)]">
+                    {choosePacks ? `Custom (${selectedCount})` : `All (${selectedCount})`}
+                  </span>{" "}
+                  packs, <span className="font-medium text-[var(--foreground)]">{totalQuestionsToPick}</span> questions,{" "}
+                  {formatFilterLabel(roundFilter)}
+                </div>
+
+                <Button onClick={createRoom} disabled={!canCreate}>
+                  Create room
+                </Button>
+              </CardFooter>
+            </Card>
+
+            {error ? (
+              <Card className="border-red-300">
+                <CardContent className="text-sm text-red-600">{error}</CardContent>
+              </Card>
+            ) : null}
+          </div>
+
           {choosePacks ? (
-            <Card className="lg:col-span-1">
+            <Card className="lg:order-2">
               <CardHeader>
                 <div className="flex items-center justify-between gap-3">
                   <CardTitle>Packs</CardTitle>
                   <div className="text-sm text-[var(--muted-foreground)]">{selectedCount} selected</div>
                 </div>
 
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <div className="mt-3 grid gap-2">
                   <Input value={packSearch} onChange={(e) => setPackSearch(e.target.value)} placeholder="Search packs" />
+
                   <div className="flex gap-2">
                     <Button variant="secondary" className="w-full" onClick={selectAllVisible} disabled={filteredPacks.length === 0}>
                       Select visible
@@ -430,7 +614,7 @@ export default function HostCreatePage() {
                 ) : filteredPacks.length === 0 ? (
                   <p className="text-sm text-[var(--muted-foreground)]">No packs match your filters.</p>
                 ) : (
-                  <div className="max-h-[420px] overflow-auto rounded-lg border border-[var(--border)]">
+                  <div className="max-h-[540px] overflow-auto rounded-lg border border-[var(--border)]">
                     <table className="w-full text-sm">
                       <thead className="sticky top-0 bg-[var(--card)]">
                         <tr className="border-b border-[var(--border)]">
@@ -483,183 +667,6 @@ export default function HostCreatePage() {
               </CardContent>
             </Card>
           ) : null}
-
-          <div className={choosePacks ? "grid gap-4 lg:col-span-1" : "grid gap-4"}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Setup</CardTitle>
-              </CardHeader>
-
-              <CardContent className="space-y-5">
-                <div className="grid gap-2">
-                  <div className="text-sm font-medium">Pack selection</div>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="radio" name="packMode" checked={!choosePacks} onChange={() => setChoosePacks(false)} />
-                    <span>Use all packs ({packs.length})</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="radio" name="packMode" checked={choosePacks} onChange={() => setChoosePacks(true)} />
-                    <span>Choose packs</span>
-                  </label>
-
-                  {!choosePacks ? (
-                    <div className="text-xs text-[var(--muted-foreground)]">
-                      The game will pick questions at random from every pack in your database.
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="grid gap-2">
-                  <div className="text-sm font-medium">Question selection</div>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="strategy"
-                      checked={effectiveStrategy === "per_pack"}
-                      onChange={() => setSelectionStrategy("per_pack")}
-                      disabled={!choosePacks || roundFilter === "audio_only" || roundFilter === "picture_only"}
-                    />
-                    <span>Pick counts per pack</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="strategy"
-                      checked={effectiveStrategy === "all_packs"}
-                      onChange={() => setSelectionStrategy("all_packs")}
-                    />
-                    <span>Pick one total across the chosen set</span>
-                  </label>
-
-                  {effectiveStrategy === "per_pack" ? (
-                    <div className="text-sm text-[var(--muted-foreground)]">Total questions: {totalQuestionsFromPacks}</div>
-                  ) : (
-                    <div className="grid gap-2 sm:max-w-xs">
-                      <div className="text-sm text-[var(--muted-foreground)]">Total questions</div>
-                      <Input
-                        type="number"
-                        min={1}
-                        value={totalQuestionsAllPacks}
-                        onChange={(e) => setTotalQuestionsAllPacks(Number(e.target.value))}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid gap-2">
-                  <div className="text-sm font-medium">Question types</div>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="radio" name="roundFilter" checked={roundFilter === "mixed"} onChange={() => setRoundFilter("mixed")} />
-                    <span>Mixed</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="radio" name="roundFilter" checked={roundFilter === "no_audio"} onChange={() => setRoundFilter("no_audio")} />
-                    <span>No audio</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="radio" name="roundFilter" checked={roundFilter === "no_image"} onChange={() => setRoundFilter("no_image")} />
-                    <span>No image</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      name="roundFilter"
-                      checked={roundFilter === "audio_and_image"}
-                      onChange={() => setRoundFilter("audio_and_image")}
-                    />
-                    <span>Audio and image only</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="radio" name="roundFilter" checked={roundFilter === "audio_only"} onChange={() => setRoundFilter("audio_only")} />
-                    <span>Audio only</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="radio" name="roundFilter" checked={roundFilter === "picture_only"} onChange={() => setRoundFilter("picture_only")} />
-                    <span>Picture only</span>
-                  </label>
-
-                  <div className="text-xs text-[var(--muted-foreground)]">
-                    Audio only and picture only use one total across the chosen set.
-                  </div>
-                </div>
-
-                <div className="grid gap-2">
-                  <div className="text-sm font-medium">Audio playback</div>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="radio" name="audioMode" checked={audioMode === "display"} onChange={() => setAudioMode("display")} />
-                    <span>TV display</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="radio" name="audioMode" checked={audioMode === "phones"} onChange={() => setAudioMode("phones")} />
-                    <span>Phones</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="radio" name="audioMode" checked={audioMode === "both"} onChange={() => setAudioMode("both")} />
-                    <span>TV and phones</span>
-                  </label>
-                </div>
-
-                <details className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
-                  <summary className="cursor-pointer text-sm font-medium">Advanced timing</summary>
-
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <div className="grid gap-1">
-                      <div className="text-xs text-[var(--muted-foreground)]">Countdown</div>
-                      <Input type="number" min={0} value={countdownSeconds} onChange={(e) => setCountdownSeconds(Number(e.target.value))} />
-                    </div>
-
-                    <div className="grid gap-1">
-                      <div className="text-xs text-[var(--muted-foreground)]">Answer time</div>
-                      <Input type="number" min={1} value={answerSeconds} onChange={(e) => setAnswerSeconds(Number(e.target.value))} />
-                    </div>
-
-                    <div className="grid gap-1">
-                      <div className="text-xs text-[var(--muted-foreground)]">Wait before reveal</div>
-                      <Input type="number" min={0} value={revealDelaySeconds} onChange={(e) => setRevealDelaySeconds(Number(e.target.value))} />
-                    </div>
-
-                    <div className="grid gap-1">
-                      <div className="text-xs text-[var(--muted-foreground)]">Reveal time</div>
-                      <Input type="number" min={1} value={revealSeconds} onChange={(e) => setRevealSeconds(Number(e.target.value))} />
-                    </div>
-                  </div>
-                </details>
-              </CardContent>
-
-              <CardFooter className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="text-sm text-[var(--muted-foreground)]">
-                  <span className="font-medium text-[var(--foreground)]">
-                    {choosePacks ? `Custom (${selectedCount})` : `All (${selectedCount})`}
-                  </span>{" "}
-                  packs, <span className="font-medium text-[var(--foreground)]">{totalQuestionsToPick}</span> questions,{" "}
-                  {formatFilterLabel(roundFilter)}
-                </div>
-
-                <Button onClick={createRoom} disabled={!canCreate}>
-                  Create room
-                </Button>
-              </CardFooter>
-            </Card>
-
-            {error ? (
-              <Card className="border-red-300">
-                <CardContent className="text-sm text-red-600">{error}</CardContent>
-              </Card>
-            ) : null}
-          </div>
         </div>
       )}
     </main>
