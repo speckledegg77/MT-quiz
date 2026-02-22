@@ -61,6 +61,9 @@ export default function HostCreatePage() {
   const [selectedPacks, setSelectedPacks] = useState<string[]>([]);
   const [packCounts, setPackCounts] = useState<Record<string, number>>({});
 
+  // New: draft strings so inputs can be blank while editing
+  const [packCountDrafts, setPackCountDrafts] = useState<Record<string, string>>({});
+
   const [choosePacks, setChoosePacks] = useState(false);
 
   const [selectionStrategy, setSelectionStrategy] = useState<SelectionStrategy>("per_pack");
@@ -107,6 +110,17 @@ export default function HostCreatePage() {
             }
             return next;
           });
+
+          setPackCountDrafts((prev) => {
+            const next = { ...prev };
+            for (const p of list) {
+              if (next[p.id] == null) {
+                const def = Math.min(10, Math.max(1, Number(p.questionCount || 10)));
+                next[p.id] = String(def);
+              }
+            }
+            return next;
+          });
         }
       } catch {
         if (!cancelled) setError("Could not load pack list.");
@@ -146,6 +160,11 @@ export default function HostCreatePage() {
       if (prev[id] != null) return prev;
       return { ...prev, [id]: 10 };
     });
+
+    setPackCountDrafts((prev) => {
+      if (prev[id] != null) return prev;
+      return { ...prev, [id]: "10" };
+    });
   }
 
   const filteredPacks = useMemo(() => {
@@ -184,10 +203,46 @@ export default function HostCreatePage() {
     setSelectedPacks([]);
   }
 
-  function setCountForPack(id: string, value: number, maxForPack: number) {
-    const n = Math.max(1, Math.floor(Number(value)));
-    const clamped = Math.min(n, Math.max(1, Math.floor(Number(maxForPack || n))));
+  function clampCount(n: number, maxForPack: number) {
+    const safe = Math.max(1, Math.floor(Number.isFinite(n) ? n : 1));
+    const max = Math.max(1, Math.floor(Number(maxForPack || safe)));
+    return Math.min(safe, max);
+  }
+
+  function setCountForPack(id: string, n: number, maxForPack: number) {
+    const clamped = clampCount(n, maxForPack);
     setPackCounts((prev) => ({ ...prev, [id]: clamped }));
+    setPackCountDrafts((prev) => ({ ...prev, [id]: String(clamped) }));
+  }
+
+  function handlePackCountChange(id: string, raw: string, maxForPack: number) {
+    const digits = raw.replace(/[^0-9]/g, "");
+    setPackCountDrafts((prev) => ({ ...prev, [id]: digits }));
+
+    // Allow blank while typing
+    if (digits === "") return;
+
+    const n = Number(digits);
+    if (!Number.isFinite(n)) return;
+    setPackCounts((prev) => ({ ...prev, [id]: clampCount(n, maxForPack) }));
+  }
+
+  function handlePackCountBlur(id: string, maxForPack: number) {
+    const draft = packCountDrafts[id];
+
+    if (draft == null) return;
+
+    // If they leave it blank, restore the last valid value
+    if (draft === "") {
+      const fallback = packCounts[id] ?? 1;
+      setPackCountDrafts((prev) => ({ ...prev, [id]: String(fallback) }));
+      return;
+    }
+
+    const n = Number(draft);
+    const clamped = clampCount(n, maxForPack);
+    setPackCounts((prev) => ({ ...prev, [id]: clamped }));
+    setPackCountDrafts((prev) => ({ ...prev, [id]: String(clamped) }));
   }
 
   const rounds: RoundRequest[] = useMemo(() => {
@@ -228,6 +283,14 @@ export default function HostCreatePage() {
     if (choosePacks && selectedPacks.length === 0) {
       setError("Pick at least one pack, or turn off pack selection to use all packs.");
       return;
+    }
+
+    if (effectiveStrategy === "per_pack") {
+      const anyBlank = selectedPacks.some((pid) => (packCountDrafts[pid] ?? String(packCounts[pid] ?? 1)) === "");
+      if (anyBlank) {
+        setError("Set a number of questions for each selected pack.");
+        return;
+      }
     }
 
     if (effectiveStrategy === "per_pack" && rounds.length === 0) {
@@ -631,6 +694,8 @@ export default function HostCreatePage() {
                         {filteredPacks.map((p) => {
                           const checked = selectedPacks.includes(p.id);
                           const value = packCounts[p.id] ?? Math.min(10, Math.max(1, p.questionCount || 10));
+                          const draft = packCountDrafts[p.id];
+                          const inputValue = draft === undefined ? String(value) : draft;
 
                           return (
                             <tr key={p.id} className="border-b border-[var(--border)] last:border-b-0">
@@ -659,11 +724,9 @@ export default function HostCreatePage() {
                                       type="text"
                                       inputMode="numeric"
                                       pattern="[0-9]*"
-                                      value={String(value)}
-                                      onChange={(e) => {
-                                        const digits = e.target.value.replace(/[^0-9]/g, "");
-                                        setCountForPack(p.id, Number(digits || 0), p.questionCount);
-                                      }}
+                                      value={inputValue}
+                                      onChange={(e) => handlePackCountChange(p.id, e.target.value, p.questionCount)}
+                                      onBlur={() => handlePackCountBlur(p.id, p.questionCount)}
                                       className="h-9 w-14 px-2 text-right tabular-nums"
                                     />
                                   </div>
