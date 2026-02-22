@@ -9,52 +9,26 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 
 type RoomState = any;
 
-function Trophy({ className = "h-10 w-10" }: { className?: string }) {
+function TrophyIcon() {
+  // Simple, single-stroke trophy icon (no layered fills), so it cannot “misalign”.
   return (
     <svg
-      viewBox="0 0 64 64"
+      viewBox="0 0 24 24"
       aria-hidden="true"
-      className={`block ${className}`}
+      className="block h-12 w-12"
       fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       preserveAspectRatio="xMidYMid meet"
     >
-      <path
-        d="M20 10h24v10c0 10-8 18-18 18S8 30 8 20V10h12Z"
-        className="text-[var(--foreground)]"
-        fill="currentColor"
-        opacity="0.18"
-      />
-      <path
-        d="M22 12h20v8c0 9-7 16-16 16S10 29 10 20v-8h12Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        className="text-[var(--foreground)]"
-      />
-      <path
-        d="M10 14H4v6c0 7 5 12 12 12"
-        stroke="currentColor"
-        strokeWidth="2"
-        className="text-[var(--foreground)]"
-      />
-      <path
-        d="M54 14h6v6c0 7-5 12-12 12"
-        stroke="currentColor"
-        strokeWidth="2"
-        className="text-[var(--foreground)]"
-      />
-      <path
-        d="M26 36v7c0 2-2 4-4 5v4h20v-4c-2-1-4-3-4-5v-7"
-        stroke="currentColor"
-        strokeWidth="2"
-        className="text-[var(--foreground)]"
-      />
-      <path
-        d="M20 56h24"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        className="text-[var(--foreground)]"
-      />
+      <path d="M8 21h8" />
+      <path d="M12 17v4" />
+      <path d="M7 4h10" />
+      <path d="M17 4v7a5 5 0 0 1-10 0V4" />
+      <path d="M5 9h2a3 3 0 0 0 3 3" />
+      <path d="M19 9h-2a3 3 0 0 1-3 3" />
     </svg>
   );
 }
@@ -226,12 +200,13 @@ export default function DisplayPage() {
             <CardHeader>
               <CardTitle>Game completed</CardTitle>
             </CardHeader>
+
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4">
-              <div className="flex h-16 w-16 items-center justify-center text-[var(--foreground)]">
-                <Trophy />
-              </div>
-              <div className="min-w-0">
+              <div className="grid grid-cols-[64px,1fr] items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4">
+                <div className="grid h-16 w-16 place-items-center text-[var(--foreground)]">
+                  <TrophyIcon />
+                </div>
+                <div className="min-w-0">
                   <div className="text-sm text-[var(--muted-foreground)]">Final scores</div>
                   <div className="text-lg font-semibold">Thanks for playing</div>
                   <div className="text-sm text-[var(--muted-foreground)]">
@@ -313,7 +288,9 @@ export default function DisplayPage() {
                     <a className="break-all text-sm underline" href={joinUrl}>
                       {joinUrl}
                     </a>
-                    <div className="text-sm text-[var(--muted-foreground)]">The host starts the game from Host.</div>
+                    <div className="text-sm text-[var(--muted-foreground)]">
+                      The host starts the game from Host.
+                    </div>
                   </div>
                   <div className="flex items-center justify-center py-2">
                     {joinUrl ? <QRCodeSVG value={joinUrl} size={220} /> : null}
@@ -328,7 +305,11 @@ export default function DisplayPage() {
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <CardTitle>Question</CardTitle>
                     <div className="text-sm text-[var(--muted-foreground)]">
-                      {q.roundType === "audio" ? "Audio" : q.roundType === "picture" ? "Picture" : "General"}
+                      {q.roundType === "audio"
+                        ? "Audio"
+                        : q.roundType === "picture"
+                        ? "Picture"
+                        : "General"}
                     </div>
                   </div>
                 </CardHeader>
@@ -364,7 +345,9 @@ export default function DisplayPage() {
                     <div className="grid gap-2">
                       {(q.options ?? []).map((opt: string, i: number) => {
                         const revealIndex = state?.reveal?.answerIndex;
-                        const inReveal = Boolean(state?.reveal && revealIndex !== null && revealIndex !== undefined);
+                        const inReveal = Boolean(
+                          state?.reveal && revealIndex !== null && revealIndex !== undefined
+                        );
 
                         const isCorrect = inReveal && i === revealIndex;
                         const base = "rounded-xl border px-4 py-3 text-left";
