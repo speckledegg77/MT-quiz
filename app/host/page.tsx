@@ -618,15 +618,15 @@ export default function HostCreatePage() {
                     <table className="w-full table-fixed text-sm">
                       <thead className="sticky top-0 bg-[var(--card)]">
                         <tr className="border-b border-[var(--border)]">
-                          <th className="w-10 px-3 py-2 text-left font-medium"></th>
-                          <th className="px-3 py-2 text-left font-medium">Pack</th>
-                          <th className="w-24 px-3 py-2 text-right font-medium">Questions</th>
-                          <th className="w-20 px-3 py-2 text-right font-medium">Audio</th>
-                          <th className="w-16 px-3 py-2 text-right font-medium">
+                          <th className="px-2 py-2 text-left font-medium">Pack</th>
+                          <th className="w-20 px-2 py-2 text-right font-medium">Questions</th>
+                          <th className="w-16 px-2 py-2 text-right font-medium">Audio</th>
+                          <th className="w-16 px-2 py-2 text-right font-medium">
                             {effectiveStrategy === "per_pack" ? "Pick" : ""}
                           </th>
                         </tr>
                       </thead>
+
                       <tbody>
                         {filteredPacks.map((p) => {
                           const checked = selectedPacks.includes(p.id);
@@ -635,28 +635,36 @@ export default function HostCreatePage() {
                           return (
                             <tr key={p.id} className="border-b border-[var(--border)] last:border-b-0">
                               <td className="px-2 py-2">
-                                <input type="checkbox" checked={checked} onChange={() => togglePack(p.id)} />
-                              </td>
-                              <td className="px-2 py-2">
-                                <div
-                                  className="truncate font-medium"
-                                  title={`${p.label} (${p.id})`}
-                                >
-                                  {p.label}
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    className="h-4 w-4 shrink-0"
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => togglePack(p.id)}
+                                  />
+                                  <div className="truncate font-medium" title={`${p.label} (${p.id})`}>
+                                    {p.label}
+                                  </div>
                                 </div>
                               </td>
-                              <td className="px-3 py-2 text-right whitespace-nowrap">{p.questionCount}</td>
-                              <td className="px-3 py-2 text-right whitespace-nowrap">{p.audioCount ?? 0}</td>
-                              <td className="px-3 py-2 text-right">
+
+                              <td className="px-2 py-2 text-right whitespace-nowrap tabular-nums">{p.questionCount}</td>
+
+                              <td className="px-2 py-2 text-right whitespace-nowrap tabular-nums">{p.audioCount ?? 0}</td>
+
+                              <td className="px-2 py-2 text-right">
                                 {checked && effectiveStrategy === "per_pack" ? (
                                   <div className="flex justify-end">
                                     <Input
-                                      type="number"
-                                      min={1}
-                                      max={Math.max(1, p.questionCount)}
-                                      value={value}
-                                      onChange={(e) => setCountForPack(p.id, Number(e.target.value), p.questionCount)}
-                                      className="h-9 w-14 text-right px-2"
+                                      type="text"
+                                      inputMode="numeric"
+                                      pattern="[0-9]*"
+                                      value={String(value)}
+                                      onChange={(e) => {
+                                        const digits = e.target.value.replace(/[^0-9]/g, "");
+                                        setCountForPack(p.id, Number(digits || 0), p.questionCount);
+                                      }}
+                                      className="h-9 w-14 px-2 text-right tabular-nums"
                                     />
                                   </div>
                                 ) : null}
