@@ -9,50 +9,51 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 
 type RoomState = any;
 
-function Trophy() {
+function Trophy({ className = "h-10 w-10" }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 64 64"
-      width="72"
-      height="72"
       aria-hidden="true"
-      className="opacity-90"
+      className={`block ${className}`}
+      fill="none"
+      preserveAspectRatio="xMidYMid meet"
     >
       <path
         d="M20 10h24v10c0 10-8 18-18 18S8 30 8 20V10h12Z"
+        className="text-[var(--foreground)]"
         fill="currentColor"
         opacity="0.18"
       />
       <path
         d="M22 12h20v8c0 9-7 16-16 16S10 29 10 20v-8h12Z"
-        fill="none"
         stroke="currentColor"
         strokeWidth="2"
+        className="text-[var(--foreground)]"
       />
       <path
         d="M10 14H4v6c0 7 5 12 12 12"
-        fill="none"
         stroke="currentColor"
         strokeWidth="2"
+        className="text-[var(--foreground)]"
       />
       <path
         d="M54 14h6v6c0 7-5 12-12 12"
-        fill="none"
         stroke="currentColor"
         strokeWidth="2"
+        className="text-[var(--foreground)]"
       />
       <path
         d="M26 36v7c0 2-2 4-4 5v4h20v-4c-2-1-4-3-4-5v-7"
-        fill="none"
         stroke="currentColor"
         strokeWidth="2"
+        className="text-[var(--foreground)]"
       />
       <path
         d="M20 56h24"
-        fill="none"
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"
+        className="text-[var(--foreground)]"
       />
     </svg>
   );
@@ -225,7 +226,6 @@ export default function DisplayPage() {
             <CardHeader>
               <CardTitle>Game completed</CardTitle>
             </CardHeader>
-
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4">
               <div className="flex h-16 w-16 items-center justify-center text-[var(--foreground)]">
