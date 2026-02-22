@@ -68,9 +68,8 @@ function applyRoundFilter(items: QuestionMeta[], filter: RoundFilter): QuestionM
   return items;
 }
 
-function takeRandomIds(items: QuestionMeta[], n: number): string[] {
-  const picked = shuffle(items).slice(0, n);
-  return picked.map((q) => q.id);
+function takeRandom(items: QuestionMeta[], n: number): QuestionMeta[] {
+  return shuffle(items).slice(0, n);
 }
 
 export function buildQuestionIdList(params: {
@@ -97,6 +96,9 @@ export function buildQuestionIdList(params: {
     }
   }
 
+  // Keep questions unique across the whole game, even if they exist in multiple packs.
+  const selectedIds = new Set<string>();
+
   if (strategy === "per_pack") {
     const allChosenIds: string[] = [];
 
@@ -109,15 +111,24 @@ export function buildQuestionIdList(params: {
         throw new SelectionError("Set a question count for each selected pack.");
       }
 
-      if (filtered.length < count) {
+      // Exclude anything already chosen from earlier packs.
+      const available = filtered.filter((q) => !selectedIds.has(q.id));
+
+      if (available.length < count) {
         throw new SelectionError(
-          `Pack ${p.pack_id} does not have enough questions for your filter. Requested ${count}, found ${filtered.length}.`
+          `Pack ${p.pack_id} does not have enough unique questions for your filter once other selected packs are accounted for. Requested ${count}, found ${available.length}.`
         );
       }
 
-      allChosenIds.push(...takeRandomIds(filtered, count));
+      const picked = takeRandom(available, count);
+
+      for (const q of picked) {
+        selectedIds.add(q.id);
+        allChosenIds.push(q.id);
+      }
     }
 
+    // Shuffle final order for gameplay.
     return { questionIds: shuffle(allChosenIds), warnings };
   }
 
@@ -133,13 +144,15 @@ export function buildQuestionIdList(params: {
     pool.push(...raw);
   }
 
+  // Deduplicate across packs, then apply filter.
   pool = applyRoundFilter(dedupeById(pool), roundFilter);
 
   if (pool.length < total) {
     throw new SelectionError(
-      `Not enough questions for your filter across the selected packs. Requested ${total}, found ${pool.length}.`
+      `Not enough unique questions for your filter across the selected packs. Requested ${total}, found ${pool.length}.`
     );
   }
 
-  return { questionIds: takeRandomIds(pool, total), warnings };
+  const picked = takeRandom(pool, total).map((q) => q.id);
+  return { questionIds: picked, warnings };
 }
