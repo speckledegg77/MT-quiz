@@ -1,19 +1,18 @@
 # Musical Theatre Quiz Web App: Context Pack
 
 Live URL: https://mt-quiz.vercel.app  
-Context last updated: 2026-02-15  
 Repo URL: https://github.com/speckledegg77/MT-quiz  
+Branch workflow: work directly on `main` and push to GitHub. Vercel auto-deploys from `main`.
+
+Context last updated: 2026-02-22  
 Repo commit: (fill this in each time you start a new chat)
 How to get it:
 - In PowerShell in the repo folder: `git rev-parse --short HEAD`
 
-Branch workflow: work directly on `main` and push to GitHub. Vercel auto-deploys from `main`.
-
 ---
 
-## How we work in this project (chat conventions)
+## New chat starter (copy and paste at the top of the next chat)
 
-### New chat starter (copy and paste this at the top of the next chat)
 Live URL: https://mt-quiz.vercel.app  
 Repo commit: (run `git rev-parse --short HEAD`)  
 Context file: docs/context.md (uploaded in Project)
@@ -25,228 +24,201 @@ Notes (optional):
 - Any error messages (paste full output)
 - Any URLs you tested
 
-### How ChatGPT replies (consistent format)
-1. Restate the goal in one sentence.
-2. Give step-by-step instructions with exact file paths.
-3. Provide full copy/paste replacements when asked.
-4. Give git commands as:
-   - `git add ...`
-   - `git commit -m "..."`
-   - `git push`
-5. Do one step at a time so errors can be pasted back.
-
-### End of issue checklist (do this before starting a new chat)
-- Update "Repo commit" and "Context last updated" at the top of this file
-- Add a short note under "Recent changes" for what we did
-- Update "Known issues / next tasks" if needed
-
 ---
 
 ## What this app is
+
 A musical theatre quiz for private games. One host controls the flow. A TV shows the questions. Players answer on their phones. No sign-in.
 
 ---
 
 ## Stack
+
 - Next.js (App Router) deployed on Vercel
 - Supabase Postgres for game state and question bank
 - Supabase Storage for audio and images
-- No authentication, admin routes protected by an admin token
+- Admin routes protected by an admin token header
 
 ---
 
 ## Main pages
+
 - `/` home
-- `/host` create a room, choose packs and question counts, choose audio mode, then start game
-- `/join?code=XXXX` join a room (lobby only), enter a team name
-- `/play/[code]` player phone screen, answers questions
-- `/display/[code]` TV screen, shows the question and scoreboard
-- `/admin/import` admin import tool (CSV import plus media upload)
+- `/host` create a room, choose packs (optional), choose question selection and filters, then start game
+- `/join?code=XXXX` join a room, enter a team name
+- `/play/[code]` player phone screen (answers, audio support on phone, reveal and game finished screen)
+- `/display/[code]` TV screen (question, scoreboard, reveal, game finished screen)
+- `/admin/import` admin tool (CSV import plus bulk media upload)
 
 ---
 
-## Question bank (current design)
-Questions no longer live in `data/questions.ts`. They live in Supabase tables.
+## Theming and UI
 
-High level behaviour:
-- Host picks one or more packs
-- Host sets how many questions to take from each pack
-- Room creation randomly samples questions from each selected pack
-- A room stores the chosen question ids so the game stays consistent for all players
+Tailwind is installed and active via `app/globals.css`.
 
-Answer types supported:
-- `mcq` (4 options, one correct)
-- `text` (typed answer, normalised matching with some tolerance)
+Dark mode is class-based:
+- `app/globals.css` defines CSS variables for light and dark
+- `components/ThemeToggle.tsx` toggles the `dark` class on `<html>` and stores `mtq_theme` in localStorage
+- `app/layout.tsx` includes a sticky header with Host, Join, and theme toggle
 
-Round types supported:
-- `general` (standard)
-- `audio`
-- `picture`
+Shared UI components:
+- `components/ui/Button.tsx`
+- `components/ui/Card.tsx`
+- `components/ui/Input.tsx`
+
+These should be used instead of inline styles.
 
 ---
 
-## Admin import and media upload
+## Supabase tables and storage (high level)
 
-### Admin page
-`/admin/import`
+Question bank:
+- `packs` (uses `display_name`, `round_type`, `sort_order`, `is_active`)
+- `questions` (includes `round_type`, `answer_type`, options, answer, `audio_path`, `image_path`)
+- `pack_questions` (links packs to questions)
 
-What it does:
-- Imports packs and questions from CSV
-- Uploads audio and images to Supabase Storage
-- Returns a bucket-relative `path` that you paste into CSV (`audio_path` or `image_path`)
-
-### Admin protection
-Admin endpoints require header `x-admin-token` and compare it to `process.env.ADMIN_TOKEN`.
-
-Environment variables:
-- Local: add `ADMIN_TOKEN=...` to `.env.local`
-- Vercel: Project Settings → Environment Variables → add `ADMIN_TOKEN`
-
-### CSV columns (current)
-pack_id, pack_name, pack_round_type, pack_sort_order,
-question_id, question_round_type, answer_type, question_text,
-option_a, option_b, option_c, option_d, answer_index,
-answer_text, accepted_answers, explanation, audio_path, image_path
-
-Rules:
-- MCQ: `answer_type=mcq`, fill options A-D and `answer_index` (0-3)
-- Text: `answer_type=text`, fill `answer_text`, optional `accepted_answers` as a JSON array string
-- Audio: set `question_round_type=audio` and fill `audio_path`
-- Picture: set `question_round_type=picture` and fill `image_path`
-
-### Media path rules (important)
-Store bucket-relative paths in the DB, for example:
-- `2026-02-15/1700000000000-clip.mp3`
-- `2026-02-15/1700000000000-image.png`
-
-Do not store:
-- a leading `/`
-- `audio/` or `images/`
-- a full signed URL
-
----
-
-## Media uploads (why it works)
-Vercel functions have request/response size limits. To avoid breaking audio uploads:
-- Admin upload routes return a signed upload token
-- The browser uploads the file directly to Supabase Storage
-
-This means large audio files can upload successfully.
-
-Public env vars required for browser upload:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-Where to set them:
-- Local in `.env.local`
-- Vercel in Environment Variables
-
----
-
-## Media playback (why it works)
-Audio and image serving uses redirects to Supabase signed download URLs:
-- `/api/audio?path=...` returns a redirect to a signed Supabase URL
-- `/api/image?path=...` returns a redirect to a signed Supabase URL
-
-This avoids streaming the file through Vercel.
-
----
-
-## MCQ option randomisation (current behaviour)
-MCQ options are shuffled per room and question, but stay consistent within the room:
-- Everyone in the room sees the same order
-- A different room gets a different order
-- Answer checking uses the same shuffle logic so scoring stays correct
-
-Implementation:
-- `lib/mcqShuffle.ts`
-- Used by `app/api/room/state/route.ts` and `app/api/room/answer/route.ts`
-
----
-
-## Typed answer matching (current behaviour)
-Typed answers allow reasonable variations:
-- case and punctuation differences
-- common acronyms (for example DEH, NTN, POTO)
-- token prefixes (for example “phant op”)
-- small typos (within limits)
-
-Implementation lives in:
-- `app/api/room/answer/route.ts`
-
----
-
-## Host pack selection and per-pack counts
-Host chooses:
-- which packs to include
-- how many questions to draw from each pack
-- audio mode (display, phones, both)
-- timings (countdown, answer window, reveal)
-
-UI notes:
-- Buttons have explicit styling to avoid the “text-only button” issue caused by global CSS.
-
-Implementation:
-- `app/host/page.tsx`
-
----
-
-## Timing and flow
-- Room starts in `lobby`
-- Host presses Start Game to begin
-- Each question has a countdown then an open answering window
-- A question can close early once all teams have answered
-- Reveal happens after `reveal_delay_seconds`, then stays visible for `reveal_seconds`
-- The display auto-advances when stage becomes `needs_advance`
-
----
-
-## Database (Supabase)
-Core gameplay tables:
-rooms
-- code, phase
-- question_ids, question_index
-- countdown_seconds, answer_seconds, reveal_delay_seconds, reveal_seconds
-- open_at, close_at, reveal_at, next_at
-- audio_mode, selected_packs
-
-players
-- room_id, name, score, joined_at
-
-answers
-- room_id, player_id, question_id
-- option_index, answer_text, is_correct
-
-RPC
-- increment_player_score(p_player_id uuid)
-
-Question bank tables (names may vary but concept is):
-- packs
-- questions
-- pack-to-question linking table
+Game state:
+- `rooms` (stores `code`, `phase`, `question_ids`, timings, `audio_mode`, `selected_packs`)
+- `players` (stores `room_id`, `name`, `score`)
 
 Storage buckets:
 - `audio`
 - `images`
 
----
+Media path rule (important):
+Store bucket-relative paths only in the DB, for example:
+- `2026-02-17/audio-008.mp3`
+- `2026-02-17/image-003.png`
 
-## Recent changes (add new bullet per issue)
-- Admin import page supports CSV import and media upload.
-- Audio and images use signed URL redirects for playback.
-- MCQ options shuffle per room/question.
-- Typed answers accept sensible variants.
-- Host UI supports per-pack question counts and button styling is fixed.
-
----
-
-## Known issues / next tasks
-- Create a few substantive question packs (enough to play full games).
-- Improve admin experience for bulk pack creation and editing (optional).
-- Add more round types and question formats only if needed (keep it simple first).
+Do not store:
+- a leading `/`
+- `audio/` or `images/`
+- a full URL
 
 ---
 
-## What we want next (fill in for the next chat)
-Issue:
-Done means:
+## Admin import and bulk media upload
+
+Admin page:
+- `/admin/import` (combined CSV import and bulk media upload)
+
+Admin protection:
+- Admin endpoints require header `x-admin-token`
+- Compared to `process.env.ADMIN_TOKEN`
+
+Environment variables:
+- `ADMIN_TOKEN`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- Server-side Supabase admin uses service role key in your existing setup (wherever `supabaseAdmin` is defined)
+
+CSV import API:
+- `/api/admin/import-questions`
+
+Bulk media upload API:
+- `/api/admin/upload-media`
+- Accepts multipart form fields: `bucket` (audio or images), optional `folder`, optional `upsert`, and `files` (multiple)
+
+---
+
+## Media playback
+
+Media routes redirect to signed Supabase download URLs:
+- `/api/audio?path=...`
+- `/api/image?path=...`
+
+This avoids proxying file bytes through Vercel.
+
+---
+
+## Question selection (core logic)
+
+Selection helper:
+- `lib/questionSelection.ts`
+
+Selection strategies:
+- `per_pack` (host sets a count for each selected pack)
+- `all_packs` (host sets one total across the selected set)
+
+Round filters supported:
+- `mixed`
+- `no_audio`
+- `no_image`
+- `audio_only`
+- `picture_only`
+- `audio_and_image` (audio + picture only)
+
+Room creation:
+- `app/api/room/create/route.ts` fetches questions for the chosen packs and uses `buildQuestionIdList(...)`
+
+---
+
+## Host page behaviour
+
+File:
+- `app/host/page.tsx`
+
+Key behaviour:
+- Pack selection toggle: use all packs by default, or choose packs
+- Packs table shown on the right when “Choose packs” is enabled
+- Pack rows are single-line with truncation
+- Per-pack count input is a small numeric text field (no spinner buttons)
+- Per-pack count input allows blank while typing, then clamps on blur
+- Host can filter question types (no audio, no image, audio only, picture only, audio+image)
+
+Host sends to `/api/room/create`:
+- `selectionStrategy`
+- `roundFilter`
+- `totalQuestions`
+- `selectedPacks`
+- `rounds` (per-pack counts when using per_pack)
+- timing fields and `audioMode`
+
+---
+
+## Game flow
+
+Room phases:
+- `lobby`
+- `running`
+- `finished`
+
+Stages (during running):
+- countdown
+- open
+- wait
+- reveal
+- needs_advance (display auto-calls `/api/room/advance`)
+
+---
+
+## Display and player experience
+
+TV display:
+- `app/display/[code]/page.tsx`
+- Shows scoreboard during play and a Game Completed screen
+- Uses a clean trophy SVG icon (single-stroke) to avoid rendering issues
+
+Phone player:
+- `app/play/[code]/page.tsx`
+- Shows reveal (correct answer and explanation)
+- Shows Game Completed screen with final scoreboard
+- Supports audio on phone when audio mode is phones or both, with an enable step
+
+Join page:
+- `app/join/page.tsx` styled to match the app
+
+Home page:
+- `app/page.tsx` styled to match the app and works in dark mode
+
+---
+
+## Recent changes (add to this list each time)
+
+- Added class-based theme toggle and consistent header navigation
+- Rebuilt Host page layout and packs table for better usability
+- Added pack selection toggle (use all packs or choose packs)
+- Added question type filters: no image and audio+image only
+- Added bulk media upload to admin import page
+- Fixed audio path rule so storage lookups work
+- Rebuilt display and player pages with reveal and game completed screens
