@@ -95,6 +95,14 @@ Do not store:
 - `audio/` or `images/`
 - a full URL
 
+DB schema snapshot:
+- docs/db_schema_export_2026-02-22.json
+
+Tables confirmed in schema:
+- packs, questions, pack_questions
+- rooms, players
+- answers (one answer per player per question)
+- round_results (winner per question)
 ---
 
 ## Admin import and bulk media upload
