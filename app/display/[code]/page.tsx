@@ -228,10 +228,10 @@ export default function DisplayPage() {
 
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4">
-                <div className="text-[var(--foreground)]">
-                  <Trophy />
-                </div>
-                <div>
+              <div className="flex h-16 w-16 items-center justify-center text-[var(--foreground)]">
+                <Trophy />
+              </div>
+              <div className="min-w-0">
                   <div className="text-sm text-[var(--muted-foreground)]">Final scores</div>
                   <div className="text-lg font-semibold">Thanks for playing</div>
                   <div className="text-sm text-[var(--muted-foreground)]">
