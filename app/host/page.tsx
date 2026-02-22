@@ -622,7 +622,7 @@ export default function HostCreatePage() {
                           <th className="px-3 py-2 text-left font-medium">Pack</th>
                           <th className="w-24 px-3 py-2 text-right font-medium">Questions</th>
                           <th className="w-20 px-3 py-2 text-right font-medium">Audio</th>
-                          <th className="w-24 px-3 py-2 text-right font-medium">
+                          <th className="w-16 px-3 py-2 text-right font-medium">
                             {effectiveStrategy === "per_pack" ? "Pick" : ""}
                           </th>
                         </tr>
@@ -656,7 +656,7 @@ export default function HostCreatePage() {
                                       max={Math.max(1, p.questionCount)}
                                       value={value}
                                       onChange={(e) => setCountForPack(p.id, Number(e.target.value), p.questionCount)}
-                                      className="h-9 w-20 text-right"
+                                      className="h-9 w-14 text-right px-2"
                                     />
                                   </div>
                                 ) : null}
