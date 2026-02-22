@@ -615,7 +615,7 @@ export default function HostCreatePage() {
                   <p className="text-sm text-[var(--muted-foreground)]">No packs match your filters.</p>
                 ) : (
                   <div className="max-h-[540px] overflow-auto rounded-lg border border-[var(--border)]">
-                    <table className="w-full text-sm">
+                    <table className="w-full table-fixed text-sm">
                       <thead className="sticky top-0 bg-[var(--card)]">
                         <tr className="border-b border-[var(--border)]">
                           <th className="w-10 px-3 py-2 text-left font-medium"></th>
@@ -638,11 +638,15 @@ export default function HostCreatePage() {
                                 <input type="checkbox" checked={checked} onChange={() => togglePack(p.id)} />
                               </td>
                               <td className="px-3 py-2">
-                                <div className="font-medium">{p.label}</div>
-                                <div className="text-xs text-[var(--muted-foreground)]">{p.id}</div>
+                                <div
+                                  className="truncate font-medium"
+                                  title={`${p.label} (${p.id})`}
+                                >
+                                  {p.label}
+                                </div>
                               </td>
-                              <td className="px-3 py-2 text-right">{p.questionCount}</td>
-                              <td className="px-3 py-2 text-right">{p.audioCount ?? 0}</td>
+                              <td className="px-3 py-2 text-right whitespace-nowrap">{p.questionCount}</td>
+                              <td className="px-3 py-2 text-right whitespace-nowrap">{p.audioCount ?? 0}</td>
                               <td className="px-3 py-2 text-right">
                                 {checked && effectiveStrategy === "per_pack" ? (
                                   <div className="flex justify-end">
