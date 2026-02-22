@@ -2,9 +2,6 @@
 
 export type QuestionRoundType = "general" | "audio" | "picture";
 
-// Added:
-// - no_image: exclude picture questions
-// - audio_and_image: include audio + picture only (exclude general)
 export type RoundFilter =
   | "mixed"
   | "no_audio"
@@ -17,22 +14,56 @@ export type SelectionStrategy = "per_pack" | "all_packs";
 
 export type PerPackCounts = Record<string, number>;
 
-export interface SelectionRow {
+/**
+ * The canonical row shape the room create route expects.
+ * Keep these names as-is because other files import QuestionMeta.
+ */
+export type QuestionMeta = {
   question_id: string;
   pack_id: string;
   round_type: QuestionRoundType;
-}
+};
 
-export interface BuildQuestionIdListInput {
-  rows: SelectionRow[];
+/**
+ * The canonical selection input type the room create route expects.
+ * Other files import PackSelectionInput.
+ */
+export type PackSelectionInput = {
   selectionStrategy: SelectionStrategy;
   roundFilter: RoundFilter;
-
-  // per_pack strategy
   perPackCounts?: PerPackCounts;
-
-  // all_packs strategy
   totalQuestions?: number;
+};
+
+/**
+ * Other parts of the app expect this named export.
+ * Use it for user-friendly errors from selection logic.
+ */
+export class SelectionError extends Error {
+  code:
+    | "INVALID_INPUT"
+    | "INSUFFICIENT_QUESTIONS"
+    | "INSUFFICIENT_QUESTIONS_PER_PACK";
+
+  details?: Record<string, unknown>;
+
+  constructor(
+    code:
+      | "INVALID_INPUT"
+      | "INSUFFICIENT_QUESTIONS"
+      | "INSUFFICIENT_QUESTIONS_PER_PACK",
+    message: string,
+    details?: Record<string, unknown>
+  ) {
+    super(message);
+    this.name = "SelectionError";
+    this.code = code;
+    this.details = details;
+  }
+}
+
+export interface BuildQuestionIdListInput extends PackSelectionInput {
+  rows: QuestionMeta[];
 }
 
 export function buildQuestionIdList(input: BuildQuestionIdListInput): string[] {
@@ -49,7 +80,7 @@ export function buildQuestionIdList(input: BuildQuestionIdListInput): string[] {
   return buildAllPacks(filtered, totalQuestions);
 }
 
-function applyRoundFilter(rows: SelectionRow[], filter: RoundFilter): SelectionRow[] {
+function applyRoundFilter(rows: QuestionMeta[], filter: RoundFilter): QuestionMeta[] {
   if (filter === "mixed") return rows;
 
   return rows.filter((r) => {
@@ -65,7 +96,7 @@ function applyRoundFilter(rows: SelectionRow[], filter: RoundFilter): SelectionR
   });
 }
 
-function buildPerPack(rows: SelectionRow[], perPackCounts: PerPackCounts): string[] {
+function buildPerPack(rows: QuestionMeta[], perPackCounts: PerPackCounts): string[] {
   const grouped = groupByPack(rows);
 
   const out: string[] = [];
@@ -77,8 +108,10 @@ function buildPerPack(rows: SelectionRow[], perPackCounts: PerPackCounts): strin
 
     const candidates = grouped.get(packId) ?? [];
     if (candidates.length < requested) {
-      throw new Error(
-        `Not enough questions for pack ${packId}. Requested ${requested}, available ${candidates.length}`
+      throw new SelectionError(
+        "INSUFFICIENT_QUESTIONS_PER_PACK",
+        `Not enough questions for pack ${packId}. Requested ${requested}, available ${candidates.length}`,
+        { packId, requested, available: candidates.length }
       );
     }
 
@@ -89,12 +122,14 @@ function buildPerPack(rows: SelectionRow[], perPackCounts: PerPackCounts): strin
   return out;
 }
 
-function buildAllPacks(rows: SelectionRow[], totalQuestions: number): string[] {
+function buildAllPacks(rows: QuestionMeta[], totalQuestions: number): string[] {
   const total = clampPositiveInt(totalQuestions, "totalQuestions");
 
   if (rows.length < total) {
-    throw new Error(
-      `Not enough questions to satisfy totalQuestions. Requested ${total}, available ${rows.length}`
+    throw new SelectionError(
+      "INSUFFICIENT_QUESTIONS",
+      `Not enough questions to satisfy totalQuestions. Requested ${total}, available ${rows.length}`,
+      { requested: total, available: rows.length }
     );
   }
 
@@ -102,8 +137,8 @@ function buildAllPacks(rows: SelectionRow[], totalQuestions: number): string[] {
   return picked.map((r) => r.question_id);
 }
 
-function groupByPack(rows: SelectionRow[]): Map<string, SelectionRow[]> {
-  const map = new Map<string, SelectionRow[]>();
+function groupByPack(rows: QuestionMeta[]): Map<string, QuestionMeta[]> {
+  const map = new Map<string, QuestionMeta[]>();
 
   for (const r of rows) {
     const existing = map.get(r.pack_id);
@@ -135,7 +170,11 @@ function shuffleInPlace<T>(arr: T[]): void {
 function clampPositiveInt(value: unknown, fieldName: string): number {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) {
-    throw new Error(`${fieldName} must be a positive number`);
+    throw new SelectionError(
+      "INVALID_INPUT",
+      `${fieldName} must be a positive number`,
+      { fieldName, value }
+    );
   }
   return Math.floor(n);
 }
