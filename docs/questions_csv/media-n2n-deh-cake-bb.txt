@@ -1,0 +1,41 @@
+type,path,pack_name,question_id,what_to_find
+audio,2026-02-22/n2n-audio-001.mp3,Next to Normal (London),4001-016,The clip should be from 'I Miss the Mountains'.
+audio,2026-02-22/n2n-audio-002.mp3,Next to Normal (London),4001-017,Use a recognisable section of Gabe’s 'I’m Alive'.
+audio,2026-02-22/n2n-audio-003.mp3,Next to Normal (London),4001-018,Use a section from 'You Don’t Know'.
+audio,2026-02-22/n2n-audio-004.mp3,Next to Normal (London),4001-019,Use a section from 'I Am the One'.
+audio,2026-02-22/n2n-audio-005.mp3,Next to Normal (London),4001-020,Use a section from Natalie’s 'Everything Else'.
+audio,2026-02-22/n2n-audio-006.mp3,Next to Normal (London),4001-021,Use the opening ensemble number 'Just Another Day'.
+image,2026-02-22/n2n-image-001.jpg,Next to Normal (London),4001-022,Use a clear London production photo where the character is recognisable.
+image,2026-02-22/n2n-image-002.jpg,Next to Normal (London),4001-023,Use a headshot of Jamie Parker from London Next to Normal publicity.
+image,2026-02-22/n2n-image-003.jpg,Next to Normal (London),4001-024,Use the official London artwork for Next to Normal.
+image,2026-02-22/n2n-image-004.jpg,Next to Normal (London),4001-025,Use a photo of Jack Wolfe from London Next to Normal publicity.
+audio,2026-02-22/deh-audio-001.mp3,Dear Evan Hansen (London/Broadway),4002-016,Use a chorus section from 'You Will Be Found'.
+audio,2026-02-22/deh-audio-002.mp3,Dear Evan Hansen (London/Broadway),4002-017,Use the main verse/chorus of 'Waving Through a Window'.
+audio,2026-02-22/deh-audio-003.mp3,Dear Evan Hansen (London/Broadway),4002-018,Use the hook of 'Sincerely, Me'.
+audio,2026-02-22/deh-audio-004.mp3,Dear Evan Hansen (London/Broadway),4002-019,Use a recognisable section from 'Words Fail'.
+audio,2026-02-22/deh-audio-005.mp3,Dear Evan Hansen (London/Broadway),4002-020,Use a chorus section from 'Only Us'.
+audio,2026-02-22/deh-audio-006.mp3,Dear Evan Hansen (London/Broadway),4002-021,Use a chorus section from 'Good for You'.
+image,2026-02-22/deh-image-001.jpg,Dear Evan Hansen (London/Broadway),4002-022,Use the stage show logo artwork for Dear Evan Hansen.
+image,2026-02-22/deh-image-002.jpg,Dear Evan Hansen (London/Broadway),4002-023,Use a West End publicity headshot or production photo of Sam Tutty as Evan.
+image,2026-02-22/deh-image-003.jpg,Dear Evan Hansen (London/Broadway),4002-024,Use a production still featuring the projected screens/social media design.
+image,2026-02-22/deh-image-004.jpg,Dear Evan Hansen (London/Broadway),4002-025,Use a clear photo of Evan’s arm cast as used in the stage production.
+audio,2026-02-22/ts-audio-001.mp3,Two Strangers (Carry a Cake Across New York) (London),4003-016,Use the opening hook from 'New York'.
+audio,2026-02-22/ts-audio-002.mp3,Two Strangers (Carry a Cake Across New York) (London),4003-017,Use a section from 'American Express'.
+audio,2026-02-22/ts-audio-003.mp3,Two Strangers (Carry a Cake Across New York) (London),4003-018,Use a recognisable section from 'If I Believed'.
+audio,2026-02-22/ts-audio-004.mp3,Two Strangers (Carry a Cake Across New York) (London),4003-019,Use a section from Robin’s 'Be Happy'.
+audio,2026-02-22/ts-audio-005.mp3,Two Strangers (Carry a Cake Across New York) (London),4003-020,Use a section from 'The Hangover Duet'.
+audio,2026-02-22/ts-audio-006.mp3,Two Strangers (Carry a Cake Across New York) (London),4003-021,Use a section from 'About To Go In'.
+image,2026-02-22/ts-image-001.jpg,Two Strangers (Carry a Cake Across New York) (London),4003-022,Use the official London poster artwork for Two Strangers.
+image,2026-02-22/ts-image-002.jpg,Two Strangers (Carry a Cake Across New York) (London),4003-023,Use a production photo showing the pile of suitcases used to create locations.
+image,2026-02-22/ts-image-003.jpg,Two Strangers (Carry a Cake Across New York) (London),4003-024,Use a publicity photo of Dujonna Gift from the London production.
+image,2026-02-22/ts-image-004.jpg,Two Strangers (Carry a Cake Across New York) (London),4003-025,Use a production photo where the wedding cake is visible.
+audio,2026-02-22/bb-audio-001.mp3,The Curious Case of Benjamin Button (London),4004-016,Use a recognisable section of 'The Kraken'.
+audio,2026-02-22/bb-audio-002.mp3,The Curious Case of Benjamin Button (London),4004-017,Use a section from 'A Little Life'.
+audio,2026-02-22/bb-audio-003.mp3,The Curious Case of Benjamin Button (London),4004-018,Use an ensemble section that clearly sounds like the village/pub world.
+audio,2026-02-22/bb-audio-004.mp3,The Curious Case of Benjamin Button (London),4004-019,Use a short excerpt from 'Home (Reprise)' if you have that track on your recording.
+audio,2026-02-22/bb-audio-005.mp3,The Curious Case of Benjamin Button (London),4004-020,Use a section from 'To Be Cast to the Sea' (or the equivalent title on your recording).
+audio,2026-02-22/bb-audio-006.mp3,The Curious Case of Benjamin Button (London),4004-021,Use any recognisable clip from the Benjamin Button cast recording.
+image,2026-02-22/bb-image-001.jpg,The Curious Case of Benjamin Button (London),4004-022,Use official London artwork for The Curious Case of Benjamin Button.
+image,2026-02-22/bb-image-002.jpg,The Curious Case of Benjamin Button (London),4004-023,Use a West End publicity photo of John Dagleish as Benjamin.
+image,2026-02-22/bb-image-003.jpg,The Curious Case of Benjamin Button (London),4004-024,Use a production still that clearly signals the Cornish fishing village setting.
+image,2026-02-22/bb-image-004.jpg,The Curious Case of Benjamin Button (London),4004-025,Use a publicity photo of Clare Foster as Elowen.

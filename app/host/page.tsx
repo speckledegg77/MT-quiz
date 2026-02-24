@@ -1,747 +1,563 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
+import { createClient } from "@supabase/supabase-js";
 
-import type { RoundFilter, SelectionStrategy } from "@/lib/questionSelection";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import HostJoinedTeamsPanel from "@/components/HostJoinedTeamsPanel";
 
-type AudioMode = "display" | "phones" | "both";
-
-type PackInfo = {
+type PackRow = {
   id: string;
-  label: string;
-  questionCount: number;
-  audioCount: number;
+  display_name: string;
+  round_type: string;
+  sort_order: number | null;
+  is_active: boolean | null;
 };
 
-type RoundRequest = { packId: string; count: number };
+type SelectionStrategy = "all_packs" | "per_pack";
+type RoundFilter = "mixed" | "no_audio" | "no_image" | "audio_only" | "picture_only" | "audio_and_image";
+type AudioMode = "display" | "phones" | "both";
 
-function normaliseRoundFilter(raw: any): RoundFilter {
-  const v = String(raw ?? "").toLowerCase();
-
-  if (v === "no_audio") return "no_audio";
-  if (v === "no_image") return "no_image";
-  if (v === "audio_only") return "audio_only";
-  if (v === "picture_only") return "picture_only";
-  if (v === "audio_and_image") return "audio_and_image";
-
-  return "mixed";
+function clampInt(n: number, min: number, max: number) {
+  if (Number.isNaN(n)) return min;
+  return Math.min(max, Math.max(min, n));
 }
 
-function formatFilterLabel(f: RoundFilter) {
-  if (f === "no_audio") return "No audio";
-  if (f === "no_image") return "No image";
-  if (f === "audio_only") return "Audio only";
-  if (f === "picture_only") return "Picture only";
-  if (f === "audio_and_image") return "Audio and image only";
-  return "Mixed";
-}
+export default function HostPage() {
+  const supabase = useMemo(() => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-function formatAudioMode(m: AudioMode) {
-  if (m === "phones") return "Phones";
-  if (m === "both") return "TV and phones";
-  return "TV display";
-}
+    if (!url || !key) {
+      throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY");
+    }
 
-export default function HostCreatePage() {
-  const router = useRouter();
+    return createClient(url, key);
+  }, []);
 
-  const [countdownSeconds, setCountdownSeconds] = useState(3);
-  const [answerSeconds, setAnswerSeconds] = useState(60);
-  const [revealDelaySeconds, setRevealDelaySeconds] = useState(2);
-  const [revealSeconds, setRevealSeconds] = useState(5);
-
-  const [audioMode, setAudioMode] = useState<AudioMode>("display");
-
-  const [packs, setPacks] = useState<PackInfo[]>([]);
-  const [selectedPacks, setSelectedPacks] = useState<string[]>([]);
-  const [packCounts, setPackCounts] = useState<Record<string, number>>({});
-
-  // New: draft strings so inputs can be blank while editing
-  const [packCountDrafts, setPackCountDrafts] = useState<Record<string, string>>({});
+  const [packs, setPacks] = useState<PackRow[]>([]);
+  const [packsLoading, setPacksLoading] = useState(true);
+  const [packsError, setPacksError] = useState<string | null>(null);
 
   const [choosePacks, setChoosePacks] = useState(false);
+  const [selectedPacks, setSelectedPacks] = useState<Record<string, boolean>>({});
 
-  const [selectionStrategy, setSelectionStrategy] = useState<SelectionStrategy>("per_pack");
-  const [totalQuestionsAllPacks, setTotalQuestionsAllPacks] = useState<number>(20);
+  const [selectionStrategy, setSelectionStrategy] = useState<SelectionStrategy>("all_packs");
   const [roundFilter, setRoundFilter] = useState<RoundFilter>("mixed");
+  const [audioMode, setAudioMode] = useState<AudioMode>("display");
 
-  const [packSearch, setPackSearch] = useState("");
-  const [showSelectedOnly, setShowSelectedOnly] = useState(false);
-  const [showAudioOnly, setShowAudioOnly] = useState(false);
+  const [totalQuestions, setTotalQuestions] = useState<number>(20);
 
-  const [code, setCode] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loadingPacks, setLoadingPacks] = useState(true);
+  // Per-pack counts. We allow blank while typing, then clamp on blur.
+  const [perPackCounts, setPerPackCounts] = useState<Record<string, string>>({});
+
+  // Timing fields (keep these simple and safe defaults)
+  const [countdownSeconds, setCountdownSeconds] = useState<number>(5);
+  const [answerSeconds, setAnswerSeconds] = useState<number>(20);
+
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const [roomCode, setRoomCode] = useState<string | null>(null);
+
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const joinUrl = roomCode && origin ? `${origin}/join?code=${roomCode}` : "";
+  const displayUrl = roomCode ? `/display/${roomCode}` : "";
+  const playUrl = roomCode ? `/play/${roomCode}` : "";
 
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
-      setLoadingPacks(true);
-      setError(null);
+    async function loadPacks() {
+      setPacksLoading(true);
+      setPacksError(null);
 
-      try {
-        const res = await fetch("/api/packs", { cache: "no-store" });
-        const data = await res.json();
+      const { data, error } = await supabase
+        .from("packs")
+        .select("id, display_name, round_type, sort_order, is_active")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
 
-        if (cancelled) return;
+      if (cancelled) return;
 
-        const list: PackInfo[] = Array.isArray(data?.packs) ? data.packs : [];
-        setPacks(list);
-
-        if (list.length > 0) {
-          setSelectedPacks((prev) => {
-            if (prev.length > 0) return prev;
-            return [list[0].id];
-          });
-
-          setPackCounts((prev) => {
-            const next = { ...prev };
-            for (const p of list) {
-              if (next[p.id] == null) {
-                const def = Math.min(10, Math.max(1, Number(p.questionCount || 10)));
-                next[p.id] = def;
-              }
-            }
-            return next;
-          });
-
-          setPackCountDrafts((prev) => {
-            const next = { ...prev };
-            for (const p of list) {
-              if (next[p.id] == null) {
-                const def = Math.min(10, Math.max(1, Number(p.questionCount || 10)));
-                next[p.id] = String(def);
-              }
-            }
-            return next;
-          });
-        }
-      } catch {
-        if (!cancelled) setError("Could not load pack list.");
-      } finally {
-        if (!cancelled) setLoadingPacks(false);
+      if (error) {
+        setPacksError(error.message);
+        setPacks([]);
+      } else {
+        setPacks((data ?? []) as PackRow[]);
       }
+
+      setPacksLoading(false);
     }
 
-    load();
+    loadPacks();
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [supabase]);
 
+  // Default selection: all packs selected (but only used if choosePacks is off)
   useEffect(() => {
-    if (roundFilter === "audio_only" || roundFilter === "picture_only") {
-      setSelectionStrategy("all_packs");
-    }
-  }, [roundFilter]);
+    if (packs.length === 0) return;
 
-  const effectiveSelectedPacks = useMemo(() => {
-    return choosePacks ? selectedPacks : packs.map((p) => p.id);
-  }, [choosePacks, selectedPacks, packs]);
-
-  const effectiveStrategy: SelectionStrategy = useMemo(() => {
-    return choosePacks ? selectionStrategy : "all_packs";
-  }, [choosePacks, selectionStrategy]);
-
-  function togglePack(id: string) {
     setSelectedPacks((prev) => {
-      const on = prev.includes(id);
-      if (on) return prev.filter((x) => x !== id);
-      return [...prev, id];
-    });
+      if (Object.keys(prev).length > 0) return prev;
 
-    setPackCounts((prev) => {
-      if (prev[id] != null) return prev;
-      return { ...prev, [id]: 10 };
+      const next: Record<string, boolean> = {};
+      for (const p of packs) next[p.id] = true;
+      return next;
     });
+  }, [packs]);
 
-    setPackCountDrafts((prev) => {
-      if (prev[id] != null) return prev;
-      return { ...prev, [id]: "10" };
-    });
+  function togglePack(packId: string) {
+    setSelectedPacks((prev) => ({ ...prev, [packId]: !prev[packId] }));
   }
 
-  const filteredPacks = useMemo(() => {
-    const q = packSearch.trim().toLowerCase();
-
-    const base = packs.filter((p) => {
-      if (showSelectedOnly && !selectedPacks.includes(p.id)) return false;
-      if (showAudioOnly && (p.audioCount ?? 0) <= 0) return false;
-
-      if (!q) return true;
-
-      const hay = `${p.label} ${p.id}`.toLowerCase();
-      return hay.includes(q);
-    });
-
-    base.sort((a, b) => {
-      const aSel = selectedPacks.includes(a.id) ? 0 : 1;
-      const bSel = selectedPacks.includes(b.id) ? 0 : 1;
-      if (aSel !== bSel) return aSel - bSel;
-      return a.label.localeCompare(b.label);
-    });
-
-    return base;
-  }, [packs, packSearch, selectedPacks, showSelectedOnly, showAudioOnly]);
-
-  function selectAllVisible() {
-    const visibleIds = filteredPacks.map((p) => p.id);
-    setSelectedPacks((prev) => {
-      const set = new Set(prev);
-      for (const id of visibleIds) set.add(id);
-      return Array.from(set);
-    });
-  }
-
-  function clearAll() {
-    setSelectedPacks([]);
-  }
-
-  function clampCount(n: number, maxForPack: number) {
-    const safe = Math.max(1, Math.floor(Number.isFinite(n) ? n : 1));
-    const max = Math.max(1, Math.floor(Number(maxForPack || safe)));
-    return Math.min(safe, max);
-  }
-
-  function setCountForPack(id: string, n: number, maxForPack: number) {
-    const clamped = clampCount(n, maxForPack);
-    setPackCounts((prev) => ({ ...prev, [id]: clamped }));
-    setPackCountDrafts((prev) => ({ ...prev, [id]: String(clamped) }));
-  }
-
-  function handlePackCountChange(id: string, raw: string, maxForPack: number) {
-    const digits = raw.replace(/[^0-9]/g, "");
-    setPackCountDrafts((prev) => ({ ...prev, [id]: digits }));
-
-    // Allow blank while typing
-    if (digits === "") return;
-
-    const n = Number(digits);
-    if (!Number.isFinite(n)) return;
-    setPackCounts((prev) => ({ ...prev, [id]: clampCount(n, maxForPack) }));
-  }
-
-  function handlePackCountBlur(id: string, maxForPack: number) {
-    const draft = packCountDrafts[id];
-
-    if (draft == null) return;
-
-    // If they leave it blank, restore the last valid value
-    if (draft === "") {
-      const fallback = packCounts[id] ?? 1;
-      setPackCountDrafts((prev) => ({ ...prev, [id]: String(fallback) }));
-      return;
+  function getSelectedPackIds() {
+    if (!choosePacks) {
+      return packs.map((p) => p.id);
     }
 
-    const n = Number(draft);
-    const clamped = clampCount(n, maxForPack);
-    setPackCounts((prev) => ({ ...prev, [id]: clamped }));
-    setPackCountDrafts((prev) => ({ ...prev, [id]: String(clamped) }));
+    return packs.filter((p) => selectedPacks[p.id]).map((p) => p.id);
   }
 
-  const rounds: RoundRequest[] = useMemo(() => {
-    if (effectiveStrategy !== "per_pack") return [];
-    if (!choosePacks) return [];
+  function buildRoundsPayload(selectedIds: string[]) {
+    // Only used for per_pack strategy
+    // Return array: [{ packId, count }]
+    const rounds = selectedIds.map((packId) => {
+      const raw = perPackCounts[packId] ?? "";
+      const asNum = raw.trim() === "" ? 0 : Number(raw);
+      const count = clampInt(Number.isFinite(asNum) ? asNum : 0, 0, 9999);
+      return { packId, count };
+    });
 
-    const map = new Map(packs.map((p) => [p.id, p.questionCount]));
-    return selectedPacks
-      .map((packId) => {
-        const count = Number(packCounts[packId] ?? 0);
-        const max = Number(map.get(packId) ?? count);
-        const safe = Math.min(Math.max(1, Math.floor(count)), Math.max(1, Math.floor(max || count)));
-        return { packId, count: safe };
-      })
-      .filter((r) => r.packId && r.count > 0);
-  }, [effectiveStrategy, choosePacks, selectedPacks, packCounts, packs]);
-
-  const totalQuestionsFromPacks = useMemo(() => rounds.reduce((sum, r) => sum + r.count, 0), [rounds]);
-
-  const totalQuestionsToPick =
-    effectiveStrategy === "all_packs" ? totalQuestionsAllPacks : totalQuestionsFromPacks;
-
-  const selectedCount = choosePacks ? selectedPacks.length : packs.length;
+    return rounds;
+  }
 
   async function createRoom() {
-    setError(null);
+    setCreating(true);
+    setCreateError(null);
 
-    if (loadingPacks) {
-      setError("Pack list is still loading.");
-      return;
-    }
+    try {
+      const selectedIds = getSelectedPackIds();
 
-    if (packs.length === 0) {
-      setError("No packs found.");
-      return;
-    }
-
-    if (choosePacks && selectedPacks.length === 0) {
-      setError("Pick at least one pack, or turn off pack selection to use all packs.");
-      return;
-    }
-
-    if (effectiveStrategy === "per_pack") {
-      const anyBlank = selectedPacks.some((pid) => (packCountDrafts[pid] ?? String(packCounts[pid] ?? 1)) === "");
-      if (anyBlank) {
-        setError("Set a number of questions for each selected pack.");
+      if (selectedIds.length === 0) {
+        setCreateError("Select at least one pack.");
+        setCreating(false);
         return;
       }
-    }
 
-    if (effectiveStrategy === "per_pack" && rounds.length === 0) {
-      setError("Set a question count for at least one selected pack.");
-      return;
-    }
-
-    if (!Number.isFinite(totalQuestionsToPick) || totalQuestionsToPick <= 0) {
-      setError("Set a question count greater than 0.");
-      return;
-    }
-
-    const safeFilter = normaliseRoundFilter(roundFilter);
-
-    const res = await fetch("/api/room/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        selectionStrategy: effectiveStrategy,
-        roundFilter: safeFilter,
-        totalQuestions: totalQuestionsToPick,
-
-        rounds: effectiveStrategy === "per_pack" ? rounds : [],
-        selectedPacks: effectiveSelectedPacks,
-        questionCount: totalQuestionsToPick,
-
-        countdownSeconds,
-        answerSeconds,
-        revealDelaySeconds,
-        revealSeconds,
+      const payload: any = {
+        selectionStrategy,
+        roundFilter,
+        totalQuestions: clampInt(totalQuestions, 1, 200),
+        selectedPacks: selectedIds,
+        rounds: selectionStrategy === "per_pack" ? buildRoundsPayload(selectedIds) : [],
+        countdownSeconds: clampInt(countdownSeconds, 0, 60),
+        answerSeconds: clampInt(answerSeconds, 5, 120),
         audioMode,
-      }),
-    });
+      };
 
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error ?? "Could not create room.");
+      const res = await fetch("/api/room/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setCreateError(data?.error ?? "Room creation failed.");
+        setCreating(false);
+        return;
+      }
+
+      const code = String(data?.code ?? "").toUpperCase();
+      if (!code) {
+        setCreateError("Room created, but no code returned.");
+        setCreating(false);
+        return;
+      }
+
+      setRoomCode(code);
+    } catch (e: any) {
+      setCreateError(e?.message ?? "Room creation failed.");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  function onPerPackChange(packId: string, value: string) {
+    // Allow blank and digits while typing
+    if (value === "") {
+      setPerPackCounts((prev) => ({ ...prev, [packId]: "" }));
       return;
     }
 
-    setCode(data.code);
+    if (!/^\d+$/.test(value)) return;
+
+    setPerPackCounts((prev) => ({ ...prev, [packId]: value }));
   }
 
-  async function startGame() {
-    if (!code) return;
+  function onPerPackBlur(packId: string) {
+    const raw = perPackCounts[packId] ?? "";
+    if (raw.trim() === "") return;
 
-    await fetch("/api/room/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
-    });
+    const asNum = Number(raw);
+    const clamped = clampInt(Number.isFinite(asNum) ? asNum : 0, 0, 9999);
 
-    router.push(`/display/${code}`);
+    setPerPackCounts((prev) => ({ ...prev, [packId]: String(clamped) }));
   }
-
-  function resetRoom() {
-    setCode(null);
-    setError(null);
-  }
-
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const joinUrl = useMemo(() => (code && origin ? `${origin}/join?code=${code}` : ""), [code, origin]);
-  const displayUrl = useMemo(() => (code && origin ? `${origin}/display/${code}` : ""), [code, origin]);
-
-  const canCreate =
-    !loadingPacks &&
-    packs.length > 0 &&
-    totalQuestionsToPick > 0 &&
-    (!choosePacks || selectedPacks.length > 0);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6">
-      <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Host</h1>
-          <p className="text-sm text-[var(--muted-foreground)]">Pick packs and settings, then create a room.</p>
+    <main className="mx-auto max-w-6xl px-4 py-6">
+      <div className="mb-4">
+        <div className="text-2xl font-semibold">Host</div>
+        <div className="text-sm text-[var(--muted-foreground)]">
+          Create a room, choose question settings, then open the display screen on your TV.
         </div>
-
-        {code ? (
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={resetRoom}>
-              Create new room
-            </Button>
-            <Button onClick={startGame}>Start game</Button>
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => router.push("/join")}>
-              Join
-            </Button>
-          </div>
-        )}
       </div>
 
-      {code ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Room</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
-                <div className="text-xs text-[var(--muted-foreground)]">Room code</div>
-                <div className="text-2xl font-semibold tracking-wide">{code}</div>
-              </div>
+      {roomCode ? (
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2 grid gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Room created</CardTitle>
+              </CardHeader>
 
-              <div className="space-y-1">
-                <div className="text-xs text-[var(--muted-foreground)]">Players join</div>
-                <a className="break-all text-sm underline" href={joinUrl}>
-                  {joinUrl}
-                </a>
-              </div>
+              <CardContent className="space-y-3">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4">
+                  <div className="text-sm text-[var(--muted-foreground)]">Room code</div>
+                  <div className="text-3xl font-semibold tracking-wide">{roomCode}</div>
+                </div>
 
-              <div className="space-y-1">
-                <div className="text-xs text-[var(--muted-foreground)]">TV display</div>
-                <a className="break-all text-sm underline" href={displayUrl}>
-                  {displayUrl}
-                </a>
-              </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-[var(--border)] p-4">
+                    <div className="text-sm font-medium">Players join link</div>
+                    <div className="mt-1 text-sm text-[var(--muted-foreground)] break-all">
+                      {joinUrl}
+                    </div>
+                    <div className="mt-3 flex justify-center">
+                      {joinUrl ? <QRCodeSVG value={joinUrl} size={200} /> : null}
+                    </div>
+                  </div>
 
-              <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <div className="text-xs text-[var(--muted-foreground)]">Packs</div>
-                    <div>{choosePacks ? `Custom (${selectedCount})` : `All (${selectedCount})`}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-[var(--muted-foreground)]">Questions</div>
-                    <div>{totalQuestionsToPick}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-[var(--muted-foreground)]">Type</div>
-                    <div>{formatFilterLabel(roundFilter)}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-[var(--muted-foreground)]">Audio</div>
-                    <div>{formatAudioMode(audioMode)}</div>
+                  <div className="rounded-xl border border-[var(--border)] p-4">
+                    <div className="text-sm font-medium">Open screens</div>
+
+                    <div className="mt-3 grid gap-2">
+                      <Link href={displayUrl}>
+                        <Button className="w-full">Open TV display</Button>
+                      </Link>
+
+                      <Link href={playUrl}>
+                        <Button variant="secondary" className="w-full">
+                          Open player view (for testing)
+                        </Button>
+                      </Link>
+
+                      <Button
+                        variant="secondary"
+                        className="w-full"
+                        onClick={() => setRoomCode(null)}
+                      >
+                        Create another room
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
 
-          <Card>
+              <CardFooter className="text-sm text-[var(--muted-foreground)]">
+                Keep this page open if you want to watch teams join.
+              </CardFooter>
+            </Card>
+
+            <HostJoinedTeamsPanel code={roomCode} />
+          </div>
+
+          <Card className="lg:col-span-1">
             <CardHeader>
-              <CardTitle>Scan to join</CardTitle>
+              <CardTitle>Quick checklist</CardTitle>
             </CardHeader>
-            <CardContent className="flex items-center justify-center py-8">
-              {joinUrl ? <QRCodeSVG value={joinUrl} size={240} /> : null}
+            <CardContent className="space-y-2 text-sm text-[var(--muted-foreground)]">
+              <div>Open the TV display on a big screen.</div>
+              <div>Share the join link or show the QR code.</div>
+              <div>Wait for teams to join, then start the game.</div>
             </CardContent>
-            <CardFooter className="text-sm text-[var(--muted-foreground)]">
-              Open the join link on a phone if the QR code does not scan.
-            </CardFooter>
           </Card>
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className={choosePacks ? "grid gap-4 lg:order-1" : "grid gap-4 lg:col-span-2 lg:max-w-2xl lg:mx-auto"}>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2 grid gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>Setup</CardTitle>
+                <CardTitle>Room settings</CardTitle>
               </CardHeader>
 
-              <CardContent className="space-y-6">
-                <div className="grid gap-2">
-                  <div className="text-sm font-medium">Pack selection</div>
+              <CardContent className="grid gap-4">
+                {createError ? (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+                    {createError}
+                  </div>
+                ) : null}
 
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="radio" name="packMode" checked={!choosePacks} onChange={() => setChoosePacks(false)} />
-                      <span>Use all packs ({packs.length})</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="radio" name="packMode" checked={choosePacks} onChange={() => setChoosePacks(true)} />
-                      <span>Choose packs</span>
-                    </label>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <div className="text-sm font-medium">Selection strategy</div>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <Button
+                        variant={selectionStrategy === "all_packs" ? "default" : "secondary"}
+                        onClick={() => setSelectionStrategy("all_packs")}
+                      >
+                        Total count
+                      </Button>
+                      <Button
+                        variant={selectionStrategy === "per_pack" ? "default" : "secondary"}
+                        onClick={() => setSelectionStrategy("per_pack")}
+                      >
+                        Per pack
+                      </Button>
+                    </div>
+                    <div className="mt-2 text-sm text-[var(--muted-foreground)]">
+                      Total count picks a total number of questions. Per pack lets you set a count per pack.
+                    </div>
                   </div>
 
-                  {!choosePacks ? (
-                    <div className="text-xs text-[var(--muted-foreground)]">
-                      The game will pick questions at random from every pack in your database.
+                  <div>
+                    <div className="text-sm font-medium">Question filter</div>
+                    <select
+                      className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
+                      value={roundFilter}
+                      onChange={(e) => setRoundFilter(e.target.value as RoundFilter)}
+                    >
+                      <option value="mixed">Mixed</option>
+                      <option value="no_audio">No audio</option>
+                      <option value="no_image">No images</option>
+                      <option value="audio_only">Audio only</option>
+                      <option value="picture_only">Picture only</option>
+                      <option value="audio_and_image">Audio + image only</option>
+                    </select>
+                    <div className="mt-2 text-sm text-[var(--muted-foreground)]">
+                      Use this when you want to avoid certain round types.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div>
+                    <div className="text-sm font-medium">Total questions</div>
+                    <Input
+                      className="mt-2"
+                      inputMode="numeric"
+                      value={String(totalQuestions)}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === "") return;
+                        if (!/^\d+$/.test(v)) return;
+                        setTotalQuestions(Number(v));
+                      }}
+                      onBlur={() => setTotalQuestions((n) => clampInt(n, 1, 200))}
+                    />
+                    <div className="mt-2 text-sm text-[var(--muted-foreground)]">
+                      Used when strategy is Total count.
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-sm font-medium">Countdown (seconds)</div>
+                    <Input
+                      className="mt-2"
+                      inputMode="numeric"
+                      value={String(countdownSeconds)}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === "") return;
+                        if (!/^\d+$/.test(v)) return;
+                        setCountdownSeconds(Number(v));
+                      }}
+                      onBlur={() => setCountdownSeconds((n) => clampInt(n, 0, 60))}
+                    />
+                  </div>
+
+                  <div>
+                    <div className="text-sm font-medium">Answer time (seconds)</div>
+                    <Input
+                      className="mt-2"
+                      inputMode="numeric"
+                      value={String(answerSeconds)}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === "") return;
+                        if (!/^\d+$/.test(v)) return;
+                        setAnswerSeconds(Number(v));
+                      }}
+                      onBlur={() => setAnswerSeconds((n) => clampInt(n, 5, 120))}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-sm font-medium">Audio mode</div>
+                  <select
+                    className="mt-2 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
+                    value={audioMode}
+                    onChange={(e) => setAudioMode(e.target.value as AudioMode)}
+                  >
+                    <option value="display">TV display only</option>
+                    <option value="phones">Phones only</option>
+                    <option value="both">Both</option>
+                  </select>
+                  <div className="mt-2 text-sm text-[var(--muted-foreground)]">
+                    If you set Phones only, the TV will not autoplay clips.
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-[var(--border)] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-medium">Choose packs</div>
+                      <div className="text-sm text-[var(--muted-foreground)]">
+                        Off means you use all active packs.
+                      </div>
+                    </div>
+
+                    <Button
+                      variant={choosePacks ? "default" : "secondary"}
+                      onClick={() => setChoosePacks((v) => !v)}
+                    >
+                      {choosePacks ? "Choosing packs" : "Using all packs"}
+                    </Button>
+                  </div>
+
+                  {selectionStrategy === "per_pack" ? (
+                    <div className="mt-3 text-sm text-[var(--muted-foreground)]">
+                      When using Per pack, set each pack’s count in the pack list.
                     </div>
                   ) : null}
                 </div>
-
-                <div className="grid gap-2">
-                  <div className="text-sm font-medium">Question selection</div>
-
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="radio"
-                        name="strategy"
-                        checked={effectiveStrategy === "per_pack"}
-                        onChange={() => setSelectionStrategy("per_pack")}
-                        disabled={!choosePacks || roundFilter === "audio_only" || roundFilter === "picture_only"}
-                      />
-                      <span>Pick counts per pack</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="radio"
-                        name="strategy"
-                        checked={effectiveStrategy === "all_packs"}
-                        onChange={() => setSelectionStrategy("all_packs")}
-                      />
-                      <span>Pick one total across the chosen set</span>
-                    </label>
-                  </div>
-
-                  {effectiveStrategy === "per_pack" ? (
-                    <div className="text-sm text-[var(--muted-foreground)]">Total questions: {totalQuestionsFromPacks}</div>
-                  ) : (
-                    <div className="grid gap-2 sm:max-w-xs">
-                      <div className="text-sm text-[var(--muted-foreground)]">Total questions</div>
-                      <Input
-                        type="number"
-                        min={1}
-                        value={totalQuestionsAllPacks}
-                        onChange={(e) => setTotalQuestionsAllPacks(Number(e.target.value))}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid gap-2">
-                  <div className="text-sm font-medium">Question types</div>
-
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="radio" name="roundFilter" checked={roundFilter === "mixed"} onChange={() => setRoundFilter("mixed")} />
-                      <span>Mixed</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="radio" name="roundFilter" checked={roundFilter === "no_audio"} onChange={() => setRoundFilter("no_audio")} />
-                      <span>No audio</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="radio" name="roundFilter" checked={roundFilter === "no_image"} onChange={() => setRoundFilter("no_image")} />
-                      <span>No image</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="radio"
-                        name="roundFilter"
-                        checked={roundFilter === "audio_and_image"}
-                        onChange={() => setRoundFilter("audio_and_image")}
-                      />
-                      <span>Audio and image only</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="radio" name="roundFilter" checked={roundFilter === "audio_only"} onChange={() => setRoundFilter("audio_only")} />
-                      <span>Audio only</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="radio" name="roundFilter" checked={roundFilter === "picture_only"} onChange={() => setRoundFilter("picture_only")} />
-                      <span>Picture only</span>
-                    </label>
-                  </div>
-
-                  <div className="text-xs text-[var(--muted-foreground)]">
-                    Audio only and picture only use one total across the chosen set.
-                  </div>
-                </div>
-
-                <div className="grid gap-2">
-                  <div className="text-sm font-medium">Audio playback</div>
-
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="radio" name="audioMode" checked={audioMode === "display"} onChange={() => setAudioMode("display")} />
-                      <span>TV display</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="radio" name="audioMode" checked={audioMode === "phones"} onChange={() => setAudioMode("phones")} />
-                      <span>Phones</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 text-sm sm:col-span-2">
-                      <input type="radio" name="audioMode" checked={audioMode === "both"} onChange={() => setAudioMode("both")} />
-                      <span>TV and phones</span>
-                    </label>
-                  </div>
-                </div>
-
-                <details className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
-                  <summary className="cursor-pointer text-sm font-medium">Advanced timing</summary>
-
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <div className="grid gap-1">
-                      <div className="text-xs text-[var(--muted-foreground)]">Countdown</div>
-                      <Input type="number" min={0} value={countdownSeconds} onChange={(e) => setCountdownSeconds(Number(e.target.value))} />
-                    </div>
-
-                    <div className="grid gap-1">
-                      <div className="text-xs text-[var(--muted-foreground)]">Answer time</div>
-                      <Input type="number" min={1} value={answerSeconds} onChange={(e) => setAnswerSeconds(Number(e.target.value))} />
-                    </div>
-
-                    <div className="grid gap-1">
-                      <div className="text-xs text-[var(--muted-foreground)]">Wait before reveal</div>
-                      <Input type="number" min={0} value={revealDelaySeconds} onChange={(e) => setRevealDelaySeconds(Number(e.target.value))} />
-                    </div>
-
-                    <div className="grid gap-1">
-                      <div className="text-xs text-[var(--muted-foreground)]">Reveal time</div>
-                      <Input type="number" min={1} value={revealSeconds} onChange={(e) => setRevealSeconds(Number(e.target.value))} />
-                    </div>
-                  </div>
-                </details>
               </CardContent>
 
-              <CardFooter className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <CardFooter className="flex items-center justify-between gap-3">
                 <div className="text-sm text-[var(--muted-foreground)]">
-                  <span className="font-medium text-[var(--foreground)]">
-                    {choosePacks ? `Custom (${selectedCount})` : `All (${selectedCount})`}
-                  </span>{" "}
-                  packs, <span className="font-medium text-[var(--foreground)]">{totalQuestionsToPick}</span> questions,{" "}
-                  {formatFilterLabel(roundFilter)}
+                  {packsLoading ? "Loading packs…" : `${packs.length} active packs available`}
                 </div>
 
-                <Button onClick={createRoom} disabled={!canCreate}>
-                  Create room
+                <Button onClick={createRoom} disabled={creating || packsLoading}>
+                  {creating ? "Creating…" : "Create room"}
                 </Button>
               </CardFooter>
             </Card>
 
-            {error ? (
-              <Card className="border-red-300">
-                <CardContent className="text-sm text-red-600">{error}</CardContent>
+            {packsError ? (
+              <Card>
+                <CardContent className="py-6 text-sm text-red-700 dark:text-red-200">
+                  {packsError}
+                </CardContent>
               </Card>
             ) : null}
           </div>
 
-          {choosePacks ? (
-            <Card className="lg:order-2">
-              <CardHeader>
-                <div className="flex items-center justify-between gap-3">
-                  <CardTitle>Packs</CardTitle>
-                  <div className="text-sm text-[var(--muted-foreground)]">{selectedCount} selected</div>
+          <Card className="lg:col-span-1">
+            <CardHeader>
+              <CardTitle>Packs</CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-3">
+              {choosePacks ? (
+                <div className="text-sm text-[var(--muted-foreground)]">
+                  Tap packs to include them. Only selected packs will be used.
                 </div>
-
-                <div className="mt-3 grid gap-2">
-                  <Input value={packSearch} onChange={(e) => setPackSearch(e.target.value)} placeholder="Search packs" />
-
-                  <div className="flex gap-2">
-                    <Button variant="secondary" className="w-full" onClick={selectAllVisible} disabled={filteredPacks.length === 0}>
-                      Select visible
-                    </Button>
-                    <Button variant="secondary" className="w-full" onClick={clearAll} disabled={selectedPacks.length === 0}>
-                      Clear
-                    </Button>
-                  </div>
+              ) : (
+                <div className="text-sm text-[var(--muted-foreground)]">
+                  You are using all active packs. Turn on Choose packs to narrow it down.
                 </div>
+              )}
 
-                <div className="mt-3 flex flex-wrap gap-3 text-sm">
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={showSelectedOnly} onChange={(e) => setShowSelectedOnly(e.target.checked)} />
-                    <span>Selected only</span>
-                  </label>
+              <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+                <table className="w-full text-sm">
+                  <thead className="bg-[var(--card)]">
+                    <tr className="border-b border-[var(--border)]">
+                      <th className="px-3 py-2 text-left font-medium">Pack</th>
+                      <th className="w-24 px-3 py-2 text-right font-medium">Count</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {packs.map((p) => {
+                      const selected = choosePacks ? Boolean(selectedPacks[p.id]) : true;
 
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={showAudioOnly} onChange={(e) => setShowAudioOnly(e.target.checked)} />
-                    <span>Audio packs only</span>
-                  </label>
-                </div>
-              </CardHeader>
-
-              <CardContent>
-                {loadingPacks ? (
-                  <p className="text-sm text-[var(--muted-foreground)]">Loading packs…</p>
-                ) : packs.length === 0 ? (
-                  <p className="text-sm text-[var(--muted-foreground)]">
-                    No packs found. Add packs and questions via the admin import page.
-                  </p>
-                ) : filteredPacks.length === 0 ? (
-                  <p className="text-sm text-[var(--muted-foreground)]">No packs match your filters.</p>
-                ) : (
-                  <div className="max-h-[540px] overflow-auto rounded-lg border border-[var(--border)]">
-                    <table className="w-full table-fixed text-sm">
-                      <thead className="sticky top-0 bg-[var(--card)]">
-                        <tr className="border-b border-[var(--border)]">
-                          <th className="px-2 py-2 text-left font-medium">Pack</th>
-                          <th className="w-20 px-2 py-2 text-right font-medium">Questions</th>
-                          <th className="w-16 px-2 py-2 text-right font-medium">Audio</th>
-                          <th className="w-16 px-2 py-2 text-right font-medium">
-                            {effectiveStrategy === "per_pack" ? "Pick" : ""}
-                          </th>
-                        </tr>
-                      </thead>
-
-                      <tbody>
-                        {filteredPacks.map((p) => {
-                          const checked = selectedPacks.includes(p.id);
-                          const value = packCounts[p.id] ?? Math.min(10, Math.max(1, p.questionCount || 10));
-                          const draft = packCountDrafts[p.id];
-                          const inputValue = draft === undefined ? String(value) : draft;
-
-                          return (
-                            <tr key={p.id} className="border-b border-[var(--border)] last:border-b-0">
-                              <td className="px-2 py-2">
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    className="h-4 w-4 shrink-0"
-                                    type="checkbox"
-                                    checked={checked}
-                                    onChange={() => togglePack(p.id)}
-                                  />
-                                  <div className="truncate font-medium" title={`${p.label} (${p.id})`}>
-                                    {p.label}
-                                  </div>
+                      return (
+                        <tr
+                          key={p.id}
+                          className={`border-b border-[var(--border)] last:border-b-0 ${
+                            choosePacks ? "cursor-pointer" : ""
+                          }`}
+                          onClick={() => {
+                            if (!choosePacks) return;
+                            togglePack(p.id);
+                          }}
+                        >
+                          <td className="px-3 py-2">
+                            <div className="flex items-center gap-2">
+                              {choosePacks ? (
+                                <span
+                                  className={`inline-block h-3 w-3 rounded-sm border ${
+                                    selected
+                                      ? "bg-emerald-500/60 border-emerald-500/60"
+                                      : "bg-transparent border-[var(--border)]"
+                                  }`}
+                                />
+                              ) : null}
+                              <div className="min-w-0">
+                                <div className="truncate font-medium">{p.display_name}</div>
+                                <div className="truncate text-xs text-[var(--muted-foreground)]">
+                                  {p.round_type}
                                 </div>
-                              </td>
+                              </div>
+                            </div>
+                          </td>
 
-                              <td className="px-2 py-2 text-right whitespace-nowrap tabular-nums">{p.questionCount}</td>
+                          <td className="px-3 py-2 text-right">
+                            {selectionStrategy === "per_pack" ? (
+                              <input
+                                className="w-16 rounded-lg border border-[var(--border)] bg-[var(--card)] px-2 py-1 text-right text-sm"
+                                inputMode="numeric"
+                                value={perPackCounts[p.id] ?? ""}
+                                onChange={(e) => onPerPackChange(p.id, e.target.value)}
+                                onBlur={() => onPerPackBlur(p.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                placeholder="0"
+                              />
+                            ) : (
+                              <span className="text-xs text-[var(--muted-foreground)]">n/a</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
 
-                              <td className="px-2 py-2 text-right whitespace-nowrap tabular-nums">{p.audioCount ?? 0}</td>
+                    {packs.length === 0 && !packsLoading ? (
+                      <tr>
+                        <td className="px-3 py-4 text-sm text-[var(--muted-foreground)]" colSpan={2}>
+                          No active packs found.
+                        </td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
 
-                              <td className="px-2 py-2 text-right">
-                                {checked && effectiveStrategy === "per_pack" ? (
-                                  <div className="flex justify-end">
-                                    <Input
-                                      type="text"
-                                      inputMode="numeric"
-                                      pattern="[0-9]*"
-                                      value={inputValue}
-                                      onChange={(e) => handlePackCountChange(p.id, e.target.value, p.questionCount)}
-                                      onBlur={() => handlePackCountBlur(p.id, p.questionCount)}
-                                      className="h-9 w-14 px-2 text-right tabular-nums"
-                                    />
-                                  </div>
-                                ) : null}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ) : null}
+            <CardFooter className="text-xs text-[var(--muted-foreground)]">
+              Packs come from the Supabase packs table.
+            </CardFooter>
+          </Card>
         </div>
       )}
     </main>

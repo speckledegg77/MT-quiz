@@ -1,0 +1,38 @@
+# Media manifest for pack: Sondheim
+pack_id: 30fea284-d5bf-4e89-9bc6-2448d319ad83
+
+## Audio (20)
+path | question_id | show | clip you need
+2026-02-17/audio-001.mp3 | cb1ec2d3-2673-4597-bbe4-bec308feb87e | Merrily We Roll Along | 10-15 seconds from 'Not a Day Goes By' (any cast recording). Use the main refrain.
+2026-02-17/audio-002.mp3 | 51b8d19d-e1ee-4aaf-8717-4e8dd144d88f | Into the Woods | 10-15 seconds from 'Giants in the Sky' (cast recording). Use a recognisable chorus section.
+2026-02-17/audio-003.mp3 | 3fb338a2-141c-4c4c-9bc1-8e2f2afbbf49 | Sunday in the Park with George | 10-15 seconds from 'Sunday'. Use the build into the big ensemble moment.
+2026-02-17/audio-004.mp3 | 3d3da0f6-d1b7-4f03-937d-b7a3b0b1a92c | Assassins | 10-15 seconds from 'Everybody's Got the Right'. Use the opening hook.
+2026-02-17/audio-005.mp3 | 61eb5b8f-66d3-4a0d-9b33-52fb06c33f40 | Follies | 10-15 seconds from 'Could I Leave You?'. Use a clear verse/chorus phrase.
+2026-02-17/audio-006.mp3 | 12e9a76c-9ff2-4cb5-9b6a-6c0a0a3d5c9a | A Little Night Music | 10-15 seconds from 'The Glamorous Life'. Use the opening/chorus.
+2026-02-17/audio-007.mp3 | 0a4e4d7f-4db5-4b3a-8e76-2c7d5f7fd3e8 | Sweeney Todd | 10-15 seconds from 'Epiphany'. Use a dramatic, recognisable section.
+2026-02-17/audio-008.mp3 | 0e18b7a7-9f15-4c86-a6cf-2fe2b4d4b093 | Sweeney Todd | 10-15 seconds from 'A Little Priest'. Use a comic back-and-forth line.
+2026-02-17/audio-009.mp3 | 0a6b5a6b-f8ad-4dba-a11a-4c0f60d4b4a1 | Pacific Overtures | 10-15 seconds from 'There Is No Other Way'. Use the chorus.
+2026-02-17/audio-010.mp3 | 1b0f77d4-4f89-4b2d-9f0c-01b4d81d4d89 | Company | 10-15 seconds from 'You Could Drive a Person Crazy'. Use the main hook.
+2026-02-17/audio-011.mp3 | 6a9f3f5e-10b2-47b5-a4f0-7f0d51c4c9c2 | Anyone Can Whistle | 10-15 seconds from 'Everybody Says Don't'. Use a clear chorus line.
+2026-02-17/audio-012.mp3 | 8ac7a2b5-5d79-4a0f-a2b3-bb7c7a1a5a0b | Assassins | 10-15 seconds from 'The Ballad of Czolgosz'. Use a recognisable vocal phrase.
+2026-02-17/audio-013.mp3 | 8a6e3c7d-67c1-45a0-a5f0-2d9f2c8d0aaf | Evening Primrose | 10-15 seconds from 'Take Me to the World'. Use the chorus.
+2026-02-17/audio-014.mp3 | 8a2b9d3f-4f7c-4a0a-8f5e-0a2c7b5d3a1e | A Little Night Music | 10-15 seconds from 'Later'. Use a clear verse/chorus phrase (different from audio-006).
+2026-02-17/audio-015.mp3 | 3f3b3d5b-2f7c-4c8d-8b11-7c6a4a809cb9 | Sunday in the Park with George | 10-15 seconds from 'Colour and Light'. Use the 'colour and light' refrain.
+2026-02-17/audio-016.mp3 | 2b7f47e7-2b17-3c22-9de6-4a4d9bcb0b0f | Merrily We Roll Along | 10-15 seconds from 'Good Thing Going'. Use the chorus.
+2026-02-17/audio-017.mp3 | 59f1aa9f-0a72-5c30-e2c0-47de9f101e5a | Merrily We Roll Along | 10-15 seconds from 'Franklin Shepard, Inc.' Use the main hook.
+2026-02-17/audio-018.mp3 | 4c5e1f0d-3a2c-0c3b-7f0b-4d9a8e1c8b7a | Passion | 10-15 seconds from 'No One Has Ever Loved Me' (or another clear Passion solo).
+2026-02-17/audio-019.mp3 | 9b6a6c0a-0a3d-5c9a-12e9-76c9ff24cb5a | Pacific Overtures | 10-15 seconds from 'Someone in a Tree'. Use the opening verse or a clear refrain.
+2026-02-17/audio-020.mp3 | 9f15c86a-6cf2-fe2b-4d4b-0930e18b7a79 | Gypsy | 10-15 seconds from 'Everything's Coming Up Roses' (any recording). Use a recognisable chorus phrase.
+
+## Pictures (10)
+path | question_id | show | image you need
+2026-02-17/pic-001.png | 4e89-4b2d-9f0c-01b4d81d4d89-1b0f77d4 | Assassins | Official poster/logo for Assassins. Keep the title readable.
+2026-02-17/pic-002.png | 10b2-47b5-a4f0-7f0d51c4c9c2-6a9f3f5e | Sunday in the Park with George | Official poster/logo or Playbill cover for Sunday in the Park with George.
+2026-02-17/pic-003.png | 5d79-4a0f-a2b3-bb7c7a1a5a0b-8ac7a2b5 | Into the Woods | A clear production photo showing a recognisable Into the Woods set or costumes (avoid an image with the title printed on it).
+2026-02-17/pic-004.png | 67c1-45a0-a5f0-2d9f2c8d0aaf-8a6e3c7d | Company | Official Company poster/logo (any production). Keep title readable if included.
+2026-02-17/pic-005.png | 4f7c-4a0a-8f5e-0a2c7b5d3a1e-8a2b9d3f | Sweeney Todd | A clear image of the Sweeney Todd barber shop/pie shop set, or an official poster.
+2026-02-17/pic-006.png | 2f7c-4c8d-8b11-7c6a4a809cb9-3f3b3d5b | Sweeney Todd | Photo of Angela Lansbury as Mrs Lovett (original Broadway production). Crop to keep her face clear.
+2026-02-17/pic-007.png | 3c22-9de6-4a4d-9bcb-0b0f2d7f47e7-2b7f47e7 | Pacific Overtures | Official Pacific Overtures poster/logo. Keep title readable.
+2026-02-17/pic-008.png | 25b8-4fd4-934b-1edbfa3a0a2b-29b1f44a | Into the Woods | Photo of Bernadette Peters as the Witch (original Broadway production). Crop to keep her face clear.
+2026-02-17/pic-009.png | f258-46f9-9eb6-4c91b04f3c6d-7d2dd291 | Follies | Official Follies poster/logo (any major production). Keep title readable.
+2026-02-17/pic-010.png | 04fc-4f5f-b0f1-772bd5dd585f-1d73d6fa | Sunday in the Park with George | Photo of Mandy Patinkin in Sunday in the Park with George (original Broadway). Crop to keep his face clear.

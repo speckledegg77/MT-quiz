@@ -6,11 +6,11 @@ import { QRCodeSVG } from "qrcode.react";
 
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card";
+import JoinedTeamsPanel from "@/components/JoinedTeamsPanel";
 
 type RoomState = any;
 
 function TrophyIcon() {
-  // Simple, single-stroke trophy icon (no layered fills), so it cannot “misalign”.
   return (
     <svg
       viewBox="0 0 24 24"
@@ -163,6 +163,9 @@ export default function DisplayPage() {
   const questionNumber = Number(state.questionIndex ?? 0) + 1;
   const questionCount = Number(state.questionCount ?? 0);
 
+  const roomId =
+    state?.roomId ?? state?.room_id ?? state?.room?.id ?? state?.room?.room_id ?? null;
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-6">
       <audio ref={audioRef} />
@@ -278,25 +281,29 @@ export default function DisplayPage() {
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2 grid gap-4">
             {showJoin ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Waiting to start</CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-3 lg:grid-cols-2">
-                  <div className="space-y-2">
-                    <div className="text-sm text-[var(--muted-foreground)]">Players join at</div>
-                    <a className="break-all text-sm underline" href={joinUrl}>
-                      {joinUrl}
-                    </a>
-                    <div className="text-sm text-[var(--muted-foreground)]">
-                      The host starts the game from Host.
+              <>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Waiting to start</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid gap-3 lg:grid-cols-2">
+                    <div className="space-y-2">
+                      <div className="text-sm text-[var(--muted-foreground)]">Players join at</div>
+                      <a className="break-all text-sm underline" href={joinUrl}>
+                        {joinUrl}
+                      </a>
+                      <div className="text-sm text-[var(--muted-foreground)]">
+                        The host starts the game from Host.
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-center py-2">
-                    {joinUrl ? <QRCodeSVG value={joinUrl} size={220} /> : null}
-                  </div>
-                </CardContent>
-              </Card>
+                    <div className="flex items-center justify-center py-2">
+                      {joinUrl ? <QRCodeSVG value={joinUrl} size={220} /> : null}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {roomId ? <JoinedTeamsPanel roomId={roomId} /> : null}
+              </>
             ) : null}
 
             {q ? (

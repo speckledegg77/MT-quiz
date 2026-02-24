@@ -1,0 +1,2 @@
+pack_id,pack_name,pack_round_type,pack_sort_order,question_id,question_round_type,answer_type,question_text,option_a,option_b,option_c,option_d,answer_index,answer_text,accepted_answers,explanation,audio_path,image_path
+typed,04 Typed Answers,general,40,typed-001,general,text,Name the musical with the song Defying Gravity,,,,,,Wicked,wicked|wicked the musical,,

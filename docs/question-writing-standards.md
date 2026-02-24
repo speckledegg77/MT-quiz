@@ -197,3 +197,23 @@ Question ids are unique.
 
 Each row includes the required pack and question fields for import.
 
+
+
+Audio questions must start with AUDIO:
+
+
+
+Picture questions must start with PICTURE:
+
+
+
+Do not include show names in brackets in the question text
+
+
+
+Do not include numbering like AUDIO 01: or PICTURE 02:
+
+
+
+Do not include (clip: ...) in the question text
+
