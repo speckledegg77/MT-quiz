@@ -52,10 +52,8 @@ export default function HostPage() {
 
   const [totalQuestions, setTotalQuestions] = useState<number>(20);
 
-  // Per-pack counts. We allow blank while typing, then clamp on blur.
   const [perPackCounts, setPerPackCounts] = useState<Record<string, string>>({});
 
-  // Timing fields (keep these simple and safe defaults)
   const [countdownSeconds, setCountdownSeconds] = useState<number>(5);
   const [answerSeconds, setAnswerSeconds] = useState<number>(20);
 
@@ -101,7 +99,6 @@ export default function HostPage() {
     };
   }, [supabase]);
 
-  // Default selection: all packs selected (but only used if choosePacks is off)
   useEffect(() => {
     if (packs.length === 0) return;
 
@@ -127,8 +124,6 @@ export default function HostPage() {
   }
 
   function buildRoundsPayload(selectedIds: string[]) {
-    // Only used for per_pack strategy
-    // Return array: [{ packId, count }]
     const rounds = selectedIds.map((packId) => {
       const raw = perPackCounts[packId] ?? "";
       const asNum = raw.trim() === "" ? 0 : Number(raw);
@@ -193,7 +188,6 @@ export default function HostPage() {
   }
 
   function onPerPackChange(packId: string, value: string) {
-    // Allow blank and digits while typing
     if (value === "") {
       setPerPackCounts((prev) => ({ ...prev, [packId]: "" }));
       return;
@@ -313,13 +307,13 @@ export default function HostPage() {
                     <div className="text-sm font-medium">Selection strategy</div>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <Button
-                        variant={selectionStrategy === "all_packs" ? "default" : "secondary"}
+                        variant={selectionStrategy === "all_packs" ? undefined : "secondary"}
                         onClick={() => setSelectionStrategy("all_packs")}
                       >
                         Total count
                       </Button>
                       <Button
-                        variant={selectionStrategy === "per_pack" ? "default" : "secondary"}
+                        variant={selectionStrategy === "per_pack" ? undefined : "secondary"}
                         onClick={() => setSelectionStrategy("per_pack")}
                       >
                         Per pack
@@ -429,7 +423,7 @@ export default function HostPage() {
                     </div>
 
                     <Button
-                      variant={choosePacks ? "default" : "secondary"}
+                      variant={choosePacks ? undefined : "secondary"}
                       onClick={() => setChoosePacks((v) => !v)}
                     >
                       {choosePacks ? "Choosing packs" : "Using all packs"}
