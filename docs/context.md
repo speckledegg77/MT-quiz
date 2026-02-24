@@ -230,3 +230,6 @@ Home page:
 - Added bulk media upload to admin import page
 - Fixed audio path rule so storage lookups work
 - Rebuilt display and player pages with reveal and game completed screens
+
+## Standing rule: CSV safety for question packs
+All generated question pack CSVs must use the fixed column order and must quote question_text, explanation, answer_text, accepted_answers, and all mcq options. accepted_answers must be a quoted JSON array string. Do not insert any extra blank columns.
