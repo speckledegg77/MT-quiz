@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 type PlayerRow = {
   id: string;
@@ -41,17 +41,6 @@ function dedupeByName(players: PlayerRow[]) {
 }
 
 export default function JoinedTeamsPanel({ roomId }: { roomId: string }) {
-  const supabase = useMemo(() => {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!url || !key) {
-      throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY");
-    }
-
-    return createClient(url, key);
-  }, []);
-
   const [players, setPlayers] = useState<PlayerRow[]>([]);
   const [recentJoins, setRecentJoins] = useState<JoinEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -111,18 +100,14 @@ export default function JoinedTeamsPanel({ roomId }: { roomId: string }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [roomId, supabase]);
+  }, [roomId]);
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-            Teams joining
-          </div>
-          <div className="text-sm text-zinc-600 dark:text-zinc-400">
-            Live join feed for this room
-          </div>
+          <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Teams joining</div>
+          <div className="text-sm text-zinc-600 dark:text-zinc-400">Live join feed for this room</div>
         </div>
 
         <button
@@ -152,9 +137,7 @@ export default function JoinedTeamsPanel({ roomId }: { roomId: string }) {
             <ul className="mt-2 space-y-2">
               {players.map((p) => (
                 <li key={p.id} className="flex items-center justify-between gap-3">
-                  <div className="truncate text-sm text-zinc-900 dark:text-zinc-100">
-                    {p.name}
-                  </div>
+                  <div className="truncate text-sm text-zinc-900 dark:text-zinc-100">{p.name}</div>
                   <div className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
                     {formatTime(p.created_at)}
                   </div>
@@ -175,9 +158,7 @@ export default function JoinedTeamsPanel({ roomId }: { roomId: string }) {
             <ul className="mt-2 space-y-2">
               {recentJoins.map((j) => (
                 <li key={j.id} className="flex items-center justify-between gap-3">
-                  <div className="truncate text-sm text-zinc-900 dark:text-zinc-100">
-                    {j.name}
-                  </div>
+                  <div className="truncate text-sm text-zinc-900 dark:text-zinc-100">{j.name}</div>
                   <div className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
                     {formatTime(j.createdAt)}
                   </div>

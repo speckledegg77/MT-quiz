@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import EnsureAnonAuth from "@/components/EnsureAnonAuth";
 import ThemeToggle from "@/components/ThemeToggle";
 import "./globals.css";
 
@@ -28,6 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <EnsureAnonAuth />
         <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
           <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--card)]">
             <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
