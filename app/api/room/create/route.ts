@@ -72,16 +72,23 @@ export async function POST(req: Request) {
   // - old host sends questionCount
   // - new host sends totalQuestions
   const totalQuestionsRaw =
-    body.totalQuestions != null ? Number(body.totalQuestions) : body.questionCount != null ? Number(body.questionCount) : roundsTotal;
+    body.totalQuestions != null
+      ? Number(body.totalQuestions)
+      : body.questionCount != null
+        ? Number(body.questionCount)
+        : roundsTotal;
 
-  const totalQuestions = Number.isFinite(totalQuestionsRaw) && totalQuestionsRaw > 0 ? Math.floor(totalQuestionsRaw) : 20;
+  const totalQuestions =
+    Number.isFinite(totalQuestionsRaw) && totalQuestionsRaw > 0 ? Math.floor(totalQuestionsRaw) : 20;
 
   const strategyFromBody = normaliseStrategy(body.selectionStrategy);
   const inferredStrategy: SelectionStrategy = rounds.length > 0 ? "per_pack" : "all_packs";
   const strategy: SelectionStrategy = strategyFromBody ?? inferredStrategy;
 
   const packIdsFromRounds = Array.from(new Set(rounds.map((r) => r.packId)));
-  const packIds = Array.from(new Set([...(selectedPacks.length ? selectedPacks : []), ...packIdsFromRounds])).filter(Boolean);
+  const packIds = Array.from(
+    new Set([...(selectedPacks.length ? selectedPacks : []), ...packIdsFromRounds])
+  ).filter(Boolean);
 
   if (packIds.length === 0) {
     return NextResponse.json({ error: "Pick at least one pack" }, { status: 400 });
@@ -90,7 +97,10 @@ export async function POST(req: Request) {
   // Build the selector input list
   let selectionPacks: PackSelectionInput[] = [];
   if (strategy === "per_pack" && rounds.length > 0) {
-    selectionPacks = rounds.map((r) => ({ pack_id: r.packId, count: Math.max(1, Math.floor(Number(r.count))) }));
+    selectionPacks = rounds.map((r) => ({
+      pack_id: r.packId,
+      count: Math.max(1, Math.floor(Number(r.count))),
+    }));
   } else {
     selectionPacks = packIds.map((id) => ({ pack_id: id }));
   }
@@ -143,7 +153,11 @@ export async function POST(req: Request) {
 
   if (pickedIds.length === 0) {
     return NextResponse.json(
-      { error: packIds.length ? `No questions found for packs: ${packIds.join(", ")}` : "No questions found" },
+      {
+        error: packIds.length
+          ? `No questions found for packs: ${packIds.join(", ")}`
+          : "No questions found",
+      },
       { status: 400 }
     );
   }
@@ -164,6 +178,12 @@ export async function POST(req: Request) {
         reveal_seconds: revealSeconds,
         audio_mode: audioMode,
         selected_packs: packIds,
+
+        // Needed for Reset to regenerate the same way
+        selection_strategy: strategy,
+        round_filter: roundFilter,
+        total_questions: totalQuestions,
+        rounds: strategy === "per_pack" ? selectionPacks : null,
       })
       .select("code")
       .single();

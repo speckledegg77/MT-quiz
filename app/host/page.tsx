@@ -19,7 +19,13 @@ type PackRow = {
 };
 
 type SelectionStrategy = "all_packs" | "per_pack";
-type RoundFilter = "mixed" | "no_audio" | "no_image" | "audio_only" | "picture_only" | "audio_and_image";
+type RoundFilter =
+  | "mixed"
+  | "no_audio"
+  | "no_image"
+  | "audio_only"
+  | "picture_only"
+  | "audio_and_image";
 type AudioMode = "display" | "phones" | "both";
 
 function clampInt(n: number, min: number, max: number) {
@@ -61,6 +67,10 @@ export default function HostPage() {
   const [createError, setCreateError] = useState<string | null>(null);
 
   const [roomCode, setRoomCode] = useState<string | null>(null);
+
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetOk, setResetOk] = useState<string | null>(null);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const joinUrl = roomCode && origin ? `${origin}/join?code=${roomCode}` : "";
@@ -137,6 +147,8 @@ export default function HostPage() {
   async function createRoom() {
     setCreating(true);
     setCreateError(null);
+    setResetError(null);
+    setResetOk(null);
 
     try {
       const selectedIds = getSelectedPackIds();
@@ -187,6 +199,35 @@ export default function HostPage() {
     }
   }
 
+  async function resetRoom() {
+    if (!roomCode) return;
+
+    setResetting(true);
+    setResetError(null);
+    setResetOk(null);
+
+    try {
+      const res = await fetch("/api/room/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: roomCode }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setResetError(data?.error ?? "Reset failed.");
+        return;
+      }
+
+      setResetOk("Room reset. Teams kept, scores set to 0, new questions picked, and joining is open again.");
+    } catch (e: any) {
+      setResetError(e?.message ?? "Reset failed.");
+    } finally {
+      setResetting(false);
+    }
+  }
+
   function onPerPackChange(packId: string, value: string) {
     if (value === "") {
       setPerPackCounts((prev) => ({ ...prev, [packId]: "" }));
@@ -226,6 +267,18 @@ export default function HostPage() {
               </CardHeader>
 
               <CardContent className="space-y-3">
+                {resetError ? (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+                    {resetError}
+                  </div>
+                ) : null}
+
+                {resetOk ? (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
+                    {resetOk}
+                  </div>
+                ) : null}
+
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4">
                   <div className="text-sm text-[var(--muted-foreground)]">Room code</div>
                   <div className="text-3xl font-semibold tracking-wide">{roomCode}</div>
@@ -257,12 +310,25 @@ export default function HostPage() {
                       </Link>
 
                       <Button
+                        variant="danger"
+                        className="w-full"
+                        onClick={resetRoom}
+                        disabled={resetting}
+                      >
+                        {resetting ? "Resetting…" : "Reset room (keep code)"}
+                      </Button>
+
+                      <Button
                         variant="secondary"
                         className="w-full"
                         onClick={() => setRoomCode(null)}
                       >
                         Create another room
                       </Button>
+                    </div>
+
+                    <div className="mt-2 text-xs text-[var(--muted-foreground)]">
+                      Reset keeps teams, sets scores to 0, regenerates questions using the same packs and filters, and re-opens joining.
                     </div>
                   </div>
                 </div>
@@ -283,7 +349,7 @@ export default function HostPage() {
             <CardContent className="space-y-2 text-sm text-[var(--muted-foreground)]">
               <div>Open the TV display on a big screen.</div>
               <div>Share the join link or show the QR code.</div>
-              <div>Wait for teams to join, then start the game.</div>
+              <div>If you started too early, use Reset to reopen joining.</div>
             </CardContent>
           </Card>
         </div>
