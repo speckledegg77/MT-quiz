@@ -5,7 +5,7 @@ Repo URL: https://github.com/speckledegg77/MT-quiz
 Branch workflow: work directly on `main` and push to GitHub. Vercel auto-deploys from `main`.
 
 Context last updated: 2026-02-25  
-Repo commit: 91855bcbbf9a118d07747fa43f4656478b2702d6  
+Repo commit: fde1d8a  
 How to get it:
 - In PowerShell in the repo folder: `git rev-parse --short HEAD`
 
