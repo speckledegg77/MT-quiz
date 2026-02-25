@@ -4,8 +4,8 @@ Live URL: https://mt-quiz.vercel.app
 Repo URL: https://github.com/speckledegg77/MT-quiz  
 Branch workflow: work directly on `main` and push to GitHub. Vercel auto-deploys from `main`.
 
-Context last updated: 2026-02-22  
-Repo commit: 91855bcbbf9a118d07747fa43f4656478b2702d6
+Context last updated: 2026-02-24  
+Repo commit: 91855bcbbf9a118d07747fa43f4656478b2702d6  
 How to get it:
 - In PowerShell in the repo folder: `git rev-parse --short HEAD`
 
@@ -23,6 +23,23 @@ Done means:
 Notes (optional):
 - Any error messages (paste full output)
 - Any URLs you tested
+
+---
+
+## Ways of working for code changes
+
+When you ask for a code change or a fix, the assistant must do this every time:
+
+- Provide full replacement code for every file that changes, ready to copy and paste.
+- Include any new files as full contents too.
+- Do not ask you to search for sections or edit small parts.
+- Always list the exact file paths that need creating or replacing.
+- Always give one build command to run locally, normally `npm run build`.
+- Always give the three git lines to commit and push.
+
+When a build or deploy fails, you paste the full error output and the assistant replies with full replacement file(s) that fix the error, plus the three git lines to push the fix.
+
+After you push changes, update the “Repo commit” line at the top of this file.
 
 ---
 
@@ -230,6 +247,7 @@ Home page:
 - Added bulk media upload to admin import page
 - Fixed audio path rule so storage lookups work
 - Rebuilt display and player pages with reveal and game completed screens
+- Agreed ways of working: full file replacements and three git lines for push workflow
 
 ## Standing rule: CSV safety for question packs
 All generated question pack CSVs must use the fixed column order and must quote question_text, explanation, answer_text, accepted_answers, and all mcq options. accepted_answers must be a quoted JSON array string. Do not insert any extra blank columns.
