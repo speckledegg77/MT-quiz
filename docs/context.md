@@ -4,7 +4,7 @@ Live URL: https://mt-quiz.vercel.app
 Repo URL: https://github.com/speckledegg77/MT-quiz  
 Branch workflow: work directly on `main` and push to GitHub. Vercel auto-deploys from `main`.
 
-Context last updated: 2026-02-24  
+Context last updated: 2026-02-25  
 Repo commit: 91855bcbbf9a118d07747fa43f4656478b2702d6  
 How to get it:
 - In PowerShell in the repo folder: `git rev-parse --short HEAD`
@@ -20,26 +20,68 @@ Context file: docs/context.md (uploaded in Project)
 Issue:
 Done means:
 
-Notes (optional):
-- Any error messages (paste full output)
-- Any URLs you tested
+What I tried:
+- Exact steps I took
+
+Errors:
+- Paste full error output (terminal or Vercel)
 
 ---
 
 ## Ways of working for code changes
 
-When you ask for a code change or a fix, the assistant must do this every time:
-
+Non-negotiables:
 - Provide full replacement code for every file that changes, ready to copy and paste.
 - Include any new files as full contents too.
-- Do not ask you to search for sections or edit small parts.
+- Do not ask me to find sections or edit small parts.
 - Always list the exact file paths that need creating or replacing.
-- Always give one build command to run locally, normally `npm run build`.
-- Always give the three git lines to commit and push.
 
-When a build or deploy fails, you paste the full error output and the assistant replies with full replacement file(s) that fix the error, plus the three git lines to push the fix.
+If you do not have the latest version of a file:
+- Ask me to paste the full file.
+- Then return a full replacement file.
 
-After you push changes, update the “Repo commit” line at the top of this file.
+Build and push flow:
+- Use `npm run build` as the default local check before a commit.
+- Give the three git lines to commit and push.
+- If we keep iterating on the same step, you can hold the three git lines until the end of that step.
+
+Three git lines:
+- `git add -A`
+- `git commit -m "MESSAGE"`
+- `git push`
+
+Tooling constraint:
+- Do not give commands that depend on `rg` or `grep`. Use VS Code search instructions instead.
+
+---
+
+## UI component rule: Button variants
+
+Valid variants from `components/ui/Button.tsx`:
+- `primary`
+- `secondary`
+- `ghost`
+- `danger`
+
+Do not use `variant="default"`.
+
+If you want the normal primary button, omit `variant` or pass `variant="primary"`.
+
+---
+
+## Host packs: client-side Supabase vs API route
+
+Client-side (current approach):
+- `app/host/page.tsx` reads `packs` directly using `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+- Pros: simple, fewer files, fast to change.
+- Cons: it relies on RLS allowing reads of `packs` for anon users.
+
+API route approach:
+- Host page calls an internal endpoint like `/api/packs`.
+- Pros: keeps all DB logic server-side and gives you one place to change pack rules.
+- Cons: more code and you still need to secure the endpoint properly.
+
+We keep the client-side approach for now unless it causes access problems.
 
 ---
 
@@ -61,10 +103,10 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 ## Main pages
 
 - `/` home
-- `/host` create a room, choose packs (optional), choose question selection and filters, then start game
+- `/host` create a room, choose packs, choose question selection and filters
 - `/join?code=XXXX` join a room, enter a team name
-- `/play/[code]` player phone screen (answers, audio support on phone, reveal and game finished screen)
-- `/display/[code]` TV screen (question, scoreboard, reveal, game finished screen)
+- `/play/[code]` player phone screen
+- `/display/[code]` TV screen
 - `/admin/import` admin tool (CSV import plus bulk media upload)
 
 ---
@@ -83,7 +125,7 @@ Shared UI components:
 - `components/ui/Card.tsx`
 - `components/ui/Input.tsx`
 
-These should be used instead of inline styles.
+Use these instead of custom button markup.
 
 ---
 
@@ -97,12 +139,14 @@ Question bank:
 Game state:
 - `rooms` (stores `code`, `phase`, `question_ids`, timings, `audio_mode`, `selected_packs`)
 - `players` (stores `room_id`, `name`, `score`)
+- `answers` (one answer per player per question)
+- `round_results` (winner per question)
 
 Storage buckets:
 - `audio`
 - `images`
 
-Media path rule (important):
+Media path rule:
 Store bucket-relative paths only in the DB, for example:
 - `2026-02-17/audio-008.mp3`
 - `2026-02-17/image-003.png`
@@ -115,17 +159,12 @@ Do not store:
 DB schema snapshot:
 - docs/db_schema_export_2026-02-22.json
 
-Tables confirmed in schema:
-- packs, questions, pack_questions
-- rooms, players
-- answers (one answer per player per question)
-- round_results (winner per question)
 ---
 
 ## Admin import and bulk media upload
 
 Admin page:
-- `/admin/import` (combined CSV import and bulk media upload)
+- `/admin/import`
 
 Admin protection:
 - Admin endpoints require header `x-admin-token`
@@ -135,7 +174,6 @@ Environment variables:
 - `ADMIN_TOKEN`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- Server-side Supabase admin uses service role key in your existing setup (wherever `supabaseAdmin` is defined)
 
 CSV import API:
 - `/api/admin/import-questions`
@@ -151,8 +189,6 @@ Bulk media upload API:
 Media routes redirect to signed Supabase download URLs:
 - `/api/audio?path=...`
 - `/api/image?path=...`
-
-This avoids proxying file bytes through Vercel.
 
 ---
 
@@ -173,31 +209,23 @@ Round filters supported:
 - `picture_only`
 - `audio_and_image` (audio + picture only)
 
-Room creation:
-- `app/api/room/create/route.ts` fetches questions for the chosen packs and uses `buildQuestionIdList(...)`
-
 ---
 
-## Host page behaviour
+## Join feed: show teams joining
 
-File:
-- `app/host/page.tsx`
+Goal:
+- Show a live list of teams that have joined a room on the TV display and on the Host page.
+- Show unique team names only.
 
-Key behaviour:
-- Pack selection toggle: use all packs by default, or choose packs
-- Packs table shown on the right when “Choose packs” is enabled
-- Pack rows are single-line with truncation
-- Per-pack count input is a small numeric text field (no spinner buttons)
-- Per-pack count input allows blank while typing, then clamps on blur
-- Host can filter question types (no audio, no image, audio only, picture only, audio+image)
+Files:
+- `components/JoinedTeamsPanel.tsx` (dedupes by team name)
+- `components/HostJoinedTeamsPanel.tsx`
+- `app/display/[code]/page.tsx` renders join panel in lobby view
+- `app/host/page.tsx` renders join panel after room creation
 
-Host sends to `/api/room/create`:
-- `selectionStrategy`
-- `roundFilter`
-- `totalQuestions`
-- `selectedPacks`
-- `rounds` (per-pack counts when using per_pack)
-- timing fields and `audioMode`
+Supabase requirement:
+- `players` table needs `created_at timestamptz not null default now()`
+- Supabase Realtime must be enabled for the `public.players` table
 
 ---
 
@@ -217,37 +245,10 @@ Stages (during running):
 
 ---
 
-## Display and player experience
+## Known gotchas
 
-TV display:
-- `app/display/[code]/page.tsx`
-- Shows scoreboard during play and a Game Completed screen
-- Uses a clean trophy SVG icon (single-stroke) to avoid rendering issues
-
-Phone player:
-- `app/play/[code]/page.tsx`
-- Shows reveal (correct answer and explanation)
-- Shows Game Completed screen with final scoreboard
-- Supports audio on phone when audio mode is phones or both, with an enable step
-
-Join page:
-- `app/join/page.tsx` styled to match the app
-
-Home page:
-- `app/page.tsx` styled to match the app and works in dark mode
+- Do not use `variant="default"` on Button.
+- Do not use `rg` or `grep` in instructions.
+- Run `npm run build` before committing when we touch UI components or TypeScript types.
 
 ---
-
-## Recent changes (add to this list each time)
-
-- Added class-based theme toggle and consistent header navigation
-- Rebuilt Host page layout and packs table for better usability
-- Added pack selection toggle (use all packs or choose packs)
-- Added question type filters: no image and audio+image only
-- Added bulk media upload to admin import page
-- Fixed audio path rule so storage lookups work
-- Rebuilt display and player pages with reveal and game completed screens
-- Agreed ways of working: full file replacements and three git lines for push workflow
-
-## Standing rule: CSV safety for question packs
-All generated question pack CSVs must use the fixed column order and must quote question_text, explanation, answer_text, accepted_answers, and all mcq options. accepted_answers must be a quoted JSON array string. Do not insert any extra blank columns.

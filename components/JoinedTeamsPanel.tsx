@@ -21,6 +21,25 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function normaliseName(name: string) {
+  return String(name ?? "").trim().toLowerCase();
+}
+
+function dedupeByName(players: PlayerRow[]) {
+  const seen = new Set<string>();
+  const out: PlayerRow[] = [];
+
+  for (const p of players) {
+    const key = normaliseName(p.name);
+    if (!key) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(p);
+  }
+
+  return out;
+}
+
 export default function JoinedTeamsPanel({ roomId }: { roomId: string }) {
   const supabase = useMemo(() => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -51,7 +70,8 @@ export default function JoinedTeamsPanel({ roomId }: { roomId: string }) {
       return;
     }
 
-    setPlayers((data ?? []) as PlayerRow[]);
+    const rows = (data ?? []) as PlayerRow[];
+    setPlayers(dedupeByName(rows));
   }
 
   useEffect(() => {
@@ -67,10 +87,16 @@ export default function JoinedTeamsPanel({ roomId }: { roomId: string }) {
         { event: "INSERT", schema: "public", table: "players", filter: `room_id=eq.${roomId}` },
         (payload) => {
           const row = payload.new as PlayerRow;
+          const key = normaliseName(row.name);
+          if (!key) return;
 
-          setPlayers((prev) => [...prev, row]);
+          setPlayers((prev) => {
+            if (prev.some((p) => normaliseName(p.name) === key)) return prev;
+            return [...prev, row];
+          });
 
           setRecentJoins((prev) => {
+            if (prev.some((j) => normaliseName(j.name) === key)) return prev;
             const next = [{ id: row.id, name: row.name, createdAt: row.created_at }, ...prev];
             return next.slice(0, 6);
           });
