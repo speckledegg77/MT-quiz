@@ -13,6 +13,16 @@ export default function EnsureAnonAuth() {
 
       if (!data.session) {
         await supabase.auth.signInAnonymously();
+        const next = await supabase.auth.getSession();
+        const token = next.data.session?.access_token;
+        if (token) {
+          supabase.realtime.setAuth(token);
+        }
+      } else {
+        const token = data.session.access_token;
+        if (token) {
+          supabase.realtime.setAuth(token);
+        }
       }
     }
 

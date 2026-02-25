@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -27,6 +27,8 @@ type RoundFilter =
   | "picture_only"
   | "audio_and_image";
 type AudioMode = "display" | "phones" | "both";
+
+type RoomState = any;
 
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min;
@@ -62,6 +64,12 @@ export default function HostPage() {
   const [createError, setCreateError] = useState<string | null>(null);
 
   const [roomCode, setRoomCode] = useState<string | null>(null);
+  const [roomPhase, setRoomPhase] = useState<string>("lobby");
+  const [roomStage, setRoomStage] = useState<string>("lobby");
+
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+  const [startOk, setStartOk] = useState<string | null>(null);
 
   const [resetting, setResetting] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
@@ -112,12 +120,49 @@ export default function HostPage() {
 
     setSelectedPacks((prev) => {
       if (Object.keys(prev).length > 0) return prev;
-
       const next: Record<string, boolean> = {};
       for (const p of packs) next[p.id] = true;
       return next;
     });
+
+    setPerPackCounts((prev) => {
+      const next = { ...prev };
+      for (const p of packs) {
+        if (next[p.id] === undefined) next[p.id] = "";
+      }
+      return next;
+    });
   }, [packs]);
+
+  useEffect(() => {
+    if (!roomCode) return;
+
+    let cancelled = false;
+
+    async function tick() {
+      try {
+        const res = await fetch(`/api/room/state?code=${roomCode}`, { cache: "no-store" });
+        const data: RoomState = await res.json();
+
+        if (cancelled) return;
+
+        if (res.ok) {
+          setRoomPhase(String(data?.phase ?? "lobby"));
+          setRoomStage(String(data?.stage ?? "lobby"));
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    tick();
+    const id = setInterval(tick, 1000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [roomCode]);
 
   function togglePack(packId: string) {
     setSelectedPacks((prev) => ({ ...prev, [packId]: !prev[packId] }));
@@ -141,6 +186,8 @@ export default function HostPage() {
   async function createRoom() {
     setCreating(true);
     setCreateError(null);
+    setStartError(null);
+    setStartOk(null);
     setResetError(null);
     setResetOk(null);
 
@@ -198,10 +245,43 @@ export default function HostPage() {
       }
 
       setRoomCode(code);
+      setRoomPhase("lobby");
+      setRoomStage("lobby");
     } catch (e: any) {
       setCreateError(e?.message ?? "Room creation failed.");
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function startGame() {
+    if (!roomCode) return;
+
+    setStarting(true);
+    setStartError(null);
+    setStartOk(null);
+
+    try {
+      const res = await fetch("/api/room/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: roomCode }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setStartError(data?.error ?? "Could not start game.");
+        return;
+      }
+
+      setRoomPhase("running");
+      setRoomStage("countdown");
+      setStartOk("Game started. Joining is now closed.");
+    } catch (e: any) {
+      setStartError(e?.message ?? "Could not start game.");
+    } finally {
+      setStarting(false);
     }
   }
 
@@ -211,6 +291,8 @@ export default function HostPage() {
     setResetting(true);
     setResetError(null);
     setResetOk(null);
+    setStartError(null);
+    setStartOk(null);
 
     try {
       const res = await fetch("/api/room/reset", {
@@ -226,6 +308,8 @@ export default function HostPage() {
         return;
       }
 
+      setRoomPhase("lobby");
+      setRoomStage("lobby");
       setResetOk("Room reset. Teams kept, scores set to 0, new questions picked, and joining is open again.");
     } catch (e: any) {
       setResetError(e?.message ?? "Reset failed.");
@@ -270,6 +354,18 @@ export default function HostPage() {
     setPerPackCounts((prev) => ({ ...prev, [packId]: String(clamped) }));
   }
 
+  const stagePill = useMemo(() => {
+    if (roomPhase === "running") {
+      if (roomStage === "countdown") return "Countdown";
+      if (roomStage === "open") return "Answering";
+      if (roomStage === "wait") return "Waiting";
+      if (roomStage === "reveal") return "Reveal";
+      return "Running";
+    }
+    if (roomPhase === "finished") return "Finished";
+    return "Lobby";
+  }, [roomPhase, roomStage]);
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-6">
       <div className="mb-4">
@@ -284,18 +380,35 @@ export default function HostPage() {
           <div className="lg:col-span-2 grid gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>Room created</CardTitle>
+                <div className="flex items-start justify-between gap-3">
+                  <CardTitle>Room created</CardTitle>
+                  <span className="rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-sm text-[var(--muted-foreground)]">
+                    {stagePill}
+                  </span>
+                </div>
               </CardHeader>
 
               <CardContent className="space-y-3">
+                {startError ? (
+                  <div className="rounded-lg border border-red-300 bg-red-600/10 px-3 py-2 text-sm text-red-600">
+                    {startError}
+                  </div>
+                ) : null}
+
+                {startOk ? (
+                  <div className="rounded-lg border border-emerald-300 bg-emerald-600/10 px-3 py-2 text-sm text-emerald-700">
+                    {startOk}
+                  </div>
+                ) : null}
+
                 {resetError ? (
-                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+                  <div className="rounded-lg border border-red-300 bg-red-600/10 px-3 py-2 text-sm text-red-600">
                     {resetError}
                   </div>
                 ) : null}
 
                 {resetOk ? (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
+                  <div className="rounded-lg border border-emerald-300 bg-emerald-600/10 px-3 py-2 text-sm text-emerald-700">
                     {resetOk}
                   </div>
                 ) : null}
@@ -319,8 +432,24 @@ export default function HostPage() {
 
                     <div className="mt-3 grid gap-2">
                       <Link href={displayUrl}>
-                        <Button className="w-full">Open TV display</Button>
+                        <Button variant="secondary" className="w-full">
+                          Open TV display
+                        </Button>
                       </Link>
+
+                      <Button
+                        className="w-full"
+                        onClick={startGame}
+                        disabled={starting || resetting || roomPhase !== "lobby"}
+                      >
+                        {roomPhase === "lobby"
+                          ? starting
+                            ? "Starting…"
+                            : "Start game"
+                          : roomPhase === "running"
+                          ? "Game running"
+                          : "Game finished"}
+                      </Button>
 
                       <Link href={playUrl}>
                         <Button variant="secondary" className="w-full">
@@ -332,13 +461,25 @@ export default function HostPage() {
                         {resetting ? "Resetting…" : "Reset room (keep code)"}
                       </Button>
 
-                      <Button variant="secondary" className="w-full" onClick={() => setRoomCode(null)}>
+                      <Button
+                        variant="secondary"
+                        className="w-full"
+                        onClick={() => {
+                          setRoomCode(null);
+                          setRoomPhase("lobby");
+                          setRoomStage("lobby");
+                          setStartError(null);
+                          setStartOk(null);
+                          setResetError(null);
+                          setResetOk(null);
+                        }}
+                      >
                         Create another room
                       </Button>
                     </div>
 
                     <div className="mt-2 text-xs text-[var(--muted-foreground)]">
-                      Reset keeps teams, sets scores to 0, picks new questions, and re-opens joining.
+                      Open TV display first, then press Start game.
                     </div>
                   </div>
                 </div>
@@ -359,6 +500,7 @@ export default function HostPage() {
             <CardContent className="space-y-2 text-sm text-[var(--muted-foreground)]">
               <div>Open the TV display on a big screen.</div>
               <div>Share the join link or show the QR code.</div>
+              <div>Press Start game when everyone has joined.</div>
               <div>If you started too early, press Reset.</div>
             </CardContent>
           </Card>
@@ -373,7 +515,7 @@ export default function HostPage() {
 
               <CardContent className="grid gap-4">
                 {createError ? (
-                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+                  <div className="rounded-lg border border-red-300 bg-red-600/10 px-3 py-2 text-sm text-red-600">
                     {createError}
                   </div>
                 ) : null}
@@ -383,13 +525,13 @@ export default function HostPage() {
                     <div className="text-sm font-medium">How to pick questions</div>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <Button
-                        variant={selectionStrategy === "all_packs" ? undefined : "secondary"}
+                        variant={selectionStrategy === "all_packs" ? "primary" : "secondary"}
                         onClick={() => setSelectionStrategy("all_packs")}
                       >
                         Total count
                       </Button>
                       <Button
-                        variant={selectionStrategy === "per_pack" ? undefined : "secondary"}
+                        variant={selectionStrategy === "per_pack" ? "primary" : "secondary"}
                         onClick={() => setSelectionStrategy("per_pack")}
                       >
                         Per pack
@@ -479,8 +621,8 @@ export default function HostPage() {
                         {mustShowPackPicker
                           ? "Per pack needs you to pick packs and set counts."
                           : selectPacks
-                            ? "Select the packs you want to use."
-                            : "Use all active packs by default."}
+                          ? "Select the packs you want to use."
+                          : "Use all active packs by default."}
                       </div>
                     </div>
 
@@ -490,10 +632,10 @@ export default function HostPage() {
                       </Button>
                     ) : (
                       <Button
-                        variant={selectPacks ? undefined : "secondary"}
+                        variant={selectPacks ? "primary" : "secondary"}
                         onClick={() => setSelectPacks((v) => !v)}
                       >
-                        {selectPacks ? "Selecting packs" : "Use all packs"}
+                        {selectPacks ? "Selecting packs" : "Select packs"}
                       </Button>
                     )}
                   </div>
@@ -513,7 +655,7 @@ export default function HostPage() {
 
             {packsError ? (
               <Card>
-                <CardContent className="py-6 text-sm text-red-700 dark:text-red-200">{packsError}</CardContent>
+                <CardContent className="py-6 text-sm text-red-600">{packsError}</CardContent>
               </Card>
             ) : null}
           </div>
@@ -612,6 +754,12 @@ export default function HostPage() {
           )}
         </div>
       )}
+
+      <div className="mt-6 text-sm text-[var(--muted-foreground)]">
+        <Link href="/" className="underline">
+          Back to home
+        </Link>
+      </div>
     </main>
   );
 }
