@@ -29,8 +29,15 @@ type RoundFilter =
 type AudioMode = "display" | "phones" | "both";
 
 function clampInt(n: number, min: number, max: number) {
-  if (Number.isNaN(n)) return min;
-  return Math.min(max, Math.max(min, n));
+  if (!Number.isFinite(n)) return min;
+  return Math.min(max, Math.max(min, Math.floor(n)));
+}
+
+function parseIntOr(value: string, fallback: number) {
+  const v = value.trim();
+  if (v === "") return fallback;
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.floor(n) : fallback;
 }
 
 export default function HostPage() {
@@ -49,19 +56,20 @@ export default function HostPage() {
   const [packsLoading, setPacksLoading] = useState(true);
   const [packsError, setPacksError] = useState<string | null>(null);
 
-  const [choosePacks, setChoosePacks] = useState(false);
+  const [selectPacks, setSelectPacks] = useState(false);
   const [selectedPacks, setSelectedPacks] = useState<Record<string, boolean>>({});
 
   const [selectionStrategy, setSelectionStrategy] = useState<SelectionStrategy>("all_packs");
   const [roundFilter, setRoundFilter] = useState<RoundFilter>("mixed");
   const [audioMode, setAudioMode] = useState<AudioMode>("display");
 
-  const [totalQuestions, setTotalQuestions] = useState<number>(20);
+  // String inputs so you can clear the field while typing
+  const [totalQuestionsStr, setTotalQuestionsStr] = useState<string>("20");
+  const [countdownSecondsStr, setCountdownSecondsStr] = useState<string>("5");
+  const [answerSecondsStr, setAnswerSecondsStr] = useState<string>("20");
 
+  // Per-pack counts (string so blank is allowed while typing)
   const [perPackCounts, setPerPackCounts] = useState<Record<string, string>>({});
-
-  const [countdownSeconds, setCountdownSeconds] = useState<number>(5);
-  const [answerSeconds, setAnswerSeconds] = useState<number>(20);
 
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -76,6 +84,9 @@ export default function HostPage() {
   const joinUrl = roomCode && origin ? `${origin}/join?code=${roomCode}` : "";
   const displayUrl = roomCode ? `/display/${roomCode}` : "";
   const playUrl = roomCode ? `/play/${roomCode}` : "";
+
+  const mustShowPackPicker = selectionStrategy === "per_pack";
+  const showPackPicker = selectPacks || mustShowPackPicker;
 
   useEffect(() => {
     let cancelled = false;
@@ -109,6 +120,7 @@ export default function HostPage() {
     };
   }, [supabase]);
 
+  // Default selection: all packs ticked the first time packs load
   useEffect(() => {
     if (packs.length === 0) return;
 
@@ -125,23 +137,19 @@ export default function HostPage() {
     setSelectedPacks((prev) => ({ ...prev, [packId]: !prev[packId] }));
   }
 
-  function getSelectedPackIds() {
-    if (!choosePacks) {
-      return packs.map((p) => p.id);
-    }
-
+  function getSelectedPackIds(): string[] {
+    if (!showPackPicker) return packs.map((p) => p.id);
     return packs.filter((p) => selectedPacks[p.id]).map((p) => p.id);
   }
 
   function buildRoundsPayload(selectedIds: string[]) {
-    const rounds = selectedIds.map((packId) => {
-      const raw = perPackCounts[packId] ?? "";
-      const asNum = raw.trim() === "" ? 0 : Number(raw);
-      const count = clampInt(Number.isFinite(asNum) ? asNum : 0, 0, 9999);
-      return { packId, count };
-    });
-
-    return rounds;
+    return selectedIds
+      .map((packId) => {
+        const raw = perPackCounts[packId] ?? "";
+        const count = clampInt(parseIntOr(raw, 0), 0, 9999);
+        return { packId, count };
+      })
+      .filter((r) => r.count > 0);
   }
 
   async function createRoom() {
@@ -159,14 +167,26 @@ export default function HostPage() {
         return;
       }
 
+      const totalQuestions = clampInt(parseIntOr(totalQuestionsStr, 20), 1, 200);
+      const countdownSeconds = clampInt(parseIntOr(countdownSecondsStr, 5), 0, 60);
+      const answerSeconds = clampInt(parseIntOr(answerSecondsStr, 20), 5, 120);
+
+      const rounds = selectionStrategy === "per_pack" ? buildRoundsPayload(selectedIds) : [];
+
+      if (selectionStrategy === "per_pack" && rounds.length === 0) {
+        setCreateError("Set a question count for at least one selected pack.");
+        setCreating(false);
+        return;
+      }
+
       const payload: any = {
         selectionStrategy,
         roundFilter,
-        totalQuestions: clampInt(totalQuestions, 1, 200),
+        totalQuestions,
         selectedPacks: selectedIds,
-        rounds: selectionStrategy === "per_pack" ? buildRoundsPayload(selectedIds) : [],
-        countdownSeconds: clampInt(countdownSeconds, 0, 60),
-        answerSeconds: clampInt(answerSeconds, 5, 120),
+        rounds,
+        countdownSeconds,
+        answerSeconds,
         audioMode,
       };
 
@@ -220,7 +240,9 @@ export default function HostPage() {
         return;
       }
 
-      setResetOk("Room reset. Teams kept, scores set to 0, new questions picked, and joining is open again.");
+      setResetOk(
+        "Room reset. Teams kept, scores set to 0, new questions picked, and joining is open again."
+      );
     } catch (e: any) {
       setResetError(e?.message ?? "Reset failed.");
     } finally {
@@ -228,24 +250,33 @@ export default function HostPage() {
     }
   }
 
+  function onDigitsChange(setter: (v: string) => void, value: string) {
+    if (value === "") {
+      setter("");
+      return;
+    }
+    if (!/^\d+$/.test(value)) return;
+    setter(value);
+  }
+
+  function onDigitsBlur(setter: (v: string) => void, value: string, fallback: number, min: number, max: number) {
+    const n = clampInt(parseIntOr(value, fallback), min, max);
+    setter(String(n));
+  }
+
   function onPerPackChange(packId: string, value: string) {
     if (value === "") {
       setPerPackCounts((prev) => ({ ...prev, [packId]: "" }));
       return;
     }
-
     if (!/^\d+$/.test(value)) return;
-
     setPerPackCounts((prev) => ({ ...prev, [packId]: value }));
   }
 
   function onPerPackBlur(packId: string) {
     const raw = perPackCounts[packId] ?? "";
     if (raw.trim() === "") return;
-
-    const asNum = Number(raw);
-    const clamped = clampInt(Number.isFinite(asNum) ? asNum : 0, 0, 9999);
-
+    const clamped = clampInt(parseIntOr(raw, 0), 0, 9999);
     setPerPackCounts((prev) => ({ ...prev, [packId]: String(clamped) }));
   }
 
@@ -254,7 +285,7 @@ export default function HostPage() {
       <div className="mb-4">
         <div className="text-2xl font-semibold">Host</div>
         <div className="text-sm text-[var(--muted-foreground)]">
-          Create a room, choose question settings, then open the display screen on your TV.
+          Create a room, then open the display screen on your TV.
         </div>
       </div>
 
@@ -287,16 +318,14 @@ export default function HostPage() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="rounded-xl border border-[var(--border)] p-4">
                     <div className="text-sm font-medium">Players join link</div>
-                    <div className="mt-1 text-sm text-[var(--muted-foreground)] break-all">
-                      {joinUrl}
-                    </div>
+                    <div className="mt-1 text-sm text-[var(--muted-foreground)] break-all">{joinUrl}</div>
                     <div className="mt-3 flex justify-center">
                       {joinUrl ? <QRCodeSVG value={joinUrl} size={200} /> : null}
                     </div>
                   </div>
 
                   <div className="rounded-xl border border-[var(--border)] p-4">
-                    <div className="text-sm font-medium">Open screens</div>
+                    <div className="text-sm font-medium">Controls</div>
 
                     <div className="mt-3 grid gap-2">
                       <Link href={displayUrl}>
@@ -318,17 +347,13 @@ export default function HostPage() {
                         {resetting ? "Resetting…" : "Reset room (keep code)"}
                       </Button>
 
-                      <Button
-                        variant="secondary"
-                        className="w-full"
-                        onClick={() => setRoomCode(null)}
-                      >
+                      <Button variant="secondary" className="w-full" onClick={() => setRoomCode(null)}>
                         Create another room
                       </Button>
                     </div>
 
                     <div className="mt-2 text-xs text-[var(--muted-foreground)]">
-                      Reset keeps teams, sets scores to 0, regenerates questions using the same packs and filters, and re-opens joining.
+                      Reset keeps teams, sets scores to 0, picks new questions, and re-opens joining.
                     </div>
                   </div>
                 </div>
@@ -349,7 +374,7 @@ export default function HostPage() {
             <CardContent className="space-y-2 text-sm text-[var(--muted-foreground)]">
               <div>Open the TV display on a big screen.</div>
               <div>Share the join link or show the QR code.</div>
-              <div>If you started too early, use Reset to reopen joining.</div>
+              <div>If you started too early, press Reset.</div>
             </CardContent>
           </Card>
         </div>
@@ -370,7 +395,7 @@ export default function HostPage() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <div className="text-sm font-medium">Selection strategy</div>
+                    <div className="text-sm font-medium">How to pick questions</div>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <Button
                         variant={selectionStrategy === "all_packs" ? undefined : "secondary"}
@@ -386,7 +411,7 @@ export default function HostPage() {
                       </Button>
                     </div>
                     <div className="mt-2 text-sm text-[var(--muted-foreground)]">
-                      Total count picks a total number of questions. Per pack lets you set a count per pack.
+                      Total count picks a total number of questions. Per pack lets you set counts for chosen packs.
                     </div>
                   </div>
 
@@ -416,18 +441,11 @@ export default function HostPage() {
                     <Input
                       className="mt-2"
                       inputMode="numeric"
-                      value={String(totalQuestions)}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        if (v === "") return;
-                        if (!/^\d+$/.test(v)) return;
-                        setTotalQuestions(Number(v));
-                      }}
-                      onBlur={() => setTotalQuestions((n) => clampInt(n, 1, 200))}
+                      placeholder="20"
+                      value={totalQuestionsStr}
+                      onChange={(e) => onDigitsChange(setTotalQuestionsStr, e.target.value)}
+                      onBlur={() => onDigitsBlur(setTotalQuestionsStr, totalQuestionsStr, 20, 1, 200)}
                     />
-                    <div className="mt-2 text-sm text-[var(--muted-foreground)]">
-                      Used when strategy is Total count.
-                    </div>
                   </div>
 
                   <div>
@@ -435,14 +453,12 @@ export default function HostPage() {
                     <Input
                       className="mt-2"
                       inputMode="numeric"
-                      value={String(countdownSeconds)}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        if (v === "") return;
-                        if (!/^\d+$/.test(v)) return;
-                        setCountdownSeconds(Number(v));
-                      }}
-                      onBlur={() => setCountdownSeconds((n) => clampInt(n, 0, 60))}
+                      placeholder="5"
+                      value={countdownSecondsStr}
+                      onChange={(e) => onDigitsChange(setCountdownSecondsStr, e.target.value)}
+                      onBlur={() =>
+                        onDigitsBlur(setCountdownSecondsStr, countdownSecondsStr, 5, 0, 60)
+                      }
                     />
                   </div>
 
@@ -451,14 +467,10 @@ export default function HostPage() {
                     <Input
                       className="mt-2"
                       inputMode="numeric"
-                      value={String(answerSeconds)}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        if (v === "") return;
-                        if (!/^\d+$/.test(v)) return;
-                        setAnswerSeconds(Number(v));
-                      }}
-                      onBlur={() => setAnswerSeconds((n) => clampInt(n, 5, 120))}
+                      placeholder="20"
+                      value={answerSecondsStr}
+                      onChange={(e) => onDigitsChange(setAnswerSecondsStr, e.target.value)}
+                      onBlur={() => onDigitsBlur(setAnswerSecondsStr, answerSecondsStr, 20, 5, 120)}
                     />
                   </div>
                 </div>
@@ -474,33 +486,34 @@ export default function HostPage() {
                     <option value="phones">Phones only</option>
                     <option value="both">Both</option>
                   </select>
-                  <div className="mt-2 text-sm text-[var(--muted-foreground)]">
-                    If you set Phones only, the TV will not autoplay clips.
-                  </div>
                 </div>
 
                 <div className="rounded-xl border border-[var(--border)] p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-sm font-medium">Choose packs</div>
+                      <div className="text-sm font-medium">Packs</div>
                       <div className="text-sm text-[var(--muted-foreground)]">
-                        Off means you use all active packs.
+                        {mustShowPackPicker
+                          ? "Per pack needs you to pick packs and set counts."
+                          : selectPacks
+                            ? "Select the packs you want to use."
+                            : "Use all active packs by default."}
                       </div>
                     </div>
 
-                    <Button
-                      variant={choosePacks ? undefined : "secondary"}
-                      onClick={() => setChoosePacks((v) => !v)}
-                    >
-                      {choosePacks ? "Choosing packs" : "Using all packs"}
-                    </Button>
+                    {mustShowPackPicker ? (
+                      <Button variant="secondary" disabled>
+                        Select packs
+                      </Button>
+                    ) : (
+                      <Button
+                        variant={selectPacks ? undefined : "secondary"}
+                        onClick={() => setSelectPacks((v) => !v)}
+                      >
+                        {selectPacks ? "Selecting packs" : "Use all packs"}
+                      </Button>
+                    )}
                   </div>
-
-                  {selectionStrategy === "per_pack" ? (
-                    <div className="mt-3 text-sm text-[var(--muted-foreground)]">
-                      When using Per pack, set each pack’s count in the pack list.
-                    </div>
-                  ) : null}
                 </div>
               </CardContent>
 
@@ -524,48 +537,40 @@ export default function HostPage() {
             ) : null}
           </div>
 
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <CardTitle>Packs</CardTitle>
-            </CardHeader>
+          {showPackPicker ? (
+            <Card className="lg:col-span-1">
+              <CardHeader>
+                <CardTitle>Select packs</CardTitle>
+              </CardHeader>
 
-            <CardContent className="space-y-3">
-              {choosePacks ? (
+              <CardContent className="space-y-3">
                 <div className="text-sm text-[var(--muted-foreground)]">
-                  Tap packs to include them. Only selected packs will be used.
+                  Tap packs to include them.
+                  {selectionStrategy === "per_pack"
+                    ? " Set a count for at least one selected pack."
+                    : ""}
                 </div>
-              ) : (
-                <div className="text-sm text-[var(--muted-foreground)]">
-                  You are using all active packs. Turn on Choose packs to narrow it down.
-                </div>
-              )}
 
-              <div className="overflow-hidden rounded-xl border border-[var(--border)]">
-                <table className="w-full text-sm">
-                  <thead className="bg-[var(--card)]">
-                    <tr className="border-b border-[var(--border)]">
-                      <th className="px-3 py-2 text-left font-medium">Pack</th>
-                      <th className="w-24 px-3 py-2 text-right font-medium">Count</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {packs.map((p) => {
-                      const selected = choosePacks ? Boolean(selectedPacks[p.id]) : true;
+                <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+                  <table className="w-full text-sm">
+                    <thead className="bg-[var(--card)]">
+                      <tr className="border-b border-[var(--border)]">
+                        <th className="px-3 py-2 text-left font-medium">Pack</th>
+                        <th className="w-24 px-3 py-2 text-right font-medium">Count</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {packs.map((p) => {
+                        const selected = Boolean(selectedPacks[p.id]);
 
-                      return (
-                        <tr
-                          key={p.id}
-                          className={`border-b border-[var(--border)] last:border-b-0 ${
-                            choosePacks ? "cursor-pointer" : ""
-                          }`}
-                          onClick={() => {
-                            if (!choosePacks) return;
-                            togglePack(p.id);
-                          }}
-                        >
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-2">
-                              {choosePacks ? (
+                        return (
+                          <tr
+                            key={p.id}
+                            className="border-b border-[var(--border)] last:border-b-0 cursor-pointer"
+                            onClick={() => togglePack(p.id)}
+                          >
+                            <td className="px-3 py-2">
+                              <div className="flex items-center gap-2">
                                 <span
                                   className={`inline-block h-3 w-3 rounded-sm border ${
                                     selected
@@ -573,51 +578,61 @@ export default function HostPage() {
                                       : "bg-transparent border-[var(--border)]"
                                   }`}
                                 />
-                              ) : null}
-                              <div className="min-w-0">
-                                <div className="truncate font-medium">{p.display_name}</div>
-                                <div className="truncate text-xs text-[var(--muted-foreground)]">
-                                  {p.round_type}
+                                <div className="min-w-0">
+                                  <div className="truncate font-medium">{p.display_name}</div>
+                                  <div className="truncate text-xs text-[var(--muted-foreground)]">
+                                    {p.round_type}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </td>
+                            </td>
 
-                          <td className="px-3 py-2 text-right">
-                            {selectionStrategy === "per_pack" ? (
-                              <input
-                                className="w-16 rounded-lg border border-[var(--border)] bg-[var(--card)] px-2 py-1 text-right text-sm"
-                                inputMode="numeric"
-                                value={perPackCounts[p.id] ?? ""}
-                                onChange={(e) => onPerPackChange(p.id, e.target.value)}
-                                onBlur={() => onPerPackBlur(p.id)}
-                                onClick={(e) => e.stopPropagation()}
-                                placeholder="0"
-                              />
-                            ) : (
-                              <span className="text-xs text-[var(--muted-foreground)]">n/a</span>
-                            )}
+                            <td className="px-3 py-2 text-right">
+                              {selectionStrategy === "per_pack" ? (
+                                <input
+                                  className="w-16 rounded-lg border border-[var(--border)] bg-[var(--card)] px-2 py-1 text-right text-sm"
+                                  inputMode="numeric"
+                                  value={perPackCounts[p.id] ?? ""}
+                                  onChange={(e) => onPerPackChange(p.id, e.target.value)}
+                                  onBlur={() => onPerPackBlur(p.id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  placeholder="0"
+                                />
+                              ) : (
+                                <span className="text-xs text-[var(--muted-foreground)]">n/a</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                      {packs.length === 0 && !packsLoading ? (
+                        <tr>
+                          <td className="px-3 py-4 text-sm text-[var(--muted-foreground)]" colSpan={2}>
+                            No active packs found.
                           </td>
                         </tr>
-                      );
-                    })}
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
 
-                    {packs.length === 0 && !packsLoading ? (
-                      <tr>
-                        <td className="px-3 py-4 text-sm text-[var(--muted-foreground)]" colSpan={2}>
-                          No active packs found.
-                        </td>
-                      </tr>
-                    ) : null}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-
-            <CardFooter className="text-xs text-[var(--muted-foreground)]">
-              Packs come from the Supabase packs table.
-            </CardFooter>
-          </Card>
+              <CardFooter className="text-xs text-[var(--muted-foreground)]">
+                You can keep this closed when you use all packs.
+              </CardFooter>
+            </Card>
+          ) : (
+            <Card className="lg:col-span-1">
+              <CardHeader>
+                <CardTitle>Packs</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm text-[var(--muted-foreground)]">
+                <div>You are using all active packs.</div>
+                <div>Press Select packs if you want to narrow it down.</div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </main>
