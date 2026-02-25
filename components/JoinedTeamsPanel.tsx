@@ -127,9 +127,7 @@ export default function JoinedTeamsPanel({ roomId }: { roomId: string }) {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-800">
-          <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            Joined teams ({players.length})
-          </div>
+          <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Joined teams ({players.length})</div>
 
           {players.length === 0 ? (
             <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">No teams yet.</div>
@@ -138,9 +136,7 @@ export default function JoinedTeamsPanel({ roomId }: { roomId: string }) {
               {players.map((p) => (
                 <li key={p.id} className="flex items-center justify-between gap-3">
                   <div className="truncate text-sm text-zinc-900 dark:text-zinc-100">{p.name}</div>
-                  <div className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
-                    {formatTime(p.created_at)}
-                  </div>
+                  <div className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">{formatTime(p.created_at)}</div>
                 </li>
               ))}
             </ul>
@@ -151,17 +147,13 @@ export default function JoinedTeamsPanel({ roomId }: { roomId: string }) {
           <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Just joined</div>
 
           {recentJoins.length === 0 ? (
-            <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-              Waiting for the first join…
-            </div>
+            <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Waiting for the first join…</div>
           ) : (
             <ul className="mt-2 space-y-2">
               {recentJoins.map((j) => (
                 <li key={j.id} className="flex items-center justify-between gap-3">
                   <div className="truncate text-sm text-zinc-900 dark:text-zinc-100">{j.name}</div>
-                  <div className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
-                    {formatTime(j.createdAt)}
-                  </div>
+                  <div className="shrink-0 text-xs text-zinc-500 dark:text-zinc-400">{formatTime(j.createdAt)}</div>
                 </li>
               ))}
             </ul>
