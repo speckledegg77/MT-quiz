@@ -1,15 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import JoinedTeamsPanel from "@/components/JoinedTeamsPanel";
+import { useEffect, useMemo, useState } from "react";
+import JoinFeedPanel from "@/components/JoinFeedPanel";
+import { Card, CardContent } from "@/components/ui/Card";
 
 type RoomState = any;
 
+type PlayerPublic = {
+  id: string;
+  name: string;
+  score?: number | null;
+  joined_at?: string | null;
+  created_at?: string | null;
+};
+
 export default function HostJoinedTeamsPanel({ code }: { code: string }) {
-  const [roomId, setRoomId] = useState<string | null>(null);
+  const roomCode = useMemo(() => String(code ?? "").trim().toUpperCase(), [code]);
+
+  const [players, setPlayers] = useState<PlayerPublic[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const roomCode = String(code ?? "").toUpperCase();
     if (!roomCode) return;
 
     let cancelled = false;
@@ -17,27 +29,59 @@ export default function HostJoinedTeamsPanel({ code }: { code: string }) {
     async function tick() {
       try {
         const res = await fetch(`/api/room/state?code=${roomCode}`, { cache: "no-store" });
-        const data: RoomState = await res.json();
+        const data: RoomState = await res.json().catch(() => ({}));
 
-        const id =
-          data?.roomId ?? data?.room_id ?? data?.room?.id ?? data?.room?.room_id ?? null;
+        if (cancelled) return;
 
-        if (!cancelled) setRoomId(id);
+        if (!res.ok) {
+          setError(String(data?.error ?? "Could not load join feed."));
+          setPlayers([]);
+          setLoading(false);
+          return;
+        }
+
+        const list = Array.isArray(data?.players) ? data.players : [];
+        setPlayers(list as PlayerPublic[]);
+        setError(null);
+        setLoading(false);
       } catch {
-        if (!cancelled) setRoomId(null);
+        if (cancelled) return;
+        setError("Could not load join feed.");
+        setPlayers([]);
+        setLoading(false);
       }
     }
 
     tick();
-    const id = setInterval(tick, 1000);
+    const id = setInterval(tick, 500);
 
     return () => {
       cancelled = true;
       clearInterval(id);
     };
-  }, [code]);
+  }, [roomCode]);
 
-  if (!roomId) return null;
+  if (!roomCode) return null;
 
-  return <JoinedTeamsPanel roomId={roomId} />;
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="py-6 text-sm text-[var(--muted-foreground)]">
+          Loading teams…
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid gap-4">
+      {error ? (
+        <Card>
+          <CardContent className="py-4 text-sm text-red-600">{error}</CardContent>
+        </Card>
+      ) : null}
+
+      <JoinFeedPanel players={players} />
+    </div>
+  );
 }
