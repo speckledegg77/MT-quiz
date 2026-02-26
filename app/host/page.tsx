@@ -97,6 +97,7 @@ export default function HostPage() {
 
   const origin = typeof window !== "undefined" ? window.location.origin : ""
   const joinUrl = roomCode && origin ? `${origin}/join?code=${roomCode}` : ""
+  const joinPageUrl = roomCode ? `/join?code=${roomCode}` : ""
   const displayUrl = roomCode ? `/display/${roomCode}` : ""
   const playUrl = roomCode ? `/play/${roomCode}` : ""
 
@@ -220,6 +221,12 @@ export default function HostPage() {
     }
   }
 
+  function openInNewWindow(url: string) {
+    if (!url) return
+    const w = window.open(url, "_blank", "noopener,noreferrer")
+    if (w) w.opener = null
+  }
+
   async function createRoom() {
     setCreating(true)
     setCreateError(null)
@@ -313,9 +320,12 @@ export default function HostPage() {
     }
 
     try {
-      const res = await fetch(`/api/room/state?code=${encodeURIComponent(code)}`, {
-        cache: "no-store",
-      })
+      const res = await fetch(
+        `/api/room/state?code=${encodeURIComponent(code)}`,
+        {
+          cache: "no-store",
+        }
+      )
       const data = await res.json().catch(() => ({}))
 
       if (!res.ok) {
@@ -447,7 +457,14 @@ export default function HostPage() {
   }, [roomPhase, roomStage])
 
   const canStart = roomCode && roomPhase === "lobby" && !starting
-  const startLabel = roomPhase === "lobby" ? (starting ? "Starting…" : "Start game") : roomPhase === "running" ? "Game running" : "Game finished"
+  const startLabel =
+    roomPhase === "lobby"
+      ? starting
+        ? "Starting…"
+        : "Start game"
+      : roomPhase === "running"
+        ? "Game running"
+        : "Game finished"
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6">
@@ -515,17 +532,28 @@ export default function HostPage() {
               ) : null}
             </CardContent>
             <CardFooter className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-              <Link href={displayUrl} target="_blank" rel="noreferrer">
-                <Button>Open TV display</Button>
-              </Link>
+              <Button onClick={() => openInNewWindow(displayUrl)}>
+                Open TV display
+              </Button>
+
+              <Button
+                variant="secondary"
+                onClick={() => openInNewWindow(joinPageUrl)}
+                disabled={!roomCode}
+              >
+                Open join page
+              </Button>
 
               <Button onClick={startGame} disabled={!canStart}>
                 {startLabel}
               </Button>
 
-              <Link href={playUrl} target="_blank" rel="noreferrer">
-                <Button variant="secondary">Open player view (for testing)</Button>
-              </Link>
+              <Button
+                variant="secondary"
+                onClick={() => openInNewWindow(playUrl)}
+              >
+                Open player view (for testing)
+              </Button>
 
               <Button
                 variant="secondary"
@@ -574,7 +602,8 @@ export default function HostPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm opacity-80">
-                If you left the host page by accident, enter the room code to continue hosting that room.
+                If you left the host page by accident, enter the room code to
+                continue hosting that room.
               </p>
 
               <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
@@ -582,13 +611,18 @@ export default function HostPage() {
                   <div className="text-xs opacity-70">Room code</div>
                   <Input
                     value={rehostCode}
-                    onChange={(e) => setRehostCode(cleanRoomCode(e.target.value))}
+                    onChange={(e) =>
+                      setRehostCode(cleanRoomCode(e.target.value))
+                    }
                     placeholder="For example 3PDSXFT5"
                     autoCapitalize="characters"
                     spellCheck={false}
                   />
                 </div>
-                <Button onClick={rehostRoom} disabled={rehostBusy || !cleanRoomCode(rehostCode)}>
+                <Button
+                  onClick={rehostRoom}
+                  disabled={rehostBusy || !cleanRoomCode(rehostCode)}
+                >
                   {rehostBusy ? "Loading…" : "Re-host room"}
                 </Button>
               </div>
@@ -616,20 +650,25 @@ export default function HostPage() {
                 <div className="text-sm font-medium">How to pick questions</div>
                 <div className="flex flex-wrap gap-2">
                   <Button
-                    variant={selectionStrategy === "all_packs" ? "primary" : "secondary"}
+                    variant={
+                      selectionStrategy === "all_packs" ? "primary" : "secondary"
+                    }
                     onClick={() => setSelectionStrategy("all_packs")}
                   >
                     Total count
                   </Button>
                   <Button
-                    variant={selectionStrategy === "per_pack" ? "primary" : "secondary"}
+                    variant={
+                      selectionStrategy === "per_pack" ? "primary" : "secondary"
+                    }
                     onClick={() => setSelectionStrategy("per_pack")}
                   >
                     Per pack
                   </Button>
                 </div>
                 <div className="text-sm opacity-80">
-                  Total count picks a total number of questions. Per pack lets you set counts for chosen packs.
+                  Total count picks a total number of questions. Per pack lets
+                  you set counts for chosen packs.
                 </div>
               </div>
 
@@ -657,9 +696,17 @@ export default function HostPage() {
                   <div className="text-xs opacity-70">Total questions</div>
                   <Input
                     value={totalQuestionsStr}
-                    onChange={(e) => onDigitsChange(setTotalQuestionsStr, e.target.value)}
+                    onChange={(e) =>
+                      onDigitsChange(setTotalQuestionsStr, e.target.value)
+                    }
                     onBlur={() =>
-                      onDigitsBlur(setTotalQuestionsStr, totalQuestionsStr, 20, 1, 200)
+                      onDigitsBlur(
+                        setTotalQuestionsStr,
+                        totalQuestionsStr,
+                        20,
+                        1,
+                        200
+                      )
                     }
                     placeholder="20"
                   />
@@ -669,9 +716,17 @@ export default function HostPage() {
                   <div className="text-xs opacity-70">Countdown (seconds)</div>
                   <Input
                     value={countdownSecondsStr}
-                    onChange={(e) => onDigitsChange(setCountdownSecondsStr, e.target.value)}
+                    onChange={(e) =>
+                      onDigitsChange(setCountdownSecondsStr, e.target.value)
+                    }
                     onBlur={() =>
-                      onDigitsBlur(setCountdownSecondsStr, countdownSecondsStr, 5, 0, 60)
+                      onDigitsBlur(
+                        setCountdownSecondsStr,
+                        countdownSecondsStr,
+                        5,
+                        0,
+                        60
+                      )
                     }
                     placeholder="5"
                   />
@@ -681,9 +736,17 @@ export default function HostPage() {
                   <div className="text-xs opacity-70">Answer time (seconds)</div>
                   <Input
                     value={answerSecondsStr}
-                    onChange={(e) => onDigitsChange(setAnswerSecondsStr, e.target.value)}
+                    onChange={(e) =>
+                      onDigitsChange(setAnswerSecondsStr, e.target.value)
+                    }
                     onBlur={() =>
-                      onDigitsBlur(setAnswerSecondsStr, answerSecondsStr, 20, 5, 120)
+                      onDigitsBlur(
+                        setAnswerSecondsStr,
+                        answerSecondsStr,
+                        20,
+                        5,
+                        120
+                      )
                     }
                     placeholder="20"
                   />
@@ -715,7 +778,9 @@ export default function HostPage() {
                       {selectPacks ? "Selecting packs" : "Select packs"}
                     </Button>
                   ) : (
-                    <div className="text-xs opacity-70">Per pack needs pack selection</div>
+                    <div className="text-xs opacity-70">
+                      Per pack needs pack selection
+                    </div>
                   )}
                 </div>
 
@@ -728,7 +793,9 @@ export default function HostPage() {
                 </div>
 
                 <div className="text-xs opacity-70">
-                  {packsLoading ? "Loading packs…" : `${packs.length} active packs available`}
+                  {packsLoading
+                    ? "Loading packs…"
+                    : `${packs.length} active packs available`}
                 </div>
 
                 {packsError ? (
@@ -766,14 +833,21 @@ export default function HostPage() {
                               <div className="truncate text-sm font-medium">
                                 {p.display_name}
                               </div>
-                              <div className="text-xs opacity-70">{p.round_type}</div>
+                              <div className="text-xs opacity-70">
+                                {p.round_type}
+                              </div>
                             </div>
 
                             {selectionStrategy === "per_pack" ? (
-                              <div className="w-24" onClick={(e) => e.stopPropagation()}>
+                              <div
+                                className="w-24"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <Input
                                   value={perPackCounts[p.id] ?? ""}
-                                  onChange={(e) => onPerPackChange(p.id, e.target.value)}
+                                  onChange={(e) =>
+                                    onPerPackChange(p.id, e.target.value)
+                                  }
                                   onBlur={() => onPerPackBlur(p.id)}
                                   placeholder="0"
                                 />
@@ -786,7 +860,9 @@ export default function HostPage() {
                       })}
 
                       {packs.length === 0 && !packsLoading ? (
-                        <div className="text-sm opacity-80">No active packs found.</div>
+                        <div className="text-sm opacity-80">
+                          No active packs found.
+                        </div>
                       ) : null}
                     </div>
 
@@ -796,7 +872,8 @@ export default function HostPage() {
                   </div>
                 ) : (
                   <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 text-sm opacity-90">
-                    You are using all active packs. Press Select packs if you want to narrow it down.
+                    You are using all active packs. Press Select packs if you
+                    want to narrow it down.
                   </div>
                 )}
               </div>
