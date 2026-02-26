@@ -1,16 +1,12 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import { QRCodeSVG } from "qrcode.react"
+
 import { supabase } from "@/lib/supabaseClient"
 import { Button } from "@/components/ui/Button"
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/Card"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
 import HostJoinedTeamsPanel from "@/components/HostJoinedTeamsPanel"
 
@@ -30,8 +26,8 @@ type RoundFilter =
   | "audio_only"
   | "picture_only"
   | "audio_and_image"
-
 type AudioMode = "display" | "phones" | "both"
+
 type RoomState = any
 
 const LAST_HOST_CODE_KEY = "mtq_last_host_code"
@@ -61,18 +57,18 @@ export default function HostPage() {
   const [packsError, setPacksError] = useState<string | null>(null)
 
   const [selectPacks, setSelectPacks] = useState(false)
-  const [selectedPacks, setSelectedPacks] = useState<Record<string, boolean>>(
-    {}
-  )
+  const [selectedPacks, setSelectedPacks] = useState<Record<string, boolean>>({})
 
-  const [selectionStrategy, setSelectionStrategy] =
-    useState<SelectionStrategy>("all_packs")
+  const [selectionStrategy, setSelectionStrategy] = useState<SelectionStrategy>("all_packs")
   const [roundFilter, setRoundFilter] = useState<RoundFilter>("mixed")
   const [audioMode, setAudioMode] = useState<AudioMode>("display")
 
-  const [totalQuestionsStr, setTotalQuestionsStr] = useState("20")
-  const [countdownSecondsStr, setCountdownSecondsStr] = useState("5")
-  const [answerSecondsStr, setAnswerSecondsStr] = useState("20")
+  // String inputs so you can clear the field while typing
+  const [totalQuestionsStr, setTotalQuestionsStr] = useState<string>("20")
+  const [countdownSecondsStr, setCountdownSecondsStr] = useState<string>("5")
+  const [answerSecondsStr, setAnswerSecondsStr] = useState<string>("20")
+
+  // Per-pack counts (string so blank is allowed while typing)
   const [perPackCounts, setPerPackCounts] = useState<Record<string, string>>({})
 
   const [creating, setCreating] = useState(false)
@@ -95,15 +91,11 @@ export default function HostPage() {
   const [rehostError, setRehostError] = useState<string | null>(null)
 
   const origin = typeof window !== "undefined" ? window.location.origin : ""
-  const joinUrl = roomCode && origin ? `${origin}/join?code=${roomCode}` : ""
+  const joinUrl = roomCode ? `${origin}/join?code=${roomCode}` : ""
   const joinPageUrl = roomCode ? `/join?code=${roomCode}` : ""
   const displayUrl = roomCode ? `/display/${roomCode}` : ""
 
-  const mustShowPackPicker = selectionStrategy === "per_pack"
-  const showPackPicker = selectPacks || mustShowPackPicker
-
-  const showGameplayPanel =
-    Boolean(roomCode) && (roomPhase === "running" || roomPhase === "finished")
+  const showGameplayPanel = Boolean(roomCode) && (roomPhase === "running" || roomPhase === "finished")
 
   useEffect(() => {
     try {
@@ -132,10 +124,11 @@ export default function HostPage() {
       if (error) {
         setPacksError(error.message)
         setPacks([])
-      } else {
-        setPacks((data ?? []) as PackRow[])
+        setPacksLoading(false)
+        return
       }
 
+      setPacks((data ?? []) as PackRow[])
       setPacksLoading(false)
     }
 
@@ -147,12 +140,13 @@ export default function HostPage() {
   }, [])
 
   useEffect(() => {
-    if (packs.length === 0) return
+    if (!packs || packs.length === 0) return
 
     setSelectedPacks((prev) => {
-      if (Object.keys(prev).length > 0) return prev
-      const next: Record<string, boolean> = {}
-      for (const p of packs) next[p.id] = true
+      const next = { ...prev }
+      for (const p of packs) {
+        if (next[p.id] === undefined) next[p.id] = false
+      }
       return next
     })
 
@@ -172,11 +166,10 @@ export default function HostPage() {
 
     async function tick() {
       try {
-        const res = await fetch(`/api/room/state?code=${roomCode}`, {
-          cache: "no-store",
-        })
+        const res = await fetch(`/api/room/state?code=${roomCode}`, { cache: "no-store" })
         const data: RoomState = await res.json().catch(() => ({}))
         if (cancelled) return
+
         if (res.ok) {
           setRoomPhase(String(data?.phase ?? "lobby"))
           setRoomStage(String(data?.stage ?? "lobby"))
@@ -195,25 +188,6 @@ export default function HostPage() {
     }
   }, [roomCode])
 
-  function togglePack(packId: string) {
-    setSelectedPacks((prev) => ({ ...prev, [packId]: !prev[packId] }))
-  }
-
-  function getSelectedPackIds(): string[] {
-    if (!showPackPicker) return packs.map((p) => p.id)
-    return packs.filter((p) => selectedPacks[p.id]).map((p) => p.id)
-  }
-
-  function buildRoundsPayload(selectedIds: string[]) {
-    return selectedIds
-      .map((packId) => {
-        const raw = perPackCounts[packId] ?? ""
-        const count = clampInt(parseIntOr(raw, 0), 0, 9999)
-        return { packId, count }
-      })
-      .filter((r) => r.count > 0)
-  }
-
   function rememberHostCode(code: string) {
     try {
       localStorage.setItem(LAST_HOST_CODE_KEY, code)
@@ -228,6 +202,30 @@ export default function HostPage() {
     if (w) w.opener = null
   }
 
+  function setAllSelected(value: boolean) {
+    const next: Record<string, boolean> = {}
+    for (const p of packs) next[p.id] = value
+    setSelectedPacks(next)
+  }
+
+  function togglePack(id: string) {
+    setSelectedPacks((prev) => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  function selectedPackIds() {
+    return packs.filter((p) => selectedPacks[p.id]).map((p) => p.id)
+  }
+
+  function buildRoundsPayload(packIds: string[]) {
+    return packIds
+      .map((packId) => {
+        const raw = perPackCounts[packId] ?? ""
+        const count = clampInt(parseIntOr(raw, 0), 0, 9999)
+        return { packId, count }
+      })
+      .filter((r) => r.count > 0)
+  }
+
   async function createRoom() {
     setCreating(true)
     setCreateError(null)
@@ -237,35 +235,34 @@ export default function HostPage() {
     setResetOk(null)
 
     try {
-      const selectedIds = getSelectedPackIds()
-      if (selectedIds.length === 0) {
-        setCreateError("Select at least one pack.")
+      const totalQuestions = clampInt(parseIntOr(totalQuestionsStr, 20), 1, 200)
+      const countdownSeconds = clampInt(parseIntOr(countdownSecondsStr, 5), 0, 30)
+      const answerSeconds = clampInt(parseIntOr(answerSecondsStr, 20), 5, 120)
+
+      const usingAllPacks = !selectPacks
+      const strategy: SelectionStrategy = usingAllPacks ? "all_packs" : selectionStrategy
+
+      const packIds = usingAllPacks ? packs.map((p) => p.id) : selectedPackIds()
+
+      if (!usingAllPacks && packIds.length === 0) {
+        setCreateError("Select at least one pack, or untick Select packs to use all packs.")
         setCreating(false)
         return
       }
 
-      const totalQuestions = clampInt(parseIntOr(totalQuestionsStr, 20), 1, 200)
-      const countdownSeconds = clampInt(
-        parseIntOr(countdownSecondsStr, 5),
-        0,
-        60
-      )
-      const answerSeconds = clampInt(parseIntOr(answerSecondsStr, 20), 5, 120)
+      const rounds = strategy === "per_pack" ? buildRoundsPayload(packIds) : []
 
-      const rounds =
-        selectionStrategy === "per_pack" ? buildRoundsPayload(selectedIds) : []
-
-      if (selectionStrategy === "per_pack" && rounds.length === 0) {
-        setCreateError("Set a question count for at least one selected pack.")
+      if (!usingAllPacks && strategy === "per_pack" && rounds.length === 0) {
+        setCreateError("Add a count for at least one selected pack.")
         setCreating(false)
         return
       }
 
       const payload: any = {
-        selectionStrategy,
+        selectionStrategy: strategy,
         roundFilter,
         totalQuestions,
-        selectedPacks: selectedIds,
+        selectedPacks: packIds,
         rounds,
         countdownSeconds,
         answerSeconds,
@@ -278,15 +275,15 @@ export default function HostPage() {
         body: JSON.stringify(payload),
       })
 
-      const data = await res.json().catch(() => ({}))
+      const json = await res.json().catch(() => ({}))
 
       if (!res.ok) {
-        setCreateError(data?.error ?? "Room creation failed.")
+        setCreateError(json?.error ?? "Failed to create room")
         setCreating(false)
         return
       }
 
-      const code = cleanRoomCode(String(data?.code ?? ""))
+      const code = cleanRoomCode(String(json?.code ?? ""))
       if (!code) {
         setCreateError("Room created, but no code returned.")
         setCreating(false)
@@ -297,9 +294,10 @@ export default function HostPage() {
       setRoomPhase("lobby")
       setRoomStage("lobby")
       rememberHostCode(code)
+
+      setCreating(false)
     } catch (e: any) {
-      setCreateError(e?.message ?? "Room creation failed.")
-    } finally {
+      setCreateError(e?.message ?? "Failed to create room")
       setCreating(false)
     }
   }
@@ -308,10 +306,6 @@ export default function HostPage() {
     setRehostBusy(true)
     setRehostError(null)
     setCreateError(null)
-    setStartError(null)
-    setStartOk(null)
-    setResetError(null)
-    setResetOk(null)
 
     const code = cleanRoomCode(rehostCode)
     if (!code) {
@@ -321,14 +315,12 @@ export default function HostPage() {
     }
 
     try {
-      const res = await fetch(
-        `/api/room/state?code=${encodeURIComponent(code)}`,
-        { cache: "no-store" }
-      )
+      const res = await fetch(`/api/room/state?code=${encodeURIComponent(code)}`, { cache: "no-store" })
       const data = await res.json().catch(() => ({}))
 
       if (!res.ok) {
         setRehostError(String(data?.error ?? "Room not found."))
+        setRehostBusy(false)
         return
       }
 
@@ -345,6 +337,7 @@ export default function HostPage() {
 
   async function startGame() {
     if (!roomCode) return
+
     setStarting(true)
     setStartError(null)
     setStartOk(null)
@@ -360,6 +353,7 @@ export default function HostPage() {
 
       if (!res.ok) {
         setStartError(data?.error ?? "Could not start game.")
+        setStarting(false)
         return
       }
 
@@ -375,6 +369,7 @@ export default function HostPage() {
 
   async function resetRoom() {
     if (!roomCode) return
+
     setResetting(true)
     setResetError(null)
     setResetOk(null)
@@ -392,14 +387,13 @@ export default function HostPage() {
 
       if (!res.ok) {
         setResetError(data?.error ?? "Reset failed.")
+        setResetting(false)
         return
       }
 
       setRoomPhase("lobby")
       setRoomStage("lobby")
-      setResetOk(
-        "Room reset.\nTeams kept, scores set to 0, new questions picked, and joining is open again."
-      )
+      setResetOk("Room reset.\nTeams kept, scores set to 0, and joining is open again.")
     } catch (e: any) {
       setResetError(e?.message ?? "Reset failed.")
     } finally {
@@ -407,40 +401,14 @@ export default function HostPage() {
     }
   }
 
-  function onDigitsChange(setter: (v: string) => void, value: string) {
-    if (value === "") {
-      setter("")
-      return
-    }
-    if (!/^\d+$/.test(value)) return
-    setter(value)
-  }
-
-  function onDigitsBlur(
-    setter: (v: string) => void,
-    value: string,
-    fallback: number,
-    min: number,
-    max: number
-  ) {
-    const n = clampInt(parseIntOr(value, fallback), min, max)
-    setter(String(n))
-  }
-
-  function onPerPackChange(packId: string, value: string) {
-    if (value === "") {
-      setPerPackCounts((prev) => ({ ...prev, [packId]: "" }))
-      return
-    }
-    if (!/^\d+$/.test(value)) return
-    setPerPackCounts((prev) => ({ ...prev, [packId]: value }))
-  }
-
-  function onPerPackBlur(packId: string) {
-    const raw = perPackCounts[packId] ?? ""
-    if (raw.trim() === "") return
-    const clamped = clampInt(parseIntOr(raw, 0), 0, 9999)
-    setPerPackCounts((prev) => ({ ...prev, [packId]: String(clamped) }))
+  function clearRoom() {
+    setRoomCode(null)
+    setRoomPhase("lobby")
+    setRoomStage("lobby")
+    setStartError(null)
+    setStartOk(null)
+    setResetError(null)
+    setResetOk(null)
   }
 
   const stagePill = useMemo(() => {
@@ -466,381 +434,364 @@ export default function HostPage() {
         : "Game finished"
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Host</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="text-sm opacity-80">
-            Create a room, then open the display screen on your TV.
+    <div className="mx-auto max-w-5xl px-4 py-6">
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Host</h1>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            Create a room, share the code, and start the quiz.
           </p>
-        </CardContent>
-      </Card>
+        </div>
 
-      {roomCode ? (
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="space-y-4 lg:col-span-2">
+        <Link href="/" className="text-sm text-zinc-600 hover:underline dark:text-zinc-400">
+          Back to home
+        </Link>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="space-y-6">
+          {!roomCode ? (
             <Card>
               <CardHeader>
-                <CardTitle>Room {roomCode}</CardTitle>
+                <CardTitle>Create a room</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="rounded-full border border-[var(--border)] bg-[var(--muted)] px-3 py-1 text-xs">
+
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <div className="text-sm font-medium">Total questions</div>
+                    <Input
+                      value={totalQuestionsStr}
+                      onChange={(e) => setTotalQuestionsStr(e.target.value)}
+                      inputMode="numeric"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="text-sm font-medium">Countdown seconds</div>
+                    <Input
+                      value={countdownSecondsStr}
+                      onChange={(e) => setCountdownSecondsStr(e.target.value)}
+                      inputMode="numeric"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="text-sm font-medium">Answer seconds</div>
+                    <Input
+                      value={answerSecondsStr}
+                      onChange={(e) => setAnswerSecondsStr(e.target.value)}
+                      inputMode="numeric"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <div className="text-sm font-medium">Round filter</div>
+                    <select
+                      value={roundFilter}
+                      onChange={(e) => setRoundFilter(e.target.value as RoundFilter)}
+                      className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+                    >
+                      <option value="mixed">Mixed</option>
+                      <option value="no_audio">No audio</option>
+                      <option value="no_image">No pictures</option>
+                      <option value="audio_only">Audio only</option>
+                      <option value="picture_only">Pictures only</option>
+                      <option value="audio_and_image">Audio and pictures</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <div className="text-sm font-medium">Audio mode</div>
+                    <select
+                      value={audioMode}
+                      onChange={(e) => setAudioMode(e.target.value as AudioMode)}
+                      className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+                    >
+                      <option value="display">Display only</option>
+                      <option value="phones">Phones only</option>
+                      <option value="both">Both</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-end">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={selectPacks}
+                        onChange={(e) => setSelectPacks(e.target.checked)}
+                      />
+                      Select packs
+                    </label>
+                  </div>
+                </div>
+
+                {createError ? (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+                    {createError}
+                  </div>
+                ) : null}
+              </CardContent>
+
+              <CardFooter>
+                <Button onClick={createRoom} disabled={creating}>
+                  {creating ? "Creating…" : "Create room"}
+                </Button>
+              </CardFooter>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Host controls</CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm text-zinc-600 dark:text-zinc-400">Status</div>
+                  <div className="rounded-full border border-zinc-200 px-3 py-1 text-xs dark:border-zinc-800">
                     {stagePill}
                   </div>
                 </div>
 
                 {startError ? (
-                  <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm">
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
                     {startError}
                   </div>
                 ) : null}
+
                 {startOk ? (
-                  <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm whitespace-pre-line">
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200 whitespace-pre-line">
                     {startOk}
                   </div>
                 ) : null}
+
                 {resetError ? (
-                  <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm">
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
                     {resetError}
                   </div>
                 ) : null}
+
                 {resetOk ? (
-                  <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm whitespace-pre-line">
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200 whitespace-pre-line">
                     {resetOk}
                   </div>
                 ) : null}
 
-                <div className="space-y-1">
-                  <div className="text-xs opacity-70">Players join link</div>
-                  <div className="break-all rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 text-sm">
-                    {joinUrl || "Join link not available."}
-                  </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button onClick={() => openInNewWindow(displayUrl)}>Open TV display</Button>
+
+                  <Button variant="secondary" onClick={() => openInNewWindow(joinPageUrl)}>
+                    Join room
+                  </Button>
                 </div>
 
-                {joinUrl ? (
-                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-                    <div className="rounded-xl border border-[var(--border)] bg-white p-3">
-                      <QRCodeSVG value={joinUrl} size={140} />
-                    </div>
-                    <div className="text-sm opacity-80">
-                      Show the QR code on your TV so teams can join quickly.
-                    </div>
-                  </div>
-                ) : null}
-              </CardContent>
-              <CardFooter className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                <Button onClick={() => openInNewWindow(displayUrl)}>
-                  Open TV display
-                </Button>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button onClick={startGame} disabled={!canStart}>
+                    {startLabel}
+                  </Button>
 
-                <Button
-                  variant="secondary"
-                  onClick={() => openInNewWindow(joinPageUrl)}
-                  disabled={!roomCode}
-                >
-                  Join room
-                </Button>
+                  <Button variant="secondary" onClick={resetRoom} disabled={resetting}>
+                    {resetting ? "Resetting…" : "Reset room"}
+                  </Button>
+                </div>
 
-                <Button onClick={startGame} disabled={!canStart}>
-                  {startLabel}
-                </Button>
-
-                <Button
-                  variant="secondary"
-                  onClick={resetRoom}
-                  disabled={!roomCode || resetting}
-                >
-                  {resetting ? "Resetting…" : "Reset room (keep code)"}
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setRoomCode(null)
-                    setRoomPhase("lobby")
-                    setRoomStage("lobby")
-                    setStartError(null)
-                    setStartOk(null)
-                    setResetError(null)
-                    setResetOk(null)
-                  }}
-                >
+                <Button variant="ghost" onClick={clearRoom}>
                   Create another room
                 </Button>
-              </CardFooter>
-            </Card>
-
-            {showGameplayPanel ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Gameplay display</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="overflow-hidden rounded-lg border border-[var(--border)]">
-                    <iframe
-                      title="Gameplay display"
-                      src={displayUrl}
-                      className="h-[70vh] w-full"
-                      allow="fullscreen"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            ) : null}
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick checklist</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm opacity-90">
-                <div>Open the TV display on a big screen.</div>
-                <div>Share the join link or show the QR code.</div>
-                <div>Press Start game when everyone has joined.</div>
-                <div>If you started too early, press Reset.</div>
               </CardContent>
             </Card>
-          </div>
+          )}
 
-          <div className="space-y-4 lg:col-span-1">
-            <HostJoinedTeamsPanel code={roomCode} />
-          </div>
-        </div>
-      ) : (
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="space-y-4 lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Room settings</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {createError ? (
-                  <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm">
-                    {createError}
-                  </div>
-                ) : null}
-
-                <div className="space-y-2">
-                  <div className="text-sm font-medium">How to pick questions</div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      variant={
-                        selectionStrategy === "all_packs" ? "primary" : "secondary"
-                      }
-                      onClick={() => setSelectionStrategy("all_packs")}
-                    >
-                      Total count
-                    </Button>
-                    <Button
-                      variant={
-                        selectionStrategy === "per_pack" ? "primary" : "secondary"
-                      }
-                      onClick={() => setSelectionStrategy("per_pack")}
-                    >
-                      Per pack
-                    </Button>
-                  </div>
-                  <div className="text-sm opacity-80">
-                    Total count picks a total number of questions. Per pack lets you set counts for chosen packs.
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="text-sm font-medium">Question filter</div>
-                  <select
-                    className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 text-sm"
-                    value={roundFilter}
-                    onChange={(e) => setRoundFilter(e.target.value as RoundFilter)}
-                  >
-                    <option value="mixed">Mixed</option>
-                    <option value="no_audio">No audio</option>
-                    <option value="no_image">No images</option>
-                    <option value="audio_only">Audio only</option>
-                    <option value="picture_only">Picture only</option>
-                    <option value="audio_and_image">Audio + image only</option>
-                  </select>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="space-y-1">
-                    <div className="text-xs opacity-70">Total questions</div>
-                    <Input
-                      value={totalQuestionsStr}
-                      onChange={(e) =>
-                        onDigitsChange(setTotalQuestionsStr, e.target.value)
-                      }
-                      onBlur={() =>
-                        onDigitsBlur(setTotalQuestionsStr, totalQuestionsStr, 20, 1, 200)
-                      }
-                      placeholder="20"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="text-xs opacity-70">Countdown (seconds)</div>
-                    <Input
-                      value={countdownSecondsStr}
-                      onChange={(e) =>
-                        onDigitsChange(setCountdownSecondsStr, e.target.value)
-                      }
-                      onBlur={() =>
-                        onDigitsBlur(setCountdownSecondsStr, countdownSecondsStr, 5, 0, 60)
-                      }
-                      placeholder="5"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="text-xs opacity-70">Answer time (seconds)</div>
-                    <Input
-                      value={answerSecondsStr}
-                      onChange={(e) =>
-                        onDigitsChange(setAnswerSecondsStr, e.target.value)
-                      }
-                      onBlur={() =>
-                        onDigitsBlur(setAnswerSecondsStr, answerSecondsStr, 20, 5, 120)
-                      }
-                      placeholder="20"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="text-sm font-medium">Audio mode</div>
-                  <select
-                    className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 text-sm"
-                    value={audioMode}
-                    onChange={(e) => setAudioMode(e.target.value as AudioMode)}
-                  >
-                    <option value="display">TV display only</option>
-                    <option value="phones">Phones only</option>
-                    <option value="both">Both</option>
-                  </select>
-                </div>
-              </CardContent>
-              <CardFooter className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <Button onClick={createRoom} disabled={creating || packsLoading}>
-                  {creating ? "Creating…" : "Create room"}
-                </Button>
-
-                <a className="text-sm opacity-80 hover:underline" href="/">
-                  Back to home
-                </a>
-              </CardFooter>
-            </Card>
-          </div>
-
-          <div className="space-y-4 lg:col-span-1">
+          {!roomCode ? (
             <Card>
               <CardHeader>
                 <CardTitle>Re-host room</CardTitle>
               </CardHeader>
+
               <CardContent className="space-y-3">
-                <div className="space-y-1">
-                  <div className="text-xs opacity-70">Room code</div>
+                <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Enter a room code to continue hosting an existing room.
+                </div>
+
+                <div>
+                  <div className="text-sm font-medium">Room code</div>
                   <Input
                     value={rehostCode}
                     onChange={(e) => setRehostCode(cleanRoomCode(e.target.value))}
-                    placeholder="For example 3PDSXFT5"
                     autoCapitalize="characters"
                     spellCheck={false}
                   />
                 </div>
 
-                <Button
-                  onClick={rehostRoom}
-                  disabled={rehostBusy || !cleanRoomCode(rehostCode)}
-                >
+                <Button onClick={rehostRoom} disabled={rehostBusy || !cleanRoomCode(rehostCode)}>
                   {rehostBusy ? "Loading…" : "Re-host"}
                 </Button>
 
                 {rehostError ? (
-                  <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm">
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
                     {rehostError}
                   </div>
                 ) : null}
               </CardContent>
             </Card>
+          ) : null}
+        </div>
 
+        <div className="space-y-6">
+          {!roomCode ? (
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between gap-2">
-                  <CardTitle>Packs</CardTitle>
-                  {!mustShowPackPicker ? (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setSelectPacks((v) => !v)}
-                    >
-                      {selectPacks ? "Done" : "Select"}
-                    </Button>
-                  ) : (
-                    <div className="text-xs opacity-70">Per pack needs selection</div>
-                  )}
-                </div>
+                <CardTitle>Packs</CardTitle>
               </CardHeader>
 
-              <CardContent className="space-y-3">
-                <div className="text-xs opacity-70">
-                  {packsLoading ? "Loading packs…" : `${packs.length} active packs`}
-                </div>
-
-                {packsError ? (
-                  <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm">
-                    {packsError}
-                  </div>
-                ) : null}
-
-                {!showPackPicker ? (
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 text-sm opacity-90">
-                    Using all active packs.
+              <CardContent className="space-y-4">
+                {!selectPacks ? (
+                  <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                    Tick Select packs on the left if you want to choose packs. Leave it unticked to use all active packs.
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {packs.map((p) => {
-                      const selected = Boolean(selectedPacks[p.id])
+                  <div className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-800">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <div className="text-sm font-semibold">Packs</div>
 
-                      return (
-                        <div
-                          key={p.id}
-                          className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
-                            selected
-                              ? "border-[var(--foreground)]"
-                              : "border-[var(--border)] opacity-80"
-                          }`}
-                          onClick={() => togglePack(p.id)}
-                          role="button"
-                          tabIndex={0}
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="rounded-xl border border-zinc-200 px-2 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                          onClick={() => setAllSelected(true)}
                         >
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-medium">
-                              {p.display_name}
-                            </div>
-                            <div className="text-xs opacity-70">{p.round_type}</div>
-                          </div>
+                          Select all
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-xl border border-zinc-200 px-2 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                          onClick={() => setAllSelected(false)}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
 
-                          {selectionStrategy === "per_pack" ? (
-                            <div className="w-24" onClick={(e) => e.stopPropagation()}>
-                              <Input
-                                value={perPackCounts[p.id] ?? ""}
-                                onChange={(e) => onPerPackChange(p.id, e.target.value)}
-                                onBlur={() => onPerPackBlur(p.id)}
-                                placeholder="0"
+                    <div className="mb-3 flex flex-wrap items-center gap-3">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="radio"
+                          name="selectionStrategy"
+                          value="all_packs"
+                          checked={selectionStrategy === "all_packs"}
+                          onChange={() => setSelectionStrategy("all_packs")}
+                        />
+                        Use all selected packs
+                      </label>
+
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="radio"
+                          name="selectionStrategy"
+                          value="per_pack"
+                          checked={selectionStrategy === "per_pack"}
+                          onChange={() => setSelectionStrategy("per_pack")}
+                        />
+                        Allocate per pack
+                      </label>
+                    </div>
+
+                    {packsLoading ? (
+                      <div className="text-sm text-zinc-600 dark:text-zinc-400">Loading packs…</div>
+                    ) : packsError ? (
+                      <div className="text-sm text-red-600">{packsError}</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {packs.map((p) => (
+                          <div key={p.id} className="flex items-center justify-between gap-3">
+                            <label className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={!!selectedPacks[p.id]}
+                                onChange={() => togglePack(p.id)}
                               />
-                            </div>
-                          ) : null}
-                        </div>
-                      )
-                    })}
+                              <span className="truncate">{p.display_name}</span>
+                            </label>
+
+                            {selectionStrategy === "per_pack" ? (
+                              <input
+                                className="w-24 rounded-xl border border-zinc-200 bg-white px-2 py-1 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+                                inputMode="numeric"
+                                placeholder="Count"
+                                value={perPackCounts[p.id] ?? ""}
+                                onChange={(e) =>
+                                  setPerPackCounts((prev) => ({ ...prev, [p.id]: e.target.value }))
+                                }
+                              />
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
             </Card>
-          </div>
+          ) : null}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Room</CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              {roomCode ? (
+                <>
+                  <div className="grid gap-2">
+                    <div className="text-sm text-zinc-600 dark:text-zinc-400">Room code</div>
+                    <div className="text-2xl font-semibold tracking-widest">{roomCode}</div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <div className="text-sm text-zinc-600 dark:text-zinc-400">Join link</div>
+                    <div className="break-all rounded-xl border border-zinc-200 bg-white p-2 text-sm dark:border-zinc-800 dark:bg-zinc-950">
+                      {joinUrl}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4">
+                    <QRCodeSVG value={joinUrl} size={156} />
+                    <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                      Teams can join on their phones at <span className="font-medium">/join</span>.
+                    </div>
+                  </div>
+
+                  <HostJoinedTeamsPanel code={roomCode} />
+                </>
+              ) : (
+                <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Create a room to see the join code and QR.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {showGameplayPanel ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Gameplay display</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
+                  <iframe
+                    title="Gameplay display"
+                    src={displayUrl}
+                    className="h-[70vh] w-full"
+                    allow="fullscreen"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
-      )}
+      </div>
     </div>
   )
 }
