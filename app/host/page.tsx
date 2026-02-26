@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
 import { QRCodeSVG } from "qrcode.react"
 import { supabase } from "@/lib/supabaseClient"
 import { Button } from "@/components/ui/Button"
@@ -103,7 +102,7 @@ export default function HostPage() {
   const mustShowPackPicker = selectionStrategy === "per_pack"
   const showPackPicker = selectPacks || mustShowPackPicker
 
-  const shouldShowGameplayPanel =
+  const showGameplayPanel =
     Boolean(roomCode) && (roomPhase === "running" || roomPhase === "finished")
 
   useEffect(() => {
@@ -467,7 +466,7 @@ export default function HostPage() {
         : "Game finished"
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6">
+    <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-6">
       <Card>
         <CardHeader>
           <CardTitle>Host</CardTitle>
@@ -480,146 +479,265 @@ export default function HostPage() {
       </Card>
 
       {roomCode ? (
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Room {roomCode}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="rounded-full border border-[var(--border)] bg-[var(--muted)] px-3 py-1 text-xs">
-                  {stagePill}
-                </div>
-              </div>
-
-              {startError ? (
-                <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm">
-                  {startError}
-                </div>
-              ) : null}
-              {startOk ? (
-                <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm whitespace-pre-line">
-                  {startOk}
-                </div>
-              ) : null}
-              {resetError ? (
-                <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm">
-                  {resetError}
-                </div>
-              ) : null}
-              {resetOk ? (
-                <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm whitespace-pre-line">
-                  {resetOk}
-                </div>
-              ) : null}
-
-              <div className="space-y-1">
-                <div className="text-xs opacity-70">Players join link</div>
-                <div className="break-all rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 text-sm">
-                  {joinUrl || "Join link not available."}
-                </div>
-              </div>
-
-              {joinUrl ? (
-                <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-                  <div className="rounded-xl border border-[var(--border)] bg-white p-3">
-                    <QRCodeSVG value={joinUrl} size={140} />
-                  </div>
-                  <div className="text-sm opacity-80">
-                    Show the QR code on your TV so teams can join quickly.
-                  </div>
-                </div>
-              ) : null}
-            </CardContent>
-            <CardFooter className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-              <Button onClick={() => openInNewWindow(displayUrl)}>
-                Open TV display
-              </Button>
-
-              <Button
-                variant="secondary"
-                onClick={() => openInNewWindow(joinPageUrl)}
-                disabled={!roomCode}
-              >
-                Join room
-              </Button>
-
-              <Button onClick={startGame} disabled={!canStart}>
-                {startLabel}
-              </Button>
-
-              <Button
-                variant="secondary"
-                onClick={resetRoom}
-                disabled={!roomCode || resetting}
-              >
-                {resetting ? "Resetting…" : "Reset room (keep code)"}
-              </Button>
-
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setRoomCode(null)
-                  setRoomPhase("lobby")
-                  setRoomStage("lobby")
-                  setStartError(null)
-                  setStartOk(null)
-                  setResetError(null)
-                  setResetOk(null)
-                }}
-              >
-                Create another room
-              </Button>
-            </CardFooter>
-          </Card>
-
-          {shouldShowGameplayPanel ? (
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="space-y-4 lg:col-span-2">
             <Card>
               <CardHeader>
-                <CardTitle>Gameplay display</CardTitle>
+                <CardTitle>Room {roomCode}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="text-sm opacity-80">
-                  This appears once the game starts, so you can host from one screen if you need to.
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="rounded-full border border-[var(--border)] bg-[var(--muted)] px-3 py-1 text-xs">
+                    {stagePill}
+                  </div>
                 </div>
-                <div className="overflow-hidden rounded-lg border border-[var(--border)]">
-                  <iframe
-                    title="Gameplay display"
-                    src={displayUrl}
-                    className="h-[70vh] w-full"
-                    allow="fullscreen"
-                  />
+
+                {startError ? (
+                  <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm">
+                    {startError}
+                  </div>
+                ) : null}
+                {startOk ? (
+                  <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm whitespace-pre-line">
+                    {startOk}
+                  </div>
+                ) : null}
+                {resetError ? (
+                  <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm">
+                    {resetError}
+                  </div>
+                ) : null}
+                {resetOk ? (
+                  <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm whitespace-pre-line">
+                    {resetOk}
+                  </div>
+                ) : null}
+
+                <div className="space-y-1">
+                  <div className="text-xs opacity-70">Players join link</div>
+                  <div className="break-all rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 text-sm">
+                    {joinUrl || "Join link not available."}
+                  </div>
                 </div>
+
+                {joinUrl ? (
+                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+                    <div className="rounded-xl border border-[var(--border)] bg-white p-3">
+                      <QRCodeSVG value={joinUrl} size={140} />
+                    </div>
+                    <div className="text-sm opacity-80">
+                      Show the QR code on your TV so teams can join quickly.
+                    </div>
+                  </div>
+                ) : null}
+              </CardContent>
+              <CardFooter className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                <Button onClick={() => openInNewWindow(displayUrl)}>
+                  Open TV display
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  onClick={() => openInNewWindow(joinPageUrl)}
+                  disabled={!roomCode}
+                >
+                  Join room
+                </Button>
+
+                <Button onClick={startGame} disabled={!canStart}>
+                  {startLabel}
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  onClick={resetRoom}
+                  disabled={!roomCode || resetting}
+                >
+                  {resetting ? "Resetting…" : "Reset room (keep code)"}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setRoomCode(null)
+                    setRoomPhase("lobby")
+                    setRoomStage("lobby")
+                    setStartError(null)
+                    setStartOk(null)
+                    setResetError(null)
+                    setResetOk(null)
+                  }}
+                >
+                  Create another room
+                </Button>
+              </CardFooter>
+            </Card>
+
+            {showGameplayPanel ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Gameplay display</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="overflow-hidden rounded-lg border border-[var(--border)]">
+                    <iframe
+                      title="Gameplay display"
+                      src={displayUrl}
+                      className="h-[70vh] w-full"
+                      allow="fullscreen"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick checklist</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm opacity-90">
+                <div>Open the TV display on a big screen.</div>
+                <div>Share the join link or show the QR code.</div>
+                <div>Press Start game when everyone has joined.</div>
+                <div>If you started too early, press Reset.</div>
               </CardContent>
             </Card>
-          ) : null}
+          </div>
 
-          <HostJoinedTeamsPanel code={roomCode} />
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick checklist</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm opacity-90">
-              <div>Open the TV display on a big screen.</div>
-              <div>Share the join link or show the QR code.</div>
-              <div>Press Start game when everyone has joined.</div>
-              <div>If you started too early, press Reset.</div>
-            </CardContent>
-          </Card>
+          <div className="space-y-4 lg:col-span-1">
+            <HostJoinedTeamsPanel code={roomCode} />
+          </div>
         </div>
       ) : (
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Re-host an existing room</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm opacity-80">
-                If you left the host page by accident, enter the room code to continue hosting that room.
-              </p>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="space-y-4 lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Room settings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {createError ? (
+                  <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm">
+                    {createError}
+                  </div>
+                ) : null}
 
-              <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">How to pick questions</div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant={
+                        selectionStrategy === "all_packs" ? "primary" : "secondary"
+                      }
+                      onClick={() => setSelectionStrategy("all_packs")}
+                    >
+                      Total count
+                    </Button>
+                    <Button
+                      variant={
+                        selectionStrategy === "per_pack" ? "primary" : "secondary"
+                      }
+                      onClick={() => setSelectionStrategy("per_pack")}
+                    >
+                      Per pack
+                    </Button>
+                  </div>
+                  <div className="text-sm opacity-80">
+                    Total count picks a total number of questions. Per pack lets you set counts for chosen packs.
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Question filter</div>
+                  <select
+                    className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 text-sm"
+                    value={roundFilter}
+                    onChange={(e) => setRoundFilter(e.target.value as RoundFilter)}
+                  >
+                    <option value="mixed">Mixed</option>
+                    <option value="no_audio">No audio</option>
+                    <option value="no_image">No images</option>
+                    <option value="audio_only">Audio only</option>
+                    <option value="picture_only">Picture only</option>
+                    <option value="audio_and_image">Audio + image only</option>
+                  </select>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="space-y-1">
+                    <div className="text-xs opacity-70">Total questions</div>
+                    <Input
+                      value={totalQuestionsStr}
+                      onChange={(e) =>
+                        onDigitsChange(setTotalQuestionsStr, e.target.value)
+                      }
+                      onBlur={() =>
+                        onDigitsBlur(setTotalQuestionsStr, totalQuestionsStr, 20, 1, 200)
+                      }
+                      placeholder="20"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="text-xs opacity-70">Countdown (seconds)</div>
+                    <Input
+                      value={countdownSecondsStr}
+                      onChange={(e) =>
+                        onDigitsChange(setCountdownSecondsStr, e.target.value)
+                      }
+                      onBlur={() =>
+                        onDigitsBlur(setCountdownSecondsStr, countdownSecondsStr, 5, 0, 60)
+                      }
+                      placeholder="5"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="text-xs opacity-70">Answer time (seconds)</div>
+                    <Input
+                      value={answerSecondsStr}
+                      onChange={(e) =>
+                        onDigitsChange(setAnswerSecondsStr, e.target.value)
+                      }
+                      onBlur={() =>
+                        onDigitsBlur(setAnswerSecondsStr, answerSecondsStr, 20, 5, 120)
+                      }
+                      placeholder="20"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Audio mode</div>
+                  <select
+                    className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 text-sm"
+                    value={audioMode}
+                    onChange={(e) => setAudioMode(e.target.value as AudioMode)}
+                  >
+                    <option value="display">TV display only</option>
+                    <option value="phones">Phones only</option>
+                    <option value="both">Both</option>
+                  </select>
+                </div>
+              </CardContent>
+              <CardFooter className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <Button onClick={createRoom} disabled={creating || packsLoading}>
+                  {creating ? "Creating…" : "Create room"}
+                </Button>
+
+                <a className="text-sm opacity-80 hover:underline" href="/">
+                  Back to home
+                </a>
+              </CardFooter>
+            </Card>
+          </div>
+
+          <div className="space-y-4 lg:col-span-1">
+            <Card>
+              <CardHeader>
+                <CardTitle>Re-host room</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 <div className="space-y-1">
                   <div className="text-xs opacity-70">Room code</div>
                   <Input
@@ -630,150 +748,43 @@ export default function HostPage() {
                     spellCheck={false}
                   />
                 </div>
+
                 <Button
                   onClick={rehostRoom}
                   disabled={rehostBusy || !cleanRoomCode(rehostCode)}
                 >
-                  {rehostBusy ? "Loading…" : "Re-host room"}
+                  {rehostBusy ? "Loading…" : "Re-host"}
                 </Button>
-              </div>
 
-              {rehostError ? (
-                <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm">
-                  {rehostError}
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
+                {rehostError ? (
+                  <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm">
+                    {rehostError}
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Room settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {createError ? (
-                <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm">
-                  {createError}
-                </div>
-              ) : null}
-
-              <div className="space-y-2">
-                <div className="text-sm font-medium">How to pick questions</div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={selectionStrategy === "all_packs" ? "primary" : "secondary"}
-                    onClick={() => setSelectionStrategy("all_packs")}
-                  >
-                    Total count
-                  </Button>
-                  <Button
-                    variant={selectionStrategy === "per_pack" ? "primary" : "secondary"}
-                    onClick={() => setSelectionStrategy("per_pack")}
-                  >
-                    Per pack
-                  </Button>
-                </div>
-                <div className="text-sm opacity-80">
-                  Total count picks a total number of questions. Per pack lets you set counts for chosen packs.
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Question filter</div>
-                <select
-                  className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 text-sm"
-                  value={roundFilter}
-                  onChange={(e) => setRoundFilter(e.target.value as RoundFilter)}
-                >
-                  <option value="mixed">Mixed</option>
-                  <option value="no_audio">No audio</option>
-                  <option value="no_image">No images</option>
-                  <option value="audio_only">Audio only</option>
-                  <option value="picture_only">Picture only</option>
-                  <option value="audio_and_image">Audio + image only</option>
-                </select>
-                <div className="text-sm opacity-80">
-                  Use this when you want to avoid certain round types.
-                </div>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="space-y-1">
-                  <div className="text-xs opacity-70">Total questions</div>
-                  <Input
-                    value={totalQuestionsStr}
-                    onChange={(e) => onDigitsChange(setTotalQuestionsStr, e.target.value)}
-                    onBlur={() =>
-                      onDigitsBlur(setTotalQuestionsStr, totalQuestionsStr, 20, 1, 200)
-                    }
-                    placeholder="20"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <div className="text-xs opacity-70">Countdown (seconds)</div>
-                  <Input
-                    value={countdownSecondsStr}
-                    onChange={(e) => onDigitsChange(setCountdownSecondsStr, e.target.value)}
-                    onBlur={() =>
-                      onDigitsBlur(setCountdownSecondsStr, countdownSecondsStr, 5, 0, 60)
-                    }
-                    placeholder="5"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <div className="text-xs opacity-70">Answer time (seconds)</div>
-                  <Input
-                    value={answerSecondsStr}
-                    onChange={(e) => onDigitsChange(setAnswerSecondsStr, e.target.value)}
-                    onBlur={() =>
-                      onDigitsBlur(setAnswerSecondsStr, answerSecondsStr, 20, 5, 120)
-                    }
-                    placeholder="20"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm font-medium">Audio mode</div>
-                <select
-                  className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 text-sm"
-                  value={audioMode}
-                  onChange={(e) => setAudioMode(e.target.value as AudioMode)}
-                >
-                  <option value="display">TV display only</option>
-                  <option value="phones">Phones only</option>
-                  <option value="both">Both</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
+            <Card>
+              <CardHeader>
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-medium">Packs</div>
+                  <CardTitle>Packs</CardTitle>
                   {!mustShowPackPicker ? (
                     <Button
                       variant="secondary"
                       size="sm"
                       onClick={() => setSelectPacks((v) => !v)}
                     >
-                      {selectPacks ? "Selecting packs" : "Select packs"}
+                      {selectPacks ? "Done" : "Select"}
                     </Button>
                   ) : (
-                    <div className="text-xs opacity-70">Per pack needs pack selection</div>
+                    <div className="text-xs opacity-70">Per pack needs selection</div>
                   )}
                 </div>
+              </CardHeader>
 
-                <div className="text-sm opacity-80">
-                  {mustShowPackPicker
-                    ? "Per pack needs you to pick packs and set counts."
-                    : selectPacks
-                      ? "Select the packs you want to use."
-                      : "Use all active packs by default."}
-                </div>
-
+              <CardContent className="space-y-3">
                 <div className="text-xs opacity-70">
-                  {packsLoading ? "Loading packs…" : `${packs.length} active packs available`}
+                  {packsLoading ? "Loading packs…" : `${packs.length} active packs`}
                 </div>
 
                 {packsError ? (
@@ -782,80 +793,52 @@ export default function HostPage() {
                   </div>
                 ) : null}
 
-                {showPackPicker ? (
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium">Select packs</div>
-                    <div className="text-sm opacity-80">
-                      Tap packs to include them.
-                      {selectionStrategy === "per_pack"
-                        ? " Set a count for at least one selected pack."
-                        : ""}
-                    </div>
-
-                    <div className="space-y-2">
-                      {packs.map((p) => {
-                        const selected = Boolean(selectedPacks[p.id])
-                        return (
-                          <div
-                            key={p.id}
-                            className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
-                              selected
-                                ? "border-[var(--foreground)]"
-                                : "border-[var(--border)] opacity-80"
-                            }`}
-                            onClick={() => togglePack(p.id)}
-                            role="button"
-                            tabIndex={0}
-                          >
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-medium">
-                                {p.display_name}
-                              </div>
-                              <div className="text-xs opacity-70">{p.round_type}</div>
-                            </div>
-
-                            {selectionStrategy === "per_pack" ? (
-                              <div className="w-24" onClick={(e) => e.stopPropagation()}>
-                                <Input
-                                  value={perPackCounts[p.id] ?? ""}
-                                  onChange={(e) => onPerPackChange(p.id, e.target.value)}
-                                  onBlur={() => onPerPackBlur(p.id)}
-                                  placeholder="0"
-                                />
-                              </div>
-                            ) : (
-                              <div className="text-xs opacity-60">n/a</div>
-                            )}
-                          </div>
-                        )
-                      })}
-
-                      {packs.length === 0 && !packsLoading ? (
-                        <div className="text-sm opacity-80">No active packs found.</div>
-                      ) : null}
-                    </div>
-
-                    <div className="text-sm opacity-80">
-                      You can keep this closed when you use all packs.
-                    </div>
+                {!showPackPicker ? (
+                  <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 text-sm opacity-90">
+                    Using all active packs.
                   </div>
                 ) : (
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 text-sm opacity-90">
-                    You are using all active packs. Press Select packs if you want to narrow it down.
+                  <div className="space-y-2">
+                    {packs.map((p) => {
+                      const selected = Boolean(selectedPacks[p.id])
+
+                      return (
+                        <div
+                          key={p.id}
+                          className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
+                            selected
+                              ? "border-[var(--foreground)]"
+                              : "border-[var(--border)] opacity-80"
+                          }`}
+                          onClick={() => togglePack(p.id)}
+                          role="button"
+                          tabIndex={0}
+                        >
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium">
+                              {p.display_name}
+                            </div>
+                            <div className="text-xs opacity-70">{p.round_type}</div>
+                          </div>
+
+                          {selectionStrategy === "per_pack" ? (
+                            <div className="w-24" onClick={(e) => e.stopPropagation()}>
+                              <Input
+                                value={perPackCounts[p.id] ?? ""}
+                                onChange={(e) => onPerPackChange(p.id, e.target.value)}
+                                onBlur={() => onPerPackBlur(p.id)}
+                                placeholder="0"
+                              />
+                            </div>
+                          ) : null}
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
-              </div>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <Button onClick={createRoom} disabled={creating || packsLoading}>
-                {creating ? "Creating…" : "Create room"}
-              </Button>
-
-              <Link href="/" className="text-sm opacity-80 hover:underline">
-                Back to home
-              </Link>
-            </CardFooter>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
     </div>
