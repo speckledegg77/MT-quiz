@@ -245,6 +245,94 @@ Stages (during running):
 
 ---
 
+## Host page agreed layout contract (do not change without updating this section)
+
+Applies to:
+- `app/host/page.tsx`
+
+Goal:
+- Keep the host page layout stable while we improve behaviour and styling.
+
+Layout rules
+
+1. Page structure
+- Use a two-column layout on large screens (`lg:grid-cols-2`) with `max-w-5xl`.
+- Left column handles creation and hosting actions.
+- Right column handles room info and the gameplay display.
+
+2. Pre-room state (no room code yet)
+Left column:
+- Show a “Create a room” card with:
+  - Total questions, Countdown seconds, Answer seconds inputs (string-backed inputs so the box can be cleared while typing).
+  - Round filter dropdown.
+  - Audio mode dropdown.
+  - “Select packs” checkbox.
+- Show a “Re-host room” card directly below “Create a room”.
+
+Right column:
+- Show a “Packs” card.
+  - If “Select packs” is unticked, show a short instruction that we will use all active packs.
+  - If “Select packs” is ticked, show the pack selector panel:
+    - Default: all packs unchecked.
+    - Buttons: “Select all” and “Clear”.
+    - Radio options:
+      - “Use all selected packs”
+      - “Allocate per pack”
+    - Pack rows use the agreed checkbox layout.
+    - If “Allocate per pack”, show a count input on each selected pack row.
+- Show a “Room” card (placeholder text is fine until a room exists).
+
+3. Post-room state (room exists)
+Left column:
+- Replace “Create a room” with a “Host controls” card.
+- Remove the “Re-host room” card.
+- Show “Joined teams” as its own card below “Host controls”.
+  - Do not place joined teams inside the “Room” card.
+
+Right column:
+- Show a “Room” card containing:
+  - Room code.
+  - Join link (copyable text area).
+  - QR code for the join link.
+- Show “Gameplay display” under the Room card once the game starts.
+  - This appears when phase is `running` or `finished`.
+  - It embeds `/display/[code]` in an iframe (height about `70vh`).
+
+4. Buttons and behaviour
+- Remove the “Open player view (for testing)” button.
+- “Open TV display” must open `/display/[code]` in a new window/tab using `window.open(url, "_blank", "noopener,noreferrer")`.
+- “Join room” must open `/join?code=[code]` in a new window/tab using the same `window.open` approach.
+- “Start game” calls `/api/room/start`.
+- “Reset room” calls `/api/room/reset` and keeps the room code. (Teams remain, scores reset, new questions picked.)
+
+5. Packs visibility after room creation
+- The “Packs” card must disappear once a room exists.
+- The host should not see or edit pack selection after room creation.
+
+6. Re-host behaviour
+- Re-host uses a room code input and validates via `/api/room/state?code=...`.
+- Store the last hosted room code in localStorage key `mtq_last_host_code` to prefill the re-host box.
+
+7. Dark mode and text colours
+- Do not rely on light-mode greys like `text-zinc-600` without a dark equivalent.
+- Prefer theme tokens for secondary text and borders:
+  - `text-[hsl(var(--muted-foreground))]`
+  - `border-[hsl(var(--border))]`
+  - `bg-[hsl(var(--card))]`
+- If helper text becomes hard to read in dark mode, fix it in the host page first. Only change global theme defaults if multiple pages show the same problem.
+
+Smoke test checklist (run after any host page change)
+- Create a room with “Select packs” unticked, confirm packs card exists pre-room and disappears after room creation.
+- Tick “Select packs”, confirm all packs start unchecked and Select all and Clear work.
+- Create room with selected packs, confirm room code, join link, and QR appear.
+- Open TV display opens in a new tab.
+- Join room opens in a new tab with the code in the URL.
+- Start game shows gameplay display under the Room card.
+- Joined teams show in a dedicated card under Host controls.
+- Reset room returns to lobby state and keeps the same room code.
+- Toggle dark mode and confirm helper text remains readable.
+---
+
 ## Known gotchas
 
 - Do not use `variant="default"` on Button.
