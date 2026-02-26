@@ -26,6 +26,7 @@ type RoundFilter =
   | "audio_only"
   | "picture_only"
   | "audio_and_image"
+
 type AudioMode = "display" | "phones" | "both"
 type RoomState = any
 
@@ -62,9 +63,11 @@ export default function HostPage() {
   const [roundFilter, setRoundFilter] = useState<RoundFilter>("mixed")
   const [audioMode, setAudioMode] = useState<AudioMode>("display")
 
-  const [totalQuestionsStr, setTotalQuestionsStr] = useState<string>("20")
-  const [countdownSecondsStr, setCountdownSecondsStr] = useState<string>("5")
-  const [answerSecondsStr, setAnswerSecondsStr] = useState<string>("20")
+  const [totalQuestionsStr, setTotalQuestionsStr] = useState("20")
+  const [countdownSecondsStr, setCountdownSecondsStr] = useState("5")
+  const [answerSecondsStr, setAnswerSecondsStr] = useState("20")
+
+  const [untimedAnswers, setUntimedAnswers] = useState(false)
 
   const [perPackCounts, setPerPackCounts] = useState<Record<string, string>>({})
 
@@ -82,6 +85,9 @@ export default function HostPage() {
   const [resetting, setResetting] = useState(false)
   const [resetError, setResetError] = useState<string | null>(null)
   const [resetOk, setResetOk] = useState<string | null>(null)
+
+  const [forcingClose, setForcingClose] = useState(false)
+  const [forceCloseError, setForceCloseError] = useState<string | null>(null)
 
   const [rehostCode, setRehostCode] = useState("")
   const [rehostBusy, setRehostBusy] = useState(false)
@@ -170,7 +176,6 @@ export default function HostPage() {
         const res = await fetch(`/api/room/state?code=${roomCode}`, { cache: "no-store" })
         const data: RoomState = await res.json().catch(() => ({}))
         if (cancelled) return
-
         if (res.ok) {
           setRoomPhase(String(data?.phase ?? "lobby"))
           setRoomStage(String(data?.stage ?? "lobby"))
@@ -234,11 +239,12 @@ export default function HostPage() {
     setStartOk(null)
     setResetError(null)
     setResetOk(null)
+    setForceCloseError(null)
 
     try {
       const totalQuestions = clampInt(parseIntOr(totalQuestionsStr, 20), 1, 200)
       const countdownSeconds = clampInt(parseIntOr(countdownSecondsStr, 5), 0, 30)
-      const answerSeconds = clampInt(parseIntOr(answerSecondsStr, 20), 5, 120)
+      const answerSeconds = untimedAnswers ? 0 : clampInt(parseIntOr(answerSecondsStr, 20), 5, 120)
 
       const usingAllPacks = !selectPacks
       const strategy: SelectionStrategy = usingAllPacks ? "all_packs" : selectionStrategy
@@ -295,10 +301,9 @@ export default function HostPage() {
       setRoomPhase("lobby")
       setRoomStage("lobby")
       rememberHostCode(code)
-
-      setCreating(false)
     } catch (e: any) {
       setCreateError(e?.message ?? "Failed to create room")
+    } finally {
       setCreating(false)
     }
   }
@@ -354,7 +359,6 @@ export default function HostPage() {
 
       if (!res.ok) {
         setStartError(data?.error ?? "Could not start game.")
-        setStarting(false)
         return
       }
 
@@ -376,6 +380,7 @@ export default function HostPage() {
     setResetOk(null)
     setStartError(null)
     setStartOk(null)
+    setForceCloseError(null)
 
     try {
       const res = await fetch("/api/room/reset", {
@@ -388,7 +393,6 @@ export default function HostPage() {
 
       if (!res.ok) {
         setResetError(data?.error ?? "Reset failed.")
-        setResetting(false)
         return
       }
 
@@ -402,6 +406,30 @@ export default function HostPage() {
     }
   }
 
+  async function forceNextQuestion() {
+    if (!roomCode) return
+
+    setForcingClose(true)
+    setForceCloseError(null)
+
+    try {
+      const res = await fetch("/api/room/force-close", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: roomCode }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setForceCloseError(data?.error ?? "Could not move on.")
+      }
+    } catch {
+      setForceCloseError("Could not move on.")
+    } finally {
+      setForcingClose(false)
+    }
+  }
+
   function clearRoom() {
     setRoomCode(null)
     setRoomPhase("lobby")
@@ -410,6 +438,7 @@ export default function HostPage() {
     setStartOk(null)
     setResetError(null)
     setResetOk(null)
+    setForceCloseError(null)
   }
 
   const stagePill = useMemo(() => {
@@ -425,6 +454,8 @@ export default function HostPage() {
   }, [roomPhase, roomStage])
 
   const canStart = roomCode && roomPhase === "lobby" && !starting
+  const canForceNext = roomCode && roomPhase === "running" && roomStage === "open" && !forcingClose
+
   const startLabel =
     roomPhase === "lobby"
       ? starting
@@ -469,7 +500,21 @@ export default function HostPage() {
 
                   <div>
                     <div className="text-sm font-medium text-[hsl(var(--foreground))]">Answer seconds</div>
-                    <Input value={answerSecondsStr} onChange={(e) => setAnswerSecondsStr(e.target.value)} inputMode="numeric" />
+                    <Input
+                      value={answerSecondsStr}
+                      onChange={(e) => setAnswerSecondsStr(e.target.value)}
+                      inputMode="numeric"
+                      disabled={untimedAnswers}
+                    />
+                    <label className={`mt-2 flex items-center gap-2 text-sm ${mutedText}`}>
+                      <input type="checkbox" checked={untimedAnswers} onChange={(e) => setUntimedAnswers(e.target.checked)} />
+                      Untimed answers (host controls)
+                    </label>
+                    {untimedAnswers ? (
+                      <div className={`mt-1 text-xs ${mutedText}`}>
+                        The question stays open until everyone answers or you press Next question.
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
@@ -562,6 +607,12 @@ export default function HostPage() {
                   </div>
                 ) : null}
 
+                {forceCloseError ? (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+                    {forceCloseError}
+                  </div>
+                ) : null}
+
                 <div className="grid gap-2 sm:grid-cols-2">
                   <Button onClick={() => openInNewWindow(displayUrl)}>Open TV display</Button>
                   <Button variant="secondary" onClick={() => openInNewWindow(joinPageUrl)}>
@@ -577,6 +628,16 @@ export default function HostPage() {
                   <Button variant="secondary" onClick={resetRoom} disabled={resetting}>
                     {resetting ? "Resetting…" : "Reset room"}
                   </Button>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button variant="secondary" onClick={forceNextQuestion} disabled={!canForceNext}>
+                    {forcingClose ? "Moving on…" : "Next question"}
+                  </Button>
+
+                  <div className={`flex items-center text-sm ${mutedText}`}>
+                    Works best with untimed answers.
+                  </div>
                 </div>
 
                 <Button variant="ghost" onClick={clearRoom}>
@@ -698,11 +759,7 @@ export default function HostPage() {
                         {packs.map((p) => (
                           <div key={p.id} className="flex items-center justify-between gap-3">
                             <label className={`flex items-center gap-2 text-sm ${mutedText}`}>
-                              <input
-                                type="checkbox"
-                                checked={!!selectedPacks[p.id]}
-                                onChange={() => togglePack(p.id)}
-                              />
+                              <input type="checkbox" checked={!!selectedPacks[p.id]} onChange={() => togglePack(p.id)} />
                               <span className="truncate">{p.display_name}</span>
                             </label>
 
@@ -737,9 +794,7 @@ export default function HostPage() {
                 <>
                   <div className="grid gap-2">
                     <div className={`text-sm ${mutedText}`}>Room code</div>
-                    <div className="text-2xl font-semibold tracking-widest text-[hsl(var(--foreground))]">
-                      {roomCode}
-                    </div>
+                    <div className="text-2xl font-semibold tracking-widest text-[hsl(var(--foreground))]">{roomCode}</div>
                   </div>
 
                   <div className="grid gap-2">
@@ -771,12 +826,7 @@ export default function HostPage() {
               </CardHeader>
               <CardContent>
                 <div className={`overflow-hidden rounded-xl border ${borderToken}`}>
-                  <iframe
-                    title="Gameplay display"
-                    src={displayUrl}
-                    className="h-[70vh] w-full"
-                    allow="fullscreen"
-                  />
+                  <iframe title="Gameplay display" src={displayUrl} className="h-[70vh] w-full" allow="fullscreen" />
                 </div>
               </CardContent>
             </Card>
