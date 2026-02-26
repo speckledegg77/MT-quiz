@@ -27,7 +27,6 @@ type RoundFilter =
   | "picture_only"
   | "audio_and_image"
 type AudioMode = "display" | "phones" | "both"
-
 type RoomState = any
 
 const LAST_HOST_CODE_KEY = "mtq_last_host_code"
@@ -63,12 +62,10 @@ export default function HostPage() {
   const [roundFilter, setRoundFilter] = useState<RoundFilter>("mixed")
   const [audioMode, setAudioMode] = useState<AudioMode>("display")
 
-  // String inputs so you can clear the field while typing
   const [totalQuestionsStr, setTotalQuestionsStr] = useState<string>("20")
   const [countdownSecondsStr, setCountdownSecondsStr] = useState<string>("5")
   const [answerSecondsStr, setAnswerSecondsStr] = useState<string>("20")
 
-  // Per-pack counts (string so blank is allowed while typing)
   const [perPackCounts, setPerPackCounts] = useState<Record<string, string>>({})
 
   const [creating, setCreating] = useState(false)
@@ -96,6 +93,10 @@ export default function HostPage() {
   const displayUrl = roomCode ? `/display/${roomCode}` : ""
 
   const showGameplayPanel = Boolean(roomCode) && (roomPhase === "running" || roomPhase === "finished")
+
+  const mutedText = "text-[hsl(var(--muted-foreground))]"
+  const borderToken = "border-[hsl(var(--border))]"
+  const cardToken = "bg-[hsl(var(--card))]"
 
   useEffect(() => {
     try {
@@ -437,13 +438,11 @@ export default function HostPage() {
     <div className="mx-auto max-w-5xl px-4 py-6">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Host</h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Create a room, share the code, and start the quiz.
-          </p>
+          <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">Host</h1>
+          <p className={`mt-1 text-sm ${mutedText}`}>Create a room, share the code, and start the quiz.</p>
         </div>
 
-        <Link href="/" className="text-sm text-zinc-600 hover:underline dark:text-zinc-400">
+        <Link href="/" className={`text-sm hover:underline ${mutedText}`}>
           Back to home
         </Link>
       </div>
@@ -459,40 +458,28 @@ export default function HostPage() {
               <CardContent className="space-y-4">
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
-                    <div className="text-sm font-medium">Total questions</div>
-                    <Input
-                      value={totalQuestionsStr}
-                      onChange={(e) => setTotalQuestionsStr(e.target.value)}
-                      inputMode="numeric"
-                    />
+                    <div className="text-sm font-medium text-[hsl(var(--foreground))]">Total questions</div>
+                    <Input value={totalQuestionsStr} onChange={(e) => setTotalQuestionsStr(e.target.value)} inputMode="numeric" />
                   </div>
 
                   <div>
-                    <div className="text-sm font-medium">Countdown seconds</div>
-                    <Input
-                      value={countdownSecondsStr}
-                      onChange={(e) => setCountdownSecondsStr(e.target.value)}
-                      inputMode="numeric"
-                    />
+                    <div className="text-sm font-medium text-[hsl(var(--foreground))]">Countdown seconds</div>
+                    <Input value={countdownSecondsStr} onChange={(e) => setCountdownSecondsStr(e.target.value)} inputMode="numeric" />
                   </div>
 
                   <div>
-                    <div className="text-sm font-medium">Answer seconds</div>
-                    <Input
-                      value={answerSecondsStr}
-                      onChange={(e) => setAnswerSecondsStr(e.target.value)}
-                      inputMode="numeric"
-                    />
+                    <div className="text-sm font-medium text-[hsl(var(--foreground))]">Answer seconds</div>
+                    <Input value={answerSecondsStr} onChange={(e) => setAnswerSecondsStr(e.target.value)} inputMode="numeric" />
                   </div>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
-                    <div className="text-sm font-medium">Round filter</div>
+                    <div className="text-sm font-medium text-[hsl(var(--foreground))]">Round filter</div>
                     <select
                       value={roundFilter}
                       onChange={(e) => setRoundFilter(e.target.value as RoundFilter)}
-                      className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+                      className={`mt-1 w-full rounded-xl border ${borderToken} ${cardToken} px-3 py-2 text-sm`}
                     >
                       <option value="mixed">Mixed</option>
                       <option value="no_audio">No audio</option>
@@ -504,11 +491,11 @@ export default function HostPage() {
                   </div>
 
                   <div>
-                    <div className="text-sm font-medium">Audio mode</div>
+                    <div className="text-sm font-medium text-[hsl(var(--foreground))]">Audio mode</div>
                     <select
                       value={audioMode}
                       onChange={(e) => setAudioMode(e.target.value as AudioMode)}
-                      className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+                      className={`mt-1 w-full rounded-xl border ${borderToken} ${cardToken} px-3 py-2 text-sm`}
                     >
                       <option value="display">Display only</option>
                       <option value="phones">Phones only</option>
@@ -517,12 +504,8 @@ export default function HostPage() {
                   </div>
 
                   <div className="flex items-end">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={selectPacks}
-                        onChange={(e) => setSelectPacks(e.target.checked)}
-                      />
+                    <label className={`flex items-center gap-2 text-sm ${mutedText}`}>
+                      <input type="checkbox" checked={selectPacks} onChange={(e) => setSelectPacks(e.target.checked)} />
                       Select packs
                     </label>
                   </div>
@@ -536,8 +519,8 @@ export default function HostPage() {
               </CardContent>
 
               <CardFooter>
-                <Button onClick={createRoom} disabled={creating}>
-                  {creating ? "Creating…" : "Create room"}
+                <Button onClick={createRoom} disabled={creating || packsLoading}>
+                  {creating ? "Creating…" : packsLoading ? "Loading packs…" : "Create room"}
                 </Button>
               </CardFooter>
             </Card>
@@ -549,8 +532,8 @@ export default function HostPage() {
 
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm text-zinc-600 dark:text-zinc-400">Status</div>
-                  <div className="rounded-full border border-zinc-200 px-3 py-1 text-xs dark:border-zinc-800">
+                  <div className={`text-sm ${mutedText}`}>Status</div>
+                  <div className={`rounded-full border ${borderToken} px-3 py-1 text-xs text-[hsl(var(--foreground))]`}>
                     {stagePill}
                   </div>
                 </div>
@@ -581,7 +564,6 @@ export default function HostPage() {
 
                 <div className="grid gap-2 sm:grid-cols-2">
                   <Button onClick={() => openInNewWindow(displayUrl)}>Open TV display</Button>
-
                   <Button variant="secondary" onClick={() => openInNewWindow(joinPageUrl)}>
                     Join room
                   </Button>
@@ -611,12 +593,10 @@ export default function HostPage() {
               </CardHeader>
 
               <CardContent className="space-y-3">
-                <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                  Enter a room code to continue hosting an existing room.
-                </div>
+                <div className={`text-sm ${mutedText}`}>Enter a room code to continue hosting an existing room.</div>
 
                 <div>
-                  <div className="text-sm font-medium">Room code</div>
+                  <div className="text-sm font-medium text-[hsl(var(--foreground))]">Room code</div>
                   <Input
                     value={rehostCode}
                     onChange={(e) => setRehostCode(cleanRoomCode(e.target.value))}
@@ -637,6 +617,17 @@ export default function HostPage() {
               </CardContent>
             </Card>
           ) : null}
+
+          {roomCode ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Joined teams</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <HostJoinedTeamsPanel code={roomCode} />
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
 
         <div className="space-y-6">
@@ -648,25 +639,25 @@ export default function HostPage() {
 
               <CardContent className="space-y-4">
                 {!selectPacks ? (
-                  <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                  <div className={`text-sm ${mutedText}`}>
                     Tick Select packs on the left if you want to choose packs. Leave it unticked to use all active packs.
                   </div>
                 ) : (
-                  <div className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-800">
+                  <div className={`rounded-2xl border ${borderToken} p-3`}>
                     <div className="mb-2 flex items-center justify-between gap-3">
-                      <div className="text-sm font-semibold">Packs</div>
+                      <div className="text-sm font-semibold text-[hsl(var(--foreground))]">Packs</div>
 
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          className="rounded-xl border border-zinc-200 px-2 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                          className={`rounded-xl border ${borderToken} px-2 py-1 text-xs hover:bg-[hsl(var(--muted))]`}
                           onClick={() => setAllSelected(true)}
                         >
                           Select all
                         </button>
                         <button
                           type="button"
-                          className="rounded-xl border border-zinc-200 px-2 py-1 text-xs hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                          className={`rounded-xl border ${borderToken} px-2 py-1 text-xs hover:bg-[hsl(var(--muted))]`}
                           onClick={() => setAllSelected(false)}
                         >
                           Clear
@@ -675,7 +666,7 @@ export default function HostPage() {
                     </div>
 
                     <div className="mb-3 flex flex-wrap items-center gap-3">
-                      <label className="flex items-center gap-2 text-sm">
+                      <label className={`flex items-center gap-2 text-sm ${mutedText}`}>
                         <input
                           type="radio"
                           name="selectionStrategy"
@@ -686,7 +677,7 @@ export default function HostPage() {
                         Use all selected packs
                       </label>
 
-                      <label className="flex items-center gap-2 text-sm">
+                      <label className={`flex items-center gap-2 text-sm ${mutedText}`}>
                         <input
                           type="radio"
                           name="selectionStrategy"
@@ -699,14 +690,14 @@ export default function HostPage() {
                     </div>
 
                     {packsLoading ? (
-                      <div className="text-sm text-zinc-600 dark:text-zinc-400">Loading packs…</div>
+                      <div className={`text-sm ${mutedText}`}>Loading packs…</div>
                     ) : packsError ? (
                       <div className="text-sm text-red-600">{packsError}</div>
                     ) : (
                       <div className="space-y-2">
                         {packs.map((p) => (
                           <div key={p.id} className="flex items-center justify-between gap-3">
-                            <label className="flex items-center gap-2 text-sm">
+                            <label className={`flex items-center gap-2 text-sm ${mutedText}`}>
                               <input
                                 type="checkbox"
                                 checked={!!selectedPacks[p.id]}
@@ -717,7 +708,7 @@ export default function HostPage() {
 
                             {selectionStrategy === "per_pack" ? (
                               <input
-                                className="w-24 rounded-xl border border-zinc-200 bg-white px-2 py-1 text-sm dark:border-zinc-800 dark:bg-zinc-950"
+                                className={`w-24 rounded-xl border ${borderToken} ${cardToken} px-2 py-1 text-sm text-[hsl(var(--foreground))]`}
                                 inputMode="numeric"
                                 placeholder="Count"
                                 value={perPackCounts[p.id] ?? ""}
@@ -745,30 +736,30 @@ export default function HostPage() {
               {roomCode ? (
                 <>
                   <div className="grid gap-2">
-                    <div className="text-sm text-zinc-600 dark:text-zinc-400">Room code</div>
-                    <div className="text-2xl font-semibold tracking-widest">{roomCode}</div>
+                    <div className={`text-sm ${mutedText}`}>Room code</div>
+                    <div className="text-2xl font-semibold tracking-widest text-[hsl(var(--foreground))]">
+                      {roomCode}
+                    </div>
                   </div>
 
                   <div className="grid gap-2">
-                    <div className="text-sm text-zinc-600 dark:text-zinc-400">Join link</div>
-                    <div className="break-all rounded-xl border border-zinc-200 bg-white p-2 text-sm dark:border-zinc-800 dark:bg-zinc-950">
+                    <div className={`text-sm ${mutedText}`}>Join link</div>
+                    <div className={`break-all rounded-xl border ${borderToken} ${cardToken} p-2 text-sm text-[hsl(var(--foreground))]`}>
                       {joinUrl}
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between gap-4">
-                    <QRCodeSVG value={joinUrl} size={156} />
-                    <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                      Teams can join on their phones at <span className="font-medium">/join</span>.
+                    <div className="rounded-xl border border-[hsl(var(--border))] bg-white p-2">
+                      <QRCodeSVG value={joinUrl} size={156} />
+                    </div>
+                    <div className={`text-sm ${mutedText}`}>
+                      Teams can join on their phones at <span className="font-medium text-[hsl(var(--foreground))]">/join</span>.
                     </div>
                   </div>
-
-                  <HostJoinedTeamsPanel code={roomCode} />
                 </>
               ) : (
-                <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                  Create a room to see the join code and QR.
-                </div>
+                <div className={`text-sm ${mutedText}`}>Create a room to see the join code and QR.</div>
               )}
             </CardContent>
           </Card>
@@ -779,7 +770,7 @@ export default function HostPage() {
                 <CardTitle>Gameplay display</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
+                <div className={`overflow-hidden rounded-xl border ${borderToken}`}>
                   <iframe
                     title="Gameplay display"
                     src={displayUrl}
