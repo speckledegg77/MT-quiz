@@ -5,16 +5,19 @@ Repo URL: https://github.com/speckledegg77/MT-quiz
 Branch workflow: work directly on `main` and push to GitHub. Vercel auto-deploys from `main`.
 
 Context last updated: 2026-02-25  
-Repo commit: 74c3e1a  
+Repo commit: 40e0bf5  
 How to get it:
 - In PowerShell in the repo folder: `git rev-parse --short HEAD`
 
 ---
 
 ## New chat starter (copy and paste at the top of the next chat)
+## Repo reference (always include in new chats)
 
-Live URL: https://mt-quiz.vercel.app  
-Repo commit: bd2c10f  
+Repo: https://github.com/speckledegg77/MT-quiz
+Default branch: main
+Live URL: https://mt-quiz.vercel.app
+Repo commit: 40e0bf5  
 Context file: docs/context.md (uploaded in Project)
 
 Issue:
