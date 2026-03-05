@@ -25,12 +25,7 @@ function cx(...parts: Array<string | false | null | undefined>) {
 
 function ChevronDown() {
   return (
-    <svg
-      viewBox="0 0 20 20"
-      aria-hidden="true"
-      className="h-4 w-4 opacity-70"
-      fill="currentColor"
-    >
+    <svg viewBox="0 0 20 20" aria-hidden="true" className="h-4 w-4 opacity-70" fill="currentColor">
       <path
         fillRule="evenodd"
         d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.24a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.08Z"
@@ -75,6 +70,7 @@ export function SimpleSelect({
 
     document.addEventListener("mousedown", onDown)
     document.addEventListener("keydown", onKey)
+
     return () => {
       document.removeEventListener("mousedown", onDown)
       document.removeEventListener("keydown", onKey)
@@ -91,6 +87,7 @@ export function SimpleSelect({
       0,
       options.findIndex((o) => o.value === value)
     )
+
     setActiveIndex(idx)
   }, [open, options, value])
 
@@ -149,10 +146,12 @@ export function SimpleSelect({
   }
 
   const buttonBase =
-    "inline-flex w-full items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--border)] focus:ring-offset-2 focus:ring-offset-[var(--background)]"
+    "inline-flex w-full items-center justify-between gap-2 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--border))] focus:ring-offset-2 focus:ring-offset-[hsl(var(--background))]"
+
   const buttonSize = "h-10"
+
   const menuBase =
-    "absolute left-0 right-0 z-50 mt-1 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-lg"
+    "absolute left-0 right-0 z-50 mt-1 overflow-hidden rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-lg"
 
   return (
     <div ref={rootRef} className={cx("relative w-full", className)}>
@@ -164,10 +163,19 @@ export function SimpleSelect({
         aria-expanded={open}
         onClick={() => !disabled && setOpen((v) => !v)}
         onKeyDown={onButtonKeyDown}
-        className={cx(buttonBase, buttonSize, disabled && "opacity-50 cursor-not-allowed", buttonClassName)}
+        className={cx(buttonBase, buttonSize, disabled && "cursor-not-allowed opacity-50", buttonClassName)}
       >
-        <span className="min-w-0 truncate">{selected ? selected.label : placeholder ?? "Select"}</span>
-        <ChevronDown />
+        <span
+          className={cx(
+            "min-w-0 truncate",
+            selected ? "text-[hsl(var(--foreground))]" : "text-[hsl(var(--muted-foreground))]"
+          )}
+        >
+          {selected ? selected.label : placeholder ?? "Select"}
+        </span>
+        <span className="text-[hsl(var(--muted-foreground))]">
+          <ChevronDown />
+        </span>
       </button>
 
       {open ? (
@@ -177,10 +185,11 @@ export function SimpleSelect({
             const isSelected = opt.value === value
             const disabledOpt = Boolean(opt.disabled)
 
-            const row = "w-full px-3 py-2 text-left text-sm text-[var(--foreground)]"
-            const active = isActive ? "bg-[var(--muted)]" : ""
+            const rowBase = "w-full px-3 py-2 text-left text-sm"
+            const textColour = isSelected ? "text-[hsl(var(--foreground))]" : "text-[hsl(var(--muted-foreground))]"
+            const bg = isActive ? "bg-[hsl(var(--muted))]" : ""
             const selectedCls = isSelected ? "font-medium" : ""
-            const disabledCls = disabledOpt ? "opacity-50 cursor-not-allowed" : "hover:bg-[var(--muted)]"
+            const disabledCls = disabledOpt ? "cursor-not-allowed opacity-50" : "hover:bg-[hsl(var(--muted))]"
 
             return (
               <button
@@ -191,7 +200,7 @@ export function SimpleSelect({
                 disabled={disabledOpt}
                 onMouseEnter={() => setActiveIndex(idx)}
                 onClick={() => pick(idx)}
-                className={cx(row, active, selectedCls, disabledCls)}
+                className={cx(rowBase, textColour, bg, selectedCls, disabledCls)}
               >
                 {opt.label}
               </button>
