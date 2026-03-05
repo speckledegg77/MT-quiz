@@ -6,6 +6,7 @@ import { QRCodeSVG } from "qrcode.react"
 
 import { supabase } from "@/lib/supabaseClient"
 import { randomTeamName } from "@/lib/teamNameSuggestions"
+
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
@@ -29,9 +30,8 @@ type RoundFilter =
   | "audio_and_image"
 
 type AudioMode = "display" | "phones" | "both"
-type RoomState = any
-
 type GameMode = "teams" | "solo"
+type RoomState = any
 
 const LAST_HOST_CODE_KEY = "mtq_last_host_code"
 
@@ -61,7 +61,6 @@ export default function HostPage() {
 
   const [selectPacks, setSelectPacks] = useState(false)
   const [selectedPacks, setSelectedPacks] = useState<Record<string, boolean>>({})
-
   const [selectionStrategy, setSelectionStrategy] = useState<SelectionStrategy>("all_packs")
   const [roundFilter, setRoundFilter] = useState<RoundFilter>("mixed")
   const [audioMode, setAudioMode] = useState<AudioMode>("display")
@@ -69,7 +68,6 @@ export default function HostPage() {
   const [totalQuestionsStr, setTotalQuestionsStr] = useState("20")
   const [countdownSecondsStr, setCountdownSecondsStr] = useState("5")
   const [answerSecondsStr, setAnswerSecondsStr] = useState("20")
-
   const [untimedAnswers, setUntimedAnswers] = useState(false)
 
   const [gameMode, setGameMode] = useState<GameMode>("teams")
@@ -110,10 +108,6 @@ export default function HostPage() {
 
   const showGameplayPanel = Boolean(roomCode) && (roomPhase === "running" || roomPhase === "finished")
 
-  const mutedText = "text-[hsl(var(--muted-foreground))]"
-  const borderToken = "border-[hsl(var(--border))]"
-  const cardToken = "bg-[hsl(var(--card))]"
-
   useEffect(() => {
     try {
       const last = localStorage.getItem(LAST_HOST_CODE_KEY)
@@ -150,7 +144,6 @@ export default function HostPage() {
     }
 
     loadPacks()
-
     return () => {
       cancelled = true
     }
@@ -502,11 +495,11 @@ export default function HostPage() {
     <div className="mx-auto max-w-5xl px-4 py-6">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">Host</h1>
-          <p className={`mt-1 text-sm ${mutedText}`}>Create a room, share the code, and start the quiz.</p>
+          <h1 className="text-2xl font-semibold text-[var(--foreground)]">Host</h1>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">Create a room, share the code, and start the quiz.</p>
         </div>
 
-        <Link href="/" className={`text-sm hover:underline ${mutedText}`}>
+        <Link href="/" className="text-sm text-[var(--muted-foreground)] hover:underline">
           Back to home
         </Link>
       </div>
@@ -520,32 +513,32 @@ export default function HostPage() {
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <div className="rounded-2xl border border-[hsl(var(--border))] p-3">
-                  <div className="text-sm font-semibold text-[hsl(var(--foreground))]">Game</div>
+                <div className="rounded-2xl border border-[var(--border)] p-3">
+                  <div className="text-sm font-semibold text-[var(--foreground)]">Game</div>
 
                   <div className="mt-3 grid gap-3 sm:grid-cols-3">
                     <div>
-                      <div className="text-sm font-medium text-[hsl(var(--foreground))]">Mode</div>
+                      <div className="text-sm font-medium text-[var(--foreground)]">Mode</div>
                       <select
                         value={gameMode}
                         onChange={(e) => setGameMode(e.target.value as GameMode)}
-                        className={`mt-1 w-full rounded-xl border ${borderToken} ${cardToken} px-3 py-2 text-sm`}
+                        className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
                       >
                         <option value="teams">Teams</option>
                         <option value="solo">No teams</option>
                       </select>
-                      <div className={`mt-1 text-xs ${mutedText}`}>One phone per person.</div>
+                      <div className="mt-1 text-xs text-[var(--muted-foreground)]">One phone per person.</div>
                     </div>
 
                     {gameMode === "teams" ? (
                       <div>
-                        <div className="text-sm font-medium text-[hsl(var(--foreground))]">Scoring</div>
-                        <div className={`mt-2 text-sm ${mutedText}`}>
+                        <div className="text-sm font-medium text-[var(--foreground)]">Scoring</div>
+                        <div className="mt-2 text-sm text-[var(--muted-foreground)]">
                           Total points. If team sizes differ, the scoreboard uses average points per player.
                         </div>
                       </div>
                     ) : (
-                      <div className={`flex items-end text-sm ${mutedText}`}>Players score individually.</div>
+                      <div className="flex items-end text-sm text-[var(--muted-foreground)]">Players score individually.</div>
                     )}
 
                     {gameMode === "teams" ? (
@@ -568,7 +561,7 @@ export default function HostPage() {
 
                   {gameMode === "teams" ? (
                     <div className="mt-3 space-y-2">
-                      <div className={`text-sm ${mutedText}`}>Teams (players pick one when joining)</div>
+                      <div className="text-sm text-[var(--muted-foreground)]">Teams (players pick one when joining)</div>
 
                       {teamNames.map((t, idx) => (
                         <div key={idx} className="flex items-center gap-2">
@@ -590,7 +583,7 @@ export default function HostPage() {
                       ))}
 
                       {teamNames.length <= 2 ? (
-                        <div className={`text-xs ${mutedText}`}>Keep at least two teams.</div>
+                        <div className="text-xs text-[var(--muted-foreground)]">Keep at least two teams.</div>
                       ) : null}
                     </div>
                   ) : null}
@@ -598,29 +591,29 @@ export default function HostPage() {
 
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
-                    <div className="text-sm font-medium text-[hsl(var(--foreground))]">Total questions</div>
+                    <div className="text-sm font-medium text-[var(--foreground)]">Total questions</div>
                     <Input value={totalQuestionsStr} onChange={(e) => setTotalQuestionsStr(e.target.value)} inputMode="numeric" />
                   </div>
 
                   <div>
-                    <div className="text-sm font-medium text-[hsl(var(--foreground))]">Countdown seconds</div>
+                    <div className="text-sm font-medium text-[var(--foreground)]">Countdown seconds</div>
                     <Input value={countdownSecondsStr} onChange={(e) => setCountdownSecondsStr(e.target.value)} inputMode="numeric" />
                   </div>
 
                   <div>
-                    <div className="text-sm font-medium text-[hsl(var(--foreground))]">Answer seconds</div>
+                    <div className="text-sm font-medium text-[var(--foreground)]">Answer seconds</div>
                     <Input
                       value={answerSecondsStr}
                       onChange={(e) => setAnswerSecondsStr(e.target.value)}
                       inputMode="numeric"
                       disabled={untimedAnswers}
                     />
-                    <label className={`mt-2 flex items-center gap-2 text-sm ${mutedText}`}>
+                    <label className="mt-2 flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
                       <input type="checkbox" checked={untimedAnswers} onChange={(e) => setUntimedAnswers(e.target.checked)} />
                       Untimed answers (host controls)
                     </label>
                     {untimedAnswers ? (
-                      <div className={`mt-1 text-xs ${mutedText}`}>
+                      <div className="mt-1 text-xs text-[var(--muted-foreground)]">
                         The question stays open until everyone answers or you press Next question.
                       </div>
                     ) : null}
@@ -629,11 +622,11 @@ export default function HostPage() {
 
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
-                    <div className="text-sm font-medium text-[hsl(var(--foreground))]">Round filter</div>
+                    <div className="text-sm font-medium text-[var(--foreground)]">Round filter</div>
                     <select
                       value={roundFilter}
                       onChange={(e) => setRoundFilter(e.target.value as RoundFilter)}
-                      className={`mt-1 w-full rounded-xl border ${borderToken} ${cardToken} px-3 py-2 text-sm`}
+                      className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
                     >
                       <option value="mixed">Mixed</option>
                       <option value="no_audio">No audio</option>
@@ -645,11 +638,11 @@ export default function HostPage() {
                   </div>
 
                   <div>
-                    <div className="text-sm font-medium text-[hsl(var(--foreground))]">Audio mode</div>
+                    <div className="text-sm font-medium text-[var(--foreground)]">Audio mode</div>
                     <select
                       value={audioMode}
                       onChange={(e) => setAudioMode(e.target.value as AudioMode)}
-                      className={`mt-1 w-full rounded-xl border ${borderToken} ${cardToken} px-3 py-2 text-sm`}
+                      className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
                     >
                       <option value="display">Display only</option>
                       <option value="phones">Phones only</option>
@@ -658,7 +651,7 @@ export default function HostPage() {
                   </div>
 
                   <div className="flex items-end">
-                    <label className={`flex items-center gap-2 text-sm ${mutedText}`}>
+                    <label className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
                       <input type="checkbox" checked={selectPacks} onChange={(e) => setSelectPacks(e.target.checked)} />
                       Select packs
                     </label>
@@ -686,8 +679,8 @@ export default function HostPage() {
 
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between gap-3">
-                  <div className={`text-sm ${mutedText}`}>Status</div>
-                  <div className={`rounded-full border ${borderToken} px-3 py-1 text-xs text-[hsl(var(--foreground))]`}>
+                  <div className="text-sm text-[var(--muted-foreground)]">Status</div>
+                  <div className="rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--foreground)]">
                     {stagePill}
                   </div>
                 </div>
@@ -699,7 +692,7 @@ export default function HostPage() {
                 ) : null}
 
                 {startOk ? (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200 whitespace-pre-line">
+                  <div className="whitespace-pre-line rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
                     {startOk}
                   </div>
                 ) : null}
@@ -711,7 +704,7 @@ export default function HostPage() {
                 ) : null}
 
                 {resetOk ? (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200 whitespace-pre-line">
+                  <div className="whitespace-pre-line rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
                     {resetOk}
                   </div>
                 ) : null}
@@ -744,7 +737,7 @@ export default function HostPage() {
                     {forcingClose ? "Moving on…" : "Next question"}
                   </Button>
 
-                  <div className={`flex items-center text-sm ${mutedText}`}>Works best with untimed answers.</div>
+                  <div className="flex items-center text-sm text-[var(--muted-foreground)]">Works best with untimed answers.</div>
                 </div>
 
                 <Button variant="ghost" onClick={clearRoom}>
@@ -761,10 +754,12 @@ export default function HostPage() {
               </CardHeader>
 
               <CardContent className="space-y-3">
-                <div className={`text-sm ${mutedText}`}>Enter a room code to continue hosting an existing room.</div>
+                <div className="text-sm text-[var(--muted-foreground)]">
+                  Enter a room code to continue hosting an existing room.
+                </div>
 
                 <div>
-                  <div className="text-sm font-medium text-[hsl(var(--foreground))]">Room code</div>
+                  <div className="text-sm font-medium text-[var(--foreground)]">Room code</div>
                   <Input
                     value={rehostCode}
                     onChange={(e) => setRehostCode(cleanRoomCode(e.target.value))}
@@ -807,7 +802,7 @@ export default function HostPage() {
               </CardHeader>
 
               <CardContent className="space-y-3">
-                <div className={`text-sm ${mutedText}`}>Choose which packs to include.</div>
+                <div className="text-sm text-[var(--muted-foreground)]">Choose which packs to include.</div>
 
                 <div className="flex flex-wrap gap-2">
                   <Button variant="secondary" onClick={() => setAllSelected(true)}>
@@ -818,11 +813,11 @@ export default function HostPage() {
                   </Button>
 
                   <div className="ml-auto flex items-center gap-2">
-                    <div className={`text-sm ${mutedText}`}>Strategy</div>
+                    <div className="text-sm text-[var(--muted-foreground)]">Strategy</div>
                     <select
                       value={selectionStrategy}
                       onChange={(e) => setSelectionStrategy(e.target.value as SelectionStrategy)}
-                      className={`rounded-xl border ${borderToken} ${cardToken} px-3 py-2 text-sm`}
+                      className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
                     >
                       <option value="all_packs">Mix all selected packs</option>
                       <option value="per_pack">Set counts per pack</option>
@@ -833,11 +828,7 @@ export default function HostPage() {
                 <div className="grid gap-2">
                   {packs.map((p) => (
                     <label key={p.id} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(selectedPacks[p.id])}
-                        onChange={() => togglePack(p.id)}
-                      />
+                      <input type="checkbox" checked={Boolean(selectedPacks[p.id])} onChange={() => togglePack(p.id)} />
                       <span className="text-sm">{p.display_name}</span>
 
                       {selectionStrategy === "per_pack" && selectedPacks[p.id] ? (
@@ -846,7 +837,7 @@ export default function HostPage() {
                           onChange={(e) => setPerPackCounts((prev) => ({ ...prev, [p.id]: e.target.value }))}
                           inputMode="numeric"
                           placeholder="Count"
-                          className={`ml-auto w-24 rounded-xl border ${borderToken} ${cardToken} px-3 py-2 text-sm`}
+                          className="ml-auto w-24 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
                         />
                       ) : null}
                     </label>
@@ -858,7 +849,7 @@ export default function HostPage() {
         </div>
 
         <div className="space-y-6">
-          <HostJoinedTeamsPanel roomCode={roomCode} />
+          <HostJoinedTeamsPanel code={roomCode ?? ""} />
 
           {roomCode ? (
             <Card>
@@ -869,12 +860,12 @@ export default function HostPage() {
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-2xl font-semibold tracking-widest">{roomCode}</div>
-                  <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-2">
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-2">
                     <QRCodeSVG value={joinUrl} size={96} />
                   </div>
                 </div>
 
-                <div className={`text-sm ${mutedText}`}>Players join at</div>
+                <div className="text-sm text-[var(--muted-foreground)]">Players join at</div>
                 <div className="flex items-center justify-between gap-3">
                   <a href={joinUrl} className="break-all text-sm underline">
                     {joinUrl}
@@ -910,7 +901,7 @@ export default function HostPage() {
               </CardHeader>
 
               <CardContent className="space-y-3">
-                <div className={`text-sm ${mutedText}`}>
+                <div className="text-sm text-[var(--muted-foreground)]">
                   Players answer on their phones. The TV display advances automatically.
                 </div>
 
