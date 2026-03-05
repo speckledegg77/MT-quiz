@@ -49,6 +49,12 @@ function TrophyIcon() {
   );
 }
 
+function formatScore(n: number) {
+  if (!Number.isFinite(n)) return "0";
+  const rounded = Math.round(n * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
 export default function PlayerPage() {
   const params = useParams<{ code?: string }>();
   const router = useRouter();
@@ -58,6 +64,7 @@ export default function PlayerPage() {
 
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState<string>("");
+  const [teamName, setTeamName] = useState<string>("");
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [submittedIndex, setSubmittedIndex] = useState<number | null>(null);
@@ -68,7 +75,6 @@ export default function PlayerPage() {
   const [typedIsCorrect, setTypedIsCorrect] = useState<boolean | null>(null);
 
   const [answerError, setAnswerError] = useState<string | null>(null);
-
   const [lastQuestionId, setLastQuestionId] = useState<string | null>(null);
 
   const [audioEnabled, setAudioEnabled] = useState(false);
@@ -82,6 +88,7 @@ export default function PlayerPage() {
     if (!code) return;
     setPlayerId(localStorage.getItem(`mtq_player_${code}`));
     setPlayerName(localStorage.getItem(`mtq_player_name_${code}`) ?? "");
+    setTeamName(localStorage.getItem(`mtq_team_name_${code}`) ?? "");
   }, [code]);
 
   useEffect(() => {
@@ -126,6 +133,9 @@ export default function PlayerPage() {
     }
   }, [state?.question?.id, lastQuestionId]);
 
+  const gameMode = String(state?.gameMode ?? "teams") === "solo" ? "solo" : "teams";
+  const teamScoreMode = String(state?.teamScoreMode ?? "total") === "average" ? "average" : "total";
+
   const audioMode = String(state?.audioMode ?? "display");
   const shouldPlayOnPhone = audioMode === "phones" || audioMode === "both";
 
@@ -148,16 +158,51 @@ export default function PlayerPage() {
     return submittedIndex === null && !mcqSubmitting;
   }, [state?.phase, state?.stage, q?.id, answerType, typedSubmitted, submittedIndex, mcqSubmitting]);
 
-  const scoreboard = useMemo(() => {
-    const players = state?.players ?? [];
-    const sorted = [...players].sort((a: any, b: any) => (b.score ?? 0) - (a.score ?? 0));
-    return sorted;
+  const players = useMemo(() => {
+    return Array.isArray(state?.players) ? state.players : [];
   }, [state]);
 
   const myPlayer = useMemo(() => {
     if (!playerId) return null;
-    return (state?.players ?? []).find((p: any) => p.id === playerId) ?? null;
-  }, [state, playerId]);
+    return players.find((p: any) => p.id === playerId) ?? null;
+  }, [players, playerId]);
+
+  const teamRows = useMemo(() => {
+    const byTeam = new Map<string, { label: string; total: number; size: number }>();
+    for (const p of players) {
+      const team = String(p.team_name ?? "").trim() || "No team";
+      const entry = byTeam.get(team) ?? { label: team, total: 0, size: 0 };
+      entry.total += Number(p.score ?? 0);
+      entry.size += 1;
+      byTeam.set(team, entry);
+    }
+
+    const rows = Array.from(byTeam.values()).map((t) => {
+      const avg = t.size > 0 ? t.total / t.size : 0;
+      const score = teamScoreMode === "average" ? avg : t.total;
+      return { id: t.label, label: t.label, score, size: t.size, total: t.total, avg };
+    });
+
+    return rows.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (b.total !== a.total) return b.total - a.total;
+      return a.label.localeCompare(b.label);
+    });
+  }, [players, teamScoreMode]);
+
+  const soloRows = useMemo(() => {
+    return [...players]
+      .map((p: any) => ({ id: p.id, label: String(p.name ?? ""), score: Number(p.score ?? 0) }))
+      .sort((a, b) => (b.score - a.score) || a.label.localeCompare(b.label));
+  }, [players]);
+
+  const scoreboardRows = gameMode === "solo" ? soloRows : teamRows;
+
+  const myTeamRow = useMemo(() => {
+    if (gameMode !== "teams") return null;
+    const tn = String(myPlayer?.team_name ?? teamName ?? "").trim() || "No team";
+    return teamRows.find((t) => t.label === tn) ?? null;
+  }, [gameMode, myPlayer?.team_name, teamName, teamRows]);
 
   function pickOption(optionIndex: number) {
     if (!canAnswer) return;
@@ -395,7 +440,13 @@ export default function PlayerPage() {
           <div className="text-lg font-semibold tracking-wide">{code}</div>
           {playerName ? (
             <div className="text-xs text-[var(--muted-foreground)]">
-              Team: <span className="text-[var(--foreground)]">{playerName}</span>
+              Player: <span className="text-[var(--foreground)]">{playerName}</span>
+              {gameMode === "teams" && teamName ? (
+                <>
+                  <span className="mx-2">•</span>
+                  Team: <span className="text-[var(--foreground)]">{teamName}</span>
+                </>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -459,25 +510,30 @@ export default function PlayerPage() {
                   <thead className="bg-[var(--card)]">
                     <tr className="border-b border-[var(--border)]">
                       <th className="w-10 px-3 py-2 text-left font-medium">#</th>
-                      <th className="px-3 py-2 text-left font-medium">Team</th>
-                      <th className="w-16 px-3 py-2 text-right font-medium">Score</th>
+                      <th className="px-3 py-2 text-left font-medium">{gameMode === "solo" ? "Player" : "Team"}</th>
+                      <th className="w-20 px-3 py-2 text-right font-medium">Score</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {scoreboard.map((p: any, idx: number) => {
-                      const isMe = p.id === playerId;
+                    {scoreboardRows.map((r: any, idx: number) => {
+                      const isMe = gameMode === "solo" ? r.id === playerId : r.label === myTeamRow?.label;
                       return (
-                        <tr key={p.id} className="border-b border-[var(--border)] last:border-b-0">
+                        <tr key={r.id} className="border-b border-[var(--border)] last:border-b-0">
                           <td className="px-3 py-2 text-[var(--muted-foreground)] tabular-nums">{idx + 1}</td>
-                          <td className={`px-3 py-2 ${isMe ? "font-semibold" : "font-medium"}`}>{p.name}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{p.score ?? 0}</td>
+                          <td className={`px-3 py-2 ${isMe ? "font-semibold" : "font-medium"}`}>
+                            {r.label}
+                            {gameMode === "teams" ? (
+                              <span className="ml-2 text-xs text-[var(--muted-foreground)]">{r.size} players</span>
+                            ) : null}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">{formatScore(Number(r.score ?? 0))}</td>
                         </tr>
                       );
                     })}
-                    {scoreboard.length === 0 ? (
+                    {scoreboardRows.length === 0 ? (
                       <tr>
                         <td className="px-3 py-4 text-sm text-[var(--muted-foreground)]" colSpan={3}>
-                          No players joined this game.
+                          No scores yet.
                         </td>
                       </tr>
                     ) : null}
@@ -498,9 +554,17 @@ export default function PlayerPage() {
         <div className="grid gap-4">
           {myPlayer ? (
             <Card>
-              <CardContent className="flex items-center justify-between py-4">
-                <div className="text-sm text-[var(--muted-foreground)]">Your score</div>
-                <div className="text-lg font-semibold tabular-nums">{myPlayer.score ?? 0}</div>
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-[var(--muted-foreground)]">Your score</div>
+                  <div className="text-lg font-semibold tabular-nums">{myPlayer.score ?? 0}</div>
+                </div>
+                {gameMode === "teams" && myTeamRow ? (
+                  <div className="mt-2 flex items-center justify-between">
+                    <div className="text-sm text-[var(--muted-foreground)]">Team score</div>
+                    <div className="text-lg font-semibold tabular-nums">{formatScore(Number(myTeamRow.score ?? 0))}</div>
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
           ) : null}
@@ -578,7 +642,7 @@ export default function PlayerPage() {
                   </Button>
 
                   {typedSubmitted && !inReveal ? (
-                    <div className="text-sm text-[var(--muted-foreground)]">Answer locked in.</div>
+                    <div className="text-sm text-[var(--muted-foreground)]">Answer submitted.</div>
                   ) : null}
 
                   {inReveal && typedIsCorrect !== null ? (
@@ -589,9 +653,7 @@ export default function PlayerPage() {
                 </div>
               ) : (
                 <div className="grid gap-2">
-                  <div className="text-sm text-[var(--muted-foreground)]">
-                    Pick an option, then press Submit.
-                  </div>
+                  <div className="text-sm text-[var(--muted-foreground)]">Pick an option, then press Submit.</div>
 
                   {(q.options ?? []).map((opt: string, i: number) => {
                     const chosenIndex =
@@ -682,35 +744,33 @@ export default function PlayerPage() {
                   <thead className="bg-[var(--card)]">
                     <tr className="border-b border-[var(--border)]">
                       <th className="w-10 px-3 py-2 text-left font-medium">#</th>
-                      <th className="px-3 py-2 text-left font-medium">Team</th>
-                      <th className="w-16 px-3 py-2 text-right font-medium">Score</th>
+                      <th className="px-3 py-2 text-left font-medium">{gameMode === "solo" ? "Player" : "Team"}</th>
+                      <th className="w-20 px-3 py-2 text-right font-medium">Score</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {scoreboard.slice(0, 10).map((p: any, idx: number) => {
-                      const isMe = p.id === playerId;
+                    {scoreboardRows.slice(0, 10).map((r: any, idx: number) => {
+                      const isMe = gameMode === "solo" ? r.id === playerId : r.label === myTeamRow?.label;
                       return (
-                        <tr key={p.id} className="border-b border-[var(--border)] last:border-b-0">
+                        <tr key={r.id} className="border-b border-[var(--border)] last:border-b-0">
                           <td className="px-3 py-2 text-[var(--muted-foreground)] tabular-nums">{idx + 1}</td>
-                          <td className={`px-3 py-2 ${isMe ? "font-semibold" : "font-medium"}`}>{p.name}</td>
-                          <td className="px-3 py-2 text-right tabular-nums">{p.score ?? 0}</td>
+                          <td className={`px-3 py-2 ${isMe ? "font-semibold" : "font-medium"}`}>{r.label}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{formatScore(Number(r.score ?? 0))}</td>
                         </tr>
                       );
                     })}
-                    {scoreboard.length === 0 ? (
+                    {scoreboardRows.length === 0 ? (
                       <tr>
                         <td className="px-3 py-4 text-sm text-[var(--muted-foreground)]" colSpan={3}>
-                          No players yet.
+                          No scores yet.
                         </td>
                       </tr>
                     ) : null}
                   </tbody>
                 </table>
               </div>
-              {scoreboard.length > 10 ? (
-                <div className="mt-2 text-xs text-[var(--muted-foreground)]">
-                  Showing top 10 only.
-                </div>
+              {scoreboardRows.length > 10 ? (
+                <div className="mt-2 text-xs text-[var(--muted-foreground)]">Showing top 10 only.</div>
               ) : null}
             </CardContent>
           </Card>

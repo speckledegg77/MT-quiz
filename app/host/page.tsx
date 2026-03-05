@@ -5,6 +5,7 @@ import Link from "next/link"
 import { QRCodeSVG } from "qrcode.react"
 
 import { supabase } from "@/lib/supabaseClient"
+import { randomTeamName } from "@/lib/teamNameSuggestions"
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
@@ -29,6 +30,9 @@ type RoundFilter =
 
 type AudioMode = "display" | "phones" | "both"
 type RoomState = any
+
+type GameMode = "teams" | "solo"
+type TeamScoreMode = "total" | "average"
 
 const LAST_HOST_CODE_KEY = "mtq_last_host_code"
 
@@ -68,6 +72,14 @@ export default function HostPage() {
   const [answerSecondsStr, setAnswerSecondsStr] = useState("20")
 
   const [untimedAnswers, setUntimedAnswers] = useState(false)
+
+  const [gameMode, setGameMode] = useState<GameMode>("teams")
+  const [teamScoreMode, setTeamScoreMode] = useState<TeamScoreMode>("total")
+  const [teamNames, setTeamNames] = useState<string[]>(() => {
+    const first = randomTeamName()
+    const second = randomTeamName([first])
+    return [first, second]
+  })
 
   const [perPackCounts, setPerPackCounts] = useState<Record<string, string>>({})
 
@@ -246,6 +258,27 @@ export default function HostPage() {
       const countdownSeconds = clampInt(parseIntOr(countdownSecondsStr, 5), 0, 30)
       const answerSeconds = untimedAnswers ? 0 : clampInt(parseIntOr(answerSecondsStr, 20), 5, 120)
 
+      const cleanTeamNames = teamNames.map((t) => t.trim()).filter(Boolean)
+
+      if (gameMode === "teams") {
+        if (cleanTeamNames.length < 2) {
+          setCreateError("Add at least two team names.")
+          setCreating(false)
+          return
+        }
+
+        const seen = new Set<string>()
+        for (const t of cleanTeamNames) {
+          const key = t.toLowerCase()
+          if (seen.has(key)) {
+            setCreateError("Team names must be unique.")
+            setCreating(false)
+            return
+          }
+          seen.add(key)
+        }
+      }
+
       const usingAllPacks = !selectPacks
       const strategy: SelectionStrategy = usingAllPacks ? "all_packs" : selectionStrategy
 
@@ -266,6 +299,9 @@ export default function HostPage() {
       }
 
       const payload: any = {
+        gameMode,
+        teamScoreMode: gameMode === "teams" ? teamScoreMode : "total",
+        teamNames: gameMode === "teams" ? cleanTeamNames : [],
         selectionStrategy: strategy,
         roundFilter,
         totalQuestions,
@@ -487,6 +523,88 @@ export default function HostPage() {
               </CardHeader>
 
               <CardContent className="space-y-4">
+                <div className="rounded-2xl border border-[hsl(var(--border))] p-3">
+                  <div className="text-sm font-semibold text-[hsl(var(--foreground))]">Game</div>
+
+                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <div className="text-sm font-medium text-[hsl(var(--foreground))]">Mode</div>
+                      <select
+                        value={gameMode}
+                        onChange={(e) => setGameMode(e.target.value as GameMode)}
+                        className={`mt-1 w-full rounded-xl border ${borderToken} ${cardToken} px-3 py-2 text-sm`}
+                      >
+                        <option value="teams">Teams</option>
+                        <option value="solo">No teams</option>
+                      </select>
+                      <div className={`mt-1 text-xs ${mutedText}`}>One phone per person.</div>
+                    </div>
+
+                    {gameMode === "teams" ? (
+                      <div>
+                        <div className="text-sm font-medium text-[hsl(var(--foreground))]">Team scoring</div>
+                        <select
+                          value={teamScoreMode}
+                          onChange={(e) => setTeamScoreMode(e.target.value as TeamScoreMode)}
+                          className={`mt-1 w-full rounded-xl border ${borderToken} ${cardToken} px-3 py-2 text-sm`}
+                        >
+                          <option value="total">Total points</option>
+                          <option value="average">Average per player</option>
+                        </select>
+                        <div className={`mt-1 text-xs ${mutedText}`}>Use average if team sizes differ.</div>
+                      </div>
+                    ) : (
+                      <div className={`flex items-end text-sm ${mutedText}`}>Players score individually.</div>
+                    )}
+
+                    {gameMode === "teams" ? (
+                      <div className="flex items-end justify-end">
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            setTeamNames((prev) => {
+                              const used = new Set(prev.map((x) => x.trim()).filter(Boolean))
+                              const nextName = randomTeamName(used)
+                              return [...prev, nextName]
+                            })
+                          }}
+                        >
+                          Add team
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {gameMode === "teams" ? (
+                    <div className="mt-3 space-y-2">
+                      <div className={`text-sm ${mutedText}`}>Teams (players pick one when joining)</div>
+
+                      {teamNames.map((t, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <Input
+                            value={t}
+                            onChange={(e) =>
+                              setTeamNames((prev) => prev.map((x, i) => (i === idx ? e.target.value : x)))
+                            }
+                            placeholder="Team name"
+                          />
+                          <Button
+                            variant="ghost"
+                            onClick={() => setTeamNames((prev) => prev.filter((_, i) => i !== idx))}
+                            disabled={teamNames.length <= 2}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+
+                      {teamNames.length <= 2 ? (
+                        <div className={`text-xs ${mutedText}`}>Keep at least two teams.</div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
                     <div className="text-sm font-medium text-[hsl(var(--foreground))]">Total questions</div>
@@ -682,7 +800,7 @@ export default function HostPage() {
           {roomCode ? (
             <Card>
               <CardHeader>
-                <CardTitle>Joined teams</CardTitle>
+                <CardTitle>Joined players</CardTitle>
               </CardHeader>
               <CardContent>
                 <HostJoinedTeamsPanel code={roomCode} />
@@ -809,7 +927,7 @@ export default function HostPage() {
                       <QRCodeSVG value={joinUrl} size={156} />
                     </div>
                     <div className={`text-sm ${mutedText}`}>
-                      Teams can join on their phones at <span className="font-medium text-[hsl(var(--foreground))]">/join</span>.
+                      Players join on their phones at <span className="font-medium text-[hsl(var(--foreground))]">/join</span>.
                     </div>
                   </div>
                 </>

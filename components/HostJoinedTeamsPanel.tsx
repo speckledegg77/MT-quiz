@@ -9,6 +9,7 @@ type RoomState = any;
 type PlayerPublic = {
   id: string;
   name: string;
+  team_name?: string | null;
   score?: number | null;
   joined_at?: string | null;
   created_at?: string | null;
@@ -67,7 +68,7 @@ export default function HostJoinedTeamsPanel({ code }: { code: string }) {
     return (
       <Card>
         <CardContent className="py-6 text-sm text-[var(--muted-foreground)]">
-          Loading teams…
+          Loading players…
         </CardContent>
       </Card>
     );

@@ -43,6 +43,32 @@ function normaliseStrategy(raw: any): SelectionStrategy | null {
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
 
+  const gameModeRaw = String(body.gameMode ?? "teams").toLowerCase();
+  const gameMode = gameModeRaw === "solo" ? "solo" : "teams";
+
+  const teamScoreModeRaw = String(body.teamScoreMode ?? "total").toLowerCase();
+  const teamScoreMode = teamScoreModeRaw === "average" ? "average" : "total";
+
+  const teamNamesInput: any[] = Array.isArray(body.teamNames) ? body.teamNames : [];
+  const teamNames: string[] = teamNamesInput
+    .map((x) => String(x ?? "").trim())
+    .filter((x) => x.length > 0);
+
+  if (gameMode === "teams") {
+    if (teamNames.length < 2) {
+      return NextResponse.json({ error: "Add at least two team names" }, { status: 400 });
+    }
+
+    const seen = new Set<string>();
+    for (const t of teamNames) {
+      const key = t.toLowerCase();
+      if (seen.has(key)) {
+        return NextResponse.json({ error: "Team names must be unique" }, { status: 400 });
+      }
+      seen.add(key);
+    }
+  }
+
   const countdownSeconds = Number(body.countdownSeconds ?? 3);
   const answerSeconds = Number(body.answerSeconds ?? 60);
   const revealDelaySeconds = Number(body.revealDelaySeconds ?? 2);
@@ -184,6 +210,10 @@ export async function POST(req: Request) {
         round_filter: roundFilter,
         total_questions: totalQuestions,
         rounds: strategy === "per_pack" ? selectionPacks : null,
+
+        game_mode: gameMode,
+        team_names: gameMode === "teams" ? teamNames : [],
+        team_score_mode: gameMode === "teams" ? teamScoreMode : "total",
       })
       .select("code")
       .single();

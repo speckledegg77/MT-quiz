@@ -9,6 +9,7 @@ audio,2026-02-24/disney-audio-007.mp3,Disney Musicals,disney-260215-187,"Reflect
 audio,2026-02-24/disney-audio-008.mp3,Disney Musicals,disney-260215-188,"We Don’t Talk About Bruno (Encanto) hook, 8 to 15 seconds."
 audio,2026-02-24/disney-audio-009.mp3,Disney Musicals,disney-260215-189,"Remember Me (Coco) chorus, 8 to 15 seconds."
 audio,2026-02-24/disney-audio-010.mp3,Disney Musicals,disney-260215-190,"King of New York (Newsies stage) hook, 8 to 15 seconds."
+
 image,2026-02-24/disney-image-001.jpg,Disney Musicals,disney-260215-191,"Official stage poster/key art for Disney’s Aladdin."
 image,2026-02-24/disney-image-002.jpg,Disney Musicals,disney-260215-192,"Official stage poster/key art for The Lion King."
 image,2026-02-24/disney-image-003.jpg,Disney Musicals,disney-260215-193,"Official stage poster/key art for Frozen (stage)."
@@ -19,6 +20,7 @@ image,2026-02-24/disney-image-007.jpg,Disney Musicals,disney-260215-197,"Clear f
 image,2026-02-24/disney-image-008.jpg,Disney Musicals,disney-260215-198,"Clear film still from The Little Mermaid (animated)."
 image,2026-02-24/disney-image-009.jpg,Disney Musicals,disney-260215-199,"Clear film still from The Lion King (animated)."
 image,2026-02-24/disney-image-010.jpg,Disney Musicals,disney-260215-200,"Clear film still from Tangled."
+
 audio,2026-02-24/disney-audio-011.mp3,Disney Musicals,disney-260215-221,"Poor Unfortunate Souls (The Little Mermaid), chorus or key hook, 8 to 15 seconds."
 audio,2026-02-24/disney-audio-012.mp3,Disney Musicals,disney-260215-222,"I’ll Make a Man Out of You (Mulan), training hook, 8 to 15 seconds."
 audio,2026-02-24/disney-audio-013.mp3,Disney Musicals,disney-260215-223,"I Won’t Say (I’m in Love) (Hercules), chorus, 8 to 15 seconds."
@@ -34,6 +36,7 @@ audio,2026-02-24/disney-audio-022.mp3,Disney Musicals,disney-260215-232,"Friends
 audio,2026-02-24/disney-audio-023.mp3,Disney Musicals,disney-260215-233,"When You Wish Upon a Star (Pinocchio), chorus, 8 to 15 seconds."
 audio,2026-02-24/disney-audio-024.mp3,Disney Musicals,disney-260215-234,"Kiss the Girl (The Little Mermaid), chorus, 8 to 15 seconds."
 audio,2026-02-24/disney-audio-025.mp3,Disney Musicals,disney-260215-235,"Out There (The Hunchback of Notre Dame stage), chorus, 8 to 15 seconds."
+
 image,2026-02-24/disney-image-011.jpg,Disney Musicals,disney-260215-236,"Film still from Aladdin (animated), ideally Aladdin and Jasmine on the carpet or a clear Agrabah visual."
 image,2026-02-24/disney-image-012.jpg,Disney Musicals,disney-260215-237,"Film still from Mulan (animated), ideally Mulan in armour or a clear recognisable character shot."
 image,2026-02-24/disney-image-013.jpg,Disney Musicals,disney-260215-238,"Film still from The Princess and the Frog, ideally Tiana or Dr Facilier in a clear recognisable shot."

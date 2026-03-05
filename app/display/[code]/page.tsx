@@ -124,10 +124,46 @@ export default function DisplayPage() {
     playClip().catch(() => {});
   }, [state, audioEnabled, playedForQ, shouldPlayOnDisplay]);
 
+  const gameMode = String(state?.gameMode ?? "teams") === "solo" ? "solo" : "teams";
+  const teamScoreMode = String(state?.teamScoreMode ?? "total") === "average" ? "average" : "total";
+
+  function formatScore(n: number) {
+    if (!Number.isFinite(n)) return "0";
+    const rounded = Math.round(n * 10) / 10;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  }
+
   const scoreboard = useMemo(() => {
-    const players = state?.players ?? [];
-    return [...players].sort((a: any, b: any) => (b.score ?? 0) - (a.score ?? 0));
-  }, [state]);
+    const players: any[] = Array.isArray(state?.players) ? state.players : [];
+
+    if (gameMode === "solo") {
+      return [...players]
+        .map((p) => ({ id: p.id, label: String(p.name ?? ""), score: Number(p.score ?? 0), size: 1 }))
+        .sort((a, b) => (b.score - a.score) || a.label.localeCompare(b.label));
+    }
+
+    const byTeam = new Map<string, { label: string; total: number; size: number }>();
+    for (const p of players) {
+      const team = String(p.team_name ?? "").trim() || "No team";
+      const entry = byTeam.get(team) ?? { label: team, total: 0, size: 0 };
+      entry.total += Number(p.score ?? 0);
+      entry.size += 1;
+      byTeam.set(team, entry);
+    }
+
+    const rows = Array.from(byTeam.values()).map((t) => {
+      const avg = t.size > 0 ? t.total / t.size : 0;
+      const score = teamScoreMode === "average" ? avg : t.total;
+      return { id: t.label, label: t.label, score, size: t.size, total: t.total, avg };
+    });
+
+    return rows.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      // Tie-breaker: total points (not shown when averaging)
+      if (b.total !== a.total) return b.total - a.total;
+      return a.label.localeCompare(b.label);
+    });
+  }, [state, gameMode, teamScoreMode]);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const joinUrl = useMemo(() => {
@@ -221,21 +257,24 @@ export default function DisplayPage() {
                 </div>
                 <div className="divide-y divide-[var(--border)]">
                   {scoreboard.map((p: any, idx: number) => (
-                    <div key={p.id} className="flex items-center justify-between px-4 py-2">
+                    <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-2">
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium">
-                          {idx + 1}. {p.name}
+                          {idx + 1}. {p.label}
                         </div>
+                        {gameMode === "teams" ? (
+                          <div className="text-xs text-[var(--muted-foreground)]">{p.size} players</div>
+                        ) : null}
                       </div>
                       <div className="shrink-0 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-sm text-[var(--muted-foreground)]">
-                        {p.score ?? 0}
+                        {formatScore(Number(p.score ?? 0))}
                       </div>
                     </div>
                   ))}
 
                   {scoreboard.length === 0 ? (
                     <div className="px-4 py-4 text-sm text-[var(--muted-foreground)]">
-                      No players found.
+                      No scores found.
                     </div>
                   ) : null}
                 </div>
@@ -365,18 +404,21 @@ export default function DisplayPage() {
 
               <CardContent>
                 {scoreboard.length === 0 ? (
-                  <div className="text-sm text-[var(--muted-foreground)]">No players yet.</div>
+                  <div className="text-sm text-[var(--muted-foreground)]">No scores yet.</div>
                 ) : (
                   <div className="space-y-2">
                     {scoreboard.map((p: any, idx: number) => (
                       <div key={p.id} className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <div className="truncate text-sm font-medium">
-                            {idx + 1}. {p.name}
+                            {idx + 1}. {p.label}
                           </div>
+                          {gameMode === "teams" ? (
+                            <div className="text-xs text-[var(--muted-foreground)]">{p.size} players</div>
+                          ) : null}
                         </div>
                         <div className="shrink-0 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-sm text-[var(--muted-foreground)]">
-                          {p.score ?? 0}
+                          {formatScore(Number(p.score ?? 0))}
                         </div>
                       </div>
                     ))}

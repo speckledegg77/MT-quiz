@@ -36,7 +36,7 @@ export async function GET(req: Request) {
 
   const playersRes = await supabaseAdmin
     .from("players")
-    .select("id, name, score, joined_at")
+    .select("id, name, score, team_name, joined_at")
     .eq("room_id", room.id)
     .order("joined_at", { ascending: true })
 
@@ -94,6 +94,9 @@ export async function GET(req: Request) {
     code: room.code,
     roomId: room.id,
     phase: room.phase,
+    gameMode: String(room.game_mode ?? "teams") === "solo" ? "solo" : "teams",
+    teamNames: Array.isArray(room.team_names) ? room.team_names : [],
+    teamScoreMode: String(room.team_score_mode ?? "total") === "average" ? "average" : "total",
     stage,
     audioMode,
     selectedPacks,
