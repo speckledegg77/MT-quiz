@@ -60,9 +60,13 @@ export default function PlayerPage() {
   const [playerName, setPlayerName] = useState<string>("");
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [submittedIndex, setSubmittedIndex] = useState<number | null>(null);
+  const [mcqSubmitting, setMcqSubmitting] = useState(false);
+
   const [typedValue, setTypedValue] = useState("");
   const [typedSubmitted, setTypedSubmitted] = useState(false);
   const [typedIsCorrect, setTypedIsCorrect] = useState<boolean | null>(null);
+
   const [answerError, setAnswerError] = useState<string | null>(null);
 
   const [lastQuestionId, setLastQuestionId] = useState<string | null>(null);
@@ -105,10 +109,15 @@ export default function PlayerPage() {
 
     if (qid !== lastQuestionId) {
       setLastQuestionId(qid);
+
       setSelectedIndex(null);
+      setSubmittedIndex(null);
+      setMcqSubmitting(false);
+
       setTypedValue("");
       setTypedSubmitted(false);
       setTypedIsCorrect(null);
+
       setAnswerError(null);
 
       setPlayedForQ(null);
@@ -136,8 +145,8 @@ export default function PlayerPage() {
     if (!q?.id) return false;
 
     if (answerType === "text") return !typedSubmitted;
-    return selectedIndex === null;
-  }, [state?.phase, state?.stage, q?.id, answerType, typedSubmitted, selectedIndex]);
+    return submittedIndex === null && !mcqSubmitting;
+  }, [state?.phase, state?.stage, q?.id, answerType, typedSubmitted, submittedIndex, mcqSubmitting]);
 
   const scoreboard = useMemo(() => {
     const players = state?.players ?? [];
@@ -150,18 +159,55 @@ export default function PlayerPage() {
     return (state?.players ?? []).find((p: any) => p.id === playerId) ?? null;
   }, [state, playerId]);
 
-  async function answer(optionIndex: number) {
-    if (!playerId || !q?.id) return;
+  function pickOption(optionIndex: number) {
     if (!canAnswer) return;
-
     setAnswerError(null);
     setSelectedIndex(optionIndex);
+  }
 
-    await fetch("/api/room/answer", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, playerId, questionId: q.id, optionIndex }),
-    }).catch(() => {});
+  async function submitMcq() {
+    if (!playerId || !q?.id) return;
+    if (!canAnswer) return;
+    if (selectedIndex === null) return;
+
+    setAnswerError(null);
+    setMcqSubmitting(true);
+
+    try {
+      const res = await fetch("/api/room/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, playerId, questionId: q.id, optionIndex: selectedIndex }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setAnswerError(data?.error ?? "Could not send answer.");
+        setMcqSubmitting(false);
+        return;
+      }
+
+      if (data?.accepted === false) {
+        if (data?.reason === "already_answered") {
+          setSubmittedIndex(-1);
+          setSelectedIndex(null);
+          setAnswerError("You already submitted an answer for this question.");
+          setMcqSubmitting(false);
+          return;
+        }
+
+        setAnswerError("Answer not accepted.");
+        setMcqSubmitting(false);
+        return;
+      }
+
+      setSubmittedIndex(selectedIndex);
+      setMcqSubmitting(false);
+    } catch {
+      setAnswerError("Could not send answer.");
+      setMcqSubmitting(false);
+    }
   }
 
   async function submitTyped() {
@@ -543,8 +589,15 @@ export default function PlayerPage() {
                 </div>
               ) : (
                 <div className="grid gap-2">
+                  <div className="text-sm text-[var(--muted-foreground)]">
+                    Pick an option, then press Submit.
+                  </div>
+
                   {(q.options ?? []).map((opt: string, i: number) => {
-                    const isSelected = selectedIndex === i;
+                    const chosenIndex =
+                      submittedIndex !== null && submittedIndex >= 0 ? submittedIndex : selectedIndex;
+
+                    const isSelected = chosenIndex === i;
                     const isCorrect = inReveal && correctIndex !== null && i === correctIndex;
                     const isWrongSelected = inReveal && isSelected && !isCorrect;
 
@@ -561,8 +614,8 @@ export default function PlayerPage() {
                       <button
                         key={i}
                         type="button"
-                        onClick={() => answer(i)}
-                        disabled={!canAnswer && !isSelected}
+                        onClick={() => pickOption(i)}
+                        disabled={!canAnswer}
                         className={`${base} ${cls}`}
                       >
                         {opt}
@@ -570,14 +623,24 @@ export default function PlayerPage() {
                     );
                   })}
 
-                  {selectedIndex !== null && !inReveal ? (
-                    <div className="text-sm text-[var(--muted-foreground)]">Answer locked in.</div>
+                  <Button onClick={submitMcq} disabled={!canAnswer || selectedIndex === null}>
+                    {mcqSubmitting ? "Submitting" : "Submit answer"}
+                  </Button>
+
+                  {submittedIndex !== null && submittedIndex >= 0 && !inReveal ? (
+                    <div className="text-sm text-[var(--muted-foreground)]">Answer submitted.</div>
                   ) : null}
 
-                  {inReveal && selectedIndex !== null && correctIndex !== null ? (
-                    <div className="text-sm text-[var(--muted-foreground)]">
-                      {selectedIndex === correctIndex ? "You got it right." : "You got it wrong."}
-                    </div>
+                  {inReveal && correctIndex !== null ? (
+                    submittedIndex === null ? (
+                      <div className="text-sm text-[var(--muted-foreground)]">You did not submit an answer.</div>
+                    ) : submittedIndex < 0 ? (
+                      <div className="text-sm text-[var(--muted-foreground)]">You already submitted an answer.</div>
+                    ) : (
+                      <div className="text-sm text-[var(--muted-foreground)]">
+                        {submittedIndex === correctIndex ? "You got it right." : "You got it wrong."}
+                      </div>
+                    )
                   ) : null}
                 </div>
               )}
