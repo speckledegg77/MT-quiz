@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-
+import { SimpleSelect } from "@/components/ui/SimpleSelect";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -210,17 +210,12 @@ function JoinInner() {
             <div className="grid gap-2">
               <div className="text-sm font-medium">Team</div>
               {hasTeamList ? (
-                <select
-                  value={teamName}
-                  onChange={(e) => setTeamName(e.target.value)}
-                  className="h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 text-sm"
-                >
-                  {teamNames.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
+            <SimpleSelect
+              buttonClassName="h-12"
+              value={teamName}
+              onChange={setTeamName}
+              options={teamNames.map((t) => ({ value: t, label: t }))}
+            />
               ) : (
                 <Input
                   value={teamName}
