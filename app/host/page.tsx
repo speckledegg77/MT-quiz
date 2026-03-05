@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { QRCodeSVG } from "qrcode.react"
 
@@ -54,6 +54,10 @@ function cleanRoomCode(input: string) {
     .slice(0, 12)
 }
 
+function defaultRoundName(i: number) {
+  return `Round ${i + 1}`
+}
+
 export default function HostPage() {
   const [packs, setPacks] = useState<PackRow[]>([])
   const [packsLoading, setPacksLoading] = useState(true)
@@ -69,6 +73,14 @@ export default function HostPage() {
   const [countdownSecondsStr, setCountdownSecondsStr] = useState("5")
   const [answerSecondsStr, setAnswerSecondsStr] = useState("20")
   const [untimedAnswers, setUntimedAnswers] = useState(false)
+
+  const [roundCountStr, setRoundCountStr] = useState("4")
+  const [roundNames, setRoundNames] = useState<string[]>([
+    "Round 1",
+    "Round 2",
+    "Round 3",
+    "Round 4",
+  ])
 
   const [gameMode, setGameMode] = useState<GameMode>("teams")
   const [teamNames, setTeamNames] = useState<string[]>(() => {
@@ -107,6 +119,19 @@ export default function HostPage() {
   const displayUrl = roomCode ? `/display/${roomCode}` : ""
 
   const showGameplayPanel = Boolean(roomCode) && (roomPhase === "running" || roomPhase === "finished")
+
+  useEffect(() => {
+    const raw = clampInt(parseIntOr(roundCountStr, 4), 1, 20)
+    setRoundNames((prev) => {
+      let next = [...prev]
+      if (next.length < raw) {
+        for (let i = next.length; i < raw; i++) next.push(defaultRoundName(i))
+      }
+      if (next.length > raw) next = next.slice(0, raw)
+      next = next.map((n, i) => (String(n ?? "").trim() ? n : defaultRoundName(i)))
+      return next
+    })
+  }, [roundCountStr])
 
   useEffect(() => {
     try {
@@ -249,6 +274,17 @@ export default function HostPage() {
       const countdownSeconds = clampInt(parseIntOr(countdownSecondsStr, 5), 0, 30)
       const answerSeconds = untimedAnswers ? 0 : clampInt(parseIntOr(answerSecondsStr, 20), 5, 120)
 
+      let roundCount = clampInt(parseIntOr(roundCountStr, 4), 1, 20)
+      if (roundCount > totalQuestions) {
+        roundCount = totalQuestions
+        setRoundCountStr(String(roundCount))
+      }
+
+      const roundNamesToSend = Array.from({ length: roundCount }).map((_, i) => {
+        const name = String(roundNames[i] ?? "").trim()
+        return name || defaultRoundName(i)
+      })
+
       const cleanTeamNames = teamNames.map((t) => t.trim()).filter(Boolean)
 
       if (gameMode === "teams") {
@@ -300,6 +336,8 @@ export default function HostPage() {
         countdownSeconds,
         answerSeconds,
         audioMode,
+        roundCount,
+        roundNames: roundNamesToSend,
       }
 
       const res = await fetch("/api/room/create", {
@@ -589,6 +627,41 @@ export default function HostPage() {
                   ) : null}
                 </div>
 
+                <div className="rounded-2xl border border-[var(--border)] p-3">
+                  <div className="text-sm font-semibold text-[var(--foreground)]">Rounds</div>
+
+                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <div className="text-sm font-medium text-[var(--foreground)]">Number of rounds</div>
+                      <Input
+                        value={roundCountStr}
+                        onChange={(e) => setRoundCountStr(e.target.value)}
+                        inputMode="numeric"
+                      />
+                      <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                        Players pick a Joker round in the lobby.
+                      </div>
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <div className="text-sm font-medium text-[var(--foreground)]">Round names</div>
+                      <div className="mt-1 grid gap-2 sm:grid-cols-2">
+                        {roundNames.map((name, idx) => (
+                          <Input
+                            key={idx}
+                            value={name}
+                            onChange={(e) => setRoundNames((prev) => prev.map((n, i) => (i === idx ? e.target.value : n)))}
+                            placeholder={defaultRoundName(idx)}
+                          />
+                        ))}
+                      </div>
+                      <div className="mt-2 text-xs text-[var(--muted-foreground)]">
+                        Empty names fall back to Round 1, Round 2, and so on.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
                     <div className="text-sm font-medium text-[var(--foreground)]">Total questions</div>
@@ -848,6 +921,7 @@ export default function HostPage() {
               </CardContent>
             </Card>
           ) : null}
+
           <HostJoinedTeamsPanel code={roomCode ?? ""} />
 
           {roomCode ? (

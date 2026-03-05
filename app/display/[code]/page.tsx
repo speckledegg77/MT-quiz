@@ -127,6 +127,8 @@ export default function DisplayPage() {
   const gameMode = String(state?.gameMode ?? "teams") === "solo" ? "solo" : "teams";
   const teamScoreMode = String(state?.teamScoreMode ?? "total") === "average" ? "average" : "total";
 
+  const currentRound = state?.rounds?.current ?? null;
+
   function formatScore(n: number) {
     if (!Number.isFinite(n)) return "0";
     const rounded = Math.round(n * 10) / 10;
@@ -159,7 +161,6 @@ export default function DisplayPage() {
 
     return rows.sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
-      // Tie-breaker: total points (not shown when averaging)
       if (b.total !== a.total) return b.total - a.total;
       return a.label.localeCompare(b.label);
     });
@@ -217,13 +218,21 @@ export default function DisplayPage() {
           ) : null}
 
           {state.phase === "running" ? (
-            <span className="rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-sm text-[var(--muted-foreground)]">
-              Q{questionNumber} of {questionCount}
-            </span>
+            <>
+              {currentRound ? (
+                <span className="rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-sm text-[var(--muted-foreground)]">
+                  R{Number(currentRound.number ?? 0)}: {String(currentRound.name ?? "")}
+                </span>
+              ) : null}
+
+              <span className="rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-sm text-[var(--muted-foreground)]">
+                Q{questionNumber} of {questionCount}
+              </span>
+            </>
           ) : null}
 
           {shouldPlayOnDisplay && !audioEnabled ? (
-            <Button variant="secondary" onClick={unlockAudio}>
+            <Button onClick={unlockAudio} variant="secondary">
               Enable audio
             </Button>
           ) : null}
@@ -231,134 +240,106 @@ export default function DisplayPage() {
       </div>
 
       {finished ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Game completed</CardTitle>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-[64px,1fr] items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4">
-                <div className="grid h-16 w-16 place-items-center text-[var(--foreground)]">
-                  <TrophyIcon />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-sm text-[var(--muted-foreground)]">Final scores</div>
-                  <div className="text-lg font-semibold">Thanks for playing</div>
-                  <div className="text-sm text-[var(--muted-foreground)]">
-                    Start a new room from the Host page.
-                  </div>
-                </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Game completed</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-[56px,1fr] items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4">
+              <div className="grid h-14 w-14 place-items-center text-[var(--foreground)]">
+                <TrophyIcon />
               </div>
+              <div className="min-w-0">
+                <div className="text-sm text-[var(--muted-foreground)]">Final scores</div>
+                <div className="text-base font-semibold">Thanks for playing</div>
+              </div>
+            </div>
 
-              <div className="rounded-xl border border-[var(--border)]">
-                <div className="border-b border-[var(--border)] px-4 py-2 text-sm font-medium">
-                  Scoreboard
-                </div>
-                <div className="divide-y divide-[var(--border)]">
-                  {scoreboard.map((p: any, idx: number) => (
-                    <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-2">
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium">
-                          {idx + 1}. {p.label}
-                        </div>
+            <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+              <table className="w-full text-sm">
+                <thead className="bg-[var(--card)]">
+                  <tr className="border-b border-[var(--border)]">
+                    <th className="w-10 px-3 py-2 text-left font-medium">#</th>
+                    <th className="px-3 py-2 text-left font-medium">{gameMode === "solo" ? "Player" : "Team"}</th>
+                    <th className="w-20 px-3 py-2 text-right font-medium">Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {scoreboard.map((r: any, idx: number) => (
+                    <tr key={r.id} className="border-b border-[var(--border)] last:border-b-0">
+                      <td className="px-3 py-2 text-[var(--muted-foreground)] tabular-nums">{idx + 1}</td>
+                      <td className="px-3 py-2 font-medium">
+                        {r.label}
                         {gameMode === "teams" ? (
-                          <div className="text-xs text-[var(--muted-foreground)]">{p.size} players</div>
+                          <span className="ml-2 text-xs text-[var(--muted-foreground)]">{r.size} players</span>
                         ) : null}
-                      </div>
-                      <div className="shrink-0 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-sm text-[var(--muted-foreground)]">
-                        {formatScore(Number(p.score ?? 0))}
-                      </div>
-                    </div>
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">{formatScore(Number(r.score ?? 0))}</td>
+                    </tr>
                   ))}
-
                   {scoreboard.length === 0 ? (
-                    <div className="px-4 py-4 text-sm text-[var(--muted-foreground)]">
-                      No scores found.
-                    </div>
+                    <tr>
+                      <td className="px-3 py-4 text-sm text-[var(--muted-foreground)]" colSpan={3}>
+                        No players found.
+                      </td>
+                    </tr>
                   ) : null}
-                </div>
-              </div>
-            </CardContent>
+                </tbody>
+              </table>
+            </div>
 
-            <CardFooter className="text-sm text-[var(--muted-foreground)]">
-              The host can reset from Host to play again with the same teams.
-            </CardFooter>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Room link</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {joinUrl ? (
-                <>
-                  <div className="text-sm text-[var(--muted-foreground)]">Players join at</div>
-                  <a className="break-all text-sm underline" href={joinUrl}>
-                    {joinUrl}
-                  </a>
-                  <div className="flex justify-center py-4">
-                    <QRCodeSVG value={joinUrl} size={240} />
-                  </div>
-                </>
-              ) : (
-                <div className="text-sm text-[var(--muted-foreground)]">Join link not available.</div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+            <div className="text-sm text-[var(--muted-foreground)]">
+              Start a new room from the Host page.
+            </div>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="lg:col-span-2 grid gap-4">
+        <div className="grid gap-4 lg:grid-cols-[1fr,360px]">
+          <div className="space-y-4">
             {showJoin ? (
-              <>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Waiting to start</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid gap-3 lg:grid-cols-2">
-                    <div className="space-y-2">
-                      <div className="text-sm text-[var(--muted-foreground)]">Players join at</div>
-                      <a className="break-all text-sm underline" href={joinUrl}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Waiting to start</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm text-[var(--muted-foreground)]">
+                  <div>Players join at</div>
+                  {joinUrl ? (
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2">
+                      <a href={joinUrl} className="break-all underline">
                         {joinUrl}
                       </a>
-                      <div className="text-sm text-[var(--muted-foreground)]">
-                        The host starts the game from Host.
-                      </div>
                     </div>
-                    <div className="flex items-center justify-center py-2">
-                      {joinUrl ? <QRCodeSVG value={joinUrl} size={220} /> : null}
+                  ) : (
+                    <div>Join link not available.</div>
+                  )}
+                  <div>The host starts the game from Host.</div>
+                  {joinUrl ? (
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
+                      <div className="text-sm">QR code</div>
+                      <QRCodeSVG value={joinUrl} size={96} />
                     </div>
-                  </CardContent>
-                </Card>
-
-                <JoinFeedPanel players={state?.players ?? []} />
-              </>
+                  ) : null}
+                </CardContent>
+              </Card>
             ) : null}
 
             {q ? (
               <Card>
                 <CardHeader>
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <CardTitle>Question</CardTitle>
-                    <div className="text-sm text-[var(--muted-foreground)]">
-                      {q.roundType === "audio"
-                        ? "Audio"
-                        : q.roundType === "picture"
-                        ? "Picture"
-                        : "General"}
-                    </div>
+                  <CardTitle>Question</CardTitle>
+                  <div className="text-sm text-[var(--muted-foreground)]">
+                    {q.roundType === "audio" ? "Audio" : q.roundType === "picture" ? "Picture" : "General"}
                   </div>
                 </CardHeader>
 
                 <CardContent className="space-y-4">
                   {isPictureQ && q.imageUrl ? (
-                    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--muted)]">
-                      <img src={q.imageUrl} alt="" className="w-full max-h-[360px] object-contain" />
+                    <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+                      <img src={q.imageUrl} alt="" className="block w-full" />
                     </div>
                   ) : null}
 
-                  <div className="text-xl font-semibold leading-tight">{q.text}</div>
+                  <div className="text-xl font-semibold">{q.text}</div>
 
                   {isAudioQ && audioMode === "phones" ? (
                     <div className="text-sm text-[var(--muted-foreground)]">
@@ -367,91 +348,100 @@ export default function DisplayPage() {
                   ) : null}
 
                   {isAudioQ && shouldPlayOnDisplay && audioEnabled && q.audioUrl ? (
-                    <div>
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
                       <div className="text-sm text-[var(--muted-foreground)]">Audio clip</div>
-                      <Button variant="secondary" onClick={playClip} className="mt-2">
-                        Play again
-                      </Button>
+                      <div className="mt-2">
+                        <Button variant="secondary" onClick={() => playClip().catch(() => {})}>
+                          Play again
+                        </Button>
+                      </div>
                     </div>
                   ) : null}
 
                   {q.answerType === "mcq" && Array.isArray(q.options) && q.options.length ? (
                     <div className="grid gap-2">
                       {q.options.map((opt: string, i: number) => (
-                        <div key={i} className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3">
-                          <div className="text-sm text-[var(--muted-foreground)]">Option {i + 1}</div>
-                          <div className="text-base font-medium">{opt}</div>
+                        <div key={i} className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2">
+                          <div className="text-sm font-medium text-[var(--muted-foreground)]">Option {i + 1}</div>
+                          <div className="text-sm">{opt}</div>
                         </div>
                       ))}
                     </div>
                   ) : null}
 
                   {isTextQ ? (
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] px-4 py-3 text-sm text-[var(--muted-foreground)]">
+                    <div className="text-sm text-[var(--muted-foreground)]">
                       Players type their answer on their phones.
                     </div>
                   ) : null}
                 </CardContent>
               </Card>
             ) : null}
-          </div>
 
-          <div className="lg:col-span-1 grid gap-4">
             <Card>
               <CardHeader>
                 <CardTitle>Scoreboard</CardTitle>
-              </CardHeader>
-
-              <CardContent>
-                {scoreboard.length === 0 ? (
-                  <div className="text-sm text-[var(--muted-foreground)]">No scores yet.</div>
-                ) : (
-                  <div className="space-y-2">
-                    {scoreboard.map((p: any, idx: number) => (
-                      <div key={p.id} className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-medium">
-                            {idx + 1}. {p.label}
-                          </div>
-                          {gameMode === "teams" ? (
-                            <div className="text-xs text-[var(--muted-foreground)]">{p.size} players</div>
-                          ) : null}
-                        </div>
-                        <div className="shrink-0 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-sm text-[var(--muted-foreground)]">
-                          {formatScore(Number(p.score ?? 0))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-
-              <CardFooter className="text-sm text-[var(--muted-foreground)]">
-                Scores update as rounds complete.
-              </CardFooter>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Room link</CardTitle>
+                {gameMode === "teams" && teamScoreMode === "average" ? (
+                  <div className="text-sm text-[var(--muted-foreground)]">Showing average points per player.</div>
+                ) : null}
               </CardHeader>
 
               <CardContent className="space-y-3">
-                {joinUrl ? (
-                  <>
-                    <div className="text-sm text-[var(--muted-foreground)]">Players join at</div>
-                    <a className="break-all text-sm underline" href={joinUrl}>
-                      {joinUrl}
-                    </a>
-                    <div className="flex justify-center py-4">
-                      <QRCodeSVG value={joinUrl} size={240} />
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-sm text-[var(--muted-foreground)]">Join link not available.</div>
-                )}
+                <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+                  <table className="w-full text-sm">
+                    <thead className="bg-[var(--card)]">
+                      <tr className="border-b border-[var(--border)]">
+                        <th className="w-10 px-3 py-2 text-left font-medium">#</th>
+                        <th className="px-3 py-2 text-left font-medium">{gameMode === "solo" ? "Player" : "Team"}</th>
+                        <th className="w-20 px-3 py-2 text-right font-medium">Score</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scoreboard.map((r: any, idx: number) => (
+                        <tr key={r.id} className="border-b border-[var(--border)] last:border-b-0">
+                          <td className="px-3 py-2 text-[var(--muted-foreground)] tabular-nums">{idx + 1}</td>
+                          <td className="px-3 py-2 font-medium">
+                            {r.label}
+                            {gameMode === "teams" ? (
+                              <span className="ml-2 text-xs text-[var(--muted-foreground)]">{r.size} players</span>
+                            ) : null}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">{formatScore(Number(r.score ?? 0))}</td>
+                        </tr>
+                      ))}
+                      {scoreboard.length === 0 ? (
+                        <tr>
+                          <td className="px-3 py-4 text-sm text-[var(--muted-foreground)]" colSpan={3}>
+                            No players yet.
+                          </td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="text-sm text-[var(--muted-foreground)]">Scores update as questions complete.</div>
+
+                <div className="text-sm text-[var(--muted-foreground)]">
+                  Room link{" "}
+                  {joinUrl ? (
+                    <>
+                      <div className="mt-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2">
+                        <a href={joinUrl} className="break-all underline">
+                          {joinUrl}
+                        </a>
+                      </div>
+                    </>
+                  ) : (
+                    "Join link not available."
+                  )}
+                </div>
               </CardContent>
             </Card>
+          </div>
+
+          <div className="space-y-4">
+            <JoinFeedPanel players={Array.isArray(state?.players) ? state.players : []} />
           </div>
         </div>
       )}

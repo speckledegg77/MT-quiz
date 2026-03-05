@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -9,29 +9,12 @@ import { Input } from "@/components/ui/Input";
 
 type RoomState = any;
 
-function statusText(stage: string) {
-  if (stage === "countdown") return "Get ready";
-  if (stage === "open") return "Answer now";
-  if (stage === "wait") return "Waiting for answers";
-  if (stage === "reveal") return "Reveal";
-  if (stage === "needs_advance") return "Next question";
-  return "";
-}
-
-function pillClass(stage: string) {
-  if (stage === "open") return "bg-emerald-600/20 text-emerald-200 border-emerald-500/40";
-  if (stage === "reveal") return "bg-indigo-600/20 text-indigo-200 border-indigo-500/40";
-  if (stage === "countdown") return "bg-amber-600/20 text-amber-200 border-amber-500/40";
-  if (stage === "wait") return "bg-slate-600/20 text-slate-200 border-slate-500/40";
-  return "bg-slate-600/20 text-slate-200 border-slate-500/40";
-}
-
 function TrophyIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
       aria-hidden="true"
-      className="block h-10 w-10"
+      className="block h-12 w-12"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
@@ -49,22 +32,39 @@ function TrophyIcon() {
   );
 }
 
-function formatScore(n: number) {
-  if (!Number.isFinite(n)) return "0";
-  const rounded = Math.round(n * 10) / 10;
-  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+function statusText(stage: string) {
+  if (stage === "countdown") return "Get ready";
+  if (stage === "open") return "Answer now";
+  if (stage === "wait") return "Waiting";
+  if (stage === "reveal") return "Reveal";
+  if (stage === "needs_advance") return "Next question";
+  return "";
+}
+
+function pillClass(stage: string) {
+  if (stage === "open") return "bg-emerald-600/10 text-emerald-700 border-emerald-600/20 dark:text-emerald-200";
+  if (stage === "reveal") return "bg-indigo-600/10 text-indigo-700 border-indigo-600/20 dark:text-indigo-200";
+  if (stage === "countdown") return "bg-amber-600/10 text-amber-700 border-amber-600/20 dark:text-amber-200";
+  if (stage === "wait") return "bg-slate-600/10 text-slate-700 border-slate-600/20 dark:text-slate-200";
+  return "bg-slate-600/10 text-slate-700 border-slate-600/20 dark:text-slate-200";
 }
 
 export default function PlayerPage() {
   const params = useParams<{ code?: string }>();
-  const router = useRouter();
   const code = String(params?.code ?? "").toUpperCase();
 
   const [state, setState] = useState<RoomState | null>(null);
 
+  const [audioEnabled, setAudioEnabled] = useState(false);
+  const [playedForQ, setPlayedForQ] = useState<string | null>(null);
+  const [preparedForQ, setPreparedForQ] = useState<string | null>(null);
+  const [autoplayFailed, setAutoplayFailed] = useState(false);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const [playerId, setPlayerId] = useState<string | null>(null);
-  const [playerName, setPlayerName] = useState<string>("");
-  const [teamName, setTeamName] = useState<string>("");
+  const [playerName, setPlayerName] = useState<string | null>(null);
+  const [teamName, setTeamName] = useState<string | null>(null);
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [submittedIndex, setSubmittedIndex] = useState<number | null>(null);
@@ -75,29 +75,61 @@ export default function PlayerPage() {
   const [typedIsCorrect, setTypedIsCorrect] = useState<boolean | null>(null);
 
   const [answerError, setAnswerError] = useState<string | null>(null);
-  const [lastQuestionId, setLastQuestionId] = useState<string | null>(null);
 
-  const [audioEnabled, setAudioEnabled] = useState(false);
-  const [autoplayFailed, setAutoplayFailed] = useState(false);
-  const [playedForQ, setPlayedForQ] = useState<string | null>(null);
-  const [preparedForQ, setPreparedForQ] = useState<string | null>(null);
+  const [jokerBusy, setJokerBusy] = useState(false);
+  const [jokerError, setJokerError] = useState<string | null>(null);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastQuestionId = useMemo(() => String(state?.question?.id ?? ""), [state?.question?.id]);
 
   useEffect(() => {
     if (!code) return;
-    setPlayerId(localStorage.getItem(`mtq_player_${code}`));
-    setPlayerName(localStorage.getItem(`mtq_player_name_${code}`) ?? "");
-    setTeamName(localStorage.getItem(`mtq_team_name_${code}`) ?? "");
+
+    const pid = localStorage.getItem(`mtq_player_${code}`);
+    const pn = localStorage.getItem(`mtq_player_name_${code}`);
+    const tn = localStorage.getItem(`mtq_team_name_${code}`);
+
+    setPlayerId(pid);
+    setPlayerName(pn);
+    setTeamName(tn);
   }, [code]);
 
+  async function unlockAudio() {
+    setAudioEnabled(true);
+  }
+
+  async function prepareClip() {
+    const q = state?.question;
+    const el = audioRef.current;
+    if (!q?.audioUrl || !el) return;
+
+    try {
+      el.pause();
+      el.src = q.audioUrl;
+      el.load();
+    } catch {
+      // ignore
+    }
+  }
+
+  async function playClip() {
+    const el = audioRef.current;
+    if (!el) return;
+
+    try {
+      await el.play();
+    } catch {
+      setAutoplayFailed(true);
+    }
+  }
+
   useEffect(() => {
     if (!code) return;
+
     let cancelled = false;
 
     async function tick() {
       const res = await fetch(`/api/room/state?code=${code}`, { cache: "no-store" });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!cancelled) setState(data);
     }
 
@@ -109,29 +141,6 @@ export default function PlayerPage() {
       clearInterval(id);
     };
   }, [code]);
-
-  useEffect(() => {
-    const qid = state?.question?.id ?? null;
-    if (!qid) return;
-
-    if (qid !== lastQuestionId) {
-      setLastQuestionId(qid);
-
-      setSelectedIndex(null);
-      setSubmittedIndex(null);
-      setMcqSubmitting(false);
-
-      setTypedValue("");
-      setTypedSubmitted(false);
-      setTypedIsCorrect(null);
-
-      setAnswerError(null);
-
-      setPlayedForQ(null);
-      setPreparedForQ(null);
-      setAutoplayFailed(false);
-    }
-  }, [state?.question?.id, lastQuestionId]);
 
   const gameMode = String(state?.gameMode ?? "teams") === "solo" ? "solo" : "teams";
   const teamScoreMode = String(state?.teamScoreMode ?? "total") === "average" ? "average" : "total";
@@ -148,6 +157,9 @@ export default function PlayerPage() {
 
   const correctIndex = state?.reveal?.answerIndex ?? null;
   const inReveal = Boolean(state?.reveal);
+
+  const roundsPlan = Array.isArray(state?.rounds?.plan) ? state.rounds.plan : [];
+  const currentRound = state?.rounds?.current ?? null;
 
   const canAnswer = useMemo(() => {
     if (state?.phase !== "running") return false;
@@ -166,6 +178,12 @@ export default function PlayerPage() {
     if (!playerId) return null;
     return players.find((p: any) => p.id === playerId) ?? null;
   }, [players, playerId]);
+
+  const myJokerIndex = useMemo(() => {
+    const v = myPlayer?.joker_round_index;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }, [myPlayer?.joker_round_index]);
 
   const teamRows = useMemo(() => {
     const byTeam = new Map<string, { label: string; total: number; size: number }>();
@@ -204,6 +222,68 @@ export default function PlayerPage() {
     return teamRows.find((t) => t.label === tn) ?? null;
   }, [gameMode, myPlayer?.team_name, teamName, teamRows]);
 
+  function formatScore(n: number) {
+    if (!Number.isFinite(n)) return "0";
+    const rounded = Math.round(n * 10) / 10;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  }
+
+  useEffect(() => {
+    if (!state?.question?.id) return;
+
+    if (lastQuestionId && state.question.id !== lastQuestionId) {
+      setSelectedIndex(null);
+      setSubmittedIndex(null);
+      setMcqSubmitting(false);
+
+      setTypedValue("");
+      setTypedSubmitted(false);
+      setTypedIsCorrect(null);
+
+      setAnswerError(null);
+
+      setPlayedForQ(null);
+      setPreparedForQ(null);
+      setAutoplayFailed(false);
+    }
+  }, [state?.question?.id, lastQuestionId]);
+
+  useEffect(() => {
+    const qid = String(state?.question?.id ?? "");
+    if (!qid) return;
+    if (!shouldPlayOnPhone) return;
+    if (!audioEnabled) return;
+    if (!isAudioQ) return;
+    if (state?.stage !== "open") return;
+    if (preparedForQ === qid) return;
+
+    setPreparedForQ(qid);
+    prepareClip().catch(() => {});
+  }, [state, shouldPlayOnPhone, audioEnabled, isAudioQ, preparedForQ]);
+
+  useEffect(() => {
+    const qid = String(state?.question?.id ?? "");
+    if (!qid) return;
+    if (!shouldPlayOnPhone) return;
+    if (!audioEnabled) return;
+    if (!isAudioQ) return;
+    if (state?.stage !== "open") return;
+    if (playedForQ === qid) return;
+    if (autoplayFailed) return;
+
+    setPlayedForQ(qid);
+    playClip().catch(() => {});
+  }, [state, shouldPlayOnPhone, audioEnabled, isAudioQ, playedForQ, autoplayFailed]);
+
+  const stage = String(state?.stage ?? "");
+  const status = statusText(stage);
+
+  const questionNumber = Number(state?.questionIndex ?? 0) + 1;
+  const questionCount = Number(state?.questionCount ?? 0);
+
+  const showLobby = state?.phase === "lobby";
+  const finished = state?.phase === "finished";
+
   function pickOption(optionIndex: number) {
     if (!canAnswer) return;
     setAnswerError(null);
@@ -241,8 +321,7 @@ export default function PlayerPage() {
           setMcqSubmitting(false);
           return;
         }
-
-        setAnswerError("Answer not accepted.");
+        setAnswerError("Could not send answer.");
         setMcqSubmitting(false);
         return;
       }
@@ -255,188 +334,81 @@ export default function PlayerPage() {
     }
   }
 
-  async function submitTyped() {
+  async function submitText() {
     if (!playerId || !q?.id) return;
     if (!canAnswer) return;
-
-    const trimmed = typedValue.trim();
-    if (!trimmed) {
-      setAnswerError("Type an answer first.");
-      return;
-    }
+    const clean = typedValue.trim();
+    if (!clean) return;
 
     setAnswerError(null);
-    setTypedSubmitted(true);
 
     try {
       const res = await fetch("/api/room/answer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, playerId, questionId: q.id, answerText: trimmed }),
+        body: JSON.stringify({ code, playerId, questionId: q.id, answerText: clean }),
       });
 
       const data = await res.json().catch(() => ({}));
 
-      if (!res.ok || data?.accepted === false) {
-        setAnswerError(data?.error ?? "Answer not accepted.");
-        setTypedSubmitted(false);
+      if (!res.ok) {
+        setAnswerError(data?.error ?? "Could not send answer.");
         return;
       }
 
+      if (data?.accepted === false) {
+        if (data?.reason === "already_answered") {
+          setTypedSubmitted(true);
+          setAnswerError("You already submitted an answer for this question.");
+          return;
+        }
+        setAnswerError("Could not send answer.");
+        return;
+      }
+
+      setTypedSubmitted(true);
       setTypedIsCorrect(Boolean(data?.isCorrect));
     } catch {
       setAnswerError("Could not send answer.");
-      setTypedSubmitted(false);
     }
   }
 
-  async function unlockAudio() {
-    setAudioEnabled(true);
-    setAutoplayFailed(false);
+  async function pickJoker(roundIndex: number) {
+    if (!playerId) return;
+    if (state?.phase !== "lobby") return;
+
+    setJokerError(null);
+    setJokerBusy(true);
 
     try {
-      const AnyWindow = window as any;
-      const Ctx = AnyWindow.AudioContext || AnyWindow.webkitAudioContext;
-      if (Ctx) {
-        const ctx = new Ctx();
-        await ctx.resume();
-        const buf = ctx.createBuffer(1, 1, 22050);
-        const src = ctx.createBufferSource();
-        src.buffer = buf;
-        src.connect(ctx.destination);
-        src.start(0);
-        src.stop(0.01);
-        await new Promise((r) => setTimeout(r, 20));
-        await ctx.close();
-      }
-    } catch {
-      // ignore
-    }
-  }
+      const res = await fetch("/api/room/joker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, playerId, jokerRoundIndex: roundIndex }),
+      });
 
-  function prepareClip() {
-    const el = audioRef.current;
-    if (!q?.audioUrl || !el) return;
-    if (preparedForQ === q.id) return;
+      const data = await res.json().catch(() => ({}));
 
-    try {
-      el.pause();
-      el.currentTime = 0;
-    } catch {
-      // ignore
-    }
-
-    el.src = q.audioUrl;
-    el.preload = "auto";
-    el.load();
-    setPreparedForQ(q.id);
-  }
-
-  async function playClip(): Promise<boolean> {
-    const el = audioRef.current;
-    if (!q?.audioUrl || !el) return false;
-
-    try {
-      if (preparedForQ !== q.id) {
-        el.src = q.audioUrl;
-        el.preload = "auto";
-        el.load();
-        setPreparedForQ(q.id);
-      }
-      await el.play();
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  useEffect(() => {
-    if (!shouldPlayOnPhone) return;
-    if (!isAudioQ) return;
-    if (!q?.audioUrl) return;
-    prepareClip();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldPlayOnPhone, isAudioQ, q?.id, q?.audioUrl]);
-
-  useEffect(() => {
-    if (!shouldPlayOnPhone) return;
-    if (!audioEnabled) return;
-    if (!isAudioQ) return;
-    if (state?.stage !== "open") return;
-    if (!q?.audioUrl) return;
-    if (playedForQ === q.id) return;
-
-    let cancelled = false;
-
-    async function attempt() {
-      const ok = await playClip();
-      if (cancelled) return;
-
-      if (ok) {
-        setPlayedForQ(q.id);
-        setAutoplayFailed(false);
+      if (!res.ok) {
+        setJokerError(String(data?.error ?? "Could not save joker round."));
+        setJokerBusy(false);
         return;
       }
 
-      setAutoplayFailed(true);
+      setJokerBusy(false);
+    } catch {
+      setJokerError("Could not save joker round.");
+      setJokerBusy(false);
     }
-
-    attempt().catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shouldPlayOnPhone, audioEnabled, isAudioQ, state?.stage, q?.id, q?.audioUrl, playedForQ]);
-
-  if (!code) {
-    return (
-      <main className="mx-auto max-w-md px-4 py-10">
-        <Card>
-          <CardContent className="py-8 text-sm text-[var(--muted-foreground)]">
-            Missing room code in the URL.
-          </CardContent>
-        </Card>
-      </main>
-    );
   }
-
-  if (!playerId) {
-    return (
-      <main className="mx-auto max-w-md px-4 py-10">
-        <Card>
-          <CardHeader>
-            <CardTitle>Player not found</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-[var(--muted-foreground)]">
-            This phone does not have a player ID for room {code}.
-            Go back to Join and enter the code again.
-          </CardContent>
-          <CardFooter className="flex justify-end">
-            <Button onClick={() => router.push(`/join?code=${code}`)}>Go to Join</Button>
-          </CardFooter>
-        </Card>
-      </main>
-    );
-  }
-
-  if (!state) return null;
-
-  const stage = String(state?.stage ?? "");
-  const status = statusText(stage);
-
-  const questionNumber = Number(state.questionIndex ?? 0) + 1;
-  const questionCount = Number(state.questionCount ?? 0);
-
-  const showLobby = state.phase === "lobby";
-  const finished = state.phase === "finished";
 
   return (
-    <main className="mx-auto max-w-md px-4 py-6">
+    <main className="mx-auto max-w-2xl px-4 py-6">
       <audio ref={audioRef} />
 
       <div className="mb-4 flex items-end justify-between gap-3">
         <div>
-          <div className="text-xs text-[var(--muted-foreground)]">Room</div>
+          <div className="text-sm text-[var(--muted-foreground)]">Room</div>
           <div className="text-lg font-semibold tracking-wide">{code}</div>
           {playerName ? (
             <div className="text-xs text-[var(--muted-foreground)]">
@@ -458,10 +430,18 @@ export default function PlayerPage() {
             </span>
           ) : null}
 
-          {state.phase === "running" ? (
-            <span className="rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-xs text-[var(--muted-foreground)]">
-              Q{questionNumber} of {questionCount}
-            </span>
+          {state?.phase === "running" ? (
+            <div className="flex flex-wrap justify-end gap-2">
+              {currentRound ? (
+                <span className="rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-xs text-[var(--muted-foreground)]">
+                  R{Number(currentRound.number ?? 0)}: {String(currentRound.name ?? "")}
+                </span>
+              ) : null}
+
+              <span className="rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-xs text-[var(--muted-foreground)]">
+                Q{questionNumber} of {questionCount}
+              </span>
+            </div>
           ) : null}
         </div>
       </div>
@@ -471,8 +451,9 @@ export default function PlayerPage() {
           <CardHeader>
             <CardTitle>Waiting to start</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-[var(--muted-foreground)]">
-            You’ve joined. Wait for the host to start the game.
+          <CardContent className="space-y-4 text-sm text-[var(--muted-foreground)]">
+            <div>You’ve joined. Wait for the host to start the game.</div>
+
             {shouldPlayOnPhone ? (
               <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
                 {!audioEnabled ? (
@@ -482,6 +463,64 @@ export default function PlayerPage() {
                 ) : (
                   <div>Audio enabled for this phone.</div>
                 )}
+              </div>
+            ) : null}
+
+            {roundsPlan.length > 0 ? (
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-3">
+                <div className="text-sm font-medium text-[var(--foreground)]">Rounds</div>
+                <div className="mt-2 grid gap-1">
+                  {roundsPlan.map((r: any) => (
+                    <div key={r.index} className="flex items-center justify-between gap-3">
+                      <div className="min-w-0 truncate">
+                        {Number(r.number)}. {String(r.name)}
+                      </div>
+                      <div className="text-xs text-[var(--muted-foreground)] tabular-nums">
+                        {Number(r.size)} questions
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {roundsPlan.length > 0 ? (
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-3">
+                <div className="text-sm font-medium text-[var(--foreground)]">Pick your Joker round</div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {roundsPlan.map((r: any) => {
+                    const selected = myJokerIndex === Number(r.index);
+                    return (
+                      <Button
+                        key={r.index}
+                        variant={selected ? "primary" : "secondary"}
+                        disabled={jokerBusy}
+                        onClick={() => pickJoker(Number(r.index))}
+                      >
+                        {String(r.name)}
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-2 text-xs text-[var(--muted-foreground)]">
+                  In your Joker round: correct +2. Wrong -1. No submitted answer -1.
+                </div>
+
+                {myJokerIndex !== null ? (
+                  <div className="mt-2 text-xs text-[var(--muted-foreground)]">
+                    Your current Joker:{" "}
+                    <span className="text-[var(--foreground)]">
+                      {String(roundsPlan.find((r: any) => Number(r.index) === myJokerIndex)?.name ?? `Round ${myJokerIndex + 1}`)}
+                    </span>
+                  </div>
+                ) : null}
+
+                {jokerError ? (
+                  <div className="mt-2 rounded-lg border border-red-300 bg-red-600/10 px-3 py-2 text-sm text-red-600">
+                    {jokerError}
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </CardContent>
@@ -541,83 +580,147 @@ export default function PlayerPage() {
                 </table>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button variant="secondary" onClick={() => router.push(`/join?code=${code}`)}>
-                Join another game
-              </Button>
-            </CardFooter>
           </Card>
         </div>
       ) : null}
 
-      {!showLobby && !finished && q ? (
+      {state?.phase === "running" && q ? (
         <div className="grid gap-4">
-          {myPlayer ? (
-            <Card>
-              <CardContent className="py-4">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-[var(--muted-foreground)]">Your score</div>
-                  <div className="text-lg font-semibold tabular-nums">{myPlayer.score ?? 0}</div>
-                </div>
-                {gameMode === "teams" && myTeamRow ? (
-                  <div className="mt-2 flex items-center justify-between">
-                    <div className="text-sm text-[var(--muted-foreground)]">Team score</div>
-                    <div className="text-lg font-semibold tabular-nums">{formatScore(Number(myTeamRow.score ?? 0))}</div>
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
-          ) : null}
-
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle>Question</CardTitle>
+              <CardTitle>Question</CardTitle>
+              {currentRound ? (
                 <div className="text-sm text-[var(--muted-foreground)]">
-                  {q.roundType === "audio" ? "Audio" : q.roundType === "picture" ? "Picture" : "General"}
+                  Round {Number(currentRound.number ?? 0)}: {String(currentRound.name ?? "")}
                 </div>
-              </div>
+              ) : null}
             </CardHeader>
 
             <CardContent className="space-y-4">
               {isPictureQ && q.imageUrl ? (
-                <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--muted)]">
-                  <img src={q.imageUrl} alt="" className="w-full max-h-[280px] object-contain" />
+                <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+                  <img src={q.imageUrl} alt="" className="block w-full" />
                 </div>
               ) : null}
 
-              <div className="text-base font-semibold leading-tight">{q.text}</div>
+              <div className="text-base font-semibold">{q.text}</div>
+
+              {isAudioQ && audioMode === "display" ? (
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-sm text-[var(--muted-foreground)]">
+                  Audio plays on the TV display for this game.
+                </div>
+              ) : null}
 
               {isAudioQ && shouldPlayOnPhone ? (
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3">
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
                   {!audioEnabled ? (
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm text-[var(--muted-foreground)]">Audio for this question</div>
-                      <Button onClick={unlockAudio} variant="secondary" size="sm">
-                        Enable audio
-                      </Button>
-                    </div>
+                    <Button onClick={unlockAudio} variant="secondary">
+                      Enable audio on this phone
+                    </Button>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3">
                       <div className="text-sm text-[var(--muted-foreground)]">
-                        Audio enabled{autoplayFailed ? ". Tap Play clip." : "."}
+                        Audio enabled.
                       </div>
                       <Button
-                        onClick={async () => {
+                        onClick={() => {
                           setAutoplayFailed(false);
-                          await playClip();
+                          playClip().catch(() => {});
                         }}
                         variant="secondary"
-                        size="sm"
                       >
-                        Play clip
+                        Play
                       </Button>
                     </div>
                   )}
+
+                  {autoplayFailed ? (
+                    <div className="mt-2 text-xs text-[var(--muted-foreground)]">
+                      Tap Play to start audio.
+                    </div>
+                  ) : null}
                 </div>
-              ) : isAudioQ && audioMode === "display" ? (
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3 text-sm text-[var(--muted-foreground)]">
-                  Audio plays on the TV display.
+              ) : null}
+
+              {answerType === "mcq" && Array.isArray(q.options) ? (
+                <div className="grid gap-2">
+                  {q.options.map((opt: string, idx: number) => {
+                    const selected = selectedIndex === idx;
+                    const submitted = submittedIndex !== null;
+                    const isCorrectChoice = inReveal && correctIndex === idx;
+                    const isMyChoice = inReveal && submittedIndex === idx;
+
+                    let cls = "rounded-xl border px-3 py-3 text-left text-sm transition-colors";
+                    cls += " border-[var(--border)]";
+
+                    if (selected && !submitted) cls += " bg-[var(--muted)]";
+                    if (submitted) cls += " opacity-80 cursor-not-allowed";
+
+                    if (inReveal && isCorrectChoice) cls += " bg-emerald-600/10 border-emerald-600/30";
+                    if (inReveal && isMyChoice && !isCorrectChoice) cls += " bg-red-600/10 border-red-600/30";
+
+                    return (
+                      <button
+                        key={idx}
+                        className={cls}
+                        onClick={() => pickOption(idx)}
+                        disabled={!canAnswer || mcqSubmitting}
+                      >
+                        <div className="font-medium text-[var(--foreground)]">Option {idx + 1}</div>
+                        <div className="mt-1 text-[var(--muted-foreground)]">{opt}</div>
+                      </button>
+                    );
+                  })}
+
+                  {!inReveal ? (
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setSelectedIndex(null);
+                          setAnswerError(null);
+                        }}
+                        disabled={!canAnswer || selectedIndex === null}
+                      >
+                        Clear
+                      </Button>
+
+                      <Button onClick={submitMcq} disabled={!canAnswer || selectedIndex === null}>
+                        {mcqSubmitting ? "Submitting…" : "Submit"}
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {answerType === "text" ? (
+                <div className="grid gap-2">
+                  <Input
+                    value={typedValue}
+                    onChange={(e) => setTypedValue(e.target.value)}
+                    placeholder="Type your answer"
+                    disabled={!canAnswer}
+                  />
+                  <div className="flex items-center justify-end gap-2">
+                    <Button variant="secondary" onClick={() => setTypedValue("")} disabled={!canAnswer || !typedValue.trim()}>
+                      Clear
+                    </Button>
+                    <Button onClick={submitText} disabled={!canAnswer || !typedValue.trim()}>
+                      Submit
+                    </Button>
+                  </div>
+
+                  {typedSubmitted ? (
+                    <div className="text-sm text-[var(--muted-foreground)]">
+                      Answer submitted.
+                    </div>
+                  ) : null}
+
+                  {typedSubmitted && typedIsCorrect !== null ? (
+                    <div className={`text-sm ${typedIsCorrect ? "text-emerald-600 dark:text-emerald-300" : "text-red-600 dark:text-red-300"}`}>
+                      {typedIsCorrect ? "Correct" : "Wrong"}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -626,119 +729,35 @@ export default function PlayerPage() {
                   {answerError}
                 </div>
               ) : null}
-
-              {isTextQ ? (
-                <div className="grid gap-2">
-                  <Input
-                    value={typedValue}
-                    onChange={(e) => setTypedValue(e.target.value)}
-                    disabled={!canAnswer}
-                    placeholder="Type your answer"
-                    className="h-12 text-base"
-                  />
-
-                  <Button onClick={submitTyped} disabled={!canAnswer}>
-                    Submit answer
-                  </Button>
-
-                  {typedSubmitted && !inReveal ? (
-                    <div className="text-sm text-[var(--muted-foreground)]">Answer submitted.</div>
-                  ) : null}
-
-                  {inReveal && typedIsCorrect !== null ? (
-                    <div className="text-sm text-[var(--muted-foreground)]">
-                      {typedIsCorrect ? "You got it right." : "You got it wrong."}
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <div className="grid gap-2">
-                  <div className="text-sm text-[var(--muted-foreground)]">Pick an option, then press Submit.</div>
-
-                  {(q.options ?? []).map((opt: string, i: number) => {
-                    const chosenIndex =
-                      submittedIndex !== null && submittedIndex >= 0 ? submittedIndex : selectedIndex;
-
-                    const isSelected = chosenIndex === i;
-                    const isCorrect = inReveal && correctIndex !== null && i === correctIndex;
-                    const isWrongSelected = inReveal && isSelected && !isCorrect;
-
-                    const base = "rounded-xl border px-4 py-3 text-left text-sm";
-                    const cls = isCorrect
-                      ? "border-emerald-500/50 bg-emerald-600/15"
-                      : isWrongSelected
-                      ? "border-red-500/50 bg-red-600/15"
-                      : isSelected && !inReveal
-                      ? "border-emerald-500/30 bg-emerald-600/10"
-                      : "border-[var(--border)] bg-[var(--card)]";
-
-                    return (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => pickOption(i)}
-                        disabled={!canAnswer}
-                        className={`${base} ${cls}`}
-                      >
-                        {opt}
-                      </button>
-                    );
-                  })}
-
-                  <Button onClick={submitMcq} disabled={!canAnswer || selectedIndex === null}>
-                    {mcqSubmitting ? "Submitting" : "Submit answer"}
-                  </Button>
-
-                  {submittedIndex !== null && submittedIndex >= 0 && !inReveal ? (
-                    <div className="text-sm text-[var(--muted-foreground)]">Answer submitted.</div>
-                  ) : null}
-
-                  {inReveal && correctIndex !== null ? (
-                    submittedIndex === null ? (
-                      <div className="text-sm text-[var(--muted-foreground)]">You did not submit an answer.</div>
-                    ) : submittedIndex < 0 ? (
-                      <div className="text-sm text-[var(--muted-foreground)]">You already submitted an answer.</div>
-                    ) : (
-                      <div className="text-sm text-[var(--muted-foreground)]">
-                        {submittedIndex === correctIndex ? "You got it right." : "You got it wrong."}
-                      </div>
-                    )
-                  ) : null}
-                </div>
-              )}
-
-              {inReveal ? (
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3">
-                  <div className="text-sm font-medium">Answer</div>
-                  <div className="mt-1 text-sm text-[var(--muted-foreground)]">
-                    {state.reveal.answerType === "mcq" &&
-                    state.reveal.answerIndex !== null &&
-                    Array.isArray(q.options) &&
-                    q.options[state.reveal.answerIndex]
-                      ? q.options[state.reveal.answerIndex]
-                      : null}
-                    {state.reveal.answerType === "text" && state.reveal.answerText ? state.reveal.answerText : null}
-                  </div>
-
-                  {state.reveal.explanation ? (
-                    <div className="mt-2 text-sm text-[var(--muted-foreground)]">{state.reveal.explanation}</div>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {state.stage !== "open" && state.stage !== "reveal" ? (
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3 text-sm text-[var(--muted-foreground)]">
-                  Waiting for the next question.
-                </div>
-              ) : null}
             </CardContent>
+
+            {inReveal ? (
+              <CardFooter className="flex flex-col items-start gap-2">
+                <div className="text-sm text-[var(--muted-foreground)]">Answer</div>
+                {state?.reveal?.answerType === "mcq" ? (
+                  <div className="text-base font-semibold text-[var(--foreground)]">
+                    Option {Number(correctIndex ?? 0) + 1}
+                  </div>
+                ) : (
+                  <div className="text-base font-semibold text-[var(--foreground)]">
+                    {String(state?.reveal?.answerText ?? "")}
+                  </div>
+                )}
+                {state?.reveal?.explanation ? (
+                  <div className="text-sm text-[var(--muted-foreground)]">{String(state.reveal.explanation)}</div>
+                ) : null}
+              </CardFooter>
+            ) : null}
           </Card>
 
           <Card>
             <CardHeader>
               <CardTitle>Scoreboard</CardTitle>
+              {gameMode === "teams" && teamScoreMode === "average" ? (
+                <div className="text-sm text-[var(--muted-foreground)]">Showing average points per player.</div>
+              ) : null}
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-2">
               <div className="overflow-hidden rounded-xl border border-[var(--border)]">
                 <table className="w-full text-sm">
                   <thead className="bg-[var(--card)]">
@@ -754,7 +773,12 @@ export default function PlayerPage() {
                       return (
                         <tr key={r.id} className="border-b border-[var(--border)] last:border-b-0">
                           <td className="px-3 py-2 text-[var(--muted-foreground)] tabular-nums">{idx + 1}</td>
-                          <td className={`px-3 py-2 ${isMe ? "font-semibold" : "font-medium"}`}>{r.label}</td>
+                          <td className={`px-3 py-2 ${isMe ? "font-semibold" : "font-medium"}`}>
+                            {r.label}
+                            {gameMode === "teams" ? (
+                              <span className="ml-2 text-xs text-[var(--muted-foreground)]">{r.size} players</span>
+                            ) : null}
+                          </td>
                           <td className="px-3 py-2 text-right tabular-nums">{formatScore(Number(r.score ?? 0))}</td>
                         </tr>
                       );
@@ -769,8 +793,11 @@ export default function PlayerPage() {
                   </tbody>
                 </table>
               </div>
+
               {scoreboardRows.length > 10 ? (
-                <div className="mt-2 text-xs text-[var(--muted-foreground)]">Showing top 10 only.</div>
+                <div className="text-xs text-[var(--muted-foreground)]">
+                  Showing top 10 of {scoreboardRows.length}.
+                </div>
               ) : null}
             </CardContent>
           </Card>

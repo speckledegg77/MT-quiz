@@ -74,7 +74,6 @@ export async function POST(req: Request) {
     selectionPacks = packIds.map((id) => ({ pack_id: id }));
   }
 
-  // Fetch question ids and round types for each selected pack
   const packQuestionsById: Record<string, QuestionMeta[]> = {};
   for (const pid of packIds) packQuestionsById[pid] = [];
 
@@ -124,10 +123,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No questions available for reset" }, { status: 400 });
   }
 
-  // Clear game data
   const delAnswers = await supabaseAdmin.from("answers").delete().eq("room_id", room.id);
   if (delAnswers.error) {
     return NextResponse.json({ error: delAnswers.error.message }, { status: 500 });
+  }
+
+  const delFinal = await supabaseAdmin.from("question_finalisations").delete().eq("room_id", room.id);
+  if (delFinal.error) {
+    return NextResponse.json({ error: delFinal.error.message }, { status: 500 });
   }
 
   const delResults = await supabaseAdmin.from("round_results").delete().eq("room_id", room.id);
@@ -135,7 +138,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: delResults.error.message }, { status: 500 });
   }
 
-  const resetPlayers = await supabaseAdmin.from("players").update({ score: 0 }).eq("room_id", room.id);
+  const resetPlayers = await supabaseAdmin
+    .from("players")
+    .update({ score: 0, joker_round_index: null })
+    .eq("room_id", room.id);
+
   if (resetPlayers.error) {
     return NextResponse.json({ error: resetPlayers.error.message }, { status: 500 });
   }

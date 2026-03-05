@@ -21,6 +21,11 @@ function randomCode(len = 8) {
   return out;
 }
 
+function clampInt(n: number, min: number, max: number) {
+  if (!Number.isFinite(n)) return min;
+  return Math.min(max, Math.max(min, Math.floor(n)));
+}
+
 function normaliseRoundFilter(raw: any): RoundFilter {
   const v = String(raw ?? "").toLowerCase();
 
@@ -38,6 +43,24 @@ function normaliseStrategy(raw: any): SelectionStrategy | null {
   if (v === "per_pack") return "per_pack";
   if (v === "all_packs") return "all_packs";
   return null;
+}
+
+function normaliseRoundCount(raw: any, questionCount: number) {
+  const qc = Math.max(1, Math.floor(Number(questionCount ?? 0)) || 1);
+  const requested = Math.floor(Number(raw ?? 4));
+  const safe = Number.isFinite(requested) ? requested : 4;
+  const capped = clampInt(safe, 1, 20);
+  return Math.min(capped, qc);
+}
+
+function normaliseRoundNames(raw: any, count: number) {
+  const arr = Array.isArray(raw) ? raw : [];
+  const out: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const name = String(arr[i] ?? "").trim();
+    out.push(name || `Round ${i + 1}`);
+  }
+  return out;
 }
 
 export async function POST(req: Request) {
@@ -94,9 +117,6 @@ export async function POST(req: Request) {
     .map((x) => String(x ?? "").trim())
     .filter((x) => x.length > 0);
 
-  // Backwards compatible total:
-  // - old host sends questionCount
-  // - new host sends totalQuestions
   const totalQuestionsRaw =
     body.totalQuestions != null
       ? Number(body.totalQuestions)
@@ -120,7 +140,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Pick at least one pack" }, { status: 400 });
   }
 
-  // Build the selector input list
   let selectionPacks: PackSelectionInput[] = [];
   if (strategy === "per_pack" && rounds.length > 0) {
     selectionPacks = rounds.map((r) => ({
@@ -131,7 +150,6 @@ export async function POST(req: Request) {
     selectionPacks = packIds.map((id) => ({ pack_id: id }));
   }
 
-  // Fetch question ids and round types for each selected pack
   const packQuestionsById: Record<string, QuestionMeta[]> = {};
   for (const pid of packIds) packQuestionsById[pid] = [];
 
@@ -188,6 +206,9 @@ export async function POST(req: Request) {
     );
   }
 
+  const roundCount = normaliseRoundCount(body.roundCount, pickedIds.length);
+  const roundNames = normaliseRoundNames(body.roundNames, roundCount);
+
   for (let attempt = 0; attempt < 8; attempt++) {
     const code = randomCode(8);
 
@@ -205,7 +226,6 @@ export async function POST(req: Request) {
         audio_mode: audioMode,
         selected_packs: packIds,
 
-        // Needed for Reset to regenerate the same way
         selection_strategy: strategy,
         round_filter: roundFilter,
         total_questions: totalQuestions,
@@ -214,6 +234,9 @@ export async function POST(req: Request) {
         game_mode: gameMode,
         team_names: gameMode === "teams" ? teamNames : [],
         team_score_mode: gameMode === "teams" ? teamScoreMode : "total",
+
+        round_count: roundCount,
+        round_names: roundNames,
       })
       .select("code")
       .single();

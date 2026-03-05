@@ -9,6 +9,38 @@ function addSeconds(date: Date, seconds: number) {
   return new Date(date.getTime() + seconds * 1000)
 }
 
+function clampInt(n: number, min: number, max: number) {
+  if (!Number.isFinite(n)) return min
+  return Math.min(max, Math.max(min, Math.floor(n)))
+}
+
+function normaliseRoundCount(raw: any, questionCount: number) {
+  const qc = Math.max(1, Math.floor(Number(questionCount ?? 0)) || 1)
+  const requested = Math.floor(Number(raw ?? 4))
+  const safe = Number.isFinite(requested) ? requested : 4
+  const capped = clampInt(safe, 1, 20)
+  return Math.min(capped, qc)
+}
+
+function roundIndexForQuestion(questionIndex: number, questionCount: number, roundCountRaw: any) {
+  const qc = Math.max(1, Math.floor(Number(questionCount ?? 0)) || 1)
+  const rc = normaliseRoundCount(roundCountRaw, qc)
+  const qi = Math.max(0, Math.floor(Number(questionIndex ?? 0)) || 0)
+
+  const base = Math.floor(qc / rc)
+  const rem = qc % rc
+
+  let start = 0
+  for (let i = 0; i < rc; i++) {
+    const size = base + (i < rem ? 1 : 0)
+    const end = start + size - 1
+    if (qi >= start && qi <= end) return i
+    start = end + 1
+  }
+
+  return rc - 1
+}
+
 function normalise(s: string) {
   return String(s ?? "")
     .toLowerCase()
@@ -154,7 +186,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ accepted: false, reason: "not_open" })
   }
 
-  const playerRes = await supabaseAdmin.from("players").select("id, room_id").eq("id", playerId).single()
+  const playerRes = await supabaseAdmin
+    .from("players")
+    .select("id, room_id, joker_round_index")
+    .eq("id", playerId)
+    .single()
+
   if (playerRes.error || playerRes.data.room_id !== room.id) {
     return NextResponse.json({ accepted: false, reason: "bad_player" })
   }
@@ -193,8 +230,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: ansRes.error.message }, { status: 500 })
   }
 
-  if (isCorrect) {
-    await supabaseAdmin.rpc("increment_player_score", { p_player_id: playerId })
+  const roundIdx = roundIndexForQuestion(Number(room.question_index ?? 0), ids.length, room.round_count)
+  const jokerIdx = playerRes.data.joker_round_index
+  const jokerActive = Number.isFinite(Number(jokerIdx)) && Number(jokerIdx) === roundIdx
+
+  const scoreDelta = jokerActive ? (isCorrect ? 2 : -1) : (isCorrect ? 1 : 0)
+
+  if (scoreDelta !== 0) {
+    await supabaseAdmin.rpc("increment_player_score_by", { p_player_id: playerId, p_delta: scoreDelta })
   }
 
   const playersCountRes = await supabaseAdmin
@@ -226,5 +269,5 @@ export async function POST(req: Request) {
       .eq("id", room.id)
   }
 
-  return NextResponse.json({ accepted: true, isCorrect })
+  return NextResponse.json({ accepted: true, isCorrect, jokerActive, scoreDelta })
 }
