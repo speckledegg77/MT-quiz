@@ -119,6 +119,23 @@ function isTextCorrect(input: string, answer: string, accepted?: string[]) {
   return false
 }
 
+let answersHasSubmittedAt: boolean | null = null
+let answersHasIsFinal: boolean | null = null
+
+async function detectAnswersColumns() {
+  if (answersHasSubmittedAt !== null && answersHasIsFinal !== null) return
+
+  if (answersHasSubmittedAt === null) {
+    const res = await supabaseAdmin.from("answers").select("submitted_at").limit(1)
+    answersHasSubmittedAt = !res.error
+  }
+
+  if (answersHasIsFinal === null) {
+    const res = await supabaseAdmin.from("answers").select("is_final").limit(1)
+    answersHasIsFinal = !res.error
+  }
+}
+
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}))
 
@@ -175,17 +192,43 @@ export async function POST(req: Request) {
     isCorrect = isTextCorrect(answerText, q.answerText ?? "", q.acceptedAnswers)
   }
 
-  const ansRes = await supabaseAdmin.from("answers").insert({
+  const existingRes = await supabaseAdmin
+    .from("answers")
+    .select("id")
+    .eq("room_id", room.id)
+    .eq("player_id", playerId)
+    .eq("question_id", questionId)
+    .limit(1)
+
+  if (existingRes.error) {
+    return NextResponse.json({ error: existingRes.error.message }, { status: 500 })
+  }
+
+  if ((existingRes.data ?? []).length > 0) {
+    return NextResponse.json({ accepted: false, reason: "already_answered" })
+  }
+
+  await detectAnswersColumns()
+
+  const insertPayload: any = {
     room_id: room.id,
     player_id: playerId,
     question_id: questionId,
     option_index: q.answerType === "mcq" ? optionIndex : null,
     answer_text: q.answerType === "text" ? answerText : null,
     is_correct: isCorrect,
-  })
+  }
+
+  if (answersHasSubmittedAt) insertPayload.submitted_at = new Date().toISOString()
+  if (answersHasIsFinal) insertPayload.is_final = true
+
+  const ansRes = await supabaseAdmin.from("answers").insert(insertPayload)
 
   if (ansRes.error) {
-    return NextResponse.json({ accepted: false, reason: "already_answered" })
+    if (String((ansRes.error as any).code ?? "") === "23505") {
+      return NextResponse.json({ accepted: false, reason: "already_answered" })
+    }
+    return NextResponse.json({ error: ansRes.error.message }, { status: 500 })
   }
 
   if (isCorrect) {
