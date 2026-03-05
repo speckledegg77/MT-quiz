@@ -50,3 +50,8 @@ body {
   border: 1px solid var(--border);
   border-radius: 12px;
 }
+/* Make native dropdown list text darker on Windows in dark mode */
+.dark select option {
+  color: #374151; /* darker grey */
+  background-color: #ffffff;
+}

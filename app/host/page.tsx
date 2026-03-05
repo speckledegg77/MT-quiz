@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
 import HostJoinedTeamsPanel from "@/components/HostJoinedTeamsPanel"
-import { SimpleSelect } from "@/components/ui/SimpleSelect"
 
 type PackRow = {
   id: string
@@ -530,32 +529,29 @@ export default function HostPage() {
                   <div className="mt-3 grid gap-3 sm:grid-cols-3">
                     <div>
                       <div className="text-sm font-medium text-[hsl(var(--foreground))]">Mode</div>
-                      <SimpleSelect
-                        className="mt-1"
+                      <select
                         value={gameMode}
-                        onChange={(v) => setGameMode(v as GameMode)}
-                        options={[
-                          { value: "teams", label: "Teams" },
-                          { value: "solo", label: "No teams" },
-                        ]}
-                      />
-
+                        onChange={(e) => setGameMode(e.target.value as GameMode)}
+                        className={`mt-1 w-full rounded-xl border ${borderToken} ${cardToken} px-3 py-2 text-sm`}
+                      >
+                        <option value="teams">Teams</option>
+                        <option value="solo">No teams</option>
+                      </select>
                       <div className={`mt-1 text-xs ${mutedText}`}>One phone per person.</div>
                     </div>
 
                     {gameMode === "teams" ? (
                       <div>
                         <div className="text-sm font-medium text-[hsl(var(--foreground))]">Team scoring</div>
-                      <SimpleSelect
-                        className="mt-1"
-                        value={teamScoreMode}
-                        onChange={(v) => setTeamScoreMode(v as TeamScoreMode)}
-                        options={[
-                          { value: "total", label: "Total points" },
-                          { value: "average", label: "Average per player" },
-                        ]}
-                      />
-                      <div className={`mt-1 text-xs ${mutedText}`}>Use average if team sizes differ.</div>
+                        <select
+                          value={teamScoreMode}
+                          onChange={(e) => setTeamScoreMode(e.target.value as TeamScoreMode)}
+                          className={`mt-1 w-full rounded-xl border ${borderToken} ${cardToken} px-3 py-2 text-sm`}
+                        >
+                          <option value="total">Total points</option>
+                          <option value="average">Average per player</option>
+                        </select>
+                        <div className={`mt-1 text-xs ${mutedText}`}>Use average if team sizes differ.</div>
                       </div>
                     ) : (
                       <div className={`flex items-end text-sm ${mutedText}`}>Players score individually.</div>
@@ -643,34 +639,32 @@ export default function HostPage() {
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
                     <div className="text-sm font-medium text-[hsl(var(--foreground))]">Round filter</div>
-                  <SimpleSelect
-                    className="mt-1"
-                    value={roundFilter}
-                    onChange={(v) => setRoundFilter(v as RoundFilter)}
-                    options={[
-                      { value: "mixed", label: "Mixed" },
-                      { value: "no_audio", label: "No audio" },
-                      { value: "no_image", label: "No pictures" },
-                      { value: "audio_only", label: "Audio only" },
-                      { value: "picture_only", label: "Pictures only" },
-                      { value: "audio_and_image", label: "Audio and pictures" },
-                    ]}
-                  />
+                    <select
+                      value={roundFilter}
+                      onChange={(e) => setRoundFilter(e.target.value as RoundFilter)}
+                      className={`mt-1 w-full rounded-xl border ${borderToken} ${cardToken} px-3 py-2 text-sm`}
+                    >
+                      <option value="mixed">Mixed</option>
+                      <option value="no_audio">No audio</option>
+                      <option value="no_image">No pictures</option>
+                      <option value="audio_only">Audio only</option>
+                      <option value="picture_only">Pictures only</option>
+                      <option value="audio_and_image">Audio and pictures</option>
+                    </select>
                   </div>
 
                   <div>
                     <div className="text-sm font-medium text-[hsl(var(--foreground))]">Audio mode</div>
-                    <SimpleSelect
-                      className="mt-1"
+                    <select
                       value={audioMode}
-                      onChange={(v) => setAudioMode(v as AudioMode)}
-                      options={[
-                        { value: "display", label: "Display only" },
-                        { value: "phones", label: "Phones only" },
-                        { value: "both", label: "Both" },
-                      ]}
-                    />
-                    </div>
+                      onChange={(e) => setAudioMode(e.target.value as AudioMode)}
+                      className={`mt-1 w-full rounded-xl border ${borderToken} ${cardToken} px-3 py-2 text-sm`}
+                    >
+                      <option value="display">Display only</option>
+                      <option value="phones">Phones only</option>
+                      <option value="both">Both</option>
+                    </select>
+                  </div>
 
                   <div className="flex items-end">
                     <label className={`flex items-center gap-2 text-sm ${mutedText}`}>
