@@ -20,11 +20,39 @@ export async function POST(req: Request) {
 
   const room = roomRes.data
 
+  const gameMode = String(room.game_mode ?? "teams") === "solo" ? "solo" : "teams"
+
+  let teamScoreMode: "total" | "average" = "total"
+
+  if (gameMode === "teams") {
+    const playersRes = await supabaseAdmin
+      .from("players")
+      .select("team_name")
+      .eq("room_id", room.id)
+
+    if (!playersRes.error) {
+      const counts = new Map<string, number>()
+
+      for (const p of (playersRes.data ?? []) as any[]) {
+        const team = String(p?.team_name ?? "").trim() || "No team"
+        counts.set(team, (counts.get(team) ?? 0) + 1)
+      }
+
+      const sizes = Array.from(counts.values())
+      if (sizes.length >= 2) {
+        const min = Math.min(...sizes)
+        const max = Math.max(...sizes)
+        if (max !== min) teamScoreMode = "average"
+      }
+    }
+  }
+
   const now = new Date()
   const openAt = addSeconds(now, Number(room.countdown_seconds ?? 0))
 
   const rawAnswerSeconds = Number(room.answer_seconds ?? 0)
-  const effectiveAnswerSeconds = Number.isFinite(rawAnswerSeconds) && rawAnswerSeconds > 0 ? rawAnswerSeconds : UNTIMED_SECONDS
+  const effectiveAnswerSeconds =
+    Number.isFinite(rawAnswerSeconds) && rawAnswerSeconds > 0 ? rawAnswerSeconds : UNTIMED_SECONDS
 
   const closeAt = addSeconds(openAt, effectiveAnswerSeconds)
   const revealAt = addSeconds(closeAt, Number(room.reveal_delay_seconds ?? 0))
@@ -40,6 +68,7 @@ export async function POST(req: Request) {
       close_at: closeAt.toISOString(),
       reveal_at: revealAt.toISOString(),
       next_at: nextAt.toISOString(),
+      team_score_mode: teamScoreMode,
     })
     .eq("id", room.id)
 
