@@ -924,59 +924,57 @@ export default function HostPage() {
 
           <HostJoinedTeamsPanel code={roomCode ?? ""} />
 
-          {roomCode ? (
-<Card>
-  <CardHeader>
-    <CardTitle>Room code</CardTitle>
-  </CardHeader>
+{roomCode ? (
+  <Card>
+    <CardHeader>
+      <CardTitle>Room code</CardTitle>
+    </CardHeader>
 
-  <CardContent className="space-y-3">
-    <div className="flex items-center justify-between gap-3">
-      <div className="text-2xl font-semibold tracking-widest">{roomCode}</div>
+    <CardContent className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-2xl font-semibold tracking-widest">{roomCode}</div>
 
-      {/* QR tile: always crisp, always readable */}
-      <div className="rounded-xl border border-[var(--border)] bg-white p-2">
-        <QRCodeSVG
-          value={joinUrl}
-          size={112}
-          includeMargin={true}
-          level="M"
-          bgColor="#ffffff"
-          fgColor="#000000"
-        />
+        <div className="rounded-xl border border-[var(--border)] bg-white p-2">
+          <QRCodeSVG
+            value={joinUrl}
+            size={112}
+            includeMargin={true}
+            level="M"
+            bgColor="#ffffff"
+            fgColor="#000000"
+          />
+        </div>
       </div>
-    </div>
 
-    <div className="text-sm text-[var(--muted-foreground)]">Players join at</div>
-    <div className="flex items-center justify-between gap-3">
-      <a href={joinUrl} className="break-all text-sm underline">
-        {joinUrl}
-      </a>
-      <Button
-        variant="secondary"
-        onClick={async () => {
-          try {
-            await navigator.clipboard.writeText(joinUrl)
-          } catch {
-            // ignore
-          }
-        }}
-      >
-        Copy link
-      </Button>
-    </div>
-  </CardContent>
-</Card>
+      <div className="text-sm text-[var(--muted-foreground)]">Players join at</div>
 
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <Button onClick={() => openInNewWindow(displayUrl)}>Open TV display</Button>
-                  <Button variant="secondary" onClick={() => openInNewWindow(joinPageUrl)}>
-                    Join room
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
+      <div className="flex items-center justify-between gap-3">
+        <a href={joinUrl} className="break-all text-sm underline">
+          {joinUrl}
+        </a>
+        <Button
+          variant="secondary"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(joinUrl)
+            } catch {
+              // ignore
+            }
+          }}
+        >
+          Copy link
+        </Button>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Button onClick={() => openInNewWindow(displayUrl)}>Open TV display</Button>
+        <Button variant="secondary" onClick={() => openInNewWindow(joinPageUrl)}>
+          Join room
+        </Button>
+      </div>
+    </CardContent>
+  </Card>
+) : null}
 
           {showGameplayPanel ? (
             <Card>
