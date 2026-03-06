@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -9,12 +9,29 @@ import { Input } from "@/components/ui/Input";
 
 type RoomState = any;
 
+function statusText(stage: string) {
+  if (stage === "countdown") return "Get ready";
+  if (stage === "open") return "Answer now";
+  if (stage === "wait") return "Waiting for answers";
+  if (stage === "reveal") return "Reveal";
+  if (stage === "needs_advance") return "Next question";
+  return "";
+}
+
+function pillClass(stage: string) {
+  if (stage === "open") return "bg-emerald-600/20 text-emerald-200 border-emerald-500/40";
+  if (stage === "reveal") return "bg-indigo-600/20 text-indigo-200 border-indigo-500/40";
+  if (stage === "countdown") return "bg-amber-600/20 text-amber-200 border-amber-500/40";
+  if (stage === "wait") return "bg-slate-600/20 text-slate-200 border-slate-500/40";
+  return "bg-slate-600/20 text-slate-200 border-slate-500/40";
+}
+
 function TrophyIcon() {
   return (
     <svg
       viewBox="0 0 24 24"
       aria-hidden="true"
-      className="block h-12 w-12"
+      className="block h-10 w-10"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
@@ -32,39 +49,22 @@ function TrophyIcon() {
   );
 }
 
-function statusText(stage: string) {
-  if (stage === "countdown") return "Get ready";
-  if (stage === "open") return "Answer now";
-  if (stage === "wait") return "Waiting";
-  if (stage === "reveal") return "Reveal";
-  if (stage === "needs_advance") return "Next question";
-  return "";
-}
-
-function pillClass(stage: string) {
-  if (stage === "open") return "bg-emerald-600/10 text-emerald-700 border-emerald-600/20 dark:text-emerald-200";
-  if (stage === "reveal") return "bg-indigo-600/10 text-indigo-700 border-indigo-600/20 dark:text-indigo-200";
-  if (stage === "countdown") return "bg-amber-600/10 text-amber-700 border-amber-600/20 dark:text-amber-200";
-  if (stage === "wait") return "bg-slate-600/10 text-slate-700 border-slate-600/20 dark:text-slate-200";
-  return "bg-slate-600/10 text-slate-700 border-slate-600/20 dark:text-slate-200";
+function formatScore(n: number) {
+  if (!Number.isFinite(n)) return "0";
+  const rounded = Math.round(n * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
 
 export default function PlayerPage() {
   const params = useParams<{ code?: string }>();
+  const router = useRouter();
   const code = String(params?.code ?? "").toUpperCase();
 
   const [state, setState] = useState<RoomState | null>(null);
 
-  const [audioEnabled, setAudioEnabled] = useState(false);
-  const [playedForQ, setPlayedForQ] = useState<string | null>(null);
-  const [preparedForQ, setPreparedForQ] = useState<string | null>(null);
-  const [autoplayFailed, setAutoplayFailed] = useState(false);
-
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
   const [playerId, setPlayerId] = useState<string | null>(null);
-  const [playerName, setPlayerName] = useState<string | null>(null);
-  const [teamName, setTeamName] = useState<string | null>(null);
+  const [playerName, setPlayerName] = useState<string>("");
+  const [teamName, setTeamName] = useState<string>("");
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [submittedIndex, setSubmittedIndex] = useState<number | null>(null);
@@ -76,51 +76,25 @@ export default function PlayerPage() {
 
   const [answerError, setAnswerError] = useState<string | null>(null);
 
+  // Key point: reset UI by question index, not only by question id.
+  const [lastQuestionKey, setLastQuestionKey] = useState<string | null>(null);
+
+  const [audioEnabled, setAudioEnabled] = useState(false);
+  const [autoplayFailed, setAutoplayFailed] = useState(false);
+  const [playedForQ, setPlayedForQ] = useState<string | null>(null);
+  const [preparedForQ, setPreparedForQ] = useState<string | null>(null);
+
   const [jokerBusy, setJokerBusy] = useState(false);
   const [jokerError, setJokerError] = useState<string | null>(null);
 
-  const lastQuestionId = useMemo(() => String(state?.question?.id ?? ""), [state?.question?.id]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (!code) return;
-
-    const pid = localStorage.getItem(`mtq_player_${code}`);
-    const pn = localStorage.getItem(`mtq_player_name_${code}`);
-    const tn = localStorage.getItem(`mtq_team_name_${code}`);
-
-    setPlayerId(pid);
-    setPlayerName(pn);
-    setTeamName(tn);
+    setPlayerId(localStorage.getItem(`mtq_player_${code}`));
+    setPlayerName(localStorage.getItem(`mtq_player_name_${code}`) ?? "");
+    setTeamName(localStorage.getItem(`mtq_team_name_${code}`) ?? "");
   }, [code]);
-
-  async function unlockAudio() {
-    setAudioEnabled(true);
-  }
-
-  async function prepareClip() {
-    const q = state?.question;
-    const el = audioRef.current;
-    if (!q?.audioUrl || !el) return;
-
-    try {
-      el.pause();
-      el.src = q.audioUrl;
-      el.load();
-    } catch {
-      // ignore
-    }
-  }
-
-  async function playClip() {
-    const el = audioRef.current;
-    if (!el) return;
-
-    try {
-      await el.play();
-    } catch {
-      setAutoplayFailed(true);
-    }
-  }
 
   useEffect(() => {
     if (!code) return;
@@ -142,6 +116,33 @@ export default function PlayerPage() {
     };
   }, [code]);
 
+  // Reset local answer state when the question changes.
+  useEffect(() => {
+    const qi = state?.questionIndex;
+    if (qi === undefined || qi === null) return;
+
+    const qid = String(state?.question?.id ?? "");
+    const key = `${qi}:${qid}`;
+
+    if (key !== lastQuestionKey) {
+      setLastQuestionKey(key);
+
+      setSelectedIndex(null);
+      setSubmittedIndex(null);
+      setMcqSubmitting(false);
+
+      setTypedValue("");
+      setTypedSubmitted(false);
+      setTypedIsCorrect(null);
+
+      setAnswerError(null);
+
+      setPlayedForQ(null);
+      setPreparedForQ(null);
+      setAutoplayFailed(false);
+    }
+  }, [state?.questionIndex, state?.question?.id, lastQuestionKey]);
+
   const gameMode = String(state?.gameMode ?? "teams") === "solo" ? "solo" : "teams";
   const teamScoreMode = String(state?.teamScoreMode ?? "total") === "average" ? "average" : "total";
 
@@ -157,9 +158,6 @@ export default function PlayerPage() {
 
   const correctIndex = state?.reveal?.answerIndex ?? null;
   const inReveal = Boolean(state?.reveal);
-
-  const roundsPlan = Array.isArray(state?.rounds?.plan) ? state.rounds.plan : [];
-  const currentRound = state?.rounds?.current ?? null;
 
   const canAnswer = useMemo(() => {
     if (state?.phase !== "running") return false;
@@ -180,10 +178,24 @@ export default function PlayerPage() {
   }, [players, playerId]);
 
   const myJokerIndex = useMemo(() => {
-    const v = myPlayer?.joker_round_index;
-    const n = Number(v);
-    return Number.isFinite(n) ? n : null;
+    const v = Number(myPlayer?.joker_round_index);
+    return Number.isFinite(v) ? v : null;
   }, [myPlayer?.joker_round_index]);
+
+  const roundsPlan = useMemo(() => {
+    const plan = Array.isArray(state?.rounds?.plan) ? state.rounds.plan : null;
+    if (plan && plan.length) return plan;
+
+    const names = Array.isArray(state?.rounds?.names) ? state.rounds.names : [];
+    return names.map((n: any, i: number) => ({
+      index: i,
+      number: i + 1,
+      name: String(n ?? "").trim() || `Round ${i + 1}`,
+      size: null,
+    }));
+  }, [state]);
+
+  const currentRound = state?.rounds?.current ?? null;
 
   const teamRows = useMemo(() => {
     const byTeam = new Map<string, { label: string; total: number; size: number }>();
@@ -222,68 +234,6 @@ export default function PlayerPage() {
     return teamRows.find((t) => t.label === tn) ?? null;
   }, [gameMode, myPlayer?.team_name, teamName, teamRows]);
 
-  function formatScore(n: number) {
-    if (!Number.isFinite(n)) return "0";
-    const rounded = Math.round(n * 10) / 10;
-    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
-  }
-
-  useEffect(() => {
-    if (!state?.question?.id) return;
-
-    if (lastQuestionId && state.question.id !== lastQuestionId) {
-      setSelectedIndex(null);
-      setSubmittedIndex(null);
-      setMcqSubmitting(false);
-
-      setTypedValue("");
-      setTypedSubmitted(false);
-      setTypedIsCorrect(null);
-
-      setAnswerError(null);
-
-      setPlayedForQ(null);
-      setPreparedForQ(null);
-      setAutoplayFailed(false);
-    }
-  }, [state?.question?.id, lastQuestionId]);
-
-  useEffect(() => {
-    const qid = String(state?.question?.id ?? "");
-    if (!qid) return;
-    if (!shouldPlayOnPhone) return;
-    if (!audioEnabled) return;
-    if (!isAudioQ) return;
-    if (state?.stage !== "open") return;
-    if (preparedForQ === qid) return;
-
-    setPreparedForQ(qid);
-    prepareClip().catch(() => {});
-  }, [state, shouldPlayOnPhone, audioEnabled, isAudioQ, preparedForQ]);
-
-  useEffect(() => {
-    const qid = String(state?.question?.id ?? "");
-    if (!qid) return;
-    if (!shouldPlayOnPhone) return;
-    if (!audioEnabled) return;
-    if (!isAudioQ) return;
-    if (state?.stage !== "open") return;
-    if (playedForQ === qid) return;
-    if (autoplayFailed) return;
-
-    setPlayedForQ(qid);
-    playClip().catch(() => {});
-  }, [state, shouldPlayOnPhone, audioEnabled, isAudioQ, playedForQ, autoplayFailed]);
-
-  const stage = String(state?.stage ?? "");
-  const status = statusText(stage);
-
-  const questionNumber = Number(state?.questionIndex ?? 0) + 1;
-  const questionCount = Number(state?.questionCount ?? 0);
-
-  const showLobby = state?.phase === "lobby";
-  const finished = state?.phase === "finished";
-
   function pickOption(optionIndex: number) {
     if (!canAnswer) return;
     setAnswerError(null);
@@ -321,7 +271,7 @@ export default function PlayerPage() {
           setMcqSubmitting(false);
           return;
         }
-        setAnswerError("Could not send answer.");
+        setAnswerError("Answer not accepted.");
         setMcqSubmitting(false);
         return;
       }
@@ -334,42 +284,38 @@ export default function PlayerPage() {
     }
   }
 
-  async function submitText() {
+  async function submitTyped() {
     if (!playerId || !q?.id) return;
     if (!canAnswer) return;
-    const clean = typedValue.trim();
-    if (!clean) return;
+
+    const trimmed = typedValue.trim();
+    if (!trimmed) {
+      setAnswerError("Type an answer first.");
+      return;
+    }
 
     setAnswerError(null);
+    setTypedSubmitted(true);
 
     try {
       const res = await fetch("/api/room/answer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, playerId, questionId: q.id, answerText: clean }),
+        body: JSON.stringify({ code, playerId, questionId: q.id, answerText: trimmed }),
       });
 
       const data = await res.json().catch(() => ({}));
 
-      if (!res.ok) {
-        setAnswerError(data?.error ?? "Could not send answer.");
+      if (!res.ok || data?.accepted === false) {
+        setAnswerError(data?.error ?? "Answer not accepted.");
+        setTypedSubmitted(false);
         return;
       }
 
-      if (data?.accepted === false) {
-        if (data?.reason === "already_answered") {
-          setTypedSubmitted(true);
-          setAnswerError("You already submitted an answer for this question.");
-          return;
-        }
-        setAnswerError("Could not send answer.");
-        return;
-      }
-
-      setTypedSubmitted(true);
       setTypedIsCorrect(Boolean(data?.isCorrect));
     } catch {
       setAnswerError("Could not send answer.");
+      setTypedSubmitted(false);
     }
   }
 
@@ -402,13 +348,152 @@ export default function PlayerPage() {
     }
   }
 
+  async function unlockAudio() {
+    setAudioEnabled(true);
+    setAutoplayFailed(false);
+
+    try {
+      const AnyWindow = window as any;
+      const Ctx = AnyWindow.AudioContext || AnyWindow.webkitAudioContext;
+      if (Ctx) {
+        const ctx = new Ctx();
+        await ctx.resume();
+        const buf = ctx.createBuffer(1, 1, 22050);
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(ctx.destination);
+        src.start(0);
+        src.stop(0.01);
+        await new Promise((r) => setTimeout(r, 20));
+        await ctx.close();
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  function prepareClip() {
+    const el = audioRef.current;
+    if (!q?.audioUrl || !el) return;
+    if (preparedForQ === q.id) return;
+
+    try {
+      el.pause();
+      el.currentTime = 0;
+    } catch {
+      // ignore
+    }
+
+    el.src = q.audioUrl;
+    el.preload = "auto";
+    el.load();
+    setPreparedForQ(q.id);
+  }
+
+  async function playClip(): Promise<boolean> {
+    const el = audioRef.current;
+    if (!q?.audioUrl || !el) return false;
+
+    try {
+      if (preparedForQ !== q.id) {
+        el.src = q.audioUrl;
+        el.preload = "auto";
+        el.load();
+        setPreparedForQ(q.id);
+      }
+      await el.play();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  useEffect(() => {
+    if (!shouldPlayOnPhone) return;
+    if (!isAudioQ) return;
+    if (!q?.audioUrl) return;
+    prepareClip();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldPlayOnPhone, isAudioQ, q?.id, q?.audioUrl]);
+
+  useEffect(() => {
+    if (!shouldPlayOnPhone) return;
+    if (!audioEnabled) return;
+    if (!isAudioQ) return;
+    if (state?.stage !== "open") return;
+    if (!q?.audioUrl) return;
+    if (playedForQ === q.id) return;
+
+    let cancelled = false;
+
+    async function attempt() {
+      const ok = await playClip();
+      if (cancelled) return;
+
+      if (ok) {
+        setPlayedForQ(q.id);
+        setAutoplayFailed(false);
+        return;
+      }
+
+      setAutoplayFailed(true);
+    }
+
+    attempt().catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldPlayOnPhone, audioEnabled, isAudioQ, state?.stage, q?.id, q?.audioUrl, playedForQ]);
+
+  if (!code) {
+    return (
+      <main className="mx-auto max-w-md px-4 py-10">
+        <Card>
+          <CardContent className="py-8 text-sm text-[var(--muted-foreground)]">
+            Missing room code in the URL.
+          </CardContent>
+        </Card>
+      </main>
+    );
+  }
+
+  if (!playerId) {
+    return (
+      <main className="mx-auto max-w-md px-4 py-10">
+        <Card>
+          <CardHeader>
+            <CardTitle>Player not found</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-[var(--muted-foreground)]">
+            This phone does not have a player ID for room {code}. Go back to Join and enter the code again.
+          </CardContent>
+          <CardFooter className="flex justify-end">
+            <Button onClick={() => router.push(`/join?code=${code}`)}>Go to Join</Button>
+          </CardFooter>
+        </Card>
+      </main>
+    );
+  }
+
+  if (!state) return null;
+
+  const stage = String(state?.stage ?? "");
+  const status = statusText(stage);
+
+  const questionNumber = Number(state.questionIndex ?? 0) + 1;
+  const questionCount = Number(state.questionCount ?? 0);
+
+  const showLobby = state.phase === "lobby";
+  const finished = state.phase === "finished";
+
   return (
-    <main className="mx-auto max-w-2xl px-4 py-6">
+    <main className="mx-auto max-w-md px-4 py-6">
       <audio ref={audioRef} />
 
       <div className="mb-4 flex items-end justify-between gap-3">
         <div>
-          <div className="text-sm text-[var(--muted-foreground)]">Room</div>
+          <div className="text-xs text-[var(--muted-foreground)]">Room</div>
           <div className="text-lg font-semibold tracking-wide">{code}</div>
           {playerName ? (
             <div className="text-xs text-[var(--muted-foreground)]">
@@ -425,13 +510,11 @@ export default function PlayerPage() {
 
         <div className="flex flex-col items-end gap-2">
           {status ? (
-            <span className={`rounded-full border px-3 py-1 text-xs ${pillClass(stage)}`}>
-              {status}
-            </span>
+            <span className={`rounded-full border px-3 py-1 text-xs ${pillClass(stage)}`}>{status}</span>
           ) : null}
 
-          {state?.phase === "running" ? (
-            <div className="flex flex-wrap justify-end gap-2">
+          {state.phase === "running" ? (
+            <div className="flex flex-col items-end gap-2">
               {currentRound ? (
                 <span className="rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-xs text-[var(--muted-foreground)]">
                   R{Number(currentRound.number ?? 0)}: {String(currentRound.name ?? "")}
@@ -475,9 +558,11 @@ export default function PlayerPage() {
                       <div className="min-w-0 truncate">
                         {Number(r.number)}. {String(r.name)}
                       </div>
-                      <div className="text-xs text-[var(--muted-foreground)] tabular-nums">
-                        {Number(r.size)} questions
-                      </div>
+                      {r.size ? (
+                        <div className="text-xs text-[var(--muted-foreground)] tabular-nums">
+                          {Number(r.size)} questions
+                        </div>
+                      ) : null}
                     </div>
                   ))}
                 </div>
@@ -487,6 +572,7 @@ export default function PlayerPage() {
             {roundsPlan.length > 0 ? (
               <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-3">
                 <div className="text-sm font-medium text-[var(--foreground)]">Pick your Joker round</div>
+
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   {roundsPlan.map((r: any) => {
                     const selected = myJokerIndex === Number(r.index);
@@ -506,15 +592,6 @@ export default function PlayerPage() {
                 <div className="mt-2 text-xs text-[var(--muted-foreground)]">
                   In your Joker round: correct +2. Wrong -1. No submitted answer -1.
                 </div>
-
-                {myJokerIndex !== null ? (
-                  <div className="mt-2 text-xs text-[var(--muted-foreground)]">
-                    Your current Joker:{" "}
-                    <span className="text-[var(--foreground)]">
-                      {String(roundsPlan.find((r: any) => Number(r.index) === myJokerIndex)?.name ?? `Round ${myJokerIndex + 1}`)}
-                    </span>
-                  </div>
-                ) : null}
 
                 {jokerError ? (
                   <div className="mt-2 rounded-lg border border-red-300 bg-red-600/10 px-3 py-2 text-sm text-red-600">
@@ -580,120 +657,85 @@ export default function PlayerPage() {
                 </table>
               </div>
             </CardContent>
+            <CardFooter className="flex justify-end">
+              <Button variant="secondary" onClick={() => router.push(`/join?code=${code}`)}>
+                Join another game
+              </Button>
+            </CardFooter>
           </Card>
         </div>
       ) : null}
 
-      {state?.phase === "running" && q ? (
+      {!showLobby && !finished && q ? (
         <div className="grid gap-4">
+          {myPlayer ? (
+            <Card>
+              <CardContent className="flex items-center justify-between py-4">
+                <div className="text-sm text-[var(--muted-foreground)]">Your score</div>
+                <div className="text-lg font-semibold tabular-nums">{myPlayer.score ?? 0}</div>
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card>
             <CardHeader>
-              <CardTitle>Question</CardTitle>
-              {currentRound ? (
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle>Question</CardTitle>
                 <div className="text-sm text-[var(--muted-foreground)]">
-                  Round {Number(currentRound.number ?? 0)}: {String(currentRound.name ?? "")}
+                  {q.roundType === "audio" ? "Audio" : q.roundType === "picture" ? "Picture" : "General"}
                 </div>
-              ) : null}
+              </div>
             </CardHeader>
 
             <CardContent className="space-y-4">
               {isPictureQ && q.imageUrl ? (
-                <div className="overflow-hidden rounded-xl border border-[var(--border)]">
-                  <img src={q.imageUrl} alt="" className="block w-full" />
+                <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--muted)]">
+                  <img src={q.imageUrl} alt="" className="w-full max-h-[280px] object-contain" />
                 </div>
               ) : null}
 
-              <div className="text-base font-semibold">{q.text}</div>
-
-              {isAudioQ && audioMode === "display" ? (
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-sm text-[var(--muted-foreground)]">
-                  Audio plays on the TV display for this game.
-                </div>
-              ) : null}
+              <div className="text-base font-semibold leading-tight">{q.text}</div>
 
               {isAudioQ && shouldPlayOnPhone ? (
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3">
                   {!audioEnabled ? (
-                    <Button onClick={unlockAudio} variant="secondary">
-                      Enable audio on this phone
-                    </Button>
-                  ) : (
                     <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm text-[var(--muted-foreground)]">Audio for this question</div>
+                      <Button onClick={unlockAudio} variant="secondary" size="sm">
+                        Enable audio
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
                       <div className="text-sm text-[var(--muted-foreground)]">
-                        Audio enabled.
+                        Audio enabled{autoplayFailed ? ". Tap Play clip." : "."}
                       </div>
                       <Button
-                        onClick={() => {
+                        onClick={async () => {
                           setAutoplayFailed(false);
-                          playClip().catch(() => {});
+                          await playClip();
                         }}
                         variant="secondary"
+                        size="sm"
                       >
-                        Play
+                        Play clip
                       </Button>
                     </div>
                   )}
-
-                  {autoplayFailed ? (
-                    <div className="mt-2 text-xs text-[var(--muted-foreground)]">
-                      Tap Play to start audio.
-                    </div>
-                  ) : null}
+                </div>
+              ) : isAudioQ && audioMode === "display" ? (
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3 text-sm text-[var(--muted-foreground)]">
+                  Audio plays on the TV display.
                 </div>
               ) : null}
 
-              {answerType === "mcq" && Array.isArray(q.options) ? (
-                <div className="grid gap-2">
-                  {q.options.map((opt: string, idx: number) => {
-                    const selected = selectedIndex === idx;
-                    const submitted = submittedIndex !== null;
-                    const isCorrectChoice = inReveal && correctIndex === idx;
-                    const isMyChoice = inReveal && submittedIndex === idx;
-
-                    let cls = "rounded-xl border px-3 py-3 text-left text-sm transition-colors";
-                    cls += " border-[var(--border)]";
-
-                    if (selected && !submitted) cls += " bg-[var(--muted)]";
-                    if (submitted) cls += " opacity-80 cursor-not-allowed";
-
-                    if (inReveal && isCorrectChoice) cls += " bg-emerald-600/10 border-emerald-600/30";
-                    if (inReveal && isMyChoice && !isCorrectChoice) cls += " bg-red-600/10 border-red-600/30";
-
-                    return (
-                      <button
-                        key={idx}
-                        className={cls}
-                        onClick={() => pickOption(idx)}
-                        disabled={!canAnswer || mcqSubmitting}
-                      >
-                        <div className="font-medium text-[var(--foreground)]">Option {idx + 1}</div>
-                        <div className="mt-1 text-[var(--muted-foreground)]">{opt}</div>
-                      </button>
-                    );
-                  })}
-
-                  {!inReveal ? (
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="secondary"
-                        onClick={() => {
-                          setSelectedIndex(null);
-                          setAnswerError(null);
-                        }}
-                        disabled={!canAnswer || selectedIndex === null}
-                      >
-                        Clear
-                      </Button>
-
-                      <Button onClick={submitMcq} disabled={!canAnswer || selectedIndex === null}>
-                        {mcqSubmitting ? "Submitting…" : "Submit"}
-                      </Button>
-                    </div>
-                  ) : null}
+              {answerError ? (
+                <div className="rounded-lg border border-red-300 bg-red-600/10 px-3 py-2 text-sm text-red-600">
+                  {answerError}
                 </div>
               ) : null}
 
-              {answerType === "text" ? (
+              {isTextQ ? (
                 <div className="grid gap-2">
                   <Input
                     value={typedValue}
@@ -705,100 +747,63 @@ export default function PlayerPage() {
                     <Button variant="secondary" onClick={() => setTypedValue("")} disabled={!canAnswer || !typedValue.trim()}>
                       Clear
                     </Button>
-                    <Button onClick={submitText} disabled={!canAnswer || !typedValue.trim()}>
+                    <Button onClick={submitTyped} disabled={!canAnswer || !typedValue.trim()}>
                       Submit
                     </Button>
                   </div>
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  {Array.isArray(q.options) ? (
+                    <>
+                      {q.options.map((opt: string, idx: number) => {
+                        const selected = selectedIndex === idx;
+                        const submitted = submittedIndex !== null;
 
-                  {typedSubmitted ? (
-                    <div className="text-sm text-[var(--muted-foreground)]">
-                      Answer submitted.
-                    </div>
+                        let cls = "rounded-xl border px-3 py-3 text-left text-sm transition-colors";
+                        cls += " border-[var(--border)]";
+
+                        if (selected && !submitted) cls += " bg-[var(--muted)]";
+                        if (submitted) cls += " opacity-80 cursor-not-allowed";
+
+                        if (inReveal && correctIndex === idx) cls += " bg-emerald-600/10 border-emerald-600/30";
+                        if (inReveal && submittedIndex === idx && correctIndex !== idx) cls += " bg-red-600/10 border-red-600/30";
+
+                        return (
+                          <button
+                            key={idx}
+                            className={cls}
+                            onClick={() => pickOption(idx)}
+                            disabled={!canAnswer || mcqSubmitting}
+                          >
+                            <div className="font-medium text-[var(--foreground)]">Option {idx + 1}</div>
+                            <div className="mt-1 text-[var(--muted-foreground)]">{opt}</div>
+                          </button>
+                        );
+                      })}
+
+                      {!inReveal ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="secondary"
+                            onClick={() => {
+                              setSelectedIndex(null);
+                              setAnswerError(null);
+                            }}
+                            disabled={!canAnswer || selectedIndex === null}
+                          >
+                            Clear
+                          </Button>
+
+                          <Button onClick={submitMcq} disabled={!canAnswer || selectedIndex === null}>
+                            {mcqSubmitting ? "Submitting…" : "Submit"}
+                          </Button>
+                        </div>
+                      ) : null}
+                    </>
                   ) : null}
-
-                  {typedSubmitted && typedIsCorrect !== null ? (
-                    <div className={`text-sm ${typedIsCorrect ? "text-emerald-600 dark:text-emerald-300" : "text-red-600 dark:text-red-300"}`}>
-                      {typedIsCorrect ? "Correct" : "Wrong"}
-                    </div>
-                  ) : null}
                 </div>
-              ) : null}
-
-              {answerError ? (
-                <div className="rounded-lg border border-red-300 bg-red-600/10 px-3 py-2 text-sm text-red-600">
-                  {answerError}
-                </div>
-              ) : null}
-            </CardContent>
-
-            {inReveal ? (
-              <CardFooter className="flex flex-col items-start gap-2">
-                <div className="text-sm text-[var(--muted-foreground)]">Answer</div>
-                {state?.reveal?.answerType === "mcq" ? (
-                  <div className="text-base font-semibold text-[var(--foreground)]">
-                    Option {Number(correctIndex ?? 0) + 1}
-                  </div>
-                ) : (
-                  <div className="text-base font-semibold text-[var(--foreground)]">
-                    {String(state?.reveal?.answerText ?? "")}
-                  </div>
-                )}
-                {state?.reveal?.explanation ? (
-                  <div className="text-sm text-[var(--muted-foreground)]">{String(state.reveal.explanation)}</div>
-                ) : null}
-              </CardFooter>
-            ) : null}
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Scoreboard</CardTitle>
-              {gameMode === "teams" && teamScoreMode === "average" ? (
-                <div className="text-sm text-[var(--muted-foreground)]">Showing average points per player.</div>
-              ) : null}
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="overflow-hidden rounded-xl border border-[var(--border)]">
-                <table className="w-full text-sm">
-                  <thead className="bg-[var(--card)]">
-                    <tr className="border-b border-[var(--border)]">
-                      <th className="w-10 px-3 py-2 text-left font-medium">#</th>
-                      <th className="px-3 py-2 text-left font-medium">{gameMode === "solo" ? "Player" : "Team"}</th>
-                      <th className="w-20 px-3 py-2 text-right font-medium">Score</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {scoreboardRows.slice(0, 10).map((r: any, idx: number) => {
-                      const isMe = gameMode === "solo" ? r.id === playerId : r.label === myTeamRow?.label;
-                      return (
-                        <tr key={r.id} className="border-b border-[var(--border)] last:border-b-0">
-                          <td className="px-3 py-2 text-[var(--muted-foreground)] tabular-nums">{idx + 1}</td>
-                          <td className={`px-3 py-2 ${isMe ? "font-semibold" : "font-medium"}`}>
-                            {r.label}
-                            {gameMode === "teams" ? (
-                              <span className="ml-2 text-xs text-[var(--muted-foreground)]">{r.size} players</span>
-                            ) : null}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">{formatScore(Number(r.score ?? 0))}</td>
-                        </tr>
-                      );
-                    })}
-                    {scoreboardRows.length === 0 ? (
-                      <tr>
-                        <td className="px-3 py-4 text-sm text-[var(--muted-foreground)]" colSpan={3}>
-                          No scores yet.
-                        </td>
-                      </tr>
-                    ) : null}
-                  </tbody>
-                </table>
-              </div>
-
-              {scoreboardRows.length > 10 ? (
-                <div className="text-xs text-[var(--muted-foreground)]">
-                  Showing top 10 of {scoreboardRows.length}.
-                </div>
-              ) : null}
+              )}
             </CardContent>
           </Card>
         </div>
