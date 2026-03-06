@@ -761,9 +761,9 @@ export default function PlayerPage() {
                         const submitted = submittedIndex !== null;
 
                         let cls = "rounded-xl border px-3 py-3 text-left text-sm transition-colors";
-                        cls += " border-[var(--border)]";
+                        cls += " border-[var(--border)] hover:bg-emerald-600/10";
 
-                        if (selected && !submitted) cls += " bg-[var(--muted)]";
+                        if (selected && !submitted) cls += " bg-emerald-600/15 border-emerald-500/40";
                         if (submitted) cls += " opacity-80 cursor-not-allowed";
 
                         if (inReveal && correctIndex === idx) cls += " bg-emerald-600/10 border-emerald-600/30";
