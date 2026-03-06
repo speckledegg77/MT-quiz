@@ -925,37 +925,48 @@ export default function HostPage() {
           <HostJoinedTeamsPanel code={roomCode ?? ""} />
 
           {roomCode ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Room code</CardTitle>
-              </CardHeader>
+<Card>
+  <CardHeader>
+    <CardTitle>Room code</CardTitle>
+  </CardHeader>
 
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-2xl font-semibold tracking-widest">{roomCode}</div>
-                  <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-2">
-                    <QRCodeSVG value={joinUrl} size={96} />
-                  </div>
-                </div>
+  <CardContent className="space-y-3">
+    <div className="flex items-center justify-between gap-3">
+      <div className="text-2xl font-semibold tracking-widest">{roomCode}</div>
 
-                <div className="text-sm text-[var(--muted-foreground)]">Players join at</div>
-                <div className="flex items-center justify-between gap-3">
-                  <a href={joinUrl} className="break-all text-sm underline">
-                    {joinUrl}
-                  </a>
-                  <Button
-                    variant="secondary"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(joinUrl)
-                      } catch {
-                        // ignore
-                      }
-                    }}
-                  >
-                    Copy link
-                  </Button>
-                </div>
+      {/* QR tile: always crisp, always readable */}
+      <div className="rounded-xl border border-[var(--border)] bg-white p-2">
+        <QRCodeSVG
+          value={joinUrl}
+          size={112}
+          includeMargin={true}
+          level="M"
+          bgColor="#ffffff"
+          fgColor="#000000"
+        />
+      </div>
+    </div>
+
+    <div className="text-sm text-[var(--muted-foreground)]">Players join at</div>
+    <div className="flex items-center justify-between gap-3">
+      <a href={joinUrl} className="break-all text-sm underline">
+        {joinUrl}
+      </a>
+      <Button
+        variant="secondary"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(joinUrl)
+          } catch {
+            // ignore
+          }
+        }}
+      >
+        Copy link
+      </Button>
+    </div>
+  </CardContent>
+</Card>
 
                 <div className="grid gap-2 sm:grid-cols-2">
                   <Button onClick={() => openInNewWindow(displayUrl)}>Open TV display</Button>
