@@ -597,8 +597,10 @@ export default function HostPage() {
         ? "Game running"
         : "Game finished"
 
+  const showPacksPanel = !roomCode && selectPacks
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6">
+    <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-[var(--foreground)]">Host</h1>
@@ -610,7 +612,7 @@ export default function HostPage() {
         </Link>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,420px)]">
         <div className="space-y-6">
           {!roomCode ? (
             <Card>
@@ -889,7 +891,9 @@ export default function HostPage() {
                     {continueLabel}
                   </Button>
 
-                  <div className="flex items-center text-sm text-[var(--muted-foreground)]">Round review advances automatically after the set time. Use this button to move on sooner.</div>
+                  <div className="flex items-center text-sm text-[var(--muted-foreground)]">
+                    Round review advances automatically after the set time. Use this button to move on sooner.
+                  </div>
                 </div>
 
                 <Button variant="ghost" onClick={clearRoom}>
@@ -911,9 +915,11 @@ export default function HostPage() {
               </CardContent>
             </Card>
           ) : null}
+        </div>
 
-          {!roomCode && selectPacks ? (
-            <Card>
+        <div className="space-y-6">
+          {showPacksPanel ? (
+            <Card className="lg:sticky lg:top-6">
               <CardHeader>
                 <CardTitle>Packs</CardTitle>
               </CardHeader>
@@ -963,9 +969,7 @@ export default function HostPage() {
               </CardContent>
             </Card>
           ) : null}
-        </div>
 
-        <div className="space-y-6">
           {!roomCode ? (
             <Card>
               <CardHeader>
@@ -1003,48 +1007,48 @@ export default function HostPage() {
 
           <HostJoinedTeamsPanel code={roomCode ?? ""} />
 
-{roomCode ? (
-  <Card>
-    <CardHeader>
-      <CardTitle>Room code</CardTitle>
-    </CardHeader>
+          {roomCode ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Room code</CardTitle>
+              </CardHeader>
 
-    <CardContent className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-2xl font-semibold tracking-widest">{roomCode}</div>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-2xl font-semibold tracking-widest">{roomCode}</div>
 
-      <QRTile value={joinUrl} size={112} /> 
-      </div>
+                  <QRTile value={joinUrl} size={112} />
+                </div>
 
-      <div className="text-sm text-[var(--muted-foreground)]">Players join at</div>
+                <div className="text-sm text-[var(--muted-foreground)]">Players join at</div>
 
-      <div className="flex items-center justify-between gap-3">
-        <a href={joinUrl} className="break-all text-sm underline">
-          {joinUrl}
-        </a>
-        <Button
-          variant="secondary"
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(joinUrl)
-            } catch {
-              // ignore
-            }
-          }}
-        >
-          Copy link
-        </Button>
-      </div>
+                <div className="flex items-center justify-between gap-3">
+                  <a href={joinUrl} className="break-all text-sm underline">
+                    {joinUrl}
+                  </a>
+                  <Button
+                    variant="secondary"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(joinUrl)
+                      } catch {
+                        // ignore
+                      }
+                    }}
+                  >
+                    Copy link
+                  </Button>
+                </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
-        <Button onClick={() => openInNewWindow(displayUrl)}>Open TV display</Button>
-        <Button variant="secondary" onClick={() => openInNewWindow(joinPageUrl)}>
-          Join room
-        </Button>
-      </div>
-    </CardContent>
-  </Card>
-) : null}
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button onClick={() => openInNewWindow(displayUrl)}>Open TV display</Button>
+                  <Button variant="secondary" onClick={() => openInNewWindow(joinPageUrl)}>
+                    Join room
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
 
           {showGameplayPanel ? (
             <Card>
