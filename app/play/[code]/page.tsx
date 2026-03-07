@@ -904,8 +904,7 @@ export default function PlayerPage() {
                             onClick={() => pickOption(idx)}
                             disabled={!canAnswer || mcqSubmitting}
                           >
-                            <div className="font-medium text-[var(--foreground)]">Option {idx + 1}</div>
-                            <div className="mt-1 text-[var(--muted-foreground)]">{opt}</div>
+                            <div className="text-sm text-[var(--foreground)]">{opt}</div>
                           </button>
                         );
                       })
