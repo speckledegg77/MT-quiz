@@ -30,35 +30,6 @@ function pillClass(stage: string) {
   return "bg-slate-600/20 text-slate-200 border-slate-500/40";
 }
 
-function TrophyIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="block h-10 w-10"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      preserveAspectRatio="xMidYMid meet"
-    >
-      <path d="M8 21h8" />
-      <path d="M12 17v4" />
-      <path d="M7 4h10" />
-      <path d="M17 4v7a5 5 0 0 1-10 0V4" />
-      <path d="M5 9h2a3 3 0 0 0 3 3" />
-      <path d="M19 9h-2a3 3 0 0 1-3 3" />
-    </svg>
-  );
-}
-
-function formatScore(n: number) {
-  if (!Number.isFinite(n)) return "0";
-  const rounded = Math.round(n * 10) / 10;
-  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
-}
-
 function formatDuration(totalSeconds: number) {
   const safe = Math.max(0, Math.floor(totalSeconds));
   const minutes = Math.floor(safe / 60);
@@ -76,8 +47,8 @@ export default function PlayerPage() {
   const [liveNowMs, setLiveNowMs] = useState(() => Date.now());
 
   const [playerId, setPlayerId] = useState<string | null>(null);
-  const [playerName, setPlayerName] = useState<string>("");
-  const [teamName, setTeamName] = useState<string>("");
+  const [playerName, setPlayerName] = useState("");
+  const [teamName, setTeamName] = useState("");
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [submittedIndex, setSubmittedIndex] = useState<number | null>(null);
@@ -89,9 +60,8 @@ export default function PlayerPage() {
   const [typedIsCorrect, setTypedIsCorrect] = useState<boolean | null>(null);
 
   const [answerError, setAnswerError] = useState<string | null>(null);
-
-  // Key point: reset UI by question index, not only by question id.
   const [lastQuestionKey, setLastQuestionKey] = useState<string | null>(null);
+  const [roundTransitionQuestionIndex, setRoundTransitionQuestionIndex] = useState<number | null>(null);
 
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [autoplayFailed, setAutoplayFailed] = useState(false);
@@ -119,6 +89,7 @@ export default function PlayerPage() {
     async function tick() {
       const res = await fetch(`/api/room/state?code=${code}`, { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
+
       if (!cancelled) {
         setState(data);
         if (data?.serverNow) {
@@ -131,11 +102,11 @@ export default function PlayerPage() {
     }
 
     tick();
-    const id = setInterval(tick, 500);
+    const id = window.setInterval(tick, 500);
 
     return () => {
       cancelled = true;
-      clearInterval(id);
+      window.clearInterval(id);
     };
   }, [code]);
 
@@ -144,7 +115,6 @@ export default function PlayerPage() {
     return () => window.clearInterval(id);
   }, []);
 
-  // Reset local answer state when the question changes.
   useEffect(() => {
     const qi = state?.questionIndex;
     if (qi === undefined || qi === null) return;
@@ -173,6 +143,25 @@ export default function PlayerPage() {
     }
   }, [state?.questionIndex, state?.question?.id, lastQuestionKey]);
 
+  useEffect(() => {
+    const qi = Number(state?.questionIndex ?? NaN);
+    if (!Number.isFinite(qi)) return;
+
+    if (state?.phase === "lobby" || state?.phase === "finished") {
+      setRoundTransitionQuestionIndex(null);
+      return;
+    }
+
+    if (state?.stage === "round_summary") {
+      setRoundTransitionQuestionIndex(qi);
+      return;
+    }
+
+    if (roundTransitionQuestionIndex !== null && qi !== roundTransitionQuestionIndex) {
+      setRoundTransitionQuestionIndex(null);
+    }
+  }, [state?.stage, state?.phase, state?.questionIndex, roundTransitionQuestionIndex]);
+
   const gameMode = String(state?.gameMode ?? "teams") === "solo" ? "solo" : "teams";
   const teamScoreMode = String(state?.teamScoreMode ?? "total") === "average" ? "average" : "total";
 
@@ -186,7 +175,10 @@ export default function PlayerPage() {
   const isPictureQ = q?.roundType === "picture";
   const isTextQ = q?.answerType === "text";
 
-  const correctIndex = state?.reveal?.answerIndex ?? null;
+  const correctIndex = Number.isFinite(Number(state?.reveal?.answerIndex))
+    ? Number(state?.reveal?.answerIndex)
+    : null;
+  const revealAnswerText = String(state?.reveal?.answerText ?? "").trim();
   const inReveal = Boolean(state?.reveal);
 
   const canAnswer = useMemo(() => {
@@ -208,8 +200,8 @@ export default function PlayerPage() {
   }, [players, playerId]);
 
   const myJokerIndex = useMemo(() => {
-    const v = Number(myPlayer?.joker_round_index);
-    return Number.isFinite(v) ? v : null;
+    const value = Number(myPlayer?.joker_round_index);
+    return Number.isFinite(value) ? value : null;
   }, [myPlayer?.joker_round_index]);
 
   const roundsPlan = useMemo(() => {
@@ -217,23 +209,23 @@ export default function PlayerPage() {
     if (plan && plan.length) return plan;
 
     const names = Array.isArray(state?.rounds?.names) ? state.rounds.names : [];
-    return names.map((n: any, i: number) => ({
-      index: i,
-      number: i + 1,
-      name: String(n ?? "").trim() || `Round ${i + 1}`,
+    return names.map((name: any, index: number) => ({
+      index,
+      number: index + 1,
+      name: String(name ?? "").trim() || `Round ${index + 1}`,
       size: null,
     }));
   }, [state]);
 
   const currentRound = state?.rounds?.current ?? null;
   const isUntimedAnswers = Boolean(state?.settings?.untimedAnswers);
-  const answerAutoSubmitGraceSeconds = Math.max(0, Number(state?.settings?.answerAutoSubmitGraceSeconds ?? 0) || 0);
-  const closeAtMs = state?.times?.closeAt ? Date.parse(String(state.times.closeAt)) : null;
+
+  const actualCloseAtMs = state?.times?.closeAt ? Date.parse(String(state.times.closeAt)) : null;
+  const displayCloseAtRaw =
+    state?.times?.displayCloseAt ?? state?.times?.visibleCloseAt ?? state?.times?.closeAt ?? null;
+  const displayCloseAtMs = displayCloseAtRaw ? Date.parse(String(displayCloseAtRaw)) : null;
   const adjustedNowMs = liveNowMs + serverOffsetMs;
-  const displayCloseAtMs =
-    closeAtMs && Number.isFinite(closeAtMs)
-      ? closeAtMs - answerAutoSubmitGraceSeconds * 1000
-      : null;
+
   const secondsRemaining =
     displayCloseAtMs && Number.isFinite(displayCloseAtMs)
       ? Math.max(0, Math.ceil((displayCloseAtMs - adjustedNowMs) / 1000))
@@ -248,10 +240,10 @@ export default function PlayerPage() {
     if (selectedIndex === null) return;
     if (submittedIndex !== null) return;
     if (mcqSubmitting) return;
-    if (!closeAtMs || !Number.isFinite(closeAtMs)) return;
+    if (!actualCloseAtMs || !Number.isFinite(actualCloseAtMs)) return;
 
-    const millisRemaining = closeAtMs - adjustedNowMs;
-    if (millisRemaining > 400) return;
+    const millisRemaining = actualCloseAtMs - adjustedNowMs;
+    if (millisRemaining > 200) return;
 
     const attemptKey = `${q.id}:${selectedIndex}`;
     if (autoSubmitAttemptKeyRef.current === attemptKey) return;
@@ -268,24 +260,32 @@ export default function PlayerPage() {
     selectedIndex,
     submittedIndex,
     mcqSubmitting,
-    closeAtMs,
+    actualCloseAtMs,
     adjustedNowMs,
   ]);
 
   const teamRows = useMemo(() => {
     const byTeam = new Map<string, { label: string; total: number; size: number }>();
-    for (const p of players) {
-      const team = String(p.team_name ?? "").trim() || "No team";
+
+    for (const player of players) {
+      const team = String(player.team_name ?? "").trim() || "No team";
       const entry = byTeam.get(team) ?? { label: team, total: 0, size: 0 };
-      entry.total += Number(p.score ?? 0);
+      entry.total += Number(player.score ?? 0);
       entry.size += 1;
       byTeam.set(team, entry);
     }
 
-    const rows = Array.from(byTeam.values()).map((t) => {
-      const avg = t.size > 0 ? t.total / t.size : 0;
-      const score = teamScoreMode === "average" ? avg : t.total;
-      return { id: t.label, label: t.label, score, size: t.size, total: t.total, avg };
+    const rows = Array.from(byTeam.values()).map((team) => {
+      const average = team.size > 0 ? team.total / team.size : 0;
+      const score = teamScoreMode === "average" ? average : team.total;
+      return {
+        id: team.label,
+        label: team.label,
+        score,
+        size: team.size,
+        total: team.total,
+        average,
+      };
     });
 
     return rows.sort((a, b) => {
@@ -295,18 +295,10 @@ export default function PlayerPage() {
     });
   }, [players, teamScoreMode]);
 
-  const soloRows = useMemo(() => {
-    return [...players]
-      .map((p: any) => ({ id: p.id, label: String(p.name ?? ""), score: Number(p.score ?? 0) }))
-      .sort((a, b) => (b.score - a.score) || a.label.localeCompare(b.label));
-  }, [players]);
-
-  const scoreboardRows = gameMode === "solo" ? soloRows : teamRows;
-
   const myTeamRow = useMemo(() => {
     if (gameMode !== "teams") return null;
-    const tn = String(myPlayer?.team_name ?? teamName ?? "").trim() || "No team";
-    return teamRows.find((t) => t.label === tn) ?? null;
+    const resolvedTeamName = String(myPlayer?.team_name ?? teamName ?? "").trim() || "No team";
+    return teamRows.find((team) => team.label === resolvedTeamName) ?? null;
   }, [gameMode, myPlayer?.team_name, teamName, teamRows]);
 
   function pickOption(optionIndex: number) {
@@ -443,8 +435,8 @@ export default function PlayerPage() {
     setAutoplayFailed(false);
 
     try {
-      const AnyWindow = window as any;
-      const Ctx = AnyWindow.AudioContext || AnyWindow.webkitAudioContext;
+      const anyWindow = window as any;
+      const Ctx = anyWindow.AudioContext || anyWindow.webkitAudioContext;
       if (Ctx) {
         const ctx = new Ctx();
         await ctx.resume();
@@ -454,7 +446,7 @@ export default function PlayerPage() {
         src.connect(ctx.destination);
         src.start(0);
         src.stop(0.01);
-        await new Promise((r) => setTimeout(r, 20));
+        await new Promise((resolve) => setTimeout(resolve, 20));
         await ctx.close();
       }
     } catch {
@@ -491,6 +483,7 @@ export default function PlayerPage() {
         el.load();
         setPreparedForQ(q.id);
       }
+
       await el.play();
       return true;
     } catch {
@@ -503,7 +496,6 @@ export default function PlayerPage() {
     if (!isAudioQ) return;
     if (!q?.audioUrl) return;
     prepareClip();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldPlayOnPhone, isAudioQ, q?.id, q?.audioUrl]);
 
   useEffect(() => {
@@ -530,10 +522,10 @@ export default function PlayerPage() {
     }
 
     attempt().catch(() => {});
+
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shouldPlayOnPhone, audioEnabled, isAudioQ, state?.stage, q?.id, q?.audioUrl, playedForQ]);
 
   if (!code) {
@@ -576,6 +568,35 @@ export default function PlayerPage() {
 
   const showLobby = state.phase === "lobby";
   const finished = state.phase === "finished";
+
+  const suppressStaleQuestionBetweenRounds =
+    !showLobby &&
+    !finished &&
+    stage !== "round_summary" &&
+    roundTransitionQuestionIndex !== null &&
+    Number(state?.questionIndex ?? -1) === roundTransitionQuestionIndex;
+
+  const showScoreTimerRow =
+    !showLobby &&
+    !finished &&
+    stage !== "round_summary" &&
+    (Boolean(myPlayer) || Boolean(q));
+
+  const showTimerCard = !showLobby && !finished && stage !== "round_summary" && Boolean(q);
+
+  let timerLabel = isUntimedAnswers ? "Answer window" : "Time remaining";
+  let timerValue = isUntimedAnswers ? "Waiting for host" : formatDuration(secondsRemaining);
+
+  if (stage !== "open") {
+    timerValue = isUntimedAnswers ? "Closed" : formatDuration(secondsRemaining);
+  }
+
+  const correctAnswerText =
+    answerType === "mcq"
+      ? correctIndex !== null && Array.isArray(q?.options)
+        ? String(q.options[correctIndex] ?? "")
+        : revealAnswerText
+      : revealAnswerText;
 
   return (
     <main className="mx-auto max-w-md px-4 py-6">
@@ -643,14 +664,14 @@ export default function PlayerPage() {
               <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-3">
                 <div className="text-sm font-medium text-[var(--foreground)]">Rounds</div>
                 <div className="mt-2 grid gap-1">
-                  {roundsPlan.map((r: any) => (
-                    <div key={r.index} className="flex items-center justify-between gap-3">
+                  {roundsPlan.map((round: any) => (
+                    <div key={round.index} className="flex items-center justify-between gap-3">
                       <div className="min-w-0 truncate">
-                        {Number(r.number)}. {String(r.name)}
+                        {Number(round.number)}. {String(round.name)}
                       </div>
-                      {r.size ? (
+                      {round.size ? (
                         <div className="text-xs text-[var(--muted-foreground)] tabular-nums">
-                          {Number(r.size)} questions
+                          {Number(round.size)} questions
                         </div>
                       ) : null}
                     </div>
@@ -664,16 +685,16 @@ export default function PlayerPage() {
                 <div className="text-sm font-medium text-[var(--foreground)]">Pick your Joker round</div>
 
                 <div className="mt-2 grid grid-cols-2 gap-2">
-                  {roundsPlan.map((r: any) => {
-                    const selected = myJokerIndex === Number(r.index);
+                  {roundsPlan.map((round: any) => {
+                    const selected = myJokerIndex === Number(round.index);
                     return (
                       <Button
-                        key={r.index}
+                        key={round.index}
                         variant={selected ? "primary" : "secondary"}
                         disabled={jokerBusy}
-                        onClick={() => pickJoker(Number(r.index))}
+                        onClick={() => pickJoker(Number(round.index))}
                       >
-                        {String(r.name)}
+                        {String(round.name)}
                       </Button>
                     );
                   })}
@@ -713,9 +734,17 @@ export default function PlayerPage() {
         />
       ) : null}
 
-      {!showLobby && !finished && stage !== "round_summary" && q ? (
+      {!showLobby && !finished && suppressStaleQuestionBetweenRounds ? (
+        <Card>
+          <CardContent className="py-10 text-center text-sm text-[var(--muted-foreground)]">
+            Starting next round...
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {!showLobby && !finished && stage !== "round_summary" && !suppressStaleQuestionBetweenRounds && q ? (
         <div className="grid gap-4">
-          {myPlayer || q ? (
+          {showScoreTimerRow ? (
             <div className="grid grid-cols-2 gap-3">
               {myPlayer ? (
                 <Card>
@@ -730,14 +759,12 @@ export default function PlayerPage() {
                 <div />
               )}
 
-              {q ? (
+              {showTimerCard ? (
                 <Card>
                   <CardContent className="flex items-center justify-between gap-3 py-3">
-                    <div className="min-w-0 text-xs text-[var(--muted-foreground)]">
-                      {isUntimedAnswers ? "Answer window" : "Time remaining"}
-                    </div>
+                    <div className="min-w-0 text-xs text-[var(--muted-foreground)]">{timerLabel}</div>
                     <div className="text-right text-sm font-semibold leading-tight tabular-nums sm:text-base">
-                      {isUntimedAnswers ? (stage === "open" ? "Waiting for host" : "Closed") : formatDuration(secondsRemaining)}
+                      {timerValue}
                     </div>
                   </CardContent>
                 </Card>
@@ -760,7 +787,7 @@ export default function PlayerPage() {
             <CardContent className="space-y-4">
               {isPictureQ && q.imageUrl ? (
                 <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--muted)]">
-                  <img src={q.imageUrl} alt="" className="w-full max-h-[280px] object-contain" />
+                  <img src={q.imageUrl} alt="" className="max-h-[280px] w-full object-contain" />
                 </div>
               ) : null}
 
@@ -824,9 +851,8 @@ export default function PlayerPage() {
                 </div>
               ) : (
                 <div className="grid gap-2">
-                  {Array.isArray(q.options) ? (
-                    <>
-                      {q.options.map((opt: string, idx: number) => {
+                  {Array.isArray(q.options)
+                    ? q.options.map((opt: string, idx: number) => {
                         const selected = selectedIndex === idx;
                         const submitted = submittedIndex !== null;
 
@@ -835,7 +861,6 @@ export default function PlayerPage() {
 
                         if (selected && !submitted) cls += " bg-emerald-600/15 border-emerald-500/40";
                         if (submitted) cls += " opacity-80 cursor-not-allowed";
-
                         if (inReveal && correctIndex === idx) cls += " bg-emerald-600/10 border-emerald-600/30";
                         if (inReveal && submittedIndex === idx && correctIndex !== idx) cls += " bg-red-600/10 border-red-600/30";
 
@@ -850,47 +875,46 @@ export default function PlayerPage() {
                             <div className="mt-1 text-[var(--muted-foreground)]">{opt}</div>
                           </button>
                         );
-                      })}
+                      })
+                    : null}
 
-                      {mcqAutoSubmitted && submittedIndex !== null && !inReveal ? (
-                        <div className="rounded-lg border border-emerald-500/30 bg-emerald-600/10 px-3 py-2 text-sm text-emerald-200">
-                          Time expired, so your selected answer was submitted automatically.
-                        </div>
-                      ) : null}
+                  {mcqAutoSubmitted && submittedIndex !== null && !inReveal ? (
+                    <div className="rounded-lg border border-emerald-500/30 bg-emerald-600/10 px-3 py-2 text-sm text-emerald-200">
+                      Time expired, so your selected answer was submitted automatically.
+                    </div>
+                  ) : null}
 
-                      {!inReveal ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="secondary"
-                            onClick={() => {
-                              setSelectedIndex(null);
-                              setAnswerError(null);
-                            }}
-                            disabled={!canAnswer || selectedIndex === null}
-                          >
-                            Clear
-                          </Button>
+                  {!inReveal ? (
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setSelectedIndex(null);
+                          setAnswerError(null);
+                        }}
+                        disabled={!canAnswer || selectedIndex === null}
+                      >
+                        Clear
+                      </Button>
 
-                          <Button onClick={submitMcq} disabled={!canAnswer || selectedIndex === null}>
-                            {mcqSubmitting ? "Submitting..." : "Submit"}
-                          </Button>
-                        </div>
-                      ) : null}
-                    </>
+                      <Button onClick={submitMcq} disabled={!canAnswer || selectedIndex === null}>
+                        {mcqSubmitting ? "Submitting..." : "Submit"}
+                      </Button>
+                    </div>
                   ) : null}
                 </div>
               )}
-              {inReveal ? (
-                <div className="rounded-xl border border-emerald-500/30 bg-emerald-600/10 px-4 py-3">
-                  <div className="text-xs uppercase tracking-wide text-emerald-200/80">Correct answer</div>
-                  <div className="mt-1 text-sm font-medium text-emerald-100">
-                    {state?.reveal?.answerType === "mcq" && Array.isArray(q.options) && Number.isFinite(correctIndex)
-                      ? q.options[Number(correctIndex)]
-                      : String(state?.reveal?.answerText ?? "")}
-                  </div>
-                  {state?.reveal?.explanation ? (
-                    <div className="mt-2 text-xs text-emerald-100/80">{String(state.reveal.explanation)}</div>
-                  ) : null}
+
+              {inReveal && correctAnswerText ? (
+                <div className="rounded-xl border border-emerald-600/30 bg-emerald-600/10 p-3">
+                  <div className="text-sm font-medium text-emerald-200">Correct answer</div>
+                  <div className="mt-1 text-sm text-[var(--foreground)]">{correctAnswerText}</div>
+                </div>
+              ) : null}
+
+              {isTextQ && typedSubmitted && typedIsCorrect !== null && !inReveal ? (
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-sm text-[var(--muted-foreground)]">
+                  Your answer has been submitted.
                 </div>
               ) : null}
             </CardContent>
