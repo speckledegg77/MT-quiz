@@ -533,7 +533,7 @@ export default function PlayerPage() {
               Player: <span className="text-[var(--foreground)]">{playerName}</span>
               {gameMode === "teams" && teamName ? (
                 <>
-                  <span className="mx-2">•</span>
+                  <span className="mx-2">â€¢</span>
                   Team: <span className="text-[var(--foreground)]">{teamName}</span>
                 </>
               ) : null}
@@ -568,7 +568,7 @@ export default function PlayerPage() {
             <CardTitle>Waiting to start</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-[var(--muted-foreground)]">
-            <div>You’ve joined. Wait for the host to start the game.</div>
+            <div>Youâ€™ve joined. Wait for the host to start the game.</div>
 
             {shouldPlayOnPhone ? (
               <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
@@ -652,6 +652,7 @@ export default function PlayerPage() {
           round={currentRound}
           roundStats={state?.roundStats}
           isLastQuestionOverall={Boolean(state?.flow?.isLastQuestionOverall)}
+          roundSummaryEndsAt={state?.times?.roundSummaryEndsAt ?? null}
         />
       ) : null}
 
@@ -796,7 +797,7 @@ export default function PlayerPage() {
                           </Button>
 
                           <Button onClick={submitMcq} disabled={!canAnswer || selectedIndex === null}>
-                            {mcqSubmitting ? "Submitting…" : "Submit"}
+                            {mcqSubmitting ? "Submittingâ€¦" : "Submit"}
                           </Button>
                         </div>
                       ) : null}

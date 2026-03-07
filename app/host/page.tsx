@@ -71,6 +71,7 @@ export default function HostPage() {
 
   const [totalQuestionsStr, setTotalQuestionsStr] = useState("20")
   const [answerSecondsStr, setAnswerSecondsStr] = useState("20")
+  const [roundReviewSecondsStr, setRoundReviewSecondsStr] = useState("10")
   const [untimedAnswers, setUntimedAnswers] = useState(false)
 
   const [roundCountStr, setRoundCountStr] = useState("4")
@@ -112,6 +113,8 @@ export default function HostPage() {
   const [rehostCode, setRehostCode] = useState("")
   const [rehostBusy, setRehostBusy] = useState(false)
   const [rehostError, setRehostError] = useState<string | null>(null)
+
+  const advancingRef = useRef(false)
 
   const origin = typeof window !== "undefined" ? window.location.origin : ""
   const joinUrl = roomCode ? `${origin}/join?code=${roomCode}` : ""
@@ -223,6 +226,42 @@ export default function HostPage() {
     }
   }, [roomCode])
 
+  useEffect(() => {
+    if (!roomCode) return
+    if (roomPhase !== "running") return
+    if (roomStage !== "needs_advance") return
+    if (advancingRef.current) return
+
+    let cancelled = false
+    advancingRef.current = true
+
+    async function autoAdvance() {
+      try {
+        await fetch("/api/room/advance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: roomCode }),
+        })
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) {
+          window.setTimeout(() => {
+            advancingRef.current = false
+          }, 300)
+        } else {
+          advancingRef.current = false
+        }
+      }
+    }
+
+    autoAdvance()
+
+    return () => {
+      cancelled = true
+    }
+  }, [roomCode, roomPhase, roomStage])
+
   function rememberHostCode(code: string) {
     try {
       localStorage.setItem(LAST_HOST_CODE_KEY, code)
@@ -272,7 +311,8 @@ export default function HostPage() {
 
     try {
       const totalQuestions = clampInt(parseIntOr(totalQuestionsStr, 20), 1, 200)
-      const countdownSeconds = 0
+      const roundReviewSeconds = clampInt(parseIntOr(roundReviewSecondsStr, 10), 0, 120)
+      const countdownSeconds = roundReviewSeconds
       const answerSeconds = untimedAnswers ? 0 : clampInt(parseIntOr(answerSecondsStr, 20), 5, 120)
 
       let roundCount = clampInt(parseIntOr(roundCountStr, 4), 1, 20)
@@ -429,7 +469,7 @@ export default function HostPage() {
       }
 
       setRoomPhase("running")
-      setRoomStage("countdown")
+      setRoomStage("open")
       setStartOk("Game started.\nJoining is now closed.")
     } catch (e: any) {
       setStartError(e?.message ?? "Could not start game.")
@@ -472,14 +512,16 @@ export default function HostPage() {
     }
   }
 
-  async function forceNextQuestion() {
+  async function continueGame() {
     if (!roomCode) return
 
     setForcingClose(true)
     setForceCloseError(null)
 
+    const route = roomStage === "open" ? "/api/room/force-close" : "/api/room/advance"
+
     try {
-      const res = await fetch("/api/room/force-close", {
+      const res = await fetch(route, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: roomCode }),
@@ -523,7 +565,7 @@ export default function HostPage() {
   }, [roomPhase, roomStage])
 
   const canStart = roomCode && roomPhase === "lobby" && !starting
-  const canForceNext =
+  const canContinue =
     roomCode &&
     roomPhase === "running" &&
     ["open", "round_summary", "needs_advance"].includes(roomStage) &&
@@ -532,22 +574,24 @@ export default function HostPage() {
   const continueLabel =
     roomStage === "open"
       ? forcingClose
-        ? "Moving on…"
+        ? "Moving onâ€¦"
         : "Reveal answer"
       : roomStage === "round_summary"
         ? forcingClose
-          ? "Moving on…"
+          ? "Moving onâ€¦"
           : Boolean(roomState?.flow?.isLastQuestionOverall)
-            ? "Finish game"
-            : "Next round"
+            ? "Finish now"
+            : "Skip round review"
         : forcingClose
-          ? "Moving on…"
-          : "Next question"
+          ? "Moving onâ€¦"
+          : Boolean(roomState?.flow?.isLastQuestionOverall)
+            ? "Finish now"
+            : "Next question"
 
   const startLabel =
     roomPhase === "lobby"
       ? starting
-        ? "Starting…"
+        ? "Startingâ€¦"
         : "Start game"
       : roomPhase === "running"
         ? "Game running"
@@ -686,7 +730,7 @@ export default function HostPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-3">
                   <div>
                     <div className="text-sm font-medium text-[var(--foreground)]">Total questions</div>
                     <Input value={totalQuestionsStr} onChange={(e) => setTotalQuestionsStr(e.target.value)} inputMode="numeric" />
@@ -713,6 +757,18 @@ export default function HostPage() {
                         Questions open straight away. There is no get ready countdown.
                       </div>
                     )}
+                  </div>
+
+                  <div>
+                    <div className="text-sm font-medium text-[var(--foreground)]">Round review seconds</div>
+                    <Input
+                      value={roundReviewSecondsStr}
+                      onChange={(e) => setRoundReviewSecondsStr(e.target.value)}
+                      inputMode="numeric"
+                    />
+                    <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                      After the last question in a round, the round summary shows for this long before the next round starts.
+                    </div>
                   </div>
                 </div>
 
@@ -763,7 +819,7 @@ export default function HostPage() {
 
               <CardFooter>
                 <Button onClick={createRoom} disabled={creating || packsLoading}>
-                  {creating ? "Creating…" : packsLoading ? "Loading packs…" : "Create room"}
+                  {creating ? "Creatingâ€¦" : packsLoading ? "Loading packsâ€¦" : "Create room"}
                 </Button>
               </CardFooter>
             </Card>
@@ -824,16 +880,16 @@ export default function HostPage() {
                   </Button>
 
                   <Button variant="secondary" onClick={resetRoom} disabled={resetting}>
-                    {resetting ? "Resetting…" : "Reset room"}
+                    {resetting ? "Resettingâ€¦" : "Reset room"}
                   </Button>
                 </div>
 
                 <div className="grid gap-2 sm:grid-cols-2">
-                  <Button variant="secondary" onClick={forceNextQuestion} disabled={!canForceNext}>
+                  <Button variant="secondary" onClick={continueGame} disabled={!canContinue}>
                     {continueLabel}
                   </Button>
 
-                  <div className="flex items-center text-sm text-[var(--muted-foreground)]">Use Reveal answer to close untimed questions, then Next round or Finish game at round breaks.</div>
+                  <div className="flex items-center text-sm text-[var(--muted-foreground)]">Round review advances automatically after the set time. Use this button to move on sooner.</div>
                 </div>
 
                 <Button variant="ghost" onClick={clearRoom}>
@@ -939,7 +995,7 @@ export default function HostPage() {
                 ) : null}
 
                 <Button onClick={rehostRoom} disabled={rehostBusy}>
-                  {rehostBusy ? "Loading…" : "Re-host"}
+                  {rehostBusy ? "Loadingâ€¦" : "Re-host"}
                 </Button>
               </CardContent>
             </Card>

@@ -204,6 +204,7 @@ export default function DisplayPage() {
           round={currentRound}
           roundStats={roundStats}
           isLastQuestionOverall={Boolean(state?.flow?.isLastQuestionOverall)}
+          roundSummaryEndsAt={state?.times?.roundSummaryEndsAt ?? null}
         />
       ) : null}
 

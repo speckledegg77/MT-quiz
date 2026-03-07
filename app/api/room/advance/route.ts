@@ -34,6 +34,13 @@ function clampInt(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, Math.floor(n)))
 }
 
+function buildRoundSummaryEndsAt(nextAt: string | null | undefined, roundReviewSeconds: number) {
+  if (!nextAt || roundReviewSeconds <= 0) return null
+  const startMs = Date.parse(nextAt)
+  if (!Number.isFinite(startMs)) return null
+  return new Date(startMs + roundReviewSeconds * 1000).toISOString()
+}
+
 function normaliseRoundCount(raw: any, questionCount: number) {
   const qc = Math.max(1, Math.floor(Number(questionCount ?? 0)) || 1)
   const requested = Math.floor(Number(raw ?? 4))
@@ -88,16 +95,27 @@ export async function POST(req: Request) {
   const roundPlan = buildRoundPlan(ids.length || 1, room.round_count)
   const currentRound = findRoundForQuestion(currentIndex, roundPlan)
 
+  const nowMs = Date.now()
   const baseStage = stageFromTimes(
     room.phase,
-    Date.now(),
+    nowMs,
     room.open_at,
     room.close_at,
     room.reveal_at,
     room.next_at
   )
 
-  const stage = baseStage === "needs_advance" && currentIndex >= currentRound.endIndex ? "round_summary" : baseStage
+  const roundReviewSeconds = clampInt(Number(room.countdown_seconds ?? 0), 0, 120)
+  const roundSummaryEndsAt = buildRoundSummaryEndsAt(room.next_at, roundReviewSeconds)
+
+  let stage = baseStage
+  if (baseStage === "needs_advance" && currentIndex >= currentRound.endIndex) {
+    if (roundSummaryEndsAt && nowMs < Date.parse(roundSummaryEndsAt)) {
+      stage = "round_summary"
+    } else {
+      stage = "needs_advance"
+    }
+  }
 
   if (stage !== "needs_advance" && stage !== "round_summary") {
     return NextResponse.json({ ok: true, advanced: false, stage })
@@ -106,8 +124,23 @@ export async function POST(req: Request) {
   const nextIndex = currentIndex + 1
 
   if (nextIndex >= ids.length) {
-    await supabaseAdmin.from("rooms").update({ phase: "finished" }).eq("id", room.id)
-    return NextResponse.json({ ok: true, advanced: true, finished: true })
+    const finishRes = await supabaseAdmin
+      .from("rooms")
+      .update({ phase: "finished" })
+      .eq("id", room.id)
+      .eq("phase", "running")
+      .eq("question_index", currentIndex)
+      .select("id")
+
+    if (finishRes.error) {
+      return NextResponse.json({ error: "Could not finish game" }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      ok: true,
+      advanced: Array.isArray(finishRes.data) && finishRes.data.length > 0,
+      finished: true,
+    })
   }
 
   const now = new Date()
@@ -121,7 +154,7 @@ export async function POST(req: Request) {
   const revealAt = addSeconds(closeAt, Number(room.reveal_delay_seconds ?? 0))
   const nextAt = addSeconds(revealAt, Number(room.reveal_seconds ?? 0))
 
-  await supabaseAdmin
+  const updateRes = await supabaseAdmin
     .from("rooms")
     .update({
       question_index: nextIndex,
@@ -132,6 +165,17 @@ export async function POST(req: Request) {
       next_at: nextAt.toISOString(),
     })
     .eq("id", room.id)
+    .eq("phase", "running")
+    .eq("question_index", currentIndex)
+    .select("id")
 
-  return NextResponse.json({ ok: true, advanced: true, finished: false })
+  if (updateRes.error) {
+    return NextResponse.json({ error: "Could not advance room" }, { status: 500 })
+  }
+
+  return NextResponse.json({
+    ok: true,
+    advanced: Array.isArray(updateRes.data) && updateRes.data.length > 0,
+    finished: false,
+  })
 }

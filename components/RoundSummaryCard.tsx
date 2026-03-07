@@ -1,3 +1,6 @@
+"use client"
+
+import { useEffect, useMemo, useState } from "react"
 import JokerBadge from "@/components/JokerBadge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 
@@ -9,6 +12,7 @@ type Props = {
   } | null | undefined
   roundStats: any
   isLastQuestionOverall?: boolean
+  roundSummaryEndsAt?: string | null
 }
 
 function fmt(n: number) {
@@ -16,7 +20,46 @@ function fmt(n: number) {
   return String(n)
 }
 
-export default function RoundSummaryCard({ round, roundStats, isLastQuestionOverall = false }: Props) {
+function secondsUntil(endsAt?: string | null) {
+  if (!endsAt) return null
+  const endMs = Date.parse(endsAt)
+  if (!Number.isFinite(endMs)) return null
+  return Math.max(0, Math.ceil((endMs - Date.now()) / 1000))
+}
+
+export default function RoundSummaryCard({
+  round,
+  roundStats,
+  isLastQuestionOverall = false,
+  roundSummaryEndsAt = null,
+}: Props) {
+  const [secondsRemaining, setSecondsRemaining] = useState<number | null>(() => secondsUntil(roundSummaryEndsAt))
+
+  useEffect(() => {
+    setSecondsRemaining(secondsUntil(roundSummaryEndsAt))
+
+    if (!roundSummaryEndsAt) return
+
+    const id = window.setInterval(() => {
+      setSecondsRemaining(secondsUntil(roundSummaryEndsAt))
+    }, 250)
+
+    return () => window.clearInterval(id)
+  }, [roundSummaryEndsAt])
+
+  const footerText = useMemo(() => {
+    if (secondsRemaining !== null) {
+      if (secondsRemaining <= 0) return "Continuing…"
+      return isLastQuestionOverall
+        ? `Finishing automatically in ${secondsRemaining}s.`
+        : `Next round starts automatically in ${secondsRemaining}s.`
+    }
+
+    return isLastQuestionOverall
+      ? "Waiting for the host to finish the game."
+      : "Waiting for the host to start the next round."
+  }, [isLastQuestionOverall, secondsRemaining])
+
   return (
     <Card>
       <CardHeader>
@@ -61,9 +104,7 @@ export default function RoundSummaryCard({ round, roundStats, isLastQuestionOver
           </div>
         ) : null}
 
-        <div className="text-sm text-[var(--muted-foreground)]">
-          {isLastQuestionOverall ? "Waiting for the host to finish the game." : "Waiting for the host to start the next round."}
-        </div>
+        <div className="text-sm text-[var(--muted-foreground)]">{footerText}</div>
       </CardContent>
     </Card>
   )
