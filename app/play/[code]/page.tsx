@@ -82,6 +82,7 @@ export default function PlayerPage() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [submittedIndex, setSubmittedIndex] = useState<number | null>(null);
   const [mcqSubmitting, setMcqSubmitting] = useState(false);
+  const [mcqAutoSubmitted, setMcqAutoSubmitted] = useState(false);
 
   const [typedValue, setTypedValue] = useState("");
   const [typedSubmitted, setTypedSubmitted] = useState(false);
@@ -101,6 +102,7 @@ export default function PlayerPage() {
   const [jokerError, setJokerError] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const autoSubmitAttemptKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!code) return;
@@ -156,6 +158,8 @@ export default function PlayerPage() {
       setSelectedIndex(null);
       setSubmittedIndex(null);
       setMcqSubmitting(false);
+      setMcqAutoSubmitted(false);
+      autoSubmitAttemptKeyRef.current = null;
 
       setTypedValue("");
       setTypedSubmitted(false);
@@ -184,12 +188,6 @@ export default function PlayerPage() {
 
   const correctIndex = state?.reveal?.answerIndex ?? null;
   const inReveal = Boolean(state?.reveal);
-  const revealedAnswerText =
-    answerType === "text"
-      ? String(state?.reveal?.answerText ?? q?.answerText ?? "").trim()
-      : correctIndex !== null && Array.isArray(q?.options) && q.options[correctIndex]
-        ? String(q.options[correctIndex])
-        : "";
 
   const canAnswer = useMemo(() => {
     if (state?.phase !== "running") return false;
@@ -236,6 +234,39 @@ export default function PlayerPage() {
       ? Math.max(0, Math.ceil((closeAtMs - adjustedNowMs) / 1000))
       : 0;
 
+  useEffect(() => {
+    if (!playerId || !q?.id) return;
+    if (answerType !== "mcq") return;
+    if (state?.phase !== "running") return;
+    if (state?.stage !== "open") return;
+    if (isUntimedAnswers) return;
+    if (selectedIndex === null) return;
+    if (submittedIndex !== null) return;
+    if (mcqSubmitting) return;
+    if (!closeAtMs || !Number.isFinite(closeAtMs)) return;
+
+    const millisRemaining = closeAtMs - adjustedNowMs;
+    if (millisRemaining > 900) return;
+
+    const attemptKey = `${q.id}:${selectedIndex}`;
+    if (autoSubmitAttemptKeyRef.current === attemptKey) return;
+    autoSubmitAttemptKeyRef.current = attemptKey;
+
+    void submitMcqOption(selectedIndex, "auto");
+  }, [
+    playerId,
+    q?.id,
+    answerType,
+    state?.phase,
+    state?.stage,
+    isUntimedAnswers,
+    selectedIndex,
+    submittedIndex,
+    mcqSubmitting,
+    closeAtMs,
+    adjustedNowMs,
+  ]);
+
   const teamRows = useMemo(() => {
     const byTeam = new Map<string, { label: string; total: number; size: number }>();
     for (const p of players) {
@@ -279,10 +310,10 @@ export default function PlayerPage() {
     setSelectedIndex(optionIndex);
   }
 
-  async function submitMcq() {
-    if (!playerId || !q?.id) return;
-    if (!canAnswer) return;
-    if (selectedIndex === null) return;
+  async function submitMcqOption(optionIndex: number, mode: "manual" | "auto" = "manual") {
+    if (!playerId || !q?.id) return false;
+    if (!canAnswer) return false;
+    if (!Number.isFinite(optionIndex)) return false;
 
     setAnswerError(null);
     setMcqSubmitting(true);
@@ -291,7 +322,7 @@ export default function PlayerPage() {
       const res = await fetch("/api/room/answer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, playerId, questionId: q.id, optionIndex: selectedIndex }),
+        body: JSON.stringify({ code, playerId, questionId: q.id, optionIndex }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -299,7 +330,7 @@ export default function PlayerPage() {
       if (!res.ok) {
         setAnswerError(data?.error ?? "Could not send answer.");
         setMcqSubmitting(false);
-        return;
+        return false;
       }
 
       if (data?.accepted === false) {
@@ -308,19 +339,34 @@ export default function PlayerPage() {
           setSelectedIndex(null);
           setAnswerError("You already submitted an answer for this question.");
           setMcqSubmitting(false);
-          return;
+          return false;
         }
+
+        if (mode === "auto" && data?.reason === "not_open") {
+          setAnswerError("Time expired before your selected answer could be locked in.");
+          setMcqSubmitting(false);
+          return false;
+        }
+
         setAnswerError("Answer not accepted.");
         setMcqSubmitting(false);
-        return;
+        return false;
       }
 
-      setSubmittedIndex(selectedIndex);
+      setSubmittedIndex(optionIndex);
+      setMcqAutoSubmitted(mode === "auto");
       setMcqSubmitting(false);
+      return true;
     } catch {
       setAnswerError("Could not send answer.");
       setMcqSubmitting(false);
+      return false;
     }
+  }
+
+  async function submitMcq() {
+    if (selectedIndex === null) return;
+    await submitMcqOption(selectedIndex, "manual");
   }
 
   async function submitTyped() {
@@ -539,7 +585,7 @@ export default function PlayerPage() {
               Player: <span className="text-[var(--foreground)]">{playerName}</span>
               {gameMode === "teams" && teamName ? (
                 <>
-                  <span className="mx-2">â€¢</span>
+                  <span className="mx-2">|</span>
                   Team: <span className="text-[var(--foreground)]">{teamName}</span>
                 </>
               ) : null}
@@ -574,7 +620,7 @@ export default function PlayerPage() {
             <CardTitle>Waiting to start</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-[var(--muted-foreground)]">
-            <div>Youâ€™ve joined. Wait for the host to start the game.</div>
+            <div>You have joined. Wait for the host to start the game.</div>
 
             {shouldPlayOnPhone ? (
               <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
@@ -664,7 +710,7 @@ export default function PlayerPage() {
 
       {!showLobby && !finished && stage !== "round_summary" && q ? (
         <div className="grid gap-4">
-          {(myPlayer || state.phase === "running") ? (
+          {myPlayer || (state.phase === "running" && stage === "open") ? (
             <div className="grid grid-cols-2 gap-3">
               {myPlayer ? (
                 <Card>
@@ -679,14 +725,14 @@ export default function PlayerPage() {
                 <div />
               )}
 
-              {state.phase === "running" ? (
+              {state.phase === "running" && stage === "open" ? (
                 <Card>
                   <CardContent className="flex items-center justify-between gap-3 py-3">
                     <div className="min-w-0 text-xs text-[var(--muted-foreground)]">
                       {isUntimedAnswers ? "Answer window" : "Time remaining"}
                     </div>
                     <div className="text-right text-sm font-semibold leading-tight tabular-nums sm:text-base">
-                      {isUntimedAnswers ? (stage === "reveal" ? "Closed" : "Waiting for host") : formatDuration(secondsRemaining)}
+                      {isUntimedAnswers ? "Waiting for host" : formatDuration(secondsRemaining)}
                     </div>
                   </CardContent>
                 </Card>
@@ -714,13 +760,6 @@ export default function PlayerPage() {
               ) : null}
 
               <div className="text-base font-semibold leading-tight">{q.text}</div>
-
-              {inReveal && revealedAnswerText ? (
-                <div className="rounded-xl border border-emerald-500/40 bg-emerald-600/10 p-3">
-                  <div className="text-xs font-medium uppercase tracking-wide text-emerald-200">Correct answer</div>
-                  <div className="mt-1 text-sm font-semibold text-[var(--foreground)]">{revealedAnswerText}</div>
-                </div>
-              ) : null}
 
               {isAudioQ && shouldPlayOnPhone ? (
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3">
@@ -808,6 +847,12 @@ export default function PlayerPage() {
                         );
                       })}
 
+                      {mcqAutoSubmitted && submittedIndex !== null && !inReveal ? (
+                        <div className="rounded-lg border border-emerald-500/30 bg-emerald-600/10 px-3 py-2 text-sm text-emerald-200">
+                          Time expired, so your selected answer was submitted automatically.
+                        </div>
+                      ) : null}
+
                       {!inReveal ? (
                         <div className="flex items-center justify-end gap-2">
                           <Button
@@ -822,7 +867,7 @@ export default function PlayerPage() {
                           </Button>
 
                           <Button onClick={submitMcq} disabled={!canAnswer || selectedIndex === null}>
-                            {mcqSubmitting ? "Submittingâ€¦" : "Submit"}
+                            {mcqSubmitting ? "Submitting..." : "Submit"}
                           </Button>
                         </div>
                       ) : null}
