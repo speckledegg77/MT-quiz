@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { QRCodeSVG } from "qrcode.react";
+import QRTile from "@/components/ui/QRTile"
 
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/Button";
@@ -417,7 +417,7 @@ export default function HostPage() {
                 </div>
 
                 <div className="flex items-center justify-between gap-4">
-                  <QRCodeSVG value={joinUrl} size={156} />
+                  <QRTile value={joinUrl} size={112} />
                   <div className="text-sm text-zinc-600 dark:text-zinc-400">
                     Teams can join on their phones at <span className="font-medium">/join</span>.
                   </div>

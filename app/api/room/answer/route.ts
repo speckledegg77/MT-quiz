@@ -59,8 +59,8 @@ function tokenise(s: string) {
 
 function initialsForAnswer(answerTokens: string[]) {
   const stop = new Set(["the", "a", "an", "and", "of", "to", "in", "for", "on", "at", "with", "from", "by"])
-  const kept = answerTokens.filter(t => t && !stop.has(t))
-  return kept.map(t => t[0]).join("")
+  const kept = answerTokens.filter((t) => t && !stop.has(t))
+  return kept.map((t) => t[0]).join("")
 }
 
 function levenshtein(a: string, b: string) {
@@ -91,8 +91,8 @@ function levenshtein(a: string, b: string) {
 function tokenPrefixMatch(inputTokens: string[], answerTokens: string[]) {
   if (inputTokens.length < 2) return false
   if (answerTokens.length < 2) return false
-  let ai = 0
 
+  let ai = 0
   for (const it of inputTokens) {
     if (it.length < 2) continue
     let found = false
@@ -115,7 +115,7 @@ function isTextCorrect(input: string, answer: string, accepted?: string[]) {
   const inputNorm = normalise(input)
   if (!inputNorm) return false
 
-  const candidates = [answer, ...(accepted ?? [])].map(x => String(x ?? "")).filter(Boolean)
+  const candidates = [answer, ...(accepted ?? [])].map((x) => String(x ?? "")).filter(Boolean)
   if (candidates.length === 0) return false
 
   const candNorms = candidates.map(normalise).filter(Boolean)
@@ -139,6 +139,7 @@ function isTextCorrect(input: string, answer: string, accepted?: string[]) {
     if (maxLen <= 4) continue
 
     const dist = levenshtein(inputNorm, c)
+
     let maxEdits = 1
     if (maxLen >= 8) maxEdits = 2
     if (maxLen >= 13) maxEdits = 3
@@ -160,7 +161,6 @@ export async function POST(req: Request) {
 
   const optionIndexRaw = body.optionIndex
   const optionIndex = Number(optionIndexRaw)
-
   const answerText = String(body.answerText ?? "").trim()
 
   if (!code || !playerId || !questionId) {
@@ -212,6 +212,11 @@ export async function POST(req: Request) {
     isCorrect = isTextCorrect(answerText, q.answerText ?? "", q.acceptedAnswers)
   }
 
+  const roundIdx = roundIndexForQuestion(Number(room.question_index ?? 0), ids.length, room.round_count)
+  const jokerIdx = playerRes.data.joker_round_index
+  const jokerActive = Number.isFinite(Number(jokerIdx)) && Number(jokerIdx) === roundIdx
+  const scoreDelta = jokerActive ? (isCorrect ? 2 : -1) : (isCorrect ? 1 : 0)
+
   const ansRes = await supabaseAdmin.from("answers").insert({
     room_id: room.id,
     player_id: playerId,
@@ -219,22 +224,19 @@ export async function POST(req: Request) {
     option_index: q.answerType === "mcq" ? optionIndex : null,
     answer_text: q.answerType === "text" ? answerText : null,
     is_correct: isCorrect,
+
+    joker_active: jokerActive,
+    score_delta: scoreDelta,
+    round_index: roundIdx,
   })
 
   if (ansRes.error) {
-    const code = String((ansRes.error as any).code ?? "")
-    if (code === "23505") {
+    const pgCode = String((ansRes.error as any).code ?? "")
+    if (pgCode === "23505") {
       return NextResponse.json({ accepted: false, reason: "already_answered" })
     }
-
     return NextResponse.json({ error: ansRes.error.message }, { status: 500 })
   }
-
-  const roundIdx = roundIndexForQuestion(Number(room.question_index ?? 0), ids.length, room.round_count)
-  const jokerIdx = playerRes.data.joker_round_index
-  const jokerActive = Number.isFinite(Number(jokerIdx)) && Number(jokerIdx) === roundIdx
-
-  const scoreDelta = jokerActive ? (isCorrect ? 2 : -1) : (isCorrect ? 1 : 0)
 
   if (scoreDelta !== 0) {
     await supabaseAdmin.rpc("increment_player_score_by", { p_player_id: playerId, p_delta: scoreDelta })
