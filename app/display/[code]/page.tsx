@@ -10,6 +10,7 @@ import QRTile from "@/components/ui/QRTile";
 import JokerBadge from "@/components/JokerBadge";
 import GameCompletedSummary from "@/components/GameCompletedSummary";
 import RoundSummaryCard from "@/components/RoundSummaryCard";
+import PageShell from "@/components/PageShell";
 
 type RoomState = any;
 
@@ -194,7 +195,7 @@ export default function DisplayPage() {
     Number(state?.questionIndex ?? -1) === roundTransitionQuestionIndex;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6">
+    <PageShell width="wide">
       <audio ref={audioRef} />
 
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
@@ -410,6 +411,6 @@ export default function DisplayPage() {
           title="Game completed"
         />
       ) : null}
-    </main>
+    </PageShell>
   );
 }

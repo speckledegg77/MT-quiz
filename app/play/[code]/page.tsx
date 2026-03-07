@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/Input";
 import GameCompletedSummary from "@/components/GameCompletedSummary";
 import RoundSummaryCard from "@/components/RoundSummaryCard";
+import PageShell from "@/components/PageShell";
 
 type RoomState = any;
 
@@ -562,19 +563,19 @@ export default function PlayerPage() {
 
   if (!code) {
     return (
-      <main className="mx-auto max-w-md px-4 py-10">
+      <PageShell width="narrow" className="py-10 sm:py-12">
         <Card>
           <CardContent className="py-8 text-sm text-[var(--muted-foreground)]">
             Missing room code in the URL.
           </CardContent>
         </Card>
-      </main>
+      </PageShell>
     );
   }
 
   if (!playerId) {
     return (
-      <main className="mx-auto max-w-md px-4 py-10">
+      <PageShell width="narrow" className="py-10 sm:py-12">
         <Card>
           <CardHeader>
             <CardTitle>Player not found</CardTitle>
@@ -586,7 +587,7 @@ export default function PlayerPage() {
             <Button onClick={() => router.push(`/join?code=${code}`)}>Go to Join</Button>
           </CardFooter>
         </Card>
-      </main>
+      </PageShell>
     );
   }
 
@@ -631,7 +632,7 @@ export default function PlayerPage() {
       : revealAnswerText;
 
   return (
-    <main className="mx-auto max-w-md px-4 py-6">
+    <PageShell width="narrow">
       <audio ref={audioRef} />
 
       <div className="mb-4 flex items-end justify-between gap-3">
@@ -953,6 +954,6 @@ export default function PlayerPage() {
           </Card>
         </div>
       ) : null}
-    </main>
+    </PageShell>
   );
 }
