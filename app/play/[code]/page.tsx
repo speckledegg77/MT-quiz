@@ -184,6 +184,12 @@ export default function PlayerPage() {
 
   const correctIndex = state?.reveal?.answerIndex ?? null;
   const inReveal = Boolean(state?.reveal);
+  const revealedAnswerText =
+    answerType === "text"
+      ? String(state?.reveal?.answerText ?? q?.answerText ?? "").trim()
+      : correctIndex !== null && Array.isArray(q?.options) && q.options[correctIndex]
+        ? String(q.options[correctIndex])
+        : "";
 
   const canAnswer = useMemo(() => {
     if (state?.phase !== "running") return false;
@@ -533,7 +539,7 @@ export default function PlayerPage() {
               Player: <span className="text-[var(--foreground)]">{playerName}</span>
               {gameMode === "teams" && teamName ? (
                 <>
-                  <span className="mx-2">Ã¢â‚¬Â¢</span>
+                  <span className="mx-2">â€¢</span>
                   Team: <span className="text-[var(--foreground)]">{teamName}</span>
                 </>
               ) : null}
@@ -568,7 +574,7 @@ export default function PlayerPage() {
             <CardTitle>Waiting to start</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-[var(--muted-foreground)]">
-            <div>YouÃ¢â‚¬â„¢ve joined. Wait for the host to start the game.</div>
+            <div>Youâ€™ve joined. Wait for the host to start the game.</div>
 
             {shouldPlayOnPhone ? (
               <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
@@ -658,7 +664,7 @@ export default function PlayerPage() {
 
       {!showLobby && !finished && stage !== "round_summary" && q ? (
         <div className="grid gap-4">
-          {myPlayer || (state.phase === "running" && stage === "open") ? (
+          {(myPlayer || state.phase === "running") ? (
             <div className="grid grid-cols-2 gap-3">
               {myPlayer ? (
                 <Card>
@@ -673,14 +679,14 @@ export default function PlayerPage() {
                 <div />
               )}
 
-              {state.phase === "running" && stage === "open" ? (
+              {state.phase === "running" ? (
                 <Card>
                   <CardContent className="flex items-center justify-between gap-3 py-3">
                     <div className="min-w-0 text-xs text-[var(--muted-foreground)]">
                       {isUntimedAnswers ? "Answer window" : "Time remaining"}
                     </div>
                     <div className="text-right text-sm font-semibold leading-tight tabular-nums sm:text-base">
-                      {isUntimedAnswers ? "Waiting for host" : formatDuration(secondsRemaining)}
+                      {isUntimedAnswers ? (stage === "reveal" ? "Closed" : "Waiting for host") : formatDuration(secondsRemaining)}
                     </div>
                   </CardContent>
                 </Card>
@@ -708,6 +714,13 @@ export default function PlayerPage() {
               ) : null}
 
               <div className="text-base font-semibold leading-tight">{q.text}</div>
+
+              {inReveal && revealedAnswerText ? (
+                <div className="rounded-xl border border-emerald-500/40 bg-emerald-600/10 p-3">
+                  <div className="text-xs font-medium uppercase tracking-wide text-emerald-200">Correct answer</div>
+                  <div className="mt-1 text-sm font-semibold text-[var(--foreground)]">{revealedAnswerText}</div>
+                </div>
+              ) : null}
 
               {isAudioQ && shouldPlayOnPhone ? (
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3">
@@ -809,7 +822,7 @@ export default function PlayerPage() {
                           </Button>
 
                           <Button onClick={submitMcq} disabled={!canAnswer || selectedIndex === null}>
-                            {mcqSubmitting ? "SubmittingÃ¢â‚¬Â¦" : "Submit"}
+                            {mcqSubmitting ? "Submittingâ€¦" : "Submit"}
                           </Button>
                         </div>
                       ) : null}
