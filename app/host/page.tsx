@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { QRCodeSVG } from "qrcode.react"
+import QRTile from "@/components/ui/QRTile"
 
 import { supabase } from "@/lib/supabaseClient"
 import { randomTeamName } from "@/lib/teamNameSuggestions"
@@ -934,16 +934,7 @@ export default function HostPage() {
       <div className="flex items-center justify-between gap-3">
         <div className="text-2xl font-semibold tracking-widest">{roomCode}</div>
 
-        <div className="rounded-xl border border-[var(--border)] bg-white p-2">
-          <QRCodeSVG
-            value={joinUrl}
-            size={112}
-            includeMargin={true}
-            level="M"
-            bgColor="#ffffff"
-            fgColor="#000000"
-          />
-        </div>
+      <QRTile value={joinUrl} size={112} /> 
       </div>
 
       <div className="text-sm text-[var(--muted-foreground)]">Players join at</div>
