@@ -3,9 +3,12 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
   --field-background: #ffffff;
   --field-foreground: #374151;
   --field-border: #d1d5db;
+  --field-placeholder: #6b7280;
+
   color-scheme: light;
 }
 
@@ -21,9 +24,12 @@
 :root[data-mode="dark"] {
   --background: #0a0a0a;
   --foreground: #ededed;
+
   --field-background: #ffffff;
   --field-foreground: #374151;
   --field-border: #d1d5db;
+  --field-placeholder: #6b7280;
+
   color-scheme: dark;
 }
 
@@ -32,9 +38,12 @@
 :root[data-mode="light"] {
   --background: #ffffff;
   --foreground: #171717;
+
   --field-background: #ffffff;
   --field-foreground: #374151;
   --field-border: #d1d5db;
+  --field-placeholder: #6b7280;
+
   color-scheme: light;
 }
 
@@ -42,9 +51,12 @@
   :root:not(.light):not([data-theme="light"]):not([data-mode="light"]):not(.dark):not([data-theme="dark"]):not([data-mode="dark"]) {
     --background: #0a0a0a;
     --foreground: #ededed;
+
     --field-background: #ffffff;
     --field-foreground: #374151;
     --field-border: #d1d5db;
+    --field-placeholder: #6b7280;
+
     color-scheme: dark;
   }
 }
@@ -69,15 +81,50 @@ button {
   font: inherit;
 }
 
+input[type="text"],
+input[type="search"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+textarea,
 select,
 option,
 optgroup {
   background: var(--field-background);
   color: var(--field-foreground);
+  border-color: var(--field-border);
 }
 
-select {
-  border-color: var(--field-border);
+input[type="text"]::placeholder,
+input[type="search"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder,
+input[type="number"]::placeholder,
+input[type="tel"]::placeholder,
+input[type="url"]::placeholder,
+textarea::placeholder {
+  color: var(--field-placeholder);
+  opacity: 1;
+}
+
+input[type="text"]:disabled,
+input[type="search"]:disabled,
+input[type="email"]:disabled,
+input[type="password"]:disabled,
+input[type="number"]:disabled,
+input[type="tel"]:disabled,
+input[type="url"]:disabled,
+input[type="date"]:disabled,
+input[type="time"]:disabled,
+input[type="datetime-local"]:disabled,
+textarea:disabled,
+select:disabled {
+  opacity: 0.7;
 }
 
 @media screen and (max-width: 768px) {
