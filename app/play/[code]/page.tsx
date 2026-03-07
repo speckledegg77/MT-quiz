@@ -430,6 +430,18 @@ export default function PlayerPage() {
     }
   }
 
+  function stopClip(reset = true) {
+    const el = audioRef.current;
+    if (!el) return;
+
+    try {
+      el.pause();
+      if (reset) el.currentTime = 0;
+    } catch {
+      // ignore
+    }
+  }
+
   async function unlockAudio() {
     setAudioEnabled(true);
     setAutoplayFailed(false);
@@ -527,6 +539,26 @@ export default function PlayerPage() {
       cancelled = true;
     };
   }, [shouldPlayOnPhone, audioEnabled, isAudioQ, state?.stage, q?.id, q?.audioUrl, playedForQ]);
+
+  useEffect(() => {
+    const shouldKeepPlaying =
+      state?.phase === "running" &&
+      state?.stage === "open" &&
+      shouldPlayOnPhone &&
+      audioEnabled &&
+      isAudioQ &&
+      Boolean(q?.audioUrl);
+
+    if (!shouldKeepPlaying) {
+      stopClip();
+    }
+  }, [state?.phase, state?.stage, q?.id, q?.audioUrl, shouldPlayOnPhone, audioEnabled, isAudioQ]);
+
+  useEffect(() => {
+    return () => {
+      stopClip();
+    };
+  }, []);
 
   if (!code) {
     return (

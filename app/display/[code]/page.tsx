@@ -52,6 +52,18 @@ export default function DisplayPage() {
     setAudioEnabled(true);
   }
 
+  function stopClip(reset = true) {
+    const el = audioRef.current;
+    if (!el) return;
+
+    try {
+      el.pause();
+      if (reset) el.currentTime = 0;
+    } catch {
+      // ignore
+    }
+  }
+
   async function playClip() {
     const q = state?.question;
     const el = audioRef.current;
@@ -135,6 +147,27 @@ export default function DisplayPage() {
     setPlayedForQ(q.id);
     playClip().catch(() => {});
   }, [state, audioEnabled, playedForQ, shouldPlayOnDisplay]);
+
+  useEffect(() => {
+    const q = state?.question;
+    const shouldKeepPlaying =
+      state?.phase === "running" &&
+      state?.stage === "open" &&
+      shouldPlayOnDisplay &&
+      audioEnabled &&
+      q?.roundType === "audio" &&
+      Boolean(q?.audioUrl);
+
+    if (!shouldKeepPlaying) {
+      stopClip();
+    }
+  }, [state?.phase, state?.stage, state?.question?.id, state?.question?.audioUrl, state?.question?.roundType, shouldPlayOnDisplay, audioEnabled]);
+
+  useEffect(() => {
+    return () => {
+      stopClip();
+    };
+  }, []);
 
   if (!code) return null;
   if (!state) return null;
