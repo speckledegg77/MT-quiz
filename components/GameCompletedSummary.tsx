@@ -1,3 +1,4 @@
+import JokerBadge from "@/components/JokerBadge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 
 type FinalRoundResult = {
@@ -114,8 +115,9 @@ function PlayerCard({
 
                 <div className="flex shrink-0 items-center gap-2">
                   {jokerUsed ? (
-                    <span className="rounded-full border border-amber-300/30 bg-amber-400/10 px-2 py-0.5 text-xs font-medium text-amber-200">
-                      ðŸƒ Joker
+                    <span className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-400/10 px-2 py-0.5 text-xs font-medium text-amber-200">
+                      <JokerBadge />
+                      <span className="ml-1">Joker</span>
                     </span>
                   ) : null}
                   <span className="text-base font-semibold text-white">{formatSignedScore(score)}</span>

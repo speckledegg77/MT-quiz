@@ -145,7 +145,7 @@ export default function RoundSummaryCard({
                         >
                           <div className="min-w-0 truncate text-sm font-medium text-[var(--foreground)]">
                             {player.name}
-                            {player.usedJokerInScope ? <span className="ml-2">ðŸƒ</span> : null}
+                            {player.usedJokerInScope ? <JokerBadge className="ml-2 align-middle" /> : null}
                           </div>
                           <div className="shrink-0 text-sm font-semibold tabular-nums text-[var(--foreground)]">
                             {fmt(Number(player.totalScore ?? 0))}
