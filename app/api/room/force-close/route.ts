@@ -1,7 +1,7 @@
 export const runtime = "nodejs"
 
 import { NextResponse } from "next/server"
-import { supabaseAdmin } from "../../../../lib/supabaseAdmin"
+import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 function addSeconds(date: Date, seconds: number) {
   return new Date(date.getTime() + seconds * 1000)

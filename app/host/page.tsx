@@ -70,7 +70,6 @@ export default function HostPage() {
   const [audioMode, setAudioMode] = useState<AudioMode>("display")
 
   const [totalQuestionsStr, setTotalQuestionsStr] = useState("20")
-  const [countdownSecondsStr, setCountdownSecondsStr] = useState("5")
   const [answerSecondsStr, setAnswerSecondsStr] = useState("20")
   const [untimedAnswers, setUntimedAnswers] = useState(false)
 
@@ -95,6 +94,7 @@ export default function HostPage() {
   const [createError, setCreateError] = useState<string | null>(null)
 
   const [roomCode, setRoomCode] = useState<string | null>(null)
+  const [roomState, setRoomState] = useState<RoomState | null>(null)
   const [roomPhase, setRoomPhase] = useState("lobby")
   const [roomStage, setRoomStage] = useState("lobby")
 
@@ -205,6 +205,7 @@ export default function HostPage() {
         const data: RoomState = await res.json().catch(() => ({}))
         if (cancelled) return
         if (res.ok) {
+          setRoomState(data)
           setRoomPhase(String(data?.phase ?? "lobby"))
           setRoomStage(String(data?.stage ?? "lobby"))
         }
@@ -271,7 +272,7 @@ export default function HostPage() {
 
     try {
       const totalQuestions = clampInt(parseIntOr(totalQuestionsStr, 20), 1, 200)
-      const countdownSeconds = clampInt(parseIntOr(countdownSecondsStr, 5), 0, 30)
+      const countdownSeconds = 0
       const answerSeconds = untimedAnswers ? 0 : clampInt(parseIntOr(answerSecondsStr, 20), 5, 120)
 
       let roundCount = clampInt(parseIntOr(roundCountStr, 4), 1, 20)
@@ -395,6 +396,7 @@ export default function HostPage() {
       }
 
       setRoomCode(code)
+      setRoomState(data)
       setRoomPhase(String(data?.phase ?? "lobby"))
       setRoomStage(String(data?.stage ?? "lobby"))
       rememberHostCode(code)
@@ -496,6 +498,7 @@ export default function HostPage() {
 
   function clearRoom() {
     setRoomCode(null)
+    setRoomState(null)
     setRoomPhase("lobby")
     setRoomStage("lobby")
     setStartError(null)
@@ -511,6 +514,8 @@ export default function HostPage() {
       if (roomStage === "open") return "Answering"
       if (roomStage === "wait") return "Waiting"
       if (roomStage === "reveal") return "Reveal"
+      if (roomStage === "round_summary") return "End of round"
+      if (roomStage === "needs_advance") return "Next question"
       return "Running"
     }
     if (roomPhase === "finished") return "Finished"
@@ -518,7 +523,26 @@ export default function HostPage() {
   }, [roomPhase, roomStage])
 
   const canStart = roomCode && roomPhase === "lobby" && !starting
-  const canForceNext = roomCode && roomPhase === "running" && roomStage === "open" && !forcingClose
+  const canForceNext =
+    roomCode &&
+    roomPhase === "running" &&
+    ["open", "round_summary", "needs_advance"].includes(roomStage) &&
+    !forcingClose
+
+  const continueLabel =
+    roomStage === "open"
+      ? forcingClose
+        ? "Moving on…"
+        : "Reveal answer"
+      : roomStage === "round_summary"
+        ? forcingClose
+          ? "Moving on…"
+          : Boolean(roomState?.flow?.isLastQuestionOverall)
+            ? "Finish game"
+            : "Next round"
+        : forcingClose
+          ? "Moving on…"
+          : "Next question"
 
   const startLabel =
     roomPhase === "lobby"
@@ -662,15 +686,10 @@ export default function HostPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <div className="text-sm font-medium text-[var(--foreground)]">Total questions</div>
                     <Input value={totalQuestionsStr} onChange={(e) => setTotalQuestionsStr(e.target.value)} inputMode="numeric" />
-                  </div>
-
-                  <div>
-                    <div className="text-sm font-medium text-[var(--foreground)]">Countdown seconds</div>
-                    <Input value={countdownSecondsStr} onChange={(e) => setCountdownSecondsStr(e.target.value)} inputMode="numeric" />
                   </div>
 
                   <div>
@@ -687,9 +706,13 @@ export default function HostPage() {
                     </label>
                     {untimedAnswers ? (
                       <div className="mt-1 text-xs text-[var(--muted-foreground)]">
-                        The question stays open until everyone answers or you press Next question.
+                        The question stays open until everyone answers or you press Reveal answer.
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                        Questions open straight away. There is no get ready countdown.
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -807,10 +830,10 @@ export default function HostPage() {
 
                 <div className="grid gap-2 sm:grid-cols-2">
                   <Button variant="secondary" onClick={forceNextQuestion} disabled={!canForceNext}>
-                    {forcingClose ? "Moving on…" : "Next question"}
+                    {continueLabel}
                   </Button>
 
-                  <div className="flex items-center text-sm text-[var(--muted-foreground)]">Works best with untimed answers.</div>
+                  <div className="flex items-center text-sm text-[var(--muted-foreground)]">Use Reveal answer to close untimed questions, then Next round or Finish game at round breaks.</div>
                 </div>
 
                 <Button variant="ghost" onClick={clearRoom}>
@@ -975,7 +998,7 @@ export default function HostPage() {
 
               <CardContent className="space-y-3">
                 <div className="text-sm text-[var(--muted-foreground)]">
-                  Players answer on their phones. The TV display advances automatically.
+                  Players answer on their phones. Questions move on automatically between questions, but end of round waits for the host.
                 </div>
 
                 <div className="grid gap-2 sm:grid-cols-2">

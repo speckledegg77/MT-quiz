@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import JoinFeedPanel from "@/components/JoinFeedPanel"
 import QRTile from "@/components/ui/QRTile"
 import JokerBadge from "@/components/JokerBadge"
+import GameCompletedSummary from "@/components/GameCompletedSummary"
+import RoundSummaryCard from "@/components/RoundSummaryCard"
 
 type RoomState = any
 
@@ -16,6 +18,7 @@ function statusText(stage: string) {
   if (stage === "open") return "Answer now"
   if (stage === "wait") return "Waiting for answers"
   if (stage === "reveal") return "Reveal"
+  if (stage === "round_summary") return "End of round"
   if (stage === "needs_advance") return "Next question"
   return ""
 }
@@ -23,6 +26,7 @@ function statusText(stage: string) {
 function pillClass(stage: string) {
   if (stage === "open") return "bg-emerald-600/20 text-emerald-200 border-emerald-500/40"
   if (stage === "reveal") return "bg-indigo-600/20 text-indigo-200 border-indigo-500/40"
+  if (stage === "round_summary") return "bg-violet-600/20 text-violet-200 border-violet-500/40"
   if (stage === "countdown") return "bg-amber-600/20 text-amber-200 border-amber-500/40"
   if (stage === "wait") return "bg-slate-600/20 text-slate-200 border-slate-500/40"
   return "bg-slate-600/20 text-slate-200 border-slate-500/40"
@@ -195,7 +199,15 @@ export default function DisplayPage() {
         </div>
       ) : null}
 
-      {!showJoin && !finished ? (
+      {!showJoin && !finished && stage === "round_summary" ? (
+        <RoundSummaryCard
+          round={currentRound}
+          roundStats={roundStats}
+          isLastQuestionOverall={Boolean(state?.flow?.isLastQuestionOverall)}
+        />
+      ) : null}
+
+      {!showJoin && !finished && stage !== "round_summary" ? (
         <div className="grid gap-4 lg:grid-cols-[1fr,360px]">
           <div className="space-y-4">
             {q ? (
@@ -323,6 +335,15 @@ export default function DisplayPage() {
 
           <JoinFeedPanel players={Array.isArray(state?.players) ? state.players : []} />
         </div>
+      ) : null}
+
+      {finished ? (
+        <GameCompletedSummary
+          gameMode={String(state?.gameMode ?? "teams") === "solo" ? "solo" : "teams"}
+          teamScoreMode={String(state?.teamScoreMode ?? "total") === "average" ? "average" : "total"}
+          finalResults={state?.finalResults}
+          title="Game completed"
+        />
       ) : null}
     </main>
   )

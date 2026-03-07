@@ -6,6 +6,8 @@ import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import GameCompletedSummary from "@/components/GameCompletedSummary";
+import RoundSummaryCard from "@/components/RoundSummaryCard";
 
 type RoomState = any;
 
@@ -14,6 +16,7 @@ function statusText(stage: string) {
   if (stage === "open") return "Answer now";
   if (stage === "wait") return "Waiting for answers";
   if (stage === "reveal") return "Reveal";
+  if (stage === "round_summary") return "End of round";
   if (stage === "needs_advance") return "Next question";
   return "";
 }
@@ -21,6 +24,7 @@ function statusText(stage: string) {
 function pillClass(stage: string) {
   if (stage === "open") return "bg-emerald-600/20 text-emerald-200 border-emerald-500/40";
   if (stage === "reveal") return "bg-indigo-600/20 text-indigo-200 border-indigo-500/40";
+  if (stage === "round_summary") return "bg-violet-600/20 text-violet-200 border-violet-500/40";
   if (stage === "countdown") return "bg-amber-600/20 text-amber-200 border-amber-500/40";
   if (stage === "wait") return "bg-slate-600/20 text-slate-200 border-slate-500/40";
   return "bg-slate-600/20 text-slate-200 border-slate-500/40";
@@ -55,12 +59,21 @@ function formatScore(n: number) {
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
 
+function formatDuration(totalSeconds: number) {
+  const safe = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
 export default function PlayerPage() {
   const params = useParams<{ code?: string }>();
   const router = useRouter();
   const code = String(params?.code ?? "").toUpperCase();
 
   const [state, setState] = useState<RoomState | null>(null);
+  const [serverOffsetMs, setServerOffsetMs] = useState(0);
+  const [liveNowMs, setLiveNowMs] = useState(() => Date.now());
 
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState<string>("");
@@ -104,7 +117,15 @@ export default function PlayerPage() {
     async function tick() {
       const res = await fetch(`/api/room/state?code=${code}`, { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
-      if (!cancelled) setState(data);
+      if (!cancelled) {
+        setState(data);
+        if (data?.serverNow) {
+          const serverNowMs = Date.parse(String(data.serverNow));
+          if (Number.isFinite(serverNowMs)) {
+            setServerOffsetMs(serverNowMs - Date.now());
+          }
+        }
+      }
     }
 
     tick();
@@ -115,6 +136,11 @@ export default function PlayerPage() {
       clearInterval(id);
     };
   }, [code]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setLiveNowMs(Date.now()), 250);
+    return () => window.clearInterval(id);
+  }, []);
 
   // Reset local answer state when the question changes.
   useEffect(() => {
@@ -196,6 +222,13 @@ export default function PlayerPage() {
   }, [state]);
 
   const currentRound = state?.rounds?.current ?? null;
+  const isUntimedAnswers = Boolean(state?.settings?.untimedAnswers);
+  const closeAtMs = state?.times?.closeAt ? Date.parse(String(state.times.closeAt)) : null;
+  const adjustedNowMs = liveNowMs + serverOffsetMs;
+  const secondsRemaining =
+    closeAtMs && Number.isFinite(closeAtMs)
+      ? Math.max(0, Math.ceil((closeAtMs - adjustedNowMs) / 1000))
+      : 0;
 
   const teamRows = useMemo(() => {
     const byTeam = new Map<string, { label: string; total: number; size: number }>();
@@ -605,74 +638,41 @@ export default function PlayerPage() {
       ) : null}
 
       {finished ? (
-        <div className="grid gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Game completed</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-[56px,1fr] items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4">
-                <div className="grid h-14 w-14 place-items-center text-[var(--foreground)]">
-                  <TrophyIcon />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-sm text-[var(--muted-foreground)]">Final scores</div>
-                  <div className="text-base font-semibold">Thanks for playing</div>
-                </div>
-              </div>
-
-              <div className="overflow-hidden rounded-xl border border-[var(--border)]">
-                <table className="w-full text-sm">
-                  <thead className="bg-[var(--card)]">
-                    <tr className="border-b border-[var(--border)]">
-                      <th className="w-10 px-3 py-2 text-left font-medium">#</th>
-                      <th className="px-3 py-2 text-left font-medium">{gameMode === "solo" ? "Player" : "Team"}</th>
-                      <th className="w-20 px-3 py-2 text-right font-medium">Score</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {scoreboardRows.map((r: any, idx: number) => {
-                      const isMe = gameMode === "solo" ? r.id === playerId : r.label === myTeamRow?.label;
-                      return (
-                        <tr key={r.id} className="border-b border-[var(--border)] last:border-b-0">
-                          <td className="px-3 py-2 text-[var(--muted-foreground)] tabular-nums">{idx + 1}</td>
-                          <td className={`px-3 py-2 ${isMe ? "font-semibold" : "font-medium"}`}>
-                            {r.label}
-                            {gameMode === "teams" ? (
-                              <span className="ml-2 text-xs text-[var(--muted-foreground)]">{r.size} players</span>
-                            ) : null}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums">{formatScore(Number(r.score ?? 0))}</td>
-                        </tr>
-                      );
-                    })}
-                    {scoreboardRows.length === 0 ? (
-                      <tr>
-                        <td className="px-3 py-4 text-sm text-[var(--muted-foreground)]" colSpan={3}>
-                          No scores yet.
-                        </td>
-                      </tr>
-                    ) : null}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button variant="secondary" onClick={() => router.push(`/join?code=${code}`)}>
-                Join another game
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
+        <GameCompletedSummary
+          gameMode={gameMode}
+          teamScoreMode={teamScoreMode}
+          finalResults={state?.finalResults}
+          highlightPlayerId={playerId}
+          highlightTeamName={myTeamRow?.label ?? teamName}
+        />
       ) : null}
 
-      {!showLobby && !finished && q ? (
+      {!showLobby && !finished && stage === "round_summary" ? (
+        <RoundSummaryCard
+          round={currentRound}
+          roundStats={state?.roundStats}
+          isLastQuestionOverall={Boolean(state?.flow?.isLastQuestionOverall)}
+        />
+      ) : null}
+
+      {!showLobby && !finished && stage !== "round_summary" && q ? (
         <div className="grid gap-4">
           {myPlayer ? (
             <Card>
               <CardContent className="flex items-center justify-between py-4">
                 <div className="text-sm text-[var(--muted-foreground)]">Your score</div>
                 <div className="text-lg font-semibold tabular-nums">{myPlayer.score ?? 0}</div>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          {state.phase === "running" && stage === "open" ? (
+            <Card>
+              <CardContent className="flex items-center justify-between py-4">
+                <div className="text-sm text-[var(--muted-foreground)]">{isUntimedAnswers ? "Answer window" : "Time remaining"}</div>
+                <div className="text-lg font-semibold tabular-nums">
+                  {isUntimedAnswers ? "Waiting for host" : formatDuration(secondsRemaining)}
+                </div>
               </CardContent>
             </Card>
           ) : null}

@@ -1,7 +1,7 @@
 export const runtime = "nodejs"
 
 import { NextResponse } from "next/server"
-import { supabaseAdmin } from "../../../../lib/supabaseAdmin"
+import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 function addSeconds(date: Date, seconds: number) {
   return new Date(date.getTime() + seconds * 1000)
@@ -19,22 +19,18 @@ export async function POST(req: Request) {
   if (roomRes.error) return NextResponse.json({ error: "Room not found" }, { status: 404 })
 
   const room = roomRes.data
-
   const gameMode = String(room.game_mode ?? "teams") === "solo" ? "solo" : "teams"
 
   let teamScoreMode: "total" | "average" = "total"
 
   if (gameMode === "teams") {
-    const playersRes = await supabaseAdmin
-      .from("players")
-      .select("team_name")
-      .eq("room_id", room.id)
+    const playersRes = await supabaseAdmin.from("players").select("team_name").eq("room_id", room.id)
 
     if (!playersRes.error) {
       const counts = new Map<string, number>()
 
-      for (const p of (playersRes.data ?? []) as any[]) {
-        const team = String(p?.team_name ?? "").trim() || "No team"
+      for (const player of (playersRes.data ?? []) as any[]) {
+        const team = String(player?.team_name ?? "").trim() || "No team"
         counts.set(team, (counts.get(team) ?? 0) + 1)
       }
 
@@ -48,7 +44,7 @@ export async function POST(req: Request) {
   }
 
   const now = new Date()
-  const openAt = addSeconds(now, Number(room.countdown_seconds ?? 0))
+  const openAt = now
 
   const rawAnswerSeconds = Number(room.answer_seconds ?? 0)
   const effectiveAnswerSeconds =
