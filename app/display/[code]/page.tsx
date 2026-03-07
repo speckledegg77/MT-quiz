@@ -1,13 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import JoinFeedPanel from "@/components/JoinFeedPanel";
-import QRTile from "@/components/ui/QRTile";
-import JokerBadge from "@/components/JokerBadge";
 import GameCompletedSummary from "@/components/GameCompletedSummary";
 import RoundSummaryCard from "@/components/RoundSummaryCard";
 import PageShell from "@/components/PageShell";
@@ -31,11 +28,6 @@ function pillClass(stage: string) {
   if (stage === "countdown") return "bg-amber-600/20 text-amber-200 border-amber-500/40";
   if (stage === "wait") return "bg-slate-600/20 text-slate-200 border-slate-500/40";
   return "bg-slate-600/20 text-slate-200 border-slate-500/40";
-}
-
-function fmt(n: number) {
-  if (!Number.isFinite(n)) return "0";
-  return String(n);
 }
 
 export default function DisplayPage() {
@@ -129,9 +121,6 @@ export default function DisplayPage() {
     }
   }, [state?.stage, state?.phase, state?.questionIndex, roundTransitionQuestionIndex]);
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const joinUrl = useMemo(() => (code && origin ? `${origin}/join?code=${code}` : ""), [code, origin]);
-
   const audioMode = String(state?.audioMode ?? "display");
   const shouldPlayOnDisplay = audioMode === "display" || audioMode === "both";
 
@@ -184,7 +173,6 @@ export default function DisplayPage() {
   const currentRound = state?.rounds?.current ?? null;
   const questionNumber = Number(state.questionIndex ?? 0) + 1;
   const questionCount = Number(state.questionCount ?? 0);
-  const questionStats = state?.questionStats ?? null;
   const roundStats = state?.roundStats ?? null;
 
   const suppressStaleQuestionBetweenRounds =
@@ -224,28 +212,17 @@ export default function DisplayPage() {
       </div>
 
       {showJoin ? (
-        <div className="grid gap-4 lg:grid-cols-[1fr,360px]">
-          <Card>
-            <CardHeader>
-              <CardTitle>Players join here</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-3">
-                <div className="text-sm text-[var(--muted-foreground)]">Join URL</div>
-                <a className="mt-1 block break-all text-sm text-[var(--foreground)] underline underline-offset-2" href={joinUrl}>
-                  {joinUrl}
-                </a>
-              </div>
-
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-3">
-                <div className="text-sm">QR code</div>
-                <QRTile value={joinUrl} size={112} />
-              </div>
-            </CardContent>
-          </Card>
-
-          <JoinFeedPanel players={Array.isArray(state?.players) ? state.players : []} />
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Waiting to start</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="text-base">Players can join on their phones using the room code.</div>
+            <div className="text-sm text-[var(--muted-foreground)]">
+              Start the game from the host screen when everyone is ready.
+            </div>
+          </CardContent>
+        </Card>
       ) : null}
 
       {!showJoin && !finished && stage === "round_summary" ? (
@@ -266,140 +243,64 @@ export default function DisplayPage() {
       ) : null}
 
       {!showJoin && !finished && stage !== "round_summary" && !suppressStaleQuestionBetweenRounds ? (
-        <div className="grid gap-4 lg:grid-cols-[1fr,360px]">
-          <div className="space-y-4">
-            {q ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Question</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {isPictureQ && q.imageUrl ? (
-                    <div className="overflow-hidden rounded-xl border border-[var(--border)]">
-                      <img src={q.imageUrl} alt="" className="block w-full" />
+        <div className="space-y-4">
+          {q ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Question</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isPictureQ && q.imageUrl ? (
+                  <div className="overflow-hidden rounded-xl border border-[var(--border)]">
+                    <img src={q.imageUrl} alt="" className="block w-full" />
+                  </div>
+                ) : null}
+
+                <div className="text-xl font-semibold">{q.text}</div>
+
+                {isAudioQ && audioMode === "phones" ? (
+                  <div className="text-sm text-[var(--muted-foreground)]">Audio plays on phones for this game.</div>
+                ) : null}
+
+                {isAudioQ && shouldPlayOnDisplay && !audioEnabled ? (
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm text-[var(--muted-foreground)]">Audio for this display</div>
+                      <Button variant="secondary" onClick={unlockAudio}>
+                        Enable audio
+                      </Button>
                     </div>
-                  ) : null}
+                  </div>
+                ) : null}
 
-                  <div className="text-xl font-semibold">{q.text}</div>
+                {isAudioQ && shouldPlayOnDisplay && audioEnabled && q.audioUrl ? (
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
+                    <div className="text-sm text-[var(--muted-foreground)]">Audio clip</div>
+                    <div className="mt-2">
+                      <Button variant="secondary" onClick={() => playClip().catch(() => {})}>
+                        Play again
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
 
-                  {isAudioQ && audioMode === "phones" ? (
-                    <div className="text-sm text-[var(--muted-foreground)]">Audio plays on phones for this game.</div>
-                  ) : null}
-
-                  {isAudioQ && shouldPlayOnDisplay && !audioEnabled ? (
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-sm text-[var(--muted-foreground)]">Audio for this display</div>
-                        <Button variant="secondary" onClick={unlockAudio}>
-                          Enable audio
-                        </Button>
+                {q.answerType === "mcq" && Array.isArray(q.options) && q.options.length ? (
+                  <div className="grid gap-2">
+                    {q.options.map((opt: string, index: number) => (
+                      <div key={index} className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2">
+                        <div className="text-sm font-medium text-[var(--muted-foreground)]">Option {index + 1}</div>
+                        <div className="text-sm">{opt}</div>
                       </div>
-                    </div>
-                  ) : null}
+                    ))}
+                  </div>
+                ) : null}
 
-                  {isAudioQ && shouldPlayOnDisplay && audioEnabled && q.audioUrl ? (
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
-                      <div className="text-sm text-[var(--muted-foreground)]">Audio clip</div>
-                      <div className="mt-2">
-                        <Button variant="secondary" onClick={() => playClip().catch(() => {})}>
-                          Play again
-                        </Button>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {q.answerType === "mcq" && Array.isArray(q.options) && q.options.length ? (
-                    <div className="grid gap-2">
-                      {q.options.map((opt: string, index: number) => (
-                        <div key={index} className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2">
-                          <div className="text-sm font-medium text-[var(--muted-foreground)]">Option {index + 1}</div>
-                          <div className="text-sm">{opt}</div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  {isTextQ ? (
-                    <div className="text-sm text-[var(--muted-foreground)]">Players type their answer on their phones.</div>
-                  ) : null}
-
-                  {stage === "reveal" && questionStats ? (
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3">
-                      <div className="text-sm font-semibold">This question</div>
-                      <div className="mt-2 grid gap-1 text-sm text-[var(--muted-foreground)]">
-                        <div>
-                          Correct: {fmt(Number(questionStats.correct))}/{fmt(Number(questionStats.answered))}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span>Joker used: {fmt(Number(questionStats.jokerUsed))}</span>
-                          {Number(questionStats.jokerUsed ?? 0) > 0 ? <JokerBadge /> : null}
-                          <span className="ml-2">Joker correct: {fmt(Number(questionStats.jokerCorrect))}</span>
-                        </div>
-                      </div>
-
-                      {Array.isArray(questionStats.byTeam) && questionStats.byTeam.length ? (
-                        <div className="mt-3">
-                          <div className="text-sm font-semibold">By team</div>
-                          <div className="mt-2 grid gap-1 text-sm text-[var(--muted-foreground)]">
-                            {questionStats.byTeam.map((team: any) => (
-                              <div key={team.team} className="flex flex-wrap items-center gap-2">
-                                <span className="font-medium text-[var(--foreground)]">{team.team}</span>
-                                <span>
-                                  Correct {team.correct}/{team.answered}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  Joker {team.jokerUsed}
-                                  {Number(team.jokerUsed ?? 0) > 0 ? <JokerBadge /> : null}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {stage === "reveal" && roundStats && currentRound ? (
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3">
-                      <div className="text-sm font-semibold">Round so far: {String(currentRound.name ?? "")}</div>
-                      <div className="mt-2 grid gap-1 text-sm text-[var(--muted-foreground)]">
-                        <div>
-                          Correct: {fmt(Number(roundStats.correct))}/{fmt(Number(roundStats.answered))}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span>Joker used: {fmt(Number(roundStats.jokerUsed))}</span>
-                          {Number(roundStats.jokerUsed ?? 0) > 0 ? <JokerBadge /> : null}
-                          <span className="ml-2">Joker correct: {fmt(Number(roundStats.jokerCorrect))}</span>
-                        </div>
-                      </div>
-
-                      {Array.isArray(roundStats.byTeam) && roundStats.byTeam.length ? (
-                        <div className="mt-3">
-                          <div className="text-sm font-semibold">By team</div>
-                          <div className="mt-2 grid gap-1 text-sm text-[var(--muted-foreground)]">
-                            {roundStats.byTeam.map((team: any) => (
-                              <div key={team.team} className="flex flex-wrap items-center gap-2">
-                                <span className="font-medium text-[var(--foreground)]">{team.team}</span>
-                                <span>
-                                  Correct {team.correct}/{team.answered}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  Joker {team.jokerUsed}
-                                  {Number(team.jokerUsed ?? 0) > 0 ? <JokerBadge /> : null}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </CardContent>
-              </Card>
-            ) : null}
-          </div>
-
-          <JoinFeedPanel players={Array.isArray(state?.players) ? state.players : []} />
+                {isTextQ ? (
+                  <div className="text-sm text-[var(--muted-foreground)]">Players type their answer on their phones.</div>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
       ) : null}
 
