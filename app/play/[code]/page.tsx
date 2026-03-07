@@ -533,7 +533,7 @@ export default function PlayerPage() {
               Player: <span className="text-[var(--foreground)]">{playerName}</span>
               {gameMode === "teams" && teamName ? (
                 <>
-                  <span className="mx-2">â€¢</span>
+                  <span className="mx-2">Ã¢â‚¬Â¢</span>
                   Team: <span className="text-[var(--foreground)]">{teamName}</span>
                 </>
               ) : null}
@@ -568,7 +568,7 @@ export default function PlayerPage() {
             <CardTitle>Waiting to start</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-[var(--muted-foreground)]">
-            <div>Youâ€™ve joined. Wait for the host to start the game.</div>
+            <div>YouÃ¢â‚¬â„¢ve joined. Wait for the host to start the game.</div>
 
             {shouldPlayOnPhone ? (
               <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
@@ -658,24 +658,36 @@ export default function PlayerPage() {
 
       {!showLobby && !finished && stage !== "round_summary" && q ? (
         <div className="grid gap-4">
-          {myPlayer ? (
-            <Card>
-              <CardContent className="flex items-center justify-between py-4">
-                <div className="text-sm text-[var(--muted-foreground)]">Your score</div>
-                <div className="text-lg font-semibold tabular-nums">{myPlayer.score ?? 0}</div>
-              </CardContent>
-            </Card>
-          ) : null}
+          {myPlayer || (state.phase === "running" && stage === "open") ? (
+            <div className="grid grid-cols-2 gap-3">
+              {myPlayer ? (
+                <Card>
+                  <CardContent className="flex items-center justify-between gap-3 py-3">
+                    <div className="min-w-0 text-xs text-[var(--muted-foreground)]">Your score</div>
+                    <div className="shrink-0 text-base font-semibold tabular-nums sm:text-lg">
+                      {myPlayer.score ?? 0}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div />
+              )}
 
-          {state.phase === "running" && stage === "open" ? (
-            <Card>
-              <CardContent className="flex items-center justify-between py-4">
-                <div className="text-sm text-[var(--muted-foreground)]">{isUntimedAnswers ? "Answer window" : "Time remaining"}</div>
-                <div className="text-lg font-semibold tabular-nums">
-                  {isUntimedAnswers ? "Waiting for host" : formatDuration(secondsRemaining)}
-                </div>
-              </CardContent>
-            </Card>
+              {state.phase === "running" && stage === "open" ? (
+                <Card>
+                  <CardContent className="flex items-center justify-between gap-3 py-3">
+                    <div className="min-w-0 text-xs text-[var(--muted-foreground)]">
+                      {isUntimedAnswers ? "Answer window" : "Time remaining"}
+                    </div>
+                    <div className="text-right text-sm font-semibold leading-tight tabular-nums sm:text-base">
+                      {isUntimedAnswers ? "Waiting for host" : formatDuration(secondsRemaining)}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div />
+              )}
+            </div>
           ) : null}
 
           <Card>
@@ -797,7 +809,7 @@ export default function PlayerPage() {
                           </Button>
 
                           <Button onClick={submitMcq} disabled={!canAnswer || selectedIndex === null}>
-                            {mcqSubmitting ? "Submittingâ€¦" : "Submit"}
+                            {mcqSubmitting ? "SubmittingÃ¢â‚¬Â¦" : "Submit"}
                           </Button>
                         </div>
                       ) : null}
