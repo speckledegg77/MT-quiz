@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import GameCompletedSummary from "@/components/GameCompletedSummary";
 import RoundSummaryCard from "@/components/RoundSummaryCard";
 import PageShell from "@/components/PageShell";
+import QRTile from "@/components/ui/QRTile";
 
 type RoomState = any;
 
@@ -121,6 +122,9 @@ export default function DisplayPage() {
     }
   }, [state?.stage, state?.phase, state?.questionIndex, roundTransitionQuestionIndex]);
 
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const joinUrl = useMemo(() => (code && origin ? `${origin}/join?code=${code}` : ""), [code, origin]);
+
   const audioMode = String(state?.audioMode ?? "display");
   const shouldPlayOnDisplay = audioMode === "display" || audioMode === "both";
 
@@ -182,6 +186,17 @@ export default function DisplayPage() {
     roundTransitionQuestionIndex !== null &&
     Number(state?.questionIndex ?? -1) === roundTransitionQuestionIndex;
 
+  const correctIndex = Number.isFinite(Number(state?.reveal?.answerIndex))
+    ? Number(state?.reveal?.answerIndex)
+    : null;
+  const revealAnswerText = String(state?.reveal?.answerText ?? "").trim();
+  const correctAnswerText =
+    q?.answerType === "mcq"
+      ? correctIndex !== null && Array.isArray(q?.options)
+        ? String(q.options[correctIndex] ?? "")
+        : revealAnswerText
+      : revealAnswerText;
+
   return (
     <PageShell width="wide">
       <audio ref={audioRef} />
@@ -214,12 +229,27 @@ export default function DisplayPage() {
       {showJoin ? (
         <Card>
           <CardHeader>
-            <CardTitle>Waiting to start</CardTitle>
+            <CardTitle>Players join here</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="text-base">Players can join on their phones using the room code.</div>
-            <div className="text-sm text-[var(--muted-foreground)]">
-              Start the game from the host screen when everyone is ready.
+          <CardContent className="grid gap-4 lg:grid-cols-[1fr,240px] lg:items-center">
+            <div className="space-y-3">
+              <div className="text-base">Players can join on their phones before the game starts.</div>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-3">
+                <div className="text-sm text-[var(--muted-foreground)]">Join URL</div>
+                <a
+                  className="mt-1 block break-all text-sm text-[var(--foreground)] underline underline-offset-2"
+                  href={joinUrl}
+                >
+                  {joinUrl}
+                </a>
+              </div>
+              <div className="text-sm text-[var(--muted-foreground)]">
+                Start the game from the host screen when everyone is ready.
+              </div>
+            </div>
+
+            <div className="flex justify-center lg:justify-end">
+              <QRTile value={joinUrl} size={160} />
             </div>
           </CardContent>
         </Card>
@@ -286,17 +316,36 @@ export default function DisplayPage() {
 
                 {q.answerType === "mcq" && Array.isArray(q.options) && q.options.length ? (
                   <div className="grid gap-2">
-                    {q.options.map((opt: string, index: number) => (
-                      <div key={index} className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2">
-                        <div className="text-sm font-medium text-[var(--muted-foreground)]">Option {index + 1}</div>
-                        <div className="text-sm">{opt}</div>
-                      </div>
-                    ))}
+                    {q.options.map((opt: string, index: number) => {
+                      const isCorrect = stage === "reveal" && correctIndex === index;
+
+                      return (
+                        <div
+                          key={index}
+                          className={[
+                            "rounded-xl border px-3 py-2",
+                            isCorrect
+                              ? "border-emerald-600/40 bg-emerald-600/10"
+                              : "border-[var(--border)] bg-[var(--card)]",
+                          ].join(" ")}
+                        >
+                          <div className="text-sm font-medium text-[var(--muted-foreground)]">Option {index + 1}</div>
+                          <div className="text-sm">{opt}</div>
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : null}
 
                 {isTextQ ? (
                   <div className="text-sm text-[var(--muted-foreground)]">Players type their answer on their phones.</div>
+                ) : null}
+
+                {stage === "reveal" && correctAnswerText ? (
+                  <div className="rounded-xl border border-emerald-600/30 bg-emerald-600/10 p-4">
+                    <div className="text-sm font-medium text-emerald-200">Correct answer</div>
+                    <div className="mt-1 text-base text-[var(--foreground)]">{correctAnswerText}</div>
+                  </div>
                 ) : null}
               </CardContent>
             </Card>
