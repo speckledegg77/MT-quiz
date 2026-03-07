@@ -182,7 +182,7 @@ export default function GameCompletedSummary({
                       <div className="truncate text-2xl font-semibold text-white">{team.team}</div>
                       <div className="mt-1 text-sm text-slate-300">
                         {team.playerCount} {team.playerCount === 1 ? "player" : "players"}
-                        {teamScoreMode === "average" ? ` â€¢ ${formatScore(team.totalScore)} total` : ""}
+                        {teamScoreMode === "average" ? ` | ${formatScore(team.totalScore)} total` : ""}
                       </div>
                     </div>
 

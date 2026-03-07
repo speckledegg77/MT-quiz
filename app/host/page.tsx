@@ -574,16 +574,16 @@ export default function HostPage() {
   const continueLabel =
     roomStage === "open"
       ? forcingClose
-        ? "Moving onâ€¦"
+        ? "Moving on..."
         : "Reveal answer"
       : roomStage === "round_summary"
         ? forcingClose
-          ? "Moving onâ€¦"
+          ? "Moving on..."
           : Boolean(roomState?.flow?.isLastQuestionOverall)
             ? "Finish now"
             : "Skip round review"
         : forcingClose
-          ? "Moving onâ€¦"
+          ? "Moving on..."
           : Boolean(roomState?.flow?.isLastQuestionOverall)
             ? "Finish now"
             : "Next question"
@@ -591,7 +591,7 @@ export default function HostPage() {
   const startLabel =
     roomPhase === "lobby"
       ? starting
-        ? "Startingâ€¦"
+        ? "Starting..."
         : "Start game"
       : roomPhase === "running"
         ? "Game running"
@@ -819,7 +819,7 @@ export default function HostPage() {
 
               <CardFooter>
                 <Button onClick={createRoom} disabled={creating || packsLoading}>
-                  {creating ? "Creatingâ€¦" : packsLoading ? "Loading packsâ€¦" : "Create room"}
+                  {creating ? "Creating..." : packsLoading ? "Loading packs..." : "Create room"}
                 </Button>
               </CardFooter>
             </Card>
@@ -880,7 +880,7 @@ export default function HostPage() {
                   </Button>
 
                   <Button variant="secondary" onClick={resetRoom} disabled={resetting}>
-                    {resetting ? "Resettingâ€¦" : "Reset room"}
+                    {resetting ? "Resetting..." : "Reset room"}
                   </Button>
                 </div>
 
@@ -995,7 +995,7 @@ export default function HostPage() {
                 ) : null}
 
                 <Button onClick={rehostRoom} disabled={rehostBusy}>
-                  {rehostBusy ? "Loadingâ€¦" : "Re-host"}
+                  {rehostBusy ? "Loading..." : "Re-host"}
                 </Button>
               </CardContent>
             </Card>

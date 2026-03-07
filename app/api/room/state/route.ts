@@ -5,6 +5,13 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin"
 import { getQuestionById } from "@/lib/questionBank"
 import { shuffleMcqForRoom } from "@/lib/mcqShuffle"
 
+type TeamPlayerRow = {
+  id: string
+  name: string
+  totalScore: number
+  usedJokerInScope: boolean
+}
+
 type TeamStats = {
   team: string
   players: number
@@ -12,6 +19,10 @@ type TeamStats = {
   correct: number
   jokerUsed: number
   jokerCorrect: number
+  totalScoreSoFar: number
+  averageScoreSoFar: number
+  displayScoreSoFar: number
+  playersList: TeamPlayerRow[]
 }
 
 type StatsBlock = {
@@ -56,6 +67,14 @@ type FinalTeamResult = {
   players: FinalPlayerResult[]
 }
 
+type TeamScoreMode = "total" | "average"
+
+type BuildStatsOptions = {
+  scopeRoundIndex?: number | null
+  includePlannedJokerUsers?: boolean
+  uniqueJokerUsersByPlayer?: boolean
+}
+
 function stageFromTimes(
   phase: string,
   nowMs: number,
@@ -81,13 +100,6 @@ function stageFromTimes(
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min
   return Math.min(max, Math.max(min, Math.floor(n)))
-}
-
-function buildRoundSummaryEndsAt(nextAt: string | null | undefined, roundReviewSeconds: number) {
-  if (!nextAt || roundReviewSeconds <= 0) return null
-  const startMs = Date.parse(nextAt)
-  if (!Number.isFinite(startMs)) return null
-  return new Date(startMs + roundReviewSeconds * 1000).toISOString()
 }
 
 function normaliseRoundCount(raw: any, questionCount: number) {
@@ -150,16 +162,72 @@ function emptyStats(): StatsBlock {
   return { answered: 0, correct: 0, jokerUsed: 0, jokerCorrect: 0, byTeam: [] }
 }
 
-function buildStats(players: any[], answers: any[]): StatsBlock {
-  const byTeamPlayers = new Map<string, number>()
-  for (const p of players) {
-    const team = String(p.team_name ?? "").trim() || "No team"
-    byTeamPlayers.set(team, (byTeamPlayers.get(team) ?? 0) + 1)
+function buildStats(
+  players: any[],
+  answers: any[],
+  teamScoreMode: TeamScoreMode = "total",
+  options: BuildStatsOptions = {}
+): StatsBlock {
+  const scopeRoundIndex = Number(options.scopeRoundIndex)
+  const hasScopeRoundIndex = Number.isFinite(scopeRoundIndex)
+  const includePlannedJokerUsers = Boolean(options.includePlannedJokerUsers && hasScopeRoundIndex)
+  const uniqueJokerUsersByPlayer = Boolean(options.uniqueJokerUsersByPlayer)
+
+  const byTeamPlayers = new Map<string, any[]>()
+
+  for (const player of players) {
+    const team = String(player?.team_name ?? "").trim() || "No team"
+    const list = byTeamPlayers.get(team) ?? []
+    list.push(player)
+    byTeamPlayers.set(team, list)
   }
 
-  const byTeam: Map<string, { answered: number; correct: number; jokerUsed: number; jokerCorrect: number }> = new Map()
-  for (const t of byTeamPlayers.keys()) {
-    byTeam.set(t, { answered: 0, correct: 0, jokerUsed: 0, jokerCorrect: 0 })
+  const byTeam = new Map<
+    string,
+    {
+      answered: number
+      correct: number
+      jokerUsed: number
+      jokerCorrect: number
+      usedJokerPlayerIds: Set<string>
+    }
+  >()
+
+  for (const team of byTeamPlayers.keys()) {
+    byTeam.set(team, {
+      answered: 0,
+      correct: 0,
+      jokerUsed: 0,
+      jokerCorrect: 0,
+      usedJokerPlayerIds: new Set<string>(),
+    })
+  }
+
+  const globalUsedJokerPlayerIds = new Set<string>()
+
+  if (includePlannedJokerUsers) {
+    for (const player of players) {
+      if (Number(player?.joker_round_index) !== scopeRoundIndex) continue
+
+      const team = String(player?.team_name ?? "").trim() || "No team"
+      const entry =
+        byTeam.get(team) ??
+        {
+          answered: 0,
+          correct: 0,
+          jokerUsed: 0,
+          jokerCorrect: 0,
+          usedJokerPlayerIds: new Set<string>(),
+        }
+
+      const playerId = String(player?.id ?? "").trim()
+      if (playerId) {
+        entry.usedJokerPlayerIds.add(playerId)
+        globalUsedJokerPlayerIds.add(playerId)
+      }
+
+      byTeam.set(team, entry)
+    }
   }
 
   let answered = 0
@@ -167,15 +235,25 @@ function buildStats(players: any[], answers: any[]): StatsBlock {
   let jokerUsed = 0
   let jokerCorrect = 0
 
-  for (const a of answers) {
+  for (const answer of answers) {
     answered += 1
-    const team = String(a.team_name ?? "").trim() || "No team"
-    const entry = byTeam.get(team) ?? { answered: 0, correct: 0, jokerUsed: 0, jokerCorrect: 0 }
+
+    const team = String(answer?.team_name ?? "").trim() || "No team"
+    const entry =
+      byTeam.get(team) ??
+      {
+        answered: 0,
+        correct: 0,
+        jokerUsed: 0,
+        jokerCorrect: 0,
+        usedJokerPlayerIds: new Set<string>(),
+      }
 
     entry.answered += 1
 
-    const isCorrect = Boolean(a.is_correct)
-    const usedJoker = Boolean(a.joker_active)
+    const isCorrect = Boolean(answer?.is_correct)
+    const usedJoker = Boolean(answer?.joker_active)
+    const playerId = String(answer?.player_id ?? "").trim()
 
     if (isCorrect) {
       correct += 1
@@ -183,8 +261,20 @@ function buildStats(players: any[], answers: any[]): StatsBlock {
     }
 
     if (usedJoker) {
-      jokerUsed += 1
-      entry.jokerUsed += 1
+      if (uniqueJokerUsersByPlayer) {
+        if (playerId) {
+          entry.usedJokerPlayerIds.add(playerId)
+          globalUsedJokerPlayerIds.add(playerId)
+        }
+      } else {
+        jokerUsed += 1
+        entry.jokerUsed += 1
+      }
+
+      if (playerId && !uniqueJokerUsersByPlayer) {
+        entry.usedJokerPlayerIds.add(playerId)
+      }
+
       if (isCorrect) {
         jokerCorrect += 1
         entry.jokerCorrect += 1
@@ -194,19 +284,59 @@ function buildStats(players: any[], answers: any[]): StatsBlock {
     byTeam.set(team, entry)
   }
 
-  const teamRows: TeamStats[] = Array.from(byTeamPlayers.entries()).map(([team, playersCount]) => {
-    const entry = byTeam.get(team) ?? { answered: 0, correct: 0, jokerUsed: 0, jokerCorrect: 0 }
+  const teamRows: TeamStats[] = Array.from(byTeamPlayers.entries()).map(([team, teamPlayers]) => {
+    const entry =
+      byTeam.get(team) ??
+      {
+        answered: 0,
+        correct: 0,
+        jokerUsed: 0,
+        jokerCorrect: 0,
+        usedJokerPlayerIds: new Set<string>(),
+      }
+
+    const totalScoreSoFar = teamPlayers.reduce((sum, player) => sum + Number(player?.score ?? 0), 0)
+    const averageScoreSoFar = teamPlayers.length > 0 ? totalScoreSoFar / teamPlayers.length : 0
+    const displayScoreSoFar = teamScoreMode === "average" ? averageScoreSoFar : totalScoreSoFar
+
+    const playersList: TeamPlayerRow[] = [...teamPlayers]
+      .sort((a, b) => {
+        const scoreDiff = Number(b?.score ?? 0) - Number(a?.score ?? 0)
+        if (scoreDiff !== 0) return scoreDiff
+        return String(a?.name ?? "").localeCompare(String(b?.name ?? ""))
+      })
+      .map((player) => ({
+        id: String(player?.id ?? ""),
+        name: String(player?.name ?? "").trim() || "Player",
+        totalScore: Number(player?.score ?? 0),
+        usedJokerInScope: includePlannedJokerUsers
+          ? Number(player?.joker_round_index) === scopeRoundIndex || entry.usedJokerPlayerIds.has(String(player?.id ?? ""))
+          : entry.usedJokerPlayerIds.has(String(player?.id ?? "")),
+      }))
+
     return {
       team,
-      players: playersCount,
+      players: teamPlayers.length,
       answered: entry.answered,
       correct: entry.correct,
-      jokerUsed: entry.jokerUsed,
+      jokerUsed: uniqueJokerUsersByPlayer || includePlannedJokerUsers ? entry.usedJokerPlayerIds.size : entry.jokerUsed,
       jokerCorrect: entry.jokerCorrect,
+      totalScoreSoFar,
+      averageScoreSoFar,
+      displayScoreSoFar,
+      playersList,
     }
   })
 
-  teamRows.sort((a, b) => a.team.localeCompare(b.team))
+  teamRows.sort((a, b) => {
+    if (b.displayScoreSoFar !== a.displayScoreSoFar) return b.displayScoreSoFar - a.displayScoreSoFar
+    if (b.totalScoreSoFar !== a.totalScoreSoFar) return b.totalScoreSoFar - a.totalScoreSoFar
+    return a.team.localeCompare(b.team)
+  })
+
+  if (uniqueJokerUsersByPlayer || includePlannedJokerUsers) {
+    jokerUsed = globalUsedJokerPlayerIds.size
+  }
 
   return { answered, correct, jokerUsed, jokerCorrect, byTeam: teamRows }
 }
@@ -359,6 +489,7 @@ export async function GET(req: Request) {
   const audioMode = String(room.audio_mode ?? "display")
   const selectedPacks = Array.isArray(room.selected_packs) ? room.selected_packs : []
   const isUntimedAnswers = Number(room.answer_seconds ?? 0) <= 0
+  const teamScoreMode: TeamScoreMode = String(room.team_score_mode ?? "total") === "average" ? "average" : "total"
 
   const roundCount = normaliseRoundCount((room as any).round_count, questionCount || 1)
   const roundNames = normaliseRoundNames((room as any).round_names, roundCount)
@@ -370,17 +501,10 @@ export async function GET(req: Request) {
   const isLastQuestionInRound = safeQuestionIndex >= currentRound.endIndex
   const nextRound = !isLastQuestionOverall ? roundPlan[currentRound.index + 1] ?? null : null
 
-  const roundReviewSeconds = clampInt(Number(room.countdown_seconds ?? 0), 0, 120)
-  const roundSummaryEndsAt = buildRoundSummaryEndsAt(room.next_at, roundReviewSeconds)
-
-  let stage = baseStage
-  if (room.phase === "running" && baseStage === "needs_advance" && isLastQuestionInRound) {
-    if (roundSummaryEndsAt && now.getTime() < Date.parse(roundSummaryEndsAt)) {
-      stage = "round_summary"
-    } else {
-      stage = "needs_advance"
-    }
-  }
+  const stage =
+    room.phase === "running" && baseStage === "needs_advance" && isLastQuestionInRound
+      ? "round_summary"
+      : baseStage
 
   const canShowQuestion = room.phase === "running"
 
@@ -442,7 +566,7 @@ export async function GET(req: Request) {
       }
     })
 
-    questionStats = buildStats(players, questionAnswers)
+    questionStats = buildStats(players, questionAnswers, teamScoreMode)
   }
 
   let roundStats: StatsBlock = emptyStats()
@@ -460,7 +584,11 @@ export async function GET(req: Request) {
     }
   })
 
-  roundStats = buildStats(players, roundAnswers)
+  roundStats = buildStats(players, roundAnswers, teamScoreMode, {
+    scopeRoundIndex: currentRound.index,
+    includePlannedJokerUsers: true,
+    uniqueJokerUsersByPlayer: true,
+  })
 
   let finalResults: any = null
   if (room.phase === "finished") {
@@ -479,7 +607,7 @@ export async function GET(req: Request) {
     phase: room.phase,
     gameMode: String(room.game_mode ?? "teams") === "solo" ? "solo" : "teams",
     teamNames: Array.isArray(room.team_names) ? room.team_names : [],
-    teamScoreMode: String(room.team_score_mode ?? "total") === "average" ? "average" : "total",
+    teamScoreMode,
     stage,
     audioMode,
     selectedPacks,
@@ -499,7 +627,6 @@ export async function GET(req: Request) {
     settings: {
       untimedAnswers: isUntimedAnswers,
       answerSeconds: isUntimedAnswers ? null : Number(room.answer_seconds ?? 0),
-      roundReviewSeconds,
     },
     rounds: {
       count: roundCount,
@@ -520,7 +647,6 @@ export async function GET(req: Request) {
       closeAt: room.close_at,
       revealAt: room.reveal_at,
       nextAt: room.next_at,
-      roundSummaryEndsAt,
     },
     question: questionPublic,
     reveal: revealData,
