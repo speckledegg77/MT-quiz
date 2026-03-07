@@ -227,11 +227,16 @@ export default function PlayerPage() {
 
   const currentRound = state?.rounds?.current ?? null;
   const isUntimedAnswers = Boolean(state?.settings?.untimedAnswers);
+  const answerAutoSubmitGraceSeconds = Math.max(0, Number(state?.settings?.answerAutoSubmitGraceSeconds ?? 0) || 0);
   const closeAtMs = state?.times?.closeAt ? Date.parse(String(state.times.closeAt)) : null;
   const adjustedNowMs = liveNowMs + serverOffsetMs;
-  const secondsRemaining =
+  const displayCloseAtMs =
     closeAtMs && Number.isFinite(closeAtMs)
-      ? Math.max(0, Math.ceil((closeAtMs - adjustedNowMs) / 1000))
+      ? closeAtMs - answerAutoSubmitGraceSeconds * 1000
+      : null;
+  const secondsRemaining =
+    displayCloseAtMs && Number.isFinite(displayCloseAtMs)
+      ? Math.max(0, Math.ceil((displayCloseAtMs - adjustedNowMs) / 1000))
       : 0;
 
   useEffect(() => {
@@ -246,7 +251,7 @@ export default function PlayerPage() {
     if (!closeAtMs || !Number.isFinite(closeAtMs)) return;
 
     const millisRemaining = closeAtMs - adjustedNowMs;
-    if (millisRemaining > 900) return;
+    if (millisRemaining > 400) return;
 
     const attemptKey = `${q.id}:${selectedIndex}`;
     if (autoSubmitAttemptKeyRef.current === attemptKey) return;
@@ -710,7 +715,7 @@ export default function PlayerPage() {
 
       {!showLobby && !finished && stage !== "round_summary" && q ? (
         <div className="grid gap-4">
-          {myPlayer || (state.phase === "running" && stage === "open") ? (
+          {myPlayer || q ? (
             <div className="grid grid-cols-2 gap-3">
               {myPlayer ? (
                 <Card>
@@ -725,14 +730,14 @@ export default function PlayerPage() {
                 <div />
               )}
 
-              {state.phase === "running" && stage === "open" ? (
+              {q ? (
                 <Card>
                   <CardContent className="flex items-center justify-between gap-3 py-3">
                     <div className="min-w-0 text-xs text-[var(--muted-foreground)]">
                       {isUntimedAnswers ? "Answer window" : "Time remaining"}
                     </div>
                     <div className="text-right text-sm font-semibold leading-tight tabular-nums sm:text-base">
-                      {isUntimedAnswers ? "Waiting for host" : formatDuration(secondsRemaining)}
+                      {isUntimedAnswers ? (stage === "open" ? "Waiting for host" : "Closed") : formatDuration(secondsRemaining)}
                     </div>
                   </CardContent>
                 </Card>
@@ -875,6 +880,19 @@ export default function PlayerPage() {
                   ) : null}
                 </div>
               )}
+              {inReveal ? (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-600/10 px-4 py-3">
+                  <div className="text-xs uppercase tracking-wide text-emerald-200/80">Correct answer</div>
+                  <div className="mt-1 text-sm font-medium text-emerald-100">
+                    {state?.reveal?.answerType === "mcq" && Array.isArray(q.options) && Number.isFinite(correctIndex)
+                      ? q.options[Number(correctIndex)]
+                      : String(state?.reveal?.answerText ?? "")}
+                  </div>
+                  {state?.reveal?.explanation ? (
+                    <div className="mt-2 text-xs text-emerald-100/80">{String(state.reveal.explanation)}</div>
+                  ) : null}
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         </div>

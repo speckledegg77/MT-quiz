@@ -75,6 +75,8 @@ type BuildStatsOptions = {
   uniqueJokerUsersByPlayer?: boolean
 }
 
+const ANSWER_AUTO_SUBMIT_GRACE_SECONDS = 2
+
 function stageFromTimes(
   phase: string,
   nowMs: number,
@@ -100,6 +102,13 @@ function stageFromTimes(
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min
   return Math.min(max, Math.max(min, Math.floor(n)))
+}
+
+function buildRoundSummaryEndsAt(nextAt: string | null | undefined, roundReviewSeconds: number) {
+  if (!nextAt || roundReviewSeconds <= 0) return null
+  const startMs = Date.parse(nextAt)
+  if (!Number.isFinite(startMs)) return null
+  return new Date(startMs + roundReviewSeconds * 1000).toISOString()
 }
 
 function normaliseRoundCount(raw: any, questionCount: number) {
@@ -501,10 +510,17 @@ export async function GET(req: Request) {
   const isLastQuestionInRound = safeQuestionIndex >= currentRound.endIndex
   const nextRound = !isLastQuestionOverall ? roundPlan[currentRound.index + 1] ?? null : null
 
-  const stage =
-    room.phase === "running" && baseStage === "needs_advance" && isLastQuestionInRound
-      ? "round_summary"
-      : baseStage
+  const roundReviewSeconds = clampInt(Number(room.countdown_seconds ?? 0), 0, 120)
+  const roundSummaryEndsAt = buildRoundSummaryEndsAt(room.next_at, roundReviewSeconds)
+
+  let stage = baseStage
+  if (room.phase === "running" && baseStage === "needs_advance" && isLastQuestionInRound) {
+    if (roundSummaryEndsAt && now.getTime() < Date.parse(roundSummaryEndsAt)) {
+      stage = "round_summary"
+    } else {
+      stage = "needs_advance"
+    }
+  }
 
   const canShowQuestion = room.phase === "running"
 
@@ -627,6 +643,7 @@ export async function GET(req: Request) {
     settings: {
       untimedAnswers: isUntimedAnswers,
       answerSeconds: isUntimedAnswers ? null : Number(room.answer_seconds ?? 0),
+      answerAutoSubmitGraceSeconds: isUntimedAnswers ? 0 : ANSWER_AUTO_SUBMIT_GRACE_SECONDS,
     },
     rounds: {
       count: roundCount,
@@ -647,6 +664,7 @@ export async function GET(req: Request) {
       closeAt: room.close_at,
       revealAt: room.reveal_at,
       nextAt: room.next_at,
+      roundSummaryEndsAt,
     },
     question: questionPublic,
     reveal: revealData,

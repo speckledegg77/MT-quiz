@@ -77,6 +77,7 @@ function findRoundForQuestion(questionIndex: number, plan: Array<{ index: number
 }
 
 const UNTIMED_SECONDS = 60 * 60 * 24 * 365 // 1 year
+const ANSWER_AUTO_SUBMIT_GRACE_SECONDS = 2
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}))
@@ -150,7 +151,7 @@ export async function POST(req: Request) {
   const effectiveAnswerSeconds =
     Number.isFinite(rawAnswerSeconds) && rawAnswerSeconds > 0 ? rawAnswerSeconds : UNTIMED_SECONDS
 
-  const closeAt = addSeconds(openAt, effectiveAnswerSeconds)
+  const closeAt = addSeconds(openAt, effectiveAnswerSeconds + ANSWER_AUTO_SUBMIT_GRACE_SECONDS)
   const revealAt = addSeconds(closeAt, Number(room.reveal_delay_seconds ?? 0))
   const nextAt = addSeconds(revealAt, Number(room.reveal_seconds ?? 0))
 
