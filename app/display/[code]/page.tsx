@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { QRCodeSVG } from "qrcode.react";
-
+import QRTile from "@/components/ui/QRTile"
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card";
 import JoinFeedPanel from "@/components/JoinFeedPanel";
@@ -316,7 +315,7 @@ export default function DisplayPage() {
                   {joinUrl ? (
                     <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
                       <div className="text-sm">QR code</div>
-                      <QRCodeSVG value={joinUrl} size={96} />
+                      <QRTile value={joinUrl} size={112} />
                     </div>
                   ) : null}
                 </CardContent>
