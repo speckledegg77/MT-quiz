@@ -762,6 +762,7 @@ export default function PlayerPage() {
         <RoundSummaryCard
           round={currentRound}
           roundStats={state?.roundStats}
+          gameMode={gameMode}
           isLastQuestionOverall={Boolean(state?.flow?.isLastQuestionOverall)}
           roundSummaryEndsAt={state?.times?.roundSummaryEndsAt ?? null}
         />
