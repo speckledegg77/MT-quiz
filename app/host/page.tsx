@@ -616,7 +616,7 @@ export default function HostPage() {
         : "The game is finished. Reset the room to play again with the same teams."
 
   return (
-    <PageShell width="base" contentClassName="max-w-5xl">
+    <PageShell width="full">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-[var(--foreground)]">Host</h1>
@@ -955,8 +955,41 @@ export default function HostPage() {
         <div className="space-y-6">
           {!hasRoom ? (
             <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Re-host room</CardTitle>
+                </CardHeader>
+
+                <CardContent className="space-y-3">
+                  <div className="text-sm text-[var(--muted-foreground)]">
+                    Enter a room code to continue hosting an existing room.
+                  </div>
+
+                  <div>
+                    <div className="text-sm font-medium text-[var(--foreground)]">Room code</div>
+                    <Input
+                      value={rehostCode}
+                      onChange={(e) => setRehostCode(cleanRoomCode(e.target.value))}
+                      placeholder="For example 3PDSXFT5"
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                    />
+                  </div>
+
+                  {rehostError ? (
+                    <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+                      {rehostError}
+                    </div>
+                  ) : null}
+
+                  <Button onClick={rehostRoom} disabled={rehostBusy}>
+                    {rehostBusy ? "Loading..." : "Re-host"}
+                  </Button>
+                </CardContent>
+              </Card>
+
               {showPacksPanel ? (
-                <Card>
+                <Card className="lg:sticky lg:top-20">
                   <CardHeader>
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -971,7 +1004,7 @@ export default function HostPage() {
                     </div>
                   </CardHeader>
 
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-3 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
                     <div className="flex flex-wrap gap-2">
                       <Button variant="secondary" onClick={() => setAllSelected(true)}>
                         Select all
@@ -1024,43 +1057,10 @@ export default function HostPage() {
                   </CardContent>
                 </Card>
               )}
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Re-host room</CardTitle>
-                </CardHeader>
-
-                <CardContent className="space-y-3">
-                  <div className="text-sm text-[var(--muted-foreground)]">
-                    Enter a room code to continue hosting an existing room.
-                  </div>
-
-                  <div>
-                    <div className="text-sm font-medium text-[var(--foreground)]">Room code</div>
-                    <Input
-                      value={rehostCode}
-                      onChange={(e) => setRehostCode(cleanRoomCode(e.target.value))}
-                      placeholder="For example 3PDSXFT5"
-                      autoCapitalize="characters"
-                      spellCheck={false}
-                    />
-                  </div>
-
-                  {rehostError ? (
-                    <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
-                      {rehostError}
-                    </div>
-                  ) : null}
-
-                  <Button onClick={rehostRoom} disabled={rehostBusy}>
-                    {rehostBusy ? "Loading..." : "Re-host"}
-                  </Button>
-                </CardContent>
-              </Card>
             </>
           ) : (
             <>
-              <Card className="lg:sticky lg:top-6">
+              <Card className="lg:sticky lg:top-20">
                 <CardHeader>
                   <CardTitle>Room access</CardTitle>
                 </CardHeader>
