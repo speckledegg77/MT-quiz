@@ -261,6 +261,7 @@ export default function DisplayPage() {
           roundStats={roundStats}
           isLastQuestionOverall={Boolean(state?.flow?.isLastQuestionOverall)}
           roundSummaryEndsAt={state?.times?.roundSummaryEndsAt ?? null}
+          gameMode={String(state?.gameMode ?? "teams") === "solo" ? "solo" : "teams"}
         />
       ) : null}
 

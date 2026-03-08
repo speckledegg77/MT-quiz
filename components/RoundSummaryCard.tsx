@@ -25,6 +25,8 @@ type TeamRow = {
   playersList?: TeamPlayerRow[]
 }
 
+type GameMode = "teams" | "solo"
+
 type Props = {
   round: {
     index: number
@@ -40,6 +42,7 @@ type Props = {
   } | null | undefined
   isLastQuestionOverall?: boolean
   roundSummaryEndsAt?: string | number | Date | null | undefined
+  gameMode?: GameMode
 }
 
 function fmt(n: number) {
@@ -73,6 +76,7 @@ export default function RoundSummaryCard({
   roundStats,
   isLastQuestionOverall = false,
   roundSummaryEndsAt,
+  gameMode = "teams",
 }: Props) {
   const endsAtMs = useMemo(() => parseEndsAt(roundSummaryEndsAt), [roundSummaryEndsAt])
   const [nowMs, setNowMs] = useState(() => Date.now())
@@ -84,6 +88,17 @@ export default function RoundSummaryCard({
   }, [endsAtMs])
 
   const remainingSeconds = endsAtMs ? Math.max(0, Math.ceil((endsAtMs - nowMs) / 1000)) : null
+
+  const soloPlayers = useMemo(() => {
+    const rows = Array.isArray(roundStats?.byTeam) ? roundStats.byTeam : []
+    return rows
+      .flatMap((team) => (Array.isArray(team.playersList) ? team.playersList : []))
+      .sort((a, b) => {
+        const scoreDiff = Number(b.totalScore ?? 0) - Number(a.totalScore ?? 0)
+        if (scoreDiff !== 0) return scoreDiff
+        return String(a.name ?? "").localeCompare(String(b.name ?? ""))
+      })
+  }, [roundStats])
 
   return (
     <Card>
@@ -108,7 +123,7 @@ export default function RoundSummaryCard({
           </div>
         </div>
 
-        {Array.isArray(roundStats?.byTeam) && roundStats.byTeam.length ? (
+        {gameMode === "teams" && Array.isArray(roundStats?.byTeam) && roundStats.byTeam.length ? (
           <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3">
             <div className="text-sm font-semibold">By team</div>
             <div className="mt-2 grid gap-3">
@@ -154,6 +169,28 @@ export default function RoundSummaryCard({
                       ))}
                     </div>
                   ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {gameMode === "solo" && soloPlayers.length ? (
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3">
+            <div className="text-sm font-semibold">Players</div>
+            <div className="mt-2 space-y-2">
+              {soloPlayers.map((player) => (
+                <div
+                  key={player.id ?? player.name}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-3"
+                >
+                  <div className="min-w-0 truncate text-sm font-medium text-[var(--foreground)]">
+                    {player.name}
+                    {player.usedJokerInScope ? <JokerBadge className="ml-2 align-middle" /> : null}
+                  </div>
+                  <div className="shrink-0 text-sm font-semibold tabular-nums text-[var(--foreground)]">
+                    {fmt(Number(player.totalScore ?? 0))}
+                  </div>
                 </div>
               ))}
             </div>
