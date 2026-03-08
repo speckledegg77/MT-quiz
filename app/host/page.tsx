@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
 import HostJoinedTeamsPanel from "@/components/HostJoinedTeamsPanel"
+import PageShell from "@/components/PageShell"
 
 type PackRow = {
   id: string
@@ -120,8 +121,6 @@ export default function HostPage() {
   const joinUrl = roomCode ? `${origin}/join?code=${roomCode}` : ""
   const joinPageUrl = roomCode ? `/join?code=${roomCode}` : ""
   const displayUrl = roomCode ? `/display/${roomCode}` : ""
-
-  const showGameplayPanel = Boolean(roomCode) && (roomPhase === "running" || roomPhase === "finished")
 
   useEffect(() => {
     const raw = clampInt(parseIntOr(roundCountStr, 4), 1, 20)
@@ -274,6 +273,15 @@ export default function HostPage() {
     if (!url) return
     const w = window.open(url, "_blank", "noopener,noreferrer")
     if (w) w.opener = null
+  }
+
+  async function copyJoinLink() {
+    if (!joinUrl) return
+    try {
+      await navigator.clipboard.writeText(joinUrl)
+    } catch {
+      // ignore
+    }
   }
 
   function setAllSelected(value: boolean) {
@@ -564,9 +572,12 @@ export default function HostPage() {
     return "Lobby"
   }, [roomPhase, roomStage])
 
-  const canStart = roomCode && roomPhase === "lobby" && !starting
+  const hasRoom = Boolean(roomCode)
+  const showPacksPanel = !hasRoom && selectPacks
+  const selectedPackCount = packs.filter((p) => selectedPacks[p.id]).length
+  const canStart = hasRoom && roomPhase === "lobby" && !starting
   const canContinue =
-    roomCode &&
+    hasRoom &&
     roomPhase === "running" &&
     ["open", "round_summary", "needs_advance"].includes(roomStage) &&
     !forcingClose
@@ -597,14 +608,21 @@ export default function HostPage() {
         ? "Game running"
         : "Game finished"
 
-  const showPacksPanel = !roomCode && selectPacks
+  const roomSummaryText =
+    roomPhase === "lobby"
+      ? "Players can still join. When you are ready, start the game from the host controls."
+      : roomPhase === "running"
+        ? "Questions move on automatically between questions. End of round waits for the host or the round review timer."
+        : "The game is finished. Reset the room to play again with the same teams."
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6">
+    <PageShell width="full">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-[var(--foreground)]">Host</h1>
-          <p className="mt-1 text-sm text-[var(--muted-foreground)]">Create a room, share the code, and start the quiz.</p>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            Create a room, share the code, and run the quiz.
+          </p>
         </div>
 
         <Link href="/" className="text-sm text-[var(--muted-foreground)] hover:underline">
@@ -612,9 +630,9 @@ export default function HostPage() {
         </Link>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,420px)]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="space-y-6">
-          {!roomCode ? (
+          {!hasRoom ? (
             <Card>
               <CardHeader>
                 <CardTitle>Create a room</CardTitle>
@@ -720,7 +738,9 @@ export default function HostPage() {
                           <Input
                             key={idx}
                             value={name}
-                            onChange={(e) => setRoundNames((prev) => prev.map((n, i) => (i === idx ? e.target.value : n)))}
+                            onChange={(e) =>
+                              setRoundNames((prev) => prev.map((n, i) => (i === idx ? e.target.value : n)))
+                            }
                             placeholder={defaultRoundName(idx)}
                           />
                         ))}
@@ -819,7 +839,14 @@ export default function HostPage() {
                 ) : null}
               </CardContent>
 
-              <CardFooter>
+              <CardFooter className="flex items-center justify-between gap-3">
+                <div className="text-sm text-[var(--muted-foreground)]">
+                  {!selectPacks
+                    ? "Using all active packs."
+                    : selectedPackCount > 0
+                      ? `${selectedPackCount} pack${selectedPackCount === 1 ? "" : "s"} selected.`
+                      : "No packs selected yet."}
+                </div>
                 <Button onClick={createRoom} disabled={creating || packsLoading}>
                   {creating ? "Creating..." : packsLoading ? "Loading packs..." : "Create room"}
                 </Button>
@@ -828,17 +855,18 @@ export default function HostPage() {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle>Host controls</CardTitle>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm text-[var(--muted-foreground)]">Status</div>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <CardTitle>Host controls</CardTitle>
+                    <div className="mt-1 text-sm text-[var(--muted-foreground)]">{roomSummaryText}</div>
+                  </div>
                   <div className="rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--foreground)]">
                     {stagePill}
                   </div>
                 </div>
+              </CardHeader>
 
+              <CardContent className="space-y-4">
                 {startError ? (
                   <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
                     {startError}
@@ -869,11 +897,16 @@ export default function HostPage() {
                   </div>
                 ) : null}
 
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <Button onClick={() => openInNewWindow(displayUrl)}>Open TV display</Button>
-                  <Button variant="secondary" onClick={() => openInNewWindow(joinPageUrl)}>
-                    Join room
-                  </Button>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3">
+                    <div className="text-xs text-[var(--muted-foreground)]">Room code</div>
+                    <div className="mt-1 text-2xl font-semibold tracking-widest text-[var(--foreground)]">{roomCode}</div>
+                  </div>
+
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3">
+                    <div className="text-xs text-[var(--muted-foreground)]">Current stage</div>
+                    <div className="mt-1 text-lg font-semibold text-[var(--foreground)]">{stagePill}</div>
+                  </div>
                 </div>
 
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -886,19 +919,21 @@ export default function HostPage() {
                   </Button>
                 </div>
 
-                <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                   <Button variant="secondary" onClick={continueGame} disabled={!canContinue}>
                     {continueLabel}
                   </Button>
 
-                  <div className="flex items-center text-sm text-[var(--muted-foreground)]">
-                    Round review advances automatically after the set time. Use this button to move on sooner.
+                  <div className="flex items-center rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--muted-foreground)]">
+                    Round review advances automatically after the set time. Use the button to move on sooner.
                   </div>
                 </div>
 
-                <Button variant="ghost" onClick={clearRoom}>
-                  Create another room
-                </Button>
+                <div className="flex justify-end">
+                  <Button variant="ghost" onClick={clearRoom}>
+                    Create another room
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -918,160 +953,150 @@ export default function HostPage() {
         </div>
 
         <div className="space-y-6">
-          {showPacksPanel ? (
-            <Card className="lg:sticky lg:top-6">
-              <CardHeader>
-                <CardTitle>Packs</CardTitle>
-              </CardHeader>
+          {!hasRoom ? (
+            <>
+              {showPacksPanel ? (
+                <Card className="lg:sticky lg:top-6">
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <CardTitle>Packs</CardTitle>
+                        <div className="mt-1 text-sm text-[var(--muted-foreground)]">
+                          Choose which packs to include.
+                        </div>
+                      </div>
+                      <div className="rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--muted-foreground)]">
+                        {selectedPackCount} selected
+                      </div>
+                    </div>
+                  </CardHeader>
 
-              <CardContent className="space-y-3">
-                <div className="text-sm text-[var(--muted-foreground)]">Choose which packs to include.</div>
+                  <CardContent className="space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="secondary" onClick={() => setAllSelected(true)}>
+                        Select all
+                      </Button>
+                      <Button variant="secondary" onClick={() => setAllSelected(false)}>
+                        Clear
+                      </Button>
 
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" onClick={() => setAllSelected(true)}>
-                    Select all
-                  </Button>
-                  <Button variant="secondary" onClick={() => setAllSelected(false)}>
-                    Clear
-                  </Button>
+                      <div className="ml-auto flex items-center gap-2">
+                        <div className="text-sm text-[var(--muted-foreground)]">Strategy</div>
+                        <select
+                          value={selectionStrategy}
+                          onChange={(e) => setSelectionStrategy(e.target.value as SelectionStrategy)}
+                          className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
+                        >
+                          <option value="all_packs">Mix all selected packs</option>
+                          <option value="per_pack">Set counts per pack</option>
+                        </select>
+                      </div>
+                    </div>
 
-                  <div className="ml-auto flex items-center gap-2">
-                    <div className="text-sm text-[var(--muted-foreground)]">Strategy</div>
-                    <select
-                      value={selectionStrategy}
-                      onChange={(e) => setSelectionStrategy(e.target.value as SelectionStrategy)}
-                      className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
-                    >
-                      <option value="all_packs">Mix all selected packs</option>
-                      <option value="per_pack">Set counts per pack</option>
-                    </select>
+                    <div className="grid gap-2">
+                      {packs.map((p) => (
+                        <label key={p.id} className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2">
+                          <input type="checkbox" checked={Boolean(selectedPacks[p.id])} onChange={() => togglePack(p.id)} />
+                          <span className="min-w-0 flex-1 text-sm">{p.display_name}</span>
+
+                          {selectionStrategy === "per_pack" && selectedPacks[p.id] ? (
+                            <input
+                              value={perPackCounts[p.id] ?? ""}
+                              onChange={(e) => setPerPackCounts((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                              inputMode="numeric"
+                              placeholder="Count"
+                              className="w-24 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
+                            />
+                          ) : null}
+                        </label>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Packs</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm text-[var(--muted-foreground)]">
+                    <div>You are currently using all active packs.</div>
+                    <div>Tick Select packs on the left if you want to choose specific packs.</div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Re-host room</CardTitle>
+                </CardHeader>
+
+                <CardContent className="space-y-3">
+                  <div className="text-sm text-[var(--muted-foreground)]">
+                    Enter a room code to continue hosting an existing room.
                   </div>
-                </div>
 
-                <div className="grid gap-2">
-                  {packs.map((p) => (
-                    <label key={p.id} className="flex items-center gap-2">
-                      <input type="checkbox" checked={Boolean(selectedPacks[p.id])} onChange={() => togglePack(p.id)} />
-                      <span className="text-sm">{p.display_name}</span>
-
-                      {selectionStrategy === "per_pack" && selectedPacks[p.id] ? (
-                        <input
-                          value={perPackCounts[p.id] ?? ""}
-                          onChange={(e) => setPerPackCounts((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                          inputMode="numeric"
-                          placeholder="Count"
-                          className="ml-auto w-24 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
-                        />
-                      ) : null}
-                    </label>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
-
-          {!roomCode ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Re-host room</CardTitle>
-              </CardHeader>
-
-              <CardContent className="space-y-3">
-                <div className="text-sm text-[var(--muted-foreground)]">
-                  Enter a room code to continue hosting an existing room.
-                </div>
-
-                <div>
-                  <div className="text-sm font-medium text-[var(--foreground)]">Room code</div>
-                  <Input
-                    value={rehostCode}
-                    onChange={(e) => setRehostCode(cleanRoomCode(e.target.value))}
-                    placeholder="For example 3PDSXFT5"
-                    autoCapitalize="characters"
-                    spellCheck={false}
-                  />
-                </div>
-
-                {rehostError ? (
-                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
-                    {rehostError}
+                  <div>
+                    <div className="text-sm font-medium text-[var(--foreground)]">Room code</div>
+                    <Input
+                      value={rehostCode}
+                      onChange={(e) => setRehostCode(cleanRoomCode(e.target.value))}
+                      placeholder="For example 3PDSXFT5"
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                    />
                   </div>
-                ) : null}
 
-                <Button onClick={rehostRoom} disabled={rehostBusy}>
-                  {rehostBusy ? "Loading..." : "Re-host"}
-                </Button>
-              </CardContent>
-            </Card>
-          ) : null}
+                  {rehostError ? (
+                    <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+                      {rehostError}
+                    </div>
+                  ) : null}
 
-          <HostJoinedTeamsPanel code={roomCode ?? ""} />
-
-          {roomCode ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Room code</CardTitle>
-              </CardHeader>
-
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-2xl font-semibold tracking-widest">{roomCode}</div>
-
-                  <QRTile value={joinUrl} size={112} />
-                </div>
-
-                <div className="text-sm text-[var(--muted-foreground)]">Players join at</div>
-
-                <div className="flex items-center justify-between gap-3">
-                  <a href={joinUrl} className="break-all text-sm underline">
-                    {joinUrl}
-                  </a>
-                  <Button
-                    variant="secondary"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(joinUrl)
-                      } catch {
-                        // ignore
-                      }
-                    }}
-                  >
-                    Copy link
+                  <Button onClick={rehostRoom} disabled={rehostBusy}>
+                    {rehostBusy ? "Loading..." : "Re-host"}
                   </Button>
-                </div>
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <>
+              <Card className="lg:sticky lg:top-6">
+                <CardHeader>
+                  <CardTitle>Room access</CardTitle>
+                </CardHeader>
 
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <Button onClick={() => openInNewWindow(displayUrl)}>Open TV display</Button>
-                  <Button variant="secondary" onClick={() => openInNewWindow(joinPageUrl)}>
-                    Join room
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-2xl font-semibold tracking-widest text-[var(--foreground)]">{roomCode}</div>
+                    <QRTile value={joinUrl} size={112} />
+                  </div>
+
+                  <div className="text-sm text-[var(--muted-foreground)]">Players join at</div>
+
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
+                    <a href={joinUrl} className="break-all underline">
+                      {joinUrl}
+                    </a>
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Button onClick={() => openInNewWindow(displayUrl)}>Open TV display</Button>
+                    <Button variant="secondary" onClick={() => openInNewWindow(joinPageUrl)}>
+                      Join room
+                    </Button>
+                  </div>
+
+                  <Button variant="secondary" onClick={copyJoinLink}>
+                    Copy join link
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
+                </CardContent>
+              </Card>
 
-          {showGameplayPanel ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Gameplay</CardTitle>
-              </CardHeader>
-
-              <CardContent className="space-y-3">
-                <div className="text-sm text-[var(--muted-foreground)]">
-                  Players answer on their phones. Questions move on automatically between questions, but end of round waits for the host.
-                </div>
-
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <Button onClick={() => openInNewWindow(displayUrl)}>Open TV display</Button>
-                  <Button variant="secondary" onClick={() => openInNewWindow(joinPageUrl)}>
-                    Join room
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
+              <HostJoinedTeamsPanel code={roomCode ?? ""} />
+            </>
+          )}
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }
