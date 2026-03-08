@@ -989,7 +989,7 @@ export default function HostPage() {
               </Card>
 
               {showPacksPanel ? (
-                <Card className="lg:sticky lg:top-20">
+                <Card>
                   <CardHeader>
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -1004,7 +1004,7 @@ export default function HostPage() {
                     </div>
                   </CardHeader>
 
-                  <CardContent className="space-y-3 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
+                  <CardContent className="space-y-3">
                     <div className="flex flex-wrap gap-2">
                       <Button variant="secondary" onClick={() => setAllSelected(true)}>
                         Select all
@@ -1060,7 +1060,7 @@ export default function HostPage() {
             </>
           ) : (
             <>
-              <Card className="lg:sticky lg:top-20">
+              <Card>
                 <CardHeader>
                   <CardTitle>Room access</CardTitle>
                 </CardHeader>
