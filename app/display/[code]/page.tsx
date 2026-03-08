@@ -329,7 +329,6 @@ export default function DisplayPage() {
                               : "border-[var(--border)] bg-[var(--card)]",
                           ].join(" ")}
                         >
-                          <div className="text-sm font-medium text-[var(--muted-foreground)]">Option {index + 1}</div>
                           <div className="text-sm">{opt}</div>
                         </div>
                       );
