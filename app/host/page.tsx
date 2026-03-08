@@ -616,7 +616,7 @@ export default function HostPage() {
         : "The game is finished. Reset the room to play again with the same teams."
 
   return (
-    <PageShell width="full">
+    <PageShell width="full" contentClassName="max-w-5xl">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-[var(--foreground)]">Host</h1>
