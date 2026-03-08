@@ -151,6 +151,41 @@ export default function GameCompletedSummary({
     return a.team.localeCompare(b.team)
   })
 
+  const winningTeams = gameMode === "teams" && teams.length > 0
+    ? teams.filter((team) => {
+        const top = teams[0]
+        const topScore = teamScoreMode === "average" ? top.averageScore : top.totalScore
+        const teamScore = teamScoreMode === "average" ? team.averageScore : team.totalScore
+        return teamScore === topScore
+      })
+    : []
+
+  const winningPlayers = gameMode === "solo" && players.length > 0
+    ? players.filter((player) => player.totalScore === players[0].totalScore)
+    : []
+
+  const winnerLabel = gameMode === "teams"
+    ? winningTeams.length > 1
+      ? "Joint winners"
+      : "Winning team"
+    : winningPlayers.length > 1
+      ? "Joint winners"
+      : "Winner"
+
+  const winnerNames = gameMode === "teams"
+    ? winningTeams.map((team) => team.team).join(", ")
+    : winningPlayers.map((player) => player.name).join(", ")
+
+  const winnerScore = gameMode === "teams"
+    ? winningTeams.length > 0
+      ? teamScoreMode === "average"
+        ? winningTeams[0].averageScore
+        : winningTeams[0].totalScore
+      : 0
+    : winningPlayers.length > 0
+      ? winningPlayers[0].totalScore
+      : 0
+
   return (
     <Card className="rounded-[2rem] border-white/10 bg-slate-900/70 shadow-2xl backdrop-blur">
       <CardHeader className="border-b border-white/10 pb-6">
@@ -159,8 +194,14 @@ export default function GameCompletedSummary({
 
       <CardContent className="space-y-5 p-4 sm:space-y-6 sm:p-6">
         <div className="rounded-3xl border border-white/10 bg-slate-950/25 p-5">
-          <div className="text-sm text-slate-400">Final scores</div>
-          <div className="mt-1 text-2xl font-semibold text-white">Thanks for playing</div>
+          <div className="text-sm text-slate-400">{winnerLabel}</div>
+          <div className="mt-1 text-2xl font-semibold text-white">{winnerNames || "No winner available"}</div>
+          {winnerNames ? (
+            <div className="mt-2 text-sm text-slate-300">
+              Final score: {formatScore(winnerScore)}
+              {gameMode === "teams" && teamScoreMode === "average" ? " average points per player" : ""}
+            </div>
+          ) : null}
         </div>
 
         {gameMode === "teams" ? (
