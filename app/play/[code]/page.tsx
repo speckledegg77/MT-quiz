@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
@@ -82,34 +82,42 @@ export default function PlayerPage() {
     setTeamName(localStorage.getItem(`mtq_team_name_${code}`) ?? "");
   }, [code]);
 
+  const refreshState = useCallback(async () => {
+    if (!code) return null;
+
+    const res = await fetch(`/api/room/state?code=${code}`, { cache: "no-store" });
+    const data = await res.json().catch(() => ({}));
+
+    setState(data);
+    if (data?.serverNow) {
+      const serverNowMs = Date.parse(String(data.serverNow));
+      if (Number.isFinite(serverNowMs)) {
+        setServerOffsetMs(serverNowMs - Date.now());
+      }
+    }
+
+    return data;
+  }, [code]);
+
   useEffect(() => {
     if (!code) return;
 
     let cancelled = false;
 
     async function tick() {
-      const res = await fetch(`/api/room/state?code=${code}`, { cache: "no-store" });
-      const data = await res.json().catch(() => ({}));
-
-      if (!cancelled) {
-        setState(data);
-        if (data?.serverNow) {
-          const serverNowMs = Date.parse(String(data.serverNow));
-          if (Number.isFinite(serverNowMs)) {
-            setServerOffsetMs(serverNowMs - Date.now());
-          }
-        }
-      }
+      const data = await refreshState();
+      if (cancelled || !data) return;
     }
 
     tick();
-    const id = window.setInterval(tick, 500);
+    const pollMs = state?.phase === "running" ? 250 : 500;
+    const id = window.setInterval(tick, pollMs);
 
     return () => {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [code]);
+  }, [code, refreshState, state?.phase]);
 
   useEffect(() => {
     const id = window.setInterval(() => setLiveNowMs(Date.now()), 250);
@@ -302,6 +310,34 @@ export default function PlayerPage() {
     return teamRows.find((team) => team.label === resolvedTeamName) ?? null;
   }, [gameMode, myPlayer?.team_name, teamName, teamRows]);
 
+  function applyClosedQuestionState(data: any) {
+    if (!data?.questionClosed) return;
+
+    setState((prev: any) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        serverNow: data?.serverNow ?? prev.serverNow,
+        stage: "reveal",
+        times: {
+          ...prev.times,
+          closeAt: data?.roomTimes?.closeAt ?? prev?.times?.closeAt,
+          revealAt: data?.roomTimes?.revealAt ?? prev?.times?.revealAt,
+          nextAt: data?.roomTimes?.nextAt ?? prev?.times?.nextAt,
+        },
+        reveal: data?.reveal ?? prev.reveal,
+        questionStats: data?.questionStats ?? prev.questionStats,
+      };
+    });
+
+    if (data?.serverNow) {
+      const serverNowMs = Date.parse(String(data.serverNow));
+      if (Number.isFinite(serverNowMs)) {
+        setServerOffsetMs(serverNowMs - Date.now());
+      }
+    }
+  }
+
   function pickOption(optionIndex: number) {
     if (!canAnswer) return;
     setAnswerError(null);
@@ -354,6 +390,13 @@ export default function PlayerPage() {
       setSubmittedIndex(optionIndex);
       setMcqAutoSubmitted(mode === "auto");
       setMcqSubmitting(false);
+
+      if (data?.questionClosed) {
+        applyClosedQuestionState(data);
+      } else {
+        void refreshState();
+      }
+
       return true;
     } catch {
       setAnswerError("Could not send answer.");
@@ -396,6 +439,12 @@ export default function PlayerPage() {
       }
 
       setTypedIsCorrect(Boolean(data?.isCorrect));
+
+      if (data?.questionClosed) {
+        applyClosedQuestionState(data);
+      } else {
+        void refreshState();
+      }
     } catch {
       setAnswerError("Could not send answer.");
       setTypedSubmitted(false);

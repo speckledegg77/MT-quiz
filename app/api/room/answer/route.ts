@@ -152,6 +152,44 @@ function isTextCorrect(input: string, answer: string, accepted?: string[]) {
   return false
 }
 
+
+async function buildQuestionStats(roomId: string, questionId: string, players: any[]) {
+  const answersRes = await supabaseAdmin
+    .from("answers")
+    .select("player_id, is_correct, joker_active")
+    .eq("room_id", roomId)
+    .eq("question_id", questionId)
+
+  const answers = answersRes.data ?? []
+
+  const byTeam = new Map<string, { answered: number; correct: number }>()
+  let answered = 0
+  let correct = 0
+
+  for (const answer of answers) {
+    answered += 1
+    const player = players.find((row: any) => row.id === answer.player_id)
+    const team = String(player?.team_name ?? "").trim() || "No team"
+    const entry = byTeam.get(team) ?? { answered: 0, correct: 0 }
+    entry.answered += 1
+    if (answer.is_correct) {
+      correct += 1
+      entry.correct += 1
+    }
+    byTeam.set(team, entry)
+  }
+
+  return {
+    answered,
+    correct,
+    byTeam: Array.from(byTeam.entries()).map(([team, row]) => ({
+      team,
+      answered: row.answered,
+      correct: row.correct,
+    })),
+  }
+}
+
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}))
 
@@ -195,6 +233,13 @@ export async function POST(req: Request) {
   if (playerRes.error || playerRes.data.room_id !== room.id) {
     return NextResponse.json({ accepted: false, reason: "bad_player" })
   }
+
+  const playersRes = await supabaseAdmin
+    .from("players")
+    .select("id, name, score, team_name")
+    .eq("room_id", room.id)
+
+  const players = playersRes.data ?? []
 
   const q = await getQuestionById(questionId)
   if (!q) return NextResponse.json({ accepted: false, reason: "bad_question" })
@@ -258,8 +303,8 @@ export async function POST(req: Request) {
 
   if (playerCount > 0 && answerCount >= playerCount) {
     const now = new Date()
-    const revealAt = addSeconds(now, room.reveal_delay_seconds)
-    const nextAt = addSeconds(revealAt, room.reveal_seconds)
+    const revealAt = addSeconds(now, Number(room.reveal_delay_seconds ?? 0))
+    const nextAt = addSeconds(revealAt, Number(room.reveal_seconds ?? 0))
 
     await supabaseAdmin
       .from("rooms")
@@ -269,7 +314,36 @@ export async function POST(req: Request) {
         next_at: nextAt.toISOString(),
       })
       .eq("id", room.id)
+
+    let revealAnswerIndex: number | null = q.answerIndex ?? null
+    if (q.answerType === "mcq" && q.answerIndex !== null && Array.isArray(q.options) && q.options.length > 1) {
+      const shuffled = shuffleMcqForRoom(q.options, q.answerIndex, room.id, q.id)
+      revealAnswerIndex = shuffled.answerIndex
+    }
+
+    const questionStats = await buildQuestionStats(room.id, questionId, players)
+
+    return NextResponse.json({
+      accepted: true,
+      isCorrect,
+      jokerActive,
+      scoreDelta,
+      questionClosed: true,
+      serverNow: now.toISOString(),
+      roomTimes: {
+        closeAt: now.toISOString(),
+        revealAt: revealAt.toISOString(),
+        nextAt: nextAt.toISOString(),
+      },
+      reveal: {
+        answerType: q.answerType,
+        answerIndex: q.answerType === "mcq" ? revealAnswerIndex : null,
+        answerText: q.answerType === "text" ? q.answerText ?? "" : null,
+        explanation: q.explanation ?? null,
+      },
+      questionStats,
+    })
   }
 
-  return NextResponse.json({ accepted: true, isCorrect, jokerActive, scoreDelta })
+  return NextResponse.json({ accepted: true, isCorrect, jokerActive, scoreDelta, questionClosed: false })
 }

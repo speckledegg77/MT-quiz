@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
@@ -73,35 +73,43 @@ export default function DisplayPage() {
     }
   }
 
+  const refreshState = useCallback(async () => {
+    if (!code) return null;
+
+    const res = await fetch(`/api/room/state?code=${code}`, { cache: "no-store" });
+    const data = await res.json().catch(() => ({}));
+    setState(data);
+
+    if (data?.stage === "needs_advance") {
+      await fetch("/api/room/advance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+    }
+
+    return data;
+  }, [code]);
+
   useEffect(() => {
     if (!code) return;
 
     let cancelled = false;
 
     async function tick() {
-      const res = await fetch(`/api/room/state?code=${code}`, { cache: "no-store" });
-      const data = await res.json().catch(() => ({}));
-      if (cancelled) return;
-
-      setState(data);
-
-      if (data?.stage === "needs_advance") {
-        await fetch("/api/room/advance", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code }),
-        });
-      }
+      const data = await refreshState();
+      if (cancelled || !data) return;
     }
 
     tick();
-    const id = window.setInterval(tick, 500);
+    const pollMs = state?.phase === "running" ? 250 : 500;
+    const id = window.setInterval(tick, pollMs);
 
     return () => {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [code]);
+  }, [code, refreshState, state?.phase]);
 
   useEffect(() => {
     const qi = Number(state?.questionIndex ?? NaN);
