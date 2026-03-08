@@ -956,7 +956,7 @@ export default function HostPage() {
           {!hasRoom ? (
             <>
               {showPacksPanel ? (
-                <Card className="lg:sticky lg:top-6">
+                <Card>
                   <CardHeader>
                     <div className="flex items-start justify-between gap-3">
                       <div>
