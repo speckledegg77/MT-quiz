@@ -109,6 +109,16 @@ type EditorState = {
   metadataReviewState: string
 }
 
+type BulkEditorState = {
+  mediaType: string
+  promptTarget: string
+  clueSource: string
+  primaryShowKey: string
+  metadataReviewState: string
+}
+
+const UNCHANGED_VALUE = "__UNCHANGED__"
+
 const MEDIA_TYPE_OPTIONS = [
   { value: "", label: "Blank" },
   { value: "text", label: "text" },
@@ -173,6 +183,47 @@ const ANSWER_TYPE_OPTIONS = [
   { value: "text", label: "text" },
 ]
 
+const BULK_MEDIA_TYPE_OPTIONS = [
+  { value: UNCHANGED_VALUE, label: "Leave unchanged" },
+  { value: "", label: "Set blank" },
+  { value: "text", label: "text" },
+  { value: "audio", label: "audio" },
+  { value: "image", label: "image" },
+]
+
+const BULK_PROMPT_TARGET_OPTIONS = [
+  { value: UNCHANGED_VALUE, label: "Leave unchanged" },
+  { value: "", label: "Set blank" },
+  { value: "show_title", label: "show_title" },
+  { value: "song_title", label: "song_title" },
+  { value: "performer_name", label: "performer_name" },
+  { value: "character_name", label: "character_name" },
+  { value: "creative_name", label: "creative_name" },
+  { value: "fact_value", label: "fact_value" },
+]
+
+const BULK_CLUE_SOURCE_OPTIONS = [
+  { value: UNCHANGED_VALUE, label: "Leave unchanged" },
+  { value: "", label: "Set blank" },
+  { value: "direct_fact", label: "direct_fact" },
+  { value: "song_clip", label: "song_clip" },
+  { value: "overture_clip", label: "overture_clip" },
+  { value: "entracte_clip", label: "entracte_clip" },
+  { value: "lyric_excerpt", label: "lyric_excerpt" },
+  { value: "poster_art", label: "poster_art" },
+  { value: "production_photo", label: "production_photo" },
+  { value: "cast_headshot", label: "cast_headshot" },
+  { value: "prop_image", label: "prop_image" },
+]
+
+const BULK_REVIEW_STATE_OPTIONS = [
+  { value: UNCHANGED_VALUE, label: "Leave unchanged" },
+  { value: "unreviewed", label: "unreviewed" },
+  { value: "suggested", label: "suggested" },
+  { value: "confirmed", label: "confirmed" },
+  { value: "needs_attention", label: "needs_attention" },
+]
+
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ")
 }
@@ -223,6 +274,7 @@ export function QuestionMetadataDashboard() {
   const [listBusy, setListBusy] = useState(false)
   const [listError, setListError] = useState("")
   const [selectedQuestionId, setSelectedQuestionId] = useState("")
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([])
   const [detailBusy, setDetailBusy] = useState(false)
   const [detailError, setDetailError] = useState("")
   const [detailItem, setDetailItem] = useState<QuestionSummaryItem | null>(null)
@@ -230,12 +282,23 @@ export function QuestionMetadataDashboard() {
   const [saveBusy, setSaveBusy] = useState(false)
   const [saveResult, setSaveResult] = useState("")
 
+  const [bulkBusy, setBulkBusy] = useState(false)
+  const [bulkResult, setBulkResult] = useState("")
+
   const [editor, setEditor] = useState<EditorState>({
     mediaType: "",
     promptTarget: "",
     clueSource: "",
     primaryShowKey: "",
     metadataReviewState: "unreviewed",
+  })
+
+  const [bulkEditor, setBulkEditor] = useState<BulkEditorState>({
+    mediaType: UNCHANGED_VALUE,
+    promptTarget: UNCHANGED_VALUE,
+    clueSource: UNCHANGED_VALUE,
+    primaryShowKey: UNCHANGED_VALUE,
+    metadataReviewState: UNCHANGED_VALUE,
   })
 
   useEffect(() => {
@@ -321,6 +384,7 @@ export function QuestionMetadataDashboard() {
     setListBusy(true)
     setListError("")
     setSaveResult("")
+    setBulkResult("")
 
     try {
       try {
@@ -353,7 +417,10 @@ export function QuestionMetadataDashboard() {
       }
 
       const nextItems = (json as QuestionListResponse).items || []
+      const visibleIds = new Set(nextItems.map((item) => item.question.id))
+
       setItems(nextItems)
+      setSelectedQuestionIds((current) => current.filter((id) => visibleIds.has(id)))
 
       const targetId =
         nextSelectedQuestionId ||
@@ -464,20 +531,109 @@ export function QuestionMetadataDashboard() {
     }
   }
 
+  async function applyBulkMetadata() {
+    if (!cleanToken) {
+      setBulkResult("Enter your admin token first.")
+      return
+    }
+
+    if (!selectedQuestionIds.length) {
+      setBulkResult("Select at least one question first.")
+      return
+    }
+
+    const changes: Record<string, string | null> = {}
+
+    if (bulkEditor.mediaType !== UNCHANGED_VALUE) {
+      changes.mediaType = trimToNull(bulkEditor.mediaType)
+    }
+
+    if (bulkEditor.promptTarget !== UNCHANGED_VALUE) {
+      changes.promptTarget = trimToNull(bulkEditor.promptTarget)
+    }
+
+    if (bulkEditor.clueSource !== UNCHANGED_VALUE) {
+      changes.clueSource = trimToNull(bulkEditor.clueSource)
+    }
+
+    if (bulkEditor.primaryShowKey !== UNCHANGED_VALUE) {
+      changes.primaryShowKey = trimToNull(bulkEditor.primaryShowKey)
+    }
+
+    if (bulkEditor.metadataReviewState !== UNCHANGED_VALUE) {
+      changes.metadataReviewState = bulkEditor.metadataReviewState
+    }
+
+    if (Object.keys(changes).length === 0) {
+      setBulkResult("Choose at least one bulk change first.")
+      return
+    }
+
+    setBulkBusy(true)
+    setBulkResult("")
+    setSaveResult("")
+
+    try {
+      const res = await fetch("/api/admin/questions/bulk-metadata", {
+        method: "POST",
+        headers: {
+          ...buildAdminHeaders(cleanToken),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          questionIds: selectedQuestionIds,
+          changes,
+        }),
+      })
+
+      const json = (await res.json()) as { error?: string; updatedCount?: number }
+
+      if (!res.ok) {
+        setBulkResult(json.error || "Bulk apply failed.")
+        return
+      }
+
+      const updatedCount = json.updatedCount ?? selectedQuestionIds.length
+      setBulkResult(`Updated ${updatedCount} question${updatedCount === 1 ? "" : "s"}.`)
+      setSelectedQuestionIds([])
+      await loadQuestions(selectedQuestionId || undefined)
+    } catch (error: any) {
+      setBulkResult(error?.message || "Bulk apply failed.")
+    } finally {
+      setBulkBusy(false)
+    }
+  }
+
   function clearToken() {
     setToken("")
     setItems([])
     setShows([])
     setSelectedQuestionId("")
+    setSelectedQuestionIds([])
     setDetailItem(null)
     setListError("")
     setDetailError("")
     setSaveResult("")
+    setBulkResult("")
     try {
       sessionStorage.removeItem("mtq_admin_token")
     } catch {
       // ignore
     }
+  }
+
+  function toggleSelectedQuestion(questionId: string) {
+    setSelectedQuestionIds((current) =>
+      current.includes(questionId) ? current.filter((id) => id !== questionId) : [...current, questionId]
+    )
+  }
+
+  function selectAllVisible() {
+    setSelectedQuestionIds(items.map((item) => item.question.id))
+  }
+
+  function clearSelection() {
+    setSelectedQuestionIds([])
   }
 
   const selectedSummary = useMemo(() => {
@@ -489,6 +645,8 @@ export function QuestionMetadataDashboard() {
       warnings: detailItem.metadata.warnings,
     }
   }, [detailItem])
+
+  const selectedCount = selectedQuestionIds.length
 
   return (
     <div className="grid gap-4 xl:grid-cols-[1.2fr_minmax(360px,1fr)] xl:items-start">
@@ -600,12 +758,141 @@ export function QuestionMetadataDashboard() {
             </div>
 
             <div className="text-sm text-[var(--muted-foreground)]">
-              Nothing writes to Supabase until you click Save in the question panel.
+              Nothing writes to Supabase until you click Save or Bulk Apply.
             </div>
 
             {listError ? (
               <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
                 {listError}
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Bulk apply</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-sm text-[var(--muted-foreground)]">
+              Apply the same metadata values to all selected visible questions.
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={selectAllVisible} disabled={!items.length}>
+                Select all visible
+              </Button>
+              <Button variant="secondary" onClick={clearSelection} disabled={!selectedCount}>
+                Clear selection
+              </Button>
+            </div>
+
+            <div className="text-sm">
+              Selected questions: <span className="font-medium">{selectedCount}</span>
+            </div>
+
+            <div className="grid gap-3">
+              <label className="grid gap-1">
+                <span className="text-sm font-medium">media_type</span>
+                <select
+                  value={bulkEditor.mediaType}
+                  onChange={(event) => setBulkEditor((current) => ({ ...current, mediaType: event.target.value }))}
+                  className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                >
+                  {BULK_MEDIA_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-1">
+                <span className="text-sm font-medium">prompt_target</span>
+                <select
+                  value={bulkEditor.promptTarget}
+                  onChange={(event) => setBulkEditor((current) => ({ ...current, promptTarget: event.target.value }))}
+                  className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                >
+                  {BULK_PROMPT_TARGET_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-1">
+                <span className="text-sm font-medium">clue_source</span>
+                <select
+                  value={bulkEditor.clueSource}
+                  onChange={(event) => setBulkEditor((current) => ({ ...current, clueSource: event.target.value }))}
+                  className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                >
+                  {BULK_CLUE_SOURCE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-1">
+                <span className="text-sm font-medium">primary_show_key</span>
+                <select
+                  value={bulkEditor.primaryShowKey}
+                  onChange={(event) =>
+                    setBulkEditor((current) => ({ ...current, primaryShowKey: event.target.value }))
+                  }
+                  className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                >
+                  <option value={UNCHANGED_VALUE}>Leave unchanged</option>
+                  <option value="">Set blank</option>
+                  {shows.map((show) => (
+                    <option key={show.show_key} value={show.show_key}>
+                      {show.display_name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-1">
+                <span className="text-sm font-medium">metadata_review_state</span>
+                <select
+                  value={bulkEditor.metadataReviewState}
+                  onChange={(event) =>
+                    setBulkEditor((current) => ({
+                      ...current,
+                      metadataReviewState: event.target.value,
+                    }))
+                  }
+                  className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                >
+                  {BULK_REVIEW_STATE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={applyBulkMetadata} disabled={bulkBusy || !selectedCount}>
+                {bulkBusy ? "Applying…" : "Bulk Apply"}
+              </Button>
+            </div>
+
+            {bulkResult ? (
+              <div
+                className={cx(
+                  "rounded-lg px-3 py-2 text-sm",
+                  bulkResult.startsWith("Updated")
+                    ? "border border-green-300 bg-green-50 text-green-700"
+                    : "border border-red-300 bg-red-50 text-red-700"
+                )}
+              >
+                {bulkResult}
               </div>
             ) : null}
           </CardContent>
@@ -626,43 +913,58 @@ export function QuestionMetadataDashboard() {
               <div className="space-y-2">
                 {items.map((item) => {
                   const isSelected = item.question.id === selectedQuestionId
+                  const isTicked = selectedQuestionIds.includes(item.question.id)
+
                   return (
-                    <button
+                    <div
                       key={item.question.id}
-                      type="button"
-                      onClick={async () => {
-                        setSelectedQuestionId(item.question.id)
-                        await loadQuestionDetail(item.question.id)
-                      }}
                       className={cx(
-                        "block w-full rounded-lg border px-3 py-3 text-left transition-colors",
+                        "rounded-lg border px-3 py-3 transition-colors",
                         isSelected
                           ? "border-[var(--foreground)] bg-[var(--muted)]"
-                          : "border-[var(--border)] bg-[var(--card)] hover:bg-[var(--muted)]/40"
+                          : "border-[var(--border)] bg-[var(--card)]"
                       )}
                     >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <div className="font-medium">{item.question.id}</div>
-                          <div className="mt-1 text-sm">{item.question.text}</div>
-                        </div>
-                        <div className="text-xs text-[var(--muted-foreground)]">
-                          {item.metadata.warnings.length} warning{item.metadata.warnings.length === 1 ? "" : "s"}
-                        </div>
-                      </div>
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={isTicked}
+                          onChange={() => toggleSelectedQuestion(item.question.id)}
+                          className="mt-1 h-4 w-4 rounded border-[var(--border)]"
+                        />
 
-                      <div className="mt-2 text-xs text-[var(--muted-foreground)]">
-                        Packs: {item.packs.map((pack) => pack.display_name).join(", ") || "None"}
-                      </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            setSelectedQuestionId(item.question.id)
+                            await loadQuestionDetail(item.question.id)
+                          }}
+                          className="flex-1 text-left"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                              <div className="font-medium">{item.question.id}</div>
+                              <div className="mt-1 text-sm">{item.question.text}</div>
+                            </div>
+                            <div className="text-xs text-[var(--muted-foreground)]">
+                              {item.metadata.warnings.length} warning{item.metadata.warnings.length === 1 ? "" : "s"}
+                            </div>
+                          </div>
 
-                      <div className="mt-1 text-xs text-[var(--muted-foreground)]">
-                        Legacy: {item.question.round_type} · Answer: {item.question.answer_type}
-                      </div>
+                          <div className="mt-2 text-xs text-[var(--muted-foreground)]">
+                            Packs: {item.packs.map((pack) => pack.display_name).join(", ") || "None"}
+                          </div>
 
-                      <div className="mt-1 text-xs text-[var(--muted-foreground)]">
-                        {buildSummaryText(item)}
+                          <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                            Legacy: {item.question.round_type} · Answer: {item.question.answer_type}
+                          </div>
+
+                          <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                            {buildSummaryText(item)}
+                          </div>
+                        </button>
                       </div>
-                    </button>
+                    </div>
                   )
                 })}
               </div>
