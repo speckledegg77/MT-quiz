@@ -1,7 +1,17 @@
 import Link from "next/link"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
-import { Button } from "@/components/ui/Button"
+
+function linkButtonClass(variant: "primary" | "secondary" = "primary") {
+  const base =
+    "inline-flex h-10 items-center justify-center rounded-lg border px-4 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--border)] focus:ring-offset-2 focus:ring-offset-[var(--background)]"
+
+  if (variant === "secondary") {
+    return `${base} border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] hover:bg-[var(--muted)]`
+  }
+
+  return `${base} border-[var(--foreground)] bg-[var(--foreground)] text-[var(--background)] hover:opacity-90`
+}
 
 export default function AdminHomePage() {
   return (
@@ -20,8 +30,8 @@ export default function AdminHomePage() {
             <div className="text-sm text-[var(--muted-foreground)]">
               Review question metadata, warnings, and suggested values before rounds start using the new fields.
             </div>
-            <Link href="/admin/questions">
-              <Button>Open Questions</Button>
+            <Link href="/admin/questions" className={linkButtonClass()}>
+              Open Questions
             </Link>
           </CardContent>
         </Card>
@@ -34,8 +44,8 @@ export default function AdminHomePage() {
             <div className="text-sm text-[var(--muted-foreground)]">
               Import questions from CSV and upload media in bulk.
             </div>
-            <Link href="/admin/import">
-              <Button variant="secondary">Open Import</Button>
+            <Link href="/admin/import" className={linkButtonClass("secondary")}>
+              Open Import
             </Link>
           </CardContent>
         </Card>
@@ -48,8 +58,8 @@ export default function AdminHomePage() {
             <div className="text-sm text-[var(--muted-foreground)]">
               Check for missing media, broken paths, and duplicates.
             </div>
-            <Link href="/admin/health">
-              <Button variant="secondary">Open Health</Button>
+            <Link href="/admin/health" className={linkButtonClass("secondary")}>
+              Open Health
             </Link>
           </CardContent>
         </Card>
