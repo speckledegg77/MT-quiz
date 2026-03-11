@@ -37,6 +37,12 @@ export type ShowRow = {
   is_active?: boolean | null
 }
 
+export type PackRowForMetadata = {
+  id: string
+  display_name: string
+  round_type: string
+}
+
 export type QuestionRowForMetadata = {
   id: string
   text: string
@@ -261,17 +267,19 @@ function containsCandidate(source: string, candidate: string) {
   return source.includes(candidate)
 }
 
-function suggestPrimaryShowKey(question: QuestionRowForMetadata, shows: ShowRow[]): { value: string | null; reason: string | null } {
-  if (!shows.length) return { value: null, reason: null }
+function buildShowCandidates(show: ShowRow) {
+  return [show.display_name, ...toAltNames(show.alt_names)]
+    .map((value) => cleanForMatch(value))
+    .filter(Boolean)
+}
 
+function suggestPrimaryShowKeyFromText(question: QuestionRowForMetadata, shows: ShowRow[]) {
   const answer = cleanForMatch(question.answer_text)
   const explanation = cleanForMatch(question.explanation)
   const questionText = cleanForMatch(question.text)
 
   for (const show of shows) {
-    const candidates = [show.display_name, ...toAltNames(show.alt_names)]
-      .map((value) => cleanForMatch(value))
-      .filter(Boolean)
+    const candidates = buildShowCandidates(show)
 
     for (const candidate of candidates) {
       if (containsCandidate(answer, candidate)) {
@@ -284,9 +292,7 @@ function suggestPrimaryShowKey(question: QuestionRowForMetadata, shows: ShowRow[
   }
 
   for (const show of shows) {
-    const candidates = [show.display_name, ...toAltNames(show.alt_names)]
-      .map((value) => cleanForMatch(value))
-      .filter(Boolean)
+    const candidates = buildShowCandidates(show)
 
     for (const candidate of candidates) {
       if (containsCandidate(explanation, candidate)) {
@@ -299,9 +305,7 @@ function suggestPrimaryShowKey(question: QuestionRowForMetadata, shows: ShowRow[
   }
 
   for (const show of shows) {
-    const candidates = [show.display_name, ...toAltNames(show.alt_names)]
-      .map((value) => cleanForMatch(value))
-      .filter(Boolean)
+    const candidates = buildShowCandidates(show)
 
     for (const candidate of candidates) {
       if (containsCandidate(questionText, candidate)) {
@@ -312,6 +316,54 @@ function suggestPrimaryShowKey(question: QuestionRowForMetadata, shows: ShowRow[
       }
     }
   }
+
+  return { value: null, reason: null }
+}
+
+function suggestPrimaryShowKeyFromPacks(
+  packs: PackRowForMetadata[],
+  shows: ShowRow[]
+): { value: string | null; reason: string | null } {
+  if (!packs.length || !shows.length) return { value: null, reason: null }
+
+  const matchedShowKeys = new Set<string>()
+
+  for (const pack of packs) {
+    const packName = cleanForMatch(pack.display_name)
+    if (!packName) continue
+
+    for (const show of shows) {
+      const candidates = buildShowCandidates(show)
+      for (const candidate of candidates) {
+        if (packName === candidate) {
+          matchedShowKeys.add(show.show_key)
+        }
+      }
+    }
+  }
+
+  if (matchedShowKeys.size === 1) {
+    return {
+      value: [...matchedShowKeys][0],
+      reason: "Suggested because the pack name matches this show.",
+    }
+  }
+
+  return { value: null, reason: null }
+}
+
+function suggestPrimaryShowKey(
+  question: QuestionRowForMetadata,
+  shows: ShowRow[],
+  packs: PackRowForMetadata[]
+): { value: string | null; reason: string | null } {
+  if (!shows.length) return { value: null, reason: null }
+
+  const textSuggestion = suggestPrimaryShowKeyFromText(question, shows)
+  if (textSuggestion.value) return textSuggestion
+
+  const packSuggestion = suggestPrimaryShowKeyFromPacks(packs, shows)
+  if (packSuggestion.value) return packSuggestion
 
   return { value: null, reason: null }
 }
@@ -340,11 +392,15 @@ function valueOrNull(value: string | null | undefined) {
   return cleaned || null
 }
 
-export function analyseQuestionMetadata(question: QuestionRowForMetadata, shows: ShowRow[]): MetadataAnalysis {
+export function analyseQuestionMetadata(
+  question: QuestionRowForMetadata,
+  shows: ShowRow[],
+  packs: PackRowForMetadata[] = []
+): MetadataAnalysis {
   const mediaTypeSuggestion = suggestMediaType(question)
   const promptTargetSuggestion = suggestPromptTarget(question)
   const clueSourceSuggestion = suggestClueSource(question)
-  const primaryShowSuggestion = suggestPrimaryShowKey(question, shows)
+  const primaryShowSuggestion = suggestPrimaryShowKey(question, shows, packs)
   const warnings: MetadataWarning[] = []
 
   const savedMediaType = valueOrNull(question.media_type)

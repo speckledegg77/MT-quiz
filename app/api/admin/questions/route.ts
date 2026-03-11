@@ -3,7 +3,12 @@ export const runtime = "nodejs"
 import { NextResponse } from "next/server"
 
 import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/adminAuth"
-import { analyseQuestionMetadata, type QuestionRowForMetadata, type ShowRow } from "@/lib/questionMetadata"
+import {
+  analyseQuestionMetadata,
+  type PackRowForMetadata,
+  type QuestionRowForMetadata,
+  type ShowRow,
+} from "@/lib/questionMetadata"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 type QuestionRow = QuestionRowForMetadata & {
@@ -16,11 +21,7 @@ type PackQuestionRow = {
   pack_id: string
 }
 
-type PackRow = {
-  id: string
-  display_name: string
-  round_type: string
-}
+type PackRow = PackRowForMetadata
 
 function parseBooleanParam(value: string | null) {
   if (value === null) return null
@@ -130,7 +131,11 @@ export async function GET(req: Request) {
   const [countRes, questionsRes, showsRes] = await Promise.all([
     countQuery,
     dataQuery,
-    supabaseAdmin.from("shows").select("show_key, display_name, alt_names, is_active").eq("is_active", true).order("display_name"),
+    supabaseAdmin
+      .from("shows")
+      .select("show_key, display_name, alt_names, is_active")
+      .eq("is_active", true)
+      .order("display_name"),
   ])
 
   if (countRes.error) {
@@ -189,8 +194,9 @@ export async function GET(req: Request) {
 
   const items = questions
     .map((question) => {
-      const analysis = analyseQuestionMetadata(question, shows)
       const packs = packRowsByQuestionId.get(question.id) ?? []
+      const analysis = analyseQuestionMetadata(question, shows, packs)
+
       return {
         question,
         packs,

@@ -3,7 +3,12 @@ export const runtime = "nodejs"
 import { NextResponse } from "next/server"
 
 import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/adminAuth"
-import { analyseQuestionMetadata, type QuestionRowForMetadata, type ShowRow } from "@/lib/questionMetadata"
+import {
+  analyseQuestionMetadata,
+  type PackRowForMetadata,
+  type QuestionRowForMetadata,
+  type ShowRow,
+} from "@/lib/questionMetadata"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 type RouteContext = {
@@ -22,11 +27,7 @@ type PackQuestionRow = {
   pack_id: string
 }
 
-type PackRow = {
-  id: string
-  display_name: string
-  round_type: string
-}
+type PackRow = PackRowForMetadata
 
 export async function GET(req: Request, context: RouteContext) {
   if (!isAuthorisedAdminRequest(req)) return unauthorisedAdminResponse()
@@ -41,7 +42,11 @@ export async function GET(req: Request, context: RouteContext) {
       )
       .eq("id", questionId)
       .maybeSingle(),
-    supabaseAdmin.from("shows").select("show_key, display_name, alt_names, is_active").eq("is_active", true).order("display_name"),
+    supabaseAdmin
+      .from("shows")
+      .select("show_key, display_name, alt_names, is_active")
+      .eq("is_active", true)
+      .order("display_name"),
     supabaseAdmin.from("pack_questions").select("question_id, pack_id").eq("question_id", questionId),
   ])
 
@@ -73,7 +78,7 @@ export async function GET(req: Request, context: RouteContext) {
   const question = questionRes.data as QuestionRow
   const shows = (showsRes.data ?? []) as ShowRow[]
   const packs = ((packsRes.data ?? []) as PackRow[]).sort((a, b) => a.display_name.localeCompare(b.display_name))
-  const analysis = analyseQuestionMetadata(question, shows)
+  const analysis = analyseQuestionMetadata(question, shows, packs)
 
   return NextResponse.json({
     ok: true,
