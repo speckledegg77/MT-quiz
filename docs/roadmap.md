@@ -1,52 +1,68 @@
-\# Roadmap
+# Roadmap
 
+This file tracks the live plan. Keep it short and practical.
 
+## Current priority
 
-This is the short to-do list. Keep it practical. If something moves from “idea” to “we are doing this”, add it here.
+- [ ] Consolidate the current build, tidy docs, and agree the next feature set.
+- [ ] Decide the next round type to build first.
+- [ ] Move from pack-led quiz building towards explicit round types and round rules.
 
+## Next feature candidates
 
+- [ ] Add Quickfire round rules.
+- [ ] Add a Heads Up-style round.
+- [ ] Add Karaoke round format.
+- [ ] Rework room creation so the host chooses specific round types, not just packs.
+- [ ] Revisit question tagging so questions can be selected into suitable round types more flexibly.
+- [ ] Review remote phone audio autoplay and decide whether the gain is worth the browser pain.
+- [ ] Allow optional late joins after the game has started.
+- [ ] Add a replay flow so the host can run another game with the same room setup more easily.
 
-\## Next up
+## Structural/content model work
 
-\- \[ ] Improve remote phone audio so autoplay works more often (still keep manual Play clip as fallback).
+- [ ] Define the target round-type model clearly before changing the data structure.
+- [ ] Decide whether packs remain as an import/editor concept while gameplay moves to round types.
+- [ ] Decide the minimum tagging model needed for round selection, for example: round type, media type, show, difficulty, era, performer, character.
+- [ ] Keep tagging simple enough that question writing and import do not become painful.
+- [ ] Decide how Heads Up-style rounds would use existing question and answer data.
 
-\- \[ ] Speed up “advance after all answered” so it feels instant on display and phones.
+## Quality of life
 
-\- \[ ] Round selection: validate that selected packs contain enough questions before creating room.
+- [ ] Do a shared cleanup pass on repeated timer and state-handling logic across Host, Player, and Display.
+- [ ] Canonicalise Tailwind classes where useful so IntelliSense suggestions are reduced.
+- [ ] Review whether any host controls still feel duplicated or unclear.
 
-\- \[ ] Add Quickfire round rules (5 seconds, auto reveal).
+## Content building
 
-\- \[ ] Add Karaoke round format (likely free-text or multiple choice based on lyric line).
+- [ ] Expand the question bank.
+- [ ] Add more audio clips and images in Supabase Storage.
+- [ ] Keep pack naming and tagging consistent.
 
+## Later
 
+- [ ] Host dashboard for stats.
+- [ ] Export tooling for the question bank.
 
-\## Quality of life
+## Recently completed
 
-\- \[ ] Show “Question X of Y” on display.
-
-\- \[ ] Show “Answered: A of B teams” on display during open stage.
-
-\- \[ ] Add a simple “host skip” button (skip to reveal) for edge cases.
-
-\- \[ ] Let host allow late joins (optional toggle).
-
-
-
-\## Content building
-
-\- \[ ] Expand question bank and tag packs consistently in data/questions.ts.
-
-\- \[ ] Add more audio clips in Supabase Storage and map them via audioPath.
-
-\- \[ ] Add a picture round (image URL in question, display shows image, phones show options).
-
-
-
-\## Later
-
-\- \[ ] Host dashboard for stats (games played, most missed questions).
-
-\- \[ ] Export question bank from Excel to JSON (repeatable script).
-
-
-
+- [x] Teams mode and solo mode.
+- [x] Unique team names with random musical-pun suggestions.
+- [x] Joker round choice in lobby.
+- [x] Joker scoring and penalties.
+- [x] Per-round structure with editable round names.
+- [x] End-of-round summary screen with timer.
+- [x] Final game summary with per-round breakdowns.
+- [x] Mobile-friendly final summary layout.
+- [x] Winner shown on the completed screen.
+- [x] Remove the “Get ready” countdown.
+- [x] Player timer display.
+- [x] Untimed answers mode.
+- [x] Faster close when all answers are submitted.
+- [x] Auto-submit selected MCQ answers at expiry.
+- [x] Correct answer reveal on player and display.
+- [x] Audio stops when the question closes.
+- [x] Display QR only in the lobby.
+- [x] Host page layout tidy-up.
+- [x] Light and dark mode fixes, including phone behaviour.
+- [x] iPhone input zoom fix.
