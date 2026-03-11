@@ -491,7 +491,7 @@ export function QuestionMetadataDashboard() {
   }, [detailItem])
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
+    <div className="grid gap-4 xl:grid-cols-[1.2fr_minmax(360px,1fr)] xl:items-start">
       <div className="space-y-4">
         <Card>
           <CardHeader>
@@ -671,7 +671,7 @@ export function QuestionMetadataDashboard() {
         </Card>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 xl:sticky xl:top-4 xl:self-start xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1">
         <Card>
           <CardHeader>
             <CardTitle>Question detail</CardTitle>
@@ -923,7 +923,8 @@ export function QuestionMetadataDashboard() {
                 Choose the format the player receives. Use text, audio, or image.
               </div>
               <div className="mt-2 text-[var(--muted-foreground)]">
-                Example: if the player hears a clip, choose <span className="font-medium text-[var(--foreground)]">audio</span>.
+                Example: if the player hears a clip, choose{" "}
+                <span className="font-medium text-[var(--foreground)]">audio</span>.
               </div>
             </div>
 
