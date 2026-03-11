@@ -21,7 +21,7 @@ export default function AdminHomePage() {
         <div className="text-sm text-[var(--muted-foreground)]">Choose a tool.</div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader>
             <CardTitle>Questions</CardTitle>
@@ -32,6 +32,20 @@ export default function AdminHomePage() {
             </div>
             <Link href="/admin/questions" className={linkButtonClass()}>
               Open Questions
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Shows</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="text-sm text-[var(--muted-foreground)]">
+              Manage show keys and alternative names used by primary_show_key suggestions and dropdowns.
+            </div>
+            <Link href="/admin/shows" className={linkButtonClass("secondary")}>
+              Open Shows
             </Link>
           </CardContent>
         </Card>
