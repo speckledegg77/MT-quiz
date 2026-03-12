@@ -11,6 +11,7 @@ import {
   type RoundFilter,
   type SelectionStrategy,
 } from "../../../../lib/questionSelection";
+import { buildLegacyRoomRoundPlan, getLegacyFieldsFromRoundPlan } from "../../../../lib/roomRoundPlan";
 
 type RoundRequest = { packId: string; count: number };
 
@@ -208,6 +209,8 @@ export async function POST(req: Request) {
 
   const roundCount = normaliseRoundCount(body.roundCount, pickedIds.length);
   const roundNames = normaliseRoundNames(body.roundNames, roundCount);
+  const roundPlan = buildLegacyRoomRoundPlan(pickedIds, roundCount, roundNames, "legacy_pack_mode");
+  const legacyFields = getLegacyFieldsFromRoundPlan(roundPlan);
 
   for (let attempt = 0; attempt < 8; attempt++) {
     const code = randomCode(8);
@@ -217,7 +220,7 @@ export async function POST(req: Request) {
       .insert({
         code,
         phase: "lobby",
-        question_ids: pickedIds,
+        question_ids: legacyFields.question_ids,
         question_index: 0,
         countdown_seconds: countdownSeconds,
         answer_seconds: answerSeconds,
@@ -235,8 +238,10 @@ export async function POST(req: Request) {
         team_names: gameMode === "teams" ? teamNames : [],
         team_score_mode: gameMode === "teams" ? teamScoreMode : "total",
 
-        round_count: roundCount,
-        round_names: roundNames,
+        round_count: legacyFields.round_count,
+        round_names: legacyFields.round_names,
+        build_mode: "legacy_pack_mode",
+        round_plan: roundPlan,
       })
       .select("code")
       .single();

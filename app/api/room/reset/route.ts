@@ -11,6 +11,7 @@ import {
   type RoundFilter,
   type SelectionStrategy,
 } from "../../../../lib/questionSelection";
+import { buildLegacyRoomRoundPlan, getLegacyFieldsFromRoundPlan } from "../../../../lib/roomRoundPlan";
 
 function normaliseRoundFilter(raw: any): RoundFilter {
   const v = String(raw ?? "").toLowerCase();
@@ -123,6 +124,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No questions available for reset" }, { status: 400 });
   }
 
+  const existingRoundCount = Number(room.round_count ?? 4)
+  const existingRoundNames = Array.isArray(room.round_names) ? room.round_names : []
+  const roundPlan = buildLegacyRoomRoundPlan(pickedIds, existingRoundCount, existingRoundNames, room.build_mode ?? "legacy_pack_mode")
+  const legacyFields = getLegacyFieldsFromRoundPlan(roundPlan)
+
   const delAnswers = await supabaseAdmin.from("answers").delete().eq("room_id", room.id);
   if (delAnswers.error) {
     return NextResponse.json({ error: delAnswers.error.message }, { status: 500 });
@@ -151,8 +157,12 @@ export async function POST(req: Request) {
     .from("rooms")
     .update({
       phase: "lobby",
-      question_ids: pickedIds,
+      question_ids: legacyFields.question_ids,
       question_index: 0,
+      round_count: legacyFields.round_count,
+      round_names: legacyFields.round_names,
+      build_mode: room.build_mode ?? "legacy_pack_mode",
+      round_plan: roundPlan,
       countdown_start_at: null,
       open_at: null,
       close_at: null,

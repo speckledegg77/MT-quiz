@@ -1,6 +1,15 @@
 export const runtime = "nodejs"
 
 import { NextResponse } from "next/server"
+import {
+  countJokerEligibleRounds,
+  findRoundForQuestionIndex,
+  getEffectiveRoomRoundPlan,
+  getLegacyFieldsFromRoundPlan,
+  isJokerEnabledForRoundPlan,
+  materialiseRoundPlan,
+  type EffectiveRoundPlanItem,
+} from "@/lib/roomRoundPlan"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 import { getQuestionById } from "@/lib/questionBank"
 import { shuffleMcqForRoom } from "@/lib/mcqShuffle"
@@ -33,14 +42,7 @@ type StatsBlock = {
   byTeam: TeamStats[]
 }
 
-type RoundPlanRow = {
-  index: number
-  number: number
-  name: string
-  startIndex: number
-  endIndex: number
-  size: number
-}
+type RoundPlanRow = EffectiveRoundPlanItem
 
 type FinalRoundResult = {
   index: number
@@ -77,6 +79,17 @@ type BuildStatsOptions = {
 
 const ANSWER_AUTO_SUBMIT_GRACE_SECONDS = 2
 
+function buildRoundSummaryEndsAt(nextAt: string | null | undefined, roundReviewSeconds: number) {
+  const nextMs = nextAt ? Date.parse(nextAt) : NaN
+  if (!Number.isFinite(nextMs)) return null
+
+  const reviewMs = Math.max(0, Math.floor(Number(roundReviewSeconds ?? 0)) || 0) * 1000
+  if (reviewMs <= 0) return null
+
+  return new Date(nextMs + reviewMs).toISOString()
+}
+
+
 function stageFromTimes(
   phase: string,
   nowMs: number,
@@ -97,74 +110,6 @@ function stageFromTimes(
   if (nowMs < reveal) return "wait"
   if (nowMs < next) return "reveal"
   return "needs_advance"
-}
-
-function clampInt(n: number, min: number, max: number) {
-  if (!Number.isFinite(n)) return min
-  return Math.min(max, Math.max(min, Math.floor(n)))
-}
-
-function buildRoundSummaryEndsAt(nextAt: string | null | undefined, roundReviewSeconds: number) {
-  if (!nextAt || roundReviewSeconds <= 0) return null
-  const startMs = Date.parse(nextAt)
-  if (!Number.isFinite(startMs)) return null
-  return new Date(startMs + roundReviewSeconds * 1000).toISOString()
-}
-
-function normaliseRoundCount(raw: any, questionCount: number) {
-  const qc = Math.max(1, Math.floor(Number(questionCount ?? 0)) || 1)
-  const requested = Math.floor(Number(raw ?? 4))
-  const safe = Number.isFinite(requested) ? requested : 4
-  const capped = clampInt(safe, 1, 20)
-  return Math.min(capped, qc)
-}
-
-function normaliseRoundNames(raw: any, count: number) {
-  const arr = Array.isArray(raw) ? raw : []
-  const out: string[] = []
-  for (let i = 0; i < count; i++) {
-    const name = String(arr[i] ?? "").trim()
-    out.push(name || `Round ${i + 1}`)
-  }
-  return out
-}
-
-function buildRoundPlan(questionCount: number, roundCount: number, roundNames: string[]) {
-  const qc = Math.max(1, Math.floor(Number(questionCount ?? 0)) || 1)
-  const rc = normaliseRoundCount(roundCount, qc)
-  const names = normaliseRoundNames(roundNames, rc)
-
-  const base = Math.floor(qc / rc)
-  const rem = qc % rc
-
-  const plan: RoundPlanRow[] = []
-  let start = 0
-
-  for (let i = 0; i < rc; i++) {
-    const size = base + (i < rem ? 1 : 0)
-    const end = start + size - 1
-
-    plan.push({
-      index: i,
-      number: i + 1,
-      name: names[i] ?? `Round ${i + 1}`,
-      startIndex: start,
-      endIndex: end,
-      size,
-    })
-
-    start = end + 1
-  }
-
-  return plan
-}
-
-function findRoundForQuestion(questionIndex: number, plan: RoundPlanRow[]) {
-  const qi = Math.max(0, Math.floor(Number(questionIndex ?? 0)) || 0)
-  for (const r of plan) {
-    if (qi >= r.startIndex && qi <= r.endIndex) return r
-  }
-  return plan[0]
 }
 
 function emptyStats(): StatsBlock {
@@ -391,7 +336,7 @@ function buildFinalResults(
 
   for (let questionIndex = 0; questionIndex < questionIds.length; questionIndex++) {
     const questionId = String(questionIds[questionIndex] ?? "")
-    const round = findRoundForQuestion(questionIndex, roundPlan)
+    const round = findRoundForQuestionIndex(questionIndex, roundPlan)
 
     for (const player of finalPlayers) {
       const key = `${player.id}:${questionId}`
@@ -487,7 +432,9 @@ export async function GET(req: Request) {
     }
   }
 
-  const questionIds = Array.isArray(room.question_ids) ? room.question_ids : []
+  const storedRoundPlan = getEffectiveRoomRoundPlan(room)
+  const legacyFields = getLegacyFieldsFromRoundPlan(storedRoundPlan)
+  const questionIds = legacyFields.question_ids
   const questionCount = questionIds.length
   const safeQuestionIndex = Math.max(0, Math.floor(Number(room.question_index ?? 0)) || 0)
   const currentQuestionId = questionIds[safeQuestionIndex]
@@ -500,17 +447,17 @@ export async function GET(req: Request) {
   const isUntimedAnswers = Number(room.answer_seconds ?? 0) <= 0
   const teamScoreMode: TeamScoreMode = String(room.team_score_mode ?? "total") === "average" ? "average" : "total"
 
-  const roundCount = normaliseRoundCount((room as any).round_count, questionCount || 1)
-  const roundNames = normaliseRoundNames((room as any).round_names, roundCount)
-  const roundPlan = buildRoundPlan(questionCount || 1, roundCount, roundNames)
-  const currentRound = findRoundForQuestion(safeQuestionIndex, roundPlan)
+  const roundCount = legacyFields.round_count
+  const roundNames = legacyFields.round_names
+  const roundPlan = materialiseRoundPlan(storedRoundPlan)
+  const currentRound = findRoundForQuestionIndex(safeQuestionIndex, roundPlan)
   const questionNumberInRound = Math.max(1, safeQuestionIndex - currentRound.startIndex + 1)
 
   const isLastQuestionOverall = questionCount > 0 ? safeQuestionIndex >= questionCount - 1 : true
   const isLastQuestionInRound = safeQuestionIndex >= currentRound.endIndex
   const nextRound = !isLastQuestionOverall ? roundPlan[currentRound.index + 1] ?? null : null
 
-  const roundReviewSeconds = clampInt(Number(room.countdown_seconds ?? 0), 0, 120)
+  const roundReviewSeconds = Math.min(120, Math.max(0, Math.floor(Number(room.countdown_seconds ?? 0)) || 0))
   const roundSummaryEndsAt = buildRoundSummaryEndsAt(room.next_at, roundReviewSeconds)
 
   let stage = baseStage
@@ -646,13 +593,18 @@ export async function GET(req: Request) {
       answerAutoSubmitGraceSeconds: isUntimedAnswers ? 0 : ANSWER_AUTO_SUBMIT_GRACE_SECONDS,
     },
     rounds: {
+      buildMode: storedRoundPlan.buildMode,
       count: roundCount,
       names: roundNames,
+      jokerEligibleCount: countJokerEligibleRounds(roundPlan),
+      jokerEnabled: isJokerEnabledForRoundPlan(roundPlan),
       plan: roundPlan,
       current: {
         index: currentRound.index,
         number: currentRound.number,
         name: currentRound.name,
+        jokerEligible: currentRound.jokerEligible,
+        countsTowardsScore: currentRound.countsTowardsScore,
         startIndex: currentRound.startIndex,
         endIndex: currentRound.endIndex,
         questionsInRound: currentRound.size,

@@ -1,6 +1,7 @@
 export const runtime = "nodejs"
 
 import { NextResponse } from "next/server"
+import { findRoundForQuestionIndex, getEffectiveRoomRoundPlan, materialiseRoundPlan } from "@/lib/roomRoundPlan"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 function addSeconds(date: Date, seconds: number) {
@@ -29,55 +30,19 @@ function stageFromTimes(
   return "needs_advance"
 }
 
-function clampInt(n: number, min: number, max: number) {
-  if (!Number.isFinite(n)) return min
-  return Math.min(max, Math.max(min, Math.floor(n)))
-}
-
-function buildRoundSummaryEndsAt(nextAt: string | null | undefined, roundReviewSeconds: number) {
-  if (!nextAt || roundReviewSeconds <= 0) return null
-  const startMs = Date.parse(nextAt)
-  if (!Number.isFinite(startMs)) return null
-  return new Date(startMs + roundReviewSeconds * 1000).toISOString()
-}
-
-function normaliseRoundCount(raw: any, questionCount: number) {
-  const qc = Math.max(1, Math.floor(Number(questionCount ?? 0)) || 1)
-  const requested = Math.floor(Number(raw ?? 4))
-  const safe = Number.isFinite(requested) ? requested : 4
-  const capped = clampInt(safe, 1, 20)
-  return Math.min(capped, qc)
-}
-
-function buildRoundPlan(questionCount: number, roundCountRaw: any) {
-  const qc = Math.max(1, Math.floor(Number(questionCount ?? 0)) || 1)
-  const rc = normaliseRoundCount(roundCountRaw, qc)
-  const base = Math.floor(qc / rc)
-  const rem = qc % rc
-
-  const plan: Array<{ index: number; startIndex: number; endIndex: number }> = []
-  let start = 0
-
-  for (let i = 0; i < rc; i++) {
-    const size = base + (i < rem ? 1 : 0)
-    const end = start + size - 1
-    plan.push({ index: i, startIndex: start, endIndex: end })
-    start = end + 1
-  }
-
-  return plan
-}
-
-function findRoundForQuestion(questionIndex: number, plan: Array<{ index: number; startIndex: number; endIndex: number }>) {
-  const qi = Math.max(0, Math.floor(Number(questionIndex ?? 0)) || 0)
-  for (const round of plan) {
-    if (qi >= round.startIndex && qi <= round.endIndex) return round
-  }
-  return plan[0]
-}
-
 const UNTIMED_SECONDS = 60 * 60 * 24 * 365 // 1 year
 const ANSWER_AUTO_SUBMIT_GRACE_SECONDS = 2
+
+function buildRoundSummaryEndsAt(nextAt: string | null | undefined, roundReviewSeconds: number) {
+  const nextMs = nextAt ? Date.parse(nextAt) : NaN
+  if (!Number.isFinite(nextMs)) return null
+
+  const reviewMs = Math.max(0, Math.floor(Number(roundReviewSeconds ?? 0)) || 0) * 1000
+  if (reviewMs <= 0) return null
+
+  return new Date(nextMs + reviewMs).toISOString()
+}
+
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}))
@@ -91,10 +56,11 @@ export async function POST(req: Request) {
   const room = roomRes.data
   if (room.phase !== "running") return NextResponse.json({ ok: true, advanced: false })
 
-  const ids = Array.isArray(room.question_ids) ? room.question_ids : []
+  const roomRoundPlan = getEffectiveRoomRoundPlan(room)
+  const ids = materialiseRoundPlan(roomRoundPlan).flatMap((round) => round.questionIds)
   const currentIndex = Math.max(0, Math.floor(Number(room.question_index ?? 0)) || 0)
-  const roundPlan = buildRoundPlan(ids.length || 1, room.round_count)
-  const currentRound = findRoundForQuestion(currentIndex, roundPlan)
+  const roundPlan = materialiseRoundPlan(roomRoundPlan)
+  const currentRound = findRoundForQuestionIndex(currentIndex, roundPlan)
 
   const nowMs = Date.now()
   const baseStage = stageFromTimes(
@@ -106,7 +72,7 @@ export async function POST(req: Request) {
     room.next_at
   )
 
-  const roundReviewSeconds = clampInt(Number(room.countdown_seconds ?? 0), 0, 120)
+  const roundReviewSeconds = Math.min(120, Math.max(0, Math.floor(Number(room.countdown_seconds ?? 0)) || 0))
   const roundSummaryEndsAt = buildRoundSummaryEndsAt(room.next_at, roundReviewSeconds)
 
   let stage = baseStage

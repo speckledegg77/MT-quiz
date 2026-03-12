@@ -1,0 +1,26 @@
+alter table public.rooms
+  add column if not exists build_mode text not null default 'legacy_pack_mode',
+  add column if not exists round_plan jsonb;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'rooms_build_mode_check'
+  ) then
+    alter table public.rooms
+      add constraint rooms_build_mode_check
+      check (
+        build_mode in (
+          'legacy_pack_mode',
+          'manual_rounds',
+          'auto_rounds',
+          'quick_random'
+        )
+      );
+  end if;
+end $$;
+
+create index if not exists idx_rooms_build_mode
+  on public.rooms (build_mode);
