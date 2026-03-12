@@ -170,6 +170,15 @@ const WARNING_FILTER_OPTIONS = [
   { value: "no_warnings", label: "No warnings" },
 ]
 
+const METADATA_GAP_OPTIONS = [
+  { value: "", label: "Any metadata state" },
+  { value: "missing_primary_show_key", label: "Missing primary_show_key" },
+  { value: "missing_media_type", label: "Missing media_type" },
+  { value: "missing_prompt_target", label: "Missing prompt_target" },
+  { value: "missing_clue_source", label: "Missing clue_source" },
+  { value: "missing_any_core_metadata", label: "Missing any core metadata" },
+]
+
 const LEGACY_ROUND_TYPE_OPTIONS = [
   { value: "", label: "Any legacy round type" },
   { value: "general", label: "general" },
@@ -268,6 +277,7 @@ export function QuestionMetadataDashboard() {
   const [answerType, setAnswerType] = useState("")
   const [reviewState, setReviewState] = useState("")
   const [warningState, setWarningState] = useState("")
+  const [metadataGap, setMetadataGap] = useState("")
   const [search, setSearch] = useState("")
 
   const [items, setItems] = useState<QuestionSummaryItem[]>([])
@@ -405,6 +415,7 @@ export function QuestionMetadataDashboard() {
       if (answerType) params.set("answerType", answerType)
       if (reviewState) params.set("reviewState", reviewState)
       if (warningState) params.set("warningState", warningState)
+      if (metadataGap) params.set("metadataGap", metadataGap)
       if (search.trim()) params.set("search", search.trim())
 
       const res = await fetch(`/api/admin/questions?${params.toString()}`, {
@@ -731,7 +742,7 @@ export function QuestionMetadataDashboard() {
               </Button>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <select
                 value={packId}
                 onChange={(event) => setPackId(event.target.value)}
@@ -793,6 +804,18 @@ export function QuestionMetadataDashboard() {
                 ))}
               </select>
 
+              <select
+                value={metadataGap}
+                onChange={(event) => setMetadataGap(event.target.value)}
+                className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+              >
+                {METADATA_GAP_OPTIONS.map((option) => (
+                  <option key={option.value || "blank"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -811,6 +834,7 @@ export function QuestionMetadataDashboard() {
                   setAnswerType("")
                   setReviewState("")
                   setWarningState("")
+                  setMetadataGap("")
                   setSearch("")
                 }}
               >
@@ -1003,7 +1027,7 @@ export function QuestionMetadataDashboard() {
                     <div
                       key={item.question.id}
                       className={cx(
-                        "rounded-lg border px-3 py-3 transition-colors",
+                        "rounded-lg border px-3 py-3 transition-colours",
                         isSelected
                           ? "border-[var(--foreground)] bg-[var(--muted)]"
                           : "border-[var(--border)] bg-[var(--card)]"

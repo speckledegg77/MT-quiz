@@ -44,6 +44,39 @@ function warningMatchesFilter(warningState: string | null, warningCount: number)
   return true
 }
 
+function isBlank(value: string | null | undefined) {
+  return value === null || value === undefined || value === ""
+}
+
+function itemMatchesMetadataGap(
+  item: {
+    question: {
+      primary_show_key?: string | null
+      media_type?: string | null
+      prompt_target?: string | null
+      clue_source?: string | null
+    }
+  },
+  metadataGap: string | null
+) {
+  if (!metadataGap) return true
+
+  const isMissingPrimaryShowKey = isBlank(item.question.primary_show_key)
+  const isMissingMediaType = isBlank(item.question.media_type)
+  const isMissingPromptTarget = isBlank(item.question.prompt_target)
+  const isMissingClueSource = isBlank(item.question.clue_source)
+
+  if (metadataGap === "missing_primary_show_key") return isMissingPrimaryShowKey
+  if (metadataGap === "missing_media_type") return isMissingMediaType
+  if (metadataGap === "missing_prompt_target") return isMissingPromptTarget
+  if (metadataGap === "missing_clue_source") return isMissingClueSource
+  if (metadataGap === "missing_any_core_metadata") {
+    return isMissingPrimaryShowKey || isMissingMediaType || isMissingPromptTarget || isMissingClueSource
+  }
+
+  return true
+}
+
 export async function GET(req: Request) {
   if (!isAuthorisedAdminRequest(req)) return unauthorisedAdminResponse()
 
@@ -53,6 +86,7 @@ export async function GET(req: Request) {
   const answerType = url.searchParams.get("answerType")?.trim() || null
   const reviewState = url.searchParams.get("reviewState")?.trim() || null
   const warningState = url.searchParams.get("warningState")?.trim() || null
+  const metadataGap = url.searchParams.get("metadataGap")?.trim() || null
   const search = url.searchParams.get("search")?.trim() || null
   const hasAudio = parseBooleanParam(url.searchParams.get("hasAudio"))
   const hasImage = parseBooleanParam(url.searchParams.get("hasImage"))
@@ -215,8 +249,9 @@ export async function GET(req: Request) {
       }
     })
     .filter((item) => warningMatchesFilter(warningState, item.metadata.warnings.length))
+    .filter((item) => itemMatchesMetadataGap(item, metadataGap))
 
-  const filteredTotal = warningState ? items.length : countRes.count ?? items.length
+  const filteredTotal = warningState || metadataGap ? items.length : countRes.count ?? items.length
 
   return NextResponse.json({
     ok: true,
