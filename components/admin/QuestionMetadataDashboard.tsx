@@ -285,6 +285,9 @@ export function QuestionMetadataDashboard() {
   const [bulkBusy, setBulkBusy] = useState(false)
   const [bulkResult, setBulkResult] = useState("")
 
+  const [applySuggestedBusy, setApplySuggestedBusy] = useState(false)
+  const [applySuggestedResult, setApplySuggestedResult] = useState("")
+
   const [editor, setEditor] = useState<EditorState>({
     mediaType: "",
     promptTarget: "",
@@ -385,6 +388,7 @@ export function QuestionMetadataDashboard() {
     setListError("")
     setSaveResult("")
     setBulkResult("")
+    setApplySuggestedResult("")
 
     try {
       try {
@@ -572,6 +576,7 @@ export function QuestionMetadataDashboard() {
     setBulkBusy(true)
     setBulkResult("")
     setSaveResult("")
+    setApplySuggestedResult("")
 
     try {
       const res = await fetch("/api/admin/questions/bulk-metadata", {
@@ -604,6 +609,61 @@ export function QuestionMetadataDashboard() {
     }
   }
 
+  async function applySuggestedMetadataToSelected() {
+    if (!cleanToken) {
+      setApplySuggestedResult("Enter your admin token first.")
+      return
+    }
+
+    if (!selectedQuestionIds.length) {
+      setApplySuggestedResult("Select at least one question first.")
+      return
+    }
+
+    setApplySuggestedBusy(true)
+    setApplySuggestedResult("")
+    setBulkResult("")
+    setSaveResult("")
+
+    try {
+      const res = await fetch("/api/admin/questions/apply-suggestions", {
+        method: "POST",
+        headers: {
+          ...buildAdminHeaders(cleanToken),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          questionIds: selectedQuestionIds,
+        }),
+      })
+
+      const json = (await res.json()) as {
+        error?: string
+        updatedCount?: number
+        skippedCount?: number
+      }
+
+      if (!res.ok) {
+        setApplySuggestedResult(json.error || "Could not apply suggested values.")
+        return
+      }
+
+      const updatedCount = json.updatedCount ?? 0
+      const skippedCount = json.skippedCount ?? 0
+      setApplySuggestedResult(
+        `Applied suggestions to ${updatedCount} question${updatedCount === 1 ? "" : "s"}${
+          skippedCount ? ` and skipped ${skippedCount}` : ""
+        }.`
+      )
+      setSelectedQuestionIds([])
+      await loadQuestions(selectedQuestionId || undefined)
+    } catch (error: any) {
+      setApplySuggestedResult(error?.message || "Could not apply suggested values.")
+    } finally {
+      setApplySuggestedBusy(false)
+    }
+  }
+
   function clearToken() {
     setToken("")
     setItems([])
@@ -615,6 +675,7 @@ export function QuestionMetadataDashboard() {
     setDetailError("")
     setSaveResult("")
     setBulkResult("")
+    setApplySuggestedResult("")
     try {
       sessionStorage.removeItem("mtq_admin_token")
     } catch {
@@ -758,7 +819,7 @@ export function QuestionMetadataDashboard() {
             </div>
 
             <div className="text-sm text-[var(--muted-foreground)]">
-              Nothing writes to Supabase until you click Save or Bulk Apply.
+              Nothing writes to Supabase until you click Save, Bulk Apply, or Apply Suggested Values.
             </div>
 
             {listError ? (
@@ -775,7 +836,7 @@ export function QuestionMetadataDashboard() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-sm text-[var(--muted-foreground)]">
-              Apply the same metadata values to all selected visible questions.
+              Apply the same metadata values to all selected visible questions, or apply each question’s own suggested values in one step.
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -790,6 +851,29 @@ export function QuestionMetadataDashboard() {
             <div className="text-sm">
               Selected questions: <span className="font-medium">{selectedCount}</span>
             </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="secondary"
+                onClick={applySuggestedMetadataToSelected}
+                disabled={applySuggestedBusy || !selectedCount}
+              >
+                {applySuggestedBusy ? "Applying suggested values…" : "Apply suggested values"}
+              </Button>
+            </div>
+
+            {applySuggestedResult ? (
+              <div
+                className={cx(
+                  "rounded-lg px-3 py-2 text-sm",
+                  applySuggestedResult.startsWith("Applied")
+                    ? "border border-green-300 bg-green-50 text-green-700"
+                    : "border border-red-300 bg-red-50 text-red-700"
+                )}
+              >
+                {applySuggestedResult}
+              </div>
+            ) : null}
 
             <div className="grid gap-3">
               <label className="grid gap-1">
