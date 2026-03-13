@@ -140,11 +140,11 @@ export function buildManualRoomRoundPlan(params: {
     })
 
     if (sourceMode === "selected_packs" && sourcePackIds.length === 0) {
-      throw new Error(`Round \"${name}\" uses selected packs, but no packs are selected.`)
+      throw new Error(`Round "${name}" uses selected packs, but no packs are selected.`)
     }
 
     if (sourceMode === "specific_packs" && sourcePackIds.length === 0) {
-      throw new Error(`Round \"${name}\" needs at least one specific pack.`)
+      throw new Error(`Round "${name}" needs at least one specific pack.`)
     }
 
     const selectionRules = normaliseSelectionRules(roundRaw.selectionRules)
@@ -160,7 +160,7 @@ export function buildManualRoomRoundPlan(params: {
 
     if (available.length < questionCount) {
       throw new Error(
-        `Round \"${name}\" needs ${questionCount} question${questionCount === 1 ? "" : "s"}, but only ${available.length} match.`
+        `Round "${name}" needs ${questionCount} question${questionCount === 1 ? "" : "s"}, but only ${available.length} match.`
       )
     }
 
