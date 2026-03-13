@@ -1,0 +1,190 @@
+import type { RoomRoundPlan, RoundPlanItem, RoundSelectionRules, RoundSourceMode } from "@/lib/roomRoundPlan"
+
+export type ManualRoundDraftInput = {
+  id?: string
+  name?: string
+  questionCount?: number
+  jokerEligible?: boolean
+  countsTowardsScore?: boolean
+  sourceMode?: RoundSourceMode
+  packIds?: string[]
+  selectionRules?: RoundSelectionRules
+}
+
+export type QuestionCandidate = {
+  id: string
+  legacyRoundType: "general" | "audio" | "picture"
+  mediaType: "text" | "audio" | "image"
+  promptTarget: string | null
+  clueSource: string | null
+  primaryShowKey: string | null
+  packIds: string[]
+}
+
+function shuffleInPlace<T>(items: T[]) {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const tmp = items[i]
+    items[i] = items[j]
+    items[j] = tmp
+  }
+}
+
+function cleanStringArray(raw: unknown) {
+  if (!Array.isArray(raw)) return [] as string[]
+  return raw.map((value) => String(value ?? "").trim()).filter(Boolean)
+}
+
+function cleanMediaTypeArray(raw: unknown): Array<"text" | "audio" | "image"> {
+  return cleanStringArray(raw).filter((value): value is "text" | "audio" | "image" => {
+    return value === "text" || value === "audio" || value === "image"
+  })
+}
+
+function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
+  const value = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {}
+  return {
+    mediaTypes: cleanMediaTypeArray(value.mediaTypes),
+    promptTargets: cleanStringArray(value.promptTargets),
+    clueSources: cleanStringArray(value.clueSources),
+    primaryShowKeys: cleanStringArray(value.primaryShowKeys),
+  }
+}
+
+function normaliseSourceMode(raw: unknown): RoundSourceMode {
+  const value = String(raw ?? "").trim().toLowerCase()
+  if (value === "specific_packs") return "specific_packs"
+  if (value === "all_questions") return "all_questions"
+  return "selected_packs"
+}
+
+function normaliseRoundName(raw: unknown, index: number) {
+  const value = String(raw ?? "").trim()
+  return value || `Round ${index + 1}`
+}
+
+function normaliseCount(raw: unknown) {
+  const value = Math.floor(Number(raw ?? 0))
+  return Number.isFinite(value) && value > 0 ? value : 0
+}
+
+function cleanPackIds(raw: unknown) {
+  return [...new Set(cleanStringArray(raw))]
+}
+
+function getSourcePackIds(args: {
+  sourceMode: RoundSourceMode
+  selectedPackIds: string[]
+  specificPackIds: string[]
+  allPackIds: string[]
+}) {
+  if (args.sourceMode === "specific_packs") return args.specificPackIds
+  if (args.sourceMode === "all_questions") return args.allPackIds
+  return args.selectedPackIds
+}
+
+function candidateMatchesRules(candidate: QuestionCandidate, rules: RoundSelectionRules) {
+  if (rules.mediaTypes?.length && !rules.mediaTypes.includes(candidate.mediaType)) return false
+  if (rules.promptTargets?.length && !rules.promptTargets.includes(candidate.promptTarget ?? "")) return false
+  if (rules.clueSources?.length && !rules.clueSources.includes(candidate.clueSource ?? "")) return false
+  if (rules.primaryShowKeys?.length && !rules.primaryShowKeys.includes(candidate.primaryShowKey ?? "")) return false
+  return true
+}
+
+export function deriveMediaType(input: {
+  mediaType?: string | null
+  legacyRoundType?: string | null
+}) {
+  const explicit = String(input.mediaType ?? "").trim().toLowerCase()
+  if (explicit === "audio" || explicit === "image" || explicit === "text") {
+    return explicit as "text" | "audio" | "image"
+  }
+
+  const legacy = String(input.legacyRoundType ?? "").trim().toLowerCase()
+  if (legacy === "audio") return "audio"
+  if (legacy === "picture") return "image"
+  return "text"
+}
+
+export function buildManualRoomRoundPlan(params: {
+  roundsInput: ManualRoundDraftInput[]
+  selectedPackIds: string[]
+  allPackIds: string[]
+  candidates: QuestionCandidate[]
+  buildMode?: RoomRoundPlan["buildMode"]
+}): RoomRoundPlan {
+  const { roundsInput, selectedPackIds, allPackIds, candidates } = params
+
+  if (!Array.isArray(roundsInput) || roundsInput.length === 0) {
+    throw new Error("Add at least one round.")
+  }
+
+  const usedIds = new Set<string>()
+  const rounds: RoundPlanItem[] = []
+
+  for (let index = 0; index < roundsInput.length; index++) {
+    const roundRaw = roundsInput[index] ?? {}
+    const name = normaliseRoundName(roundRaw.name, index)
+    const questionCount = normaliseCount(roundRaw.questionCount)
+    if (questionCount <= 0) {
+      throw new Error(`Round ${index + 1} needs a question count greater than 0.`)
+    }
+
+    const sourceMode = normaliseSourceMode(roundRaw.sourceMode)
+    const packIds = cleanPackIds(roundRaw.packIds)
+    const sourcePackIds = getSourcePackIds({
+      sourceMode,
+      selectedPackIds,
+      specificPackIds: packIds,
+      allPackIds,
+    })
+
+    if (sourceMode === "selected_packs" && sourcePackIds.length === 0) {
+      throw new Error(`Round \"${name}\" uses selected packs, but no packs are selected.`)
+    }
+
+    if (sourceMode === "specific_packs" && sourcePackIds.length === 0) {
+      throw new Error(`Round \"${name}\" needs at least one specific pack.`)
+    }
+
+    const selectionRules = normaliseSelectionRules(roundRaw.selectionRules)
+
+    const available = candidates.filter((candidate) => {
+      if (usedIds.has(candidate.id)) return false
+      if (sourcePackIds.length > 0) {
+        const inScope = candidate.packIds.some((packId) => sourcePackIds.includes(packId))
+        if (!inScope) return false
+      }
+      return candidateMatchesRules(candidate, selectionRules)
+    })
+
+    if (available.length < questionCount) {
+      throw new Error(
+        `Round \"${name}\" needs ${questionCount} question${questionCount === 1 ? "" : "s"}, but only ${available.length} match.`
+      )
+    }
+
+    const shuffled = [...available]
+    shuffleInPlace(shuffled)
+    const chosen = shuffled.slice(0, questionCount)
+    for (const candidate of chosen) usedIds.add(candidate.id)
+
+    rounds.push({
+      id: String(roundRaw.id ?? `manual_round_${index + 1}`).trim() || `manual_round_${index + 1}`,
+      name,
+      behaviourType: "standard",
+      questionCount,
+      jokerEligible: Boolean(roundRaw.jokerEligible ?? true),
+      countsTowardsScore: Boolean(roundRaw.countsTowardsScore ?? true),
+      sourceMode,
+      packIds: sourceMode === "specific_packs" ? sourcePackIds : [],
+      selectionRules,
+      questionIds: chosen.map((candidate) => candidate.id),
+    })
+  }
+
+  return {
+    buildMode: params.buildMode ?? "manual_rounds",
+    rounds,
+  }
+}

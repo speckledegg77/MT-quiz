@@ -1,628 +1,398 @@
 export const runtime = "nodejs"
 
 import { NextResponse } from "next/server"
+
+import { supabaseAdmin } from "../../../../lib/supabaseAdmin"
 import {
-  countJokerEligibleRounds,
-  findRoundForQuestionIndex,
-  getEffectiveRoomRoundPlan,
+  buildQuestionIdList,
+  SelectionError,
+  type PackSelectionInput,
+  type RoundFilter,
+  type SelectionStrategy,
+} from "../../../../lib/questionSelection"
+import {
+  buildLegacyRoomRoundPlan,
   getLegacyFieldsFromRoundPlan,
-  isJokerEnabledForRoundPlan,
-  materialiseRoundPlan,
-  type EffectiveRoundPlanItem,
-} from "@/lib/roomRoundPlan"
-import { supabaseAdmin } from "@/lib/supabaseAdmin"
-import { getQuestionById } from "@/lib/questionBank"
-import { shuffleMcqForRoom } from "@/lib/mcqShuffle"
+  type RoomBuildMode,
+  type RoundSelectionRules,
+  type RoundSourceMode,
+} from "../../../../lib/roomRoundPlan"
+import {
+  buildManualRoomRoundPlan,
+  deriveMediaType,
+  type ManualRoundDraftInput,
+  type QuestionCandidate,
+} from "../../../../lib/manualRoundPlanBuilder"
 
-type TeamPlayerRow = {
-  id: string
-  name: string
-  totalScore: number
-  usedJokerInScope: boolean
+type LegacyRoundRequest = { packId: string; count: number }
+
+
+function randomCode(len = 8) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+  let out = ""
+  for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)]
+  return out
 }
 
-type TeamStats = {
-  team: string
-  players: number
-  answered: number
-  correct: number
-  jokerUsed: number
-  jokerCorrect: number
-  totalScoreSoFar: number
-  averageScoreSoFar: number
-  displayScoreSoFar: number
-  playersList: TeamPlayerRow[]
+function clampInt(n: number, min: number, max: number) {
+  if (!Number.isFinite(n)) return min
+  return Math.min(max, Math.max(min, Math.floor(n)))
 }
 
-type StatsBlock = {
-  answered: number
-  correct: number
-  jokerUsed: number
-  jokerCorrect: number
-  byTeam: TeamStats[]
+function normaliseRoundFilter(raw: unknown): RoundFilter {
+  const v = String(raw ?? "").toLowerCase()
+  if (v === "no_audio") return "no_audio"
+  if (v === "no_image") return "no_image"
+  if (v === "audio_only") return "audio_only"
+  if (v === "picture_only") return "picture_only"
+  if (v === "audio_and_image") return "audio_and_image"
+  return "mixed"
 }
 
-type RoundPlanRow = EffectiveRoundPlanItem
-
-type FinalRoundResult = {
-  index: number
-  number: number
-  name: string
-  score: number
-  jokerUsed: boolean
+function normaliseStrategy(raw: unknown): SelectionStrategy | null {
+  const v = String(raw ?? "").toLowerCase()
+  if (v === "per_pack") return "per_pack"
+  if (v === "all_packs") return "all_packs"
+  return null
 }
 
-type FinalPlayerResult = {
-  id: string
-  name: string
-  team: string
-  totalScore: number
-  jokerRoundIndex: number | null
-  rounds: FinalRoundResult[]
+function normaliseBuildMode(raw: unknown): RoomBuildMode {
+  const v = String(raw ?? "").toLowerCase()
+  if (v === "manual_rounds") return "manual_rounds"
+  if (v === "auto_rounds") return "auto_rounds"
+  if (v === "quick_random") return "quick_random"
+  return "legacy_pack_mode"
 }
 
-type FinalTeamResult = {
-  team: string
-  totalScore: number
-  averageScore: number
-  playerCount: number
-  players: FinalPlayerResult[]
+function normaliseRoundCount(raw: unknown, questionCount: number) {
+  const qc = Math.max(1, Math.floor(Number(questionCount ?? 0)) || 1)
+  const requested = Math.floor(Number(raw ?? 4))
+  const safe = Number.isFinite(requested) ? requested : 4
+  const capped = clampInt(safe, 1, 20)
+  return Math.min(capped, qc)
 }
 
-type TeamScoreMode = "total" | "average"
-
-type BuildStatsOptions = {
-  scopeRoundIndex?: number | null
-  includePlannedJokerUsers?: boolean
-  uniqueJokerUsersByPlayer?: boolean
-}
-
-const ANSWER_AUTO_SUBMIT_GRACE_SECONDS = 2
-
-function buildRoundSummaryEndsAt(nextAt: string | null | undefined, roundReviewSeconds: number) {
-  const nextMs = nextAt ? Date.parse(nextAt) : NaN
-  if (!Number.isFinite(nextMs)) return null
-
-  const reviewMs = Math.max(0, Math.floor(Number(roundReviewSeconds ?? 0)) || 0) * 1000
-  if (reviewMs <= 0) return null
-
-  return new Date(nextMs + reviewMs).toISOString()
-}
-
-
-function stageFromTimes(
-  phase: string,
-  nowMs: number,
-  openAt?: string,
-  closeAt?: string,
-  revealAt?: string,
-  nextAt?: string
-) {
-  if (phase !== "running") return phase
-
-  const open = openAt ? Date.parse(openAt) : 0
-  const close = closeAt ? Date.parse(closeAt) : 0
-  const reveal = revealAt ? Date.parse(revealAt) : 0
-  const next = nextAt ? Date.parse(nextAt) : 0
-
-  if (nowMs < open) return "countdown"
-  if (nowMs < close) return "open"
-  if (nowMs < reveal) return "wait"
-  if (nowMs < next) return "reveal"
-  return "needs_advance"
-}
-
-function emptyStats(): StatsBlock {
-  return { answered: 0, correct: 0, jokerUsed: 0, jokerCorrect: 0, byTeam: [] }
-}
-
-function buildStats(
-  players: any[],
-  answers: any[],
-  teamScoreMode: TeamScoreMode = "total",
-  options: BuildStatsOptions = {}
-): StatsBlock {
-  const scopeRoundIndex = Number(options.scopeRoundIndex)
-  const hasScopeRoundIndex = Number.isFinite(scopeRoundIndex)
-  const includePlannedJokerUsers = Boolean(options.includePlannedJokerUsers && hasScopeRoundIndex)
-  const uniqueJokerUsersByPlayer = Boolean(options.uniqueJokerUsersByPlayer)
-
-  const byTeamPlayers = new Map<string, any[]>()
-
-  for (const player of players) {
-    const team = String(player?.team_name ?? "").trim() || "No team"
-    const list = byTeamPlayers.get(team) ?? []
-    list.push(player)
-    byTeamPlayers.set(team, list)
+function normaliseRoundNames(raw: unknown, count: number) {
+  const arr = Array.isArray(raw) ? raw : []
+  const out: string[] = []
+  for (let i = 0; i < count; i++) {
+    const name = String(arr[i] ?? "").trim()
+    out.push(name || `Round ${i + 1}`)
   }
+  return out
+}
 
-  const byTeam = new Map<
-    string,
-    {
-      answered: number
-      correct: number
-      jokerUsed: number
-      jokerCorrect: number
-      usedJokerPlayerIds: Set<string>
-    }
-  >()
+function cleanStringArray(raw: unknown) {
+  if (!Array.isArray(raw)) return [] as string[]
+  return raw.map((value) => String(value ?? "").trim()).filter(Boolean)
+}
 
-  for (const team of byTeamPlayers.keys()) {
-    byTeam.set(team, {
-      answered: 0,
-      correct: 0,
-      jokerUsed: 0,
-      jokerCorrect: 0,
-      usedJokerPlayerIds: new Set<string>(),
-    })
+function cleanBoolean(value: unknown, fallback: boolean) {
+  return typeof value === "boolean" ? value : fallback
+}
+
+function cleanNumber(value: unknown, fallback: number) {
+  const parsed = Math.floor(Number(value))
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function cleanSelectionRules(raw: unknown): RoundSelectionRules {
+  const value = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {}
+  return {
+    mediaTypes: cleanStringArray(value.mediaTypes).filter(
+      (item): item is "text" | "audio" | "image" => item === "text" || item === "audio" || item === "image"
+    ),
+    promptTargets: cleanStringArray(value.promptTargets),
+    clueSources: cleanStringArray(value.clueSources),
+    primaryShowKeys: cleanStringArray(value.primaryShowKeys),
   }
+}
 
-  const globalUsedJokerPlayerIds = new Set<string>()
+function cleanSourceMode(raw: unknown): RoundSourceMode {
+  const value = String(raw ?? "").trim().toLowerCase()
+  if (value === "specific_packs") return "specific_packs"
+  if (value === "all_questions") return "all_questions"
+  return "selected_packs"
+}
 
-  if (includePlannedJokerUsers) {
-    for (const player of players) {
-      if (Number(player?.joker_round_index) !== scopeRoundIndex) continue
-
-      const team = String(player?.team_name ?? "").trim() || "No team"
-      const entry =
-        byTeam.get(team) ??
-        {
-          answered: 0,
-          correct: 0,
-          jokerUsed: 0,
-          jokerCorrect: 0,
-          usedJokerPlayerIds: new Set<string>(),
-        }
-
-      const playerId = String(player?.id ?? "").trim()
-      if (playerId) {
-        entry.usedJokerPlayerIds.add(playerId)
-        globalUsedJokerPlayerIds.add(playerId)
-      }
-
-      byTeam.set(team, entry)
-    }
-  }
-
-  let answered = 0
-  let correct = 0
-  let jokerUsed = 0
-  let jokerCorrect = 0
-
-  for (const answer of answers) {
-    answered += 1
-
-    const team = String(answer?.team_name ?? "").trim() || "No team"
-    const entry =
-      byTeam.get(team) ??
-      {
-        answered: 0,
-        correct: 0,
-        jokerUsed: 0,
-        jokerCorrect: 0,
-        usedJokerPlayerIds: new Set<string>(),
-      }
-
-    entry.answered += 1
-
-    const isCorrect = Boolean(answer?.is_correct)
-    const usedJoker = Boolean(answer?.joker_active)
-    const playerId = String(answer?.player_id ?? "").trim()
-
-    if (isCorrect) {
-      correct += 1
-      entry.correct += 1
-    }
-
-    if (usedJoker) {
-      if (uniqueJokerUsersByPlayer) {
-        if (playerId) {
-          entry.usedJokerPlayerIds.add(playerId)
-          globalUsedJokerPlayerIds.add(playerId)
-        }
-      } else {
-        jokerUsed += 1
-        entry.jokerUsed += 1
-      }
-
-      if (playerId && !uniqueJokerUsersByPlayer) {
-        entry.usedJokerPlayerIds.add(playerId)
-      }
-
-      if (isCorrect) {
-        jokerCorrect += 1
-        entry.jokerCorrect += 1
-      }
-    }
-
-    byTeam.set(team, entry)
-  }
-
-  const teamRows: TeamStats[] = Array.from(byTeamPlayers.entries()).map(([team, teamPlayers]) => {
-    const entry =
-      byTeam.get(team) ??
-      {
-        answered: 0,
-        correct: 0,
-        jokerUsed: 0,
-        jokerCorrect: 0,
-        usedJokerPlayerIds: new Set<string>(),
-      }
-
-    const totalScoreSoFar = teamPlayers.reduce((sum, player) => sum + Number(player?.score ?? 0), 0)
-    const averageScoreSoFar = teamPlayers.length > 0 ? totalScoreSoFar / teamPlayers.length : 0
-    const displayScoreSoFar = teamScoreMode === "average" ? averageScoreSoFar : totalScoreSoFar
-
-    const playersList: TeamPlayerRow[] = [...teamPlayers]
-      .sort((a, b) => {
-        const scoreDiff = Number(b?.score ?? 0) - Number(a?.score ?? 0)
-        if (scoreDiff !== 0) return scoreDiff
-        return String(a?.name ?? "").localeCompare(String(b?.name ?? ""))
-      })
-      .map((player) => ({
-        id: String(player?.id ?? ""),
-        name: String(player?.name ?? "").trim() || "Player",
-        totalScore: Number(player?.score ?? 0),
-        usedJokerInScope: includePlannedJokerUsers
-          ? Number(player?.joker_round_index) === scopeRoundIndex || entry.usedJokerPlayerIds.has(String(player?.id ?? ""))
-          : entry.usedJokerPlayerIds.has(String(player?.id ?? "")),
-      }))
-
+function cleanManualRounds(raw: unknown): ManualRoundDraftInput[] {
+  const arr = Array.isArray(raw) ? raw : []
+  return arr.map((item, index) => {
+    const value = item && typeof item === "object" ? (item as Record<string, unknown>) : {}
     return {
-      team,
-      players: teamPlayers.length,
-      answered: entry.answered,
-      correct: entry.correct,
-      jokerUsed: uniqueJokerUsersByPlayer || includePlannedJokerUsers ? entry.usedJokerPlayerIds.size : entry.jokerUsed,
-      jokerCorrect: entry.jokerCorrect,
-      totalScoreSoFar,
-      averageScoreSoFar,
-      displayScoreSoFar,
-      playersList,
+      id: String(value.id ?? `manual_round_${index + 1}`).trim() || `manual_round_${index + 1}`,
+      name: String(value.name ?? "").trim(),
+      questionCount: cleanNumber(value.questionCount, 0),
+      jokerEligible: cleanBoolean(value.jokerEligible, true),
+      countsTowardsScore: cleanBoolean(value.countsTowardsScore, true),
+      sourceMode: cleanSourceMode(value.sourceMode),
+      packIds: cleanStringArray(value.packIds),
+      selectionRules: cleanSelectionRules(value.selectionRules),
     }
   })
+}
 
-  teamRows.sort((a, b) => {
-    if (b.displayScoreSoFar !== a.displayScoreSoFar) return b.displayScoreSoFar - a.displayScoreSoFar
-    if (b.totalScoreSoFar !== a.totalScoreSoFar) return b.totalScoreSoFar - a.totalScoreSoFar
-    return a.team.localeCompare(b.team)
-  })
+async function loadQuestionPoolForManualRounds(params: {
+  selectedPackIds: string[]
+  manualRounds: ManualRoundDraftInput[]
+}) {
+  const needsAllQuestions = params.manualRounds.some((round) => round.sourceMode === "all_questions")
+  let allActivePackIds: string[] = []
 
-  if (uniqueJokerUsersByPlayer || includePlannedJokerUsers) {
-    jokerUsed = globalUsedJokerPlayerIds.size
+  if (needsAllQuestions) {
+    const packsRes = await supabaseAdmin.from("packs").select("id").eq("is_active", true)
+    if (packsRes.error) throw new Error(packsRes.error.message)
+    allActivePackIds = cleanStringArray((packsRes.data ?? []).map((row: any) => row.id))
   }
 
-  return { answered, correct, jokerUsed, jokerCorrect, byTeam: teamRows }
-}
+  const specificPackIds = params.manualRounds.flatMap((round) => cleanStringArray(round.packIds))
+  const scopePackIds = [...new Set([...params.selectedPackIds, ...specificPackIds, ...allActivePackIds])]
 
-function sortPlayers(a: FinalPlayerResult, b: FinalPlayerResult) {
-  if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
-  return a.name.localeCompare(b.name)
-}
+  if (scopePackIds.length === 0) {
+    throw new Error("Manual rounds need selected packs, specific packs, or all active packs.")
+  }
 
-function buildFinalResults(
-  players: any[],
-  questionIds: string[],
-  roundPlan: RoundPlanRow[],
-  answers: Array<{ player_id: string; question_id: string; score_delta: number | null }>
-) {
-  const answerMap = new Map<string, number>()
-  for (const answer of answers) {
-    answerMap.set(
-      `${String(answer.player_id ?? "").trim()}:${String(answer.question_id ?? "").trim()}`,
-      Number(answer.score_delta ?? 0)
+  const linksRes = await supabaseAdmin
+    .from("pack_questions")
+    .select(
+      "pack_id, question_id, questions(round_type, media_type, prompt_target, clue_source, primary_show_key)"
     )
-  }
+    .in("pack_id", scopePackIds)
 
-  const finalPlayers: FinalPlayerResult[] = players.map((player: any) => {
-    const jokerRoundNumber = Number(player?.joker_round_index)
-    const jokerRoundIndex = Number.isFinite(jokerRoundNumber) ? jokerRoundNumber : null
+  if (linksRes.error) throw new Error(linksRes.error.message)
 
-    return {
-      id: String(player?.id ?? ""),
-      name: String(player?.name ?? "").trim() || "Player",
-      team: String(player?.team_name ?? "").trim() || "No team",
-      totalScore: Number(player?.score ?? 0),
-      jokerRoundIndex,
-      rounds: roundPlan.map((round) => ({
-        index: round.index,
-        number: round.number,
-        name: round.name,
-        score: 0,
-        jokerUsed: jokerRoundIndex === round.index,
-      })),
-    }
-  })
+  const candidatesById = new Map<string, QuestionCandidate>()
 
-  for (let questionIndex = 0; questionIndex < questionIds.length; questionIndex++) {
-    const questionId = String(questionIds[questionIndex] ?? "")
-    const round = findRoundForQuestionIndex(questionIndex, roundPlan)
+  for (const row of (linksRes.data ?? []) as any[]) {
+    const packId = String(row.pack_id ?? "").trim()
+    const questionId = String(row.question_id ?? "").trim()
+    if (!packId || !questionId) continue
 
-    for (const player of finalPlayers) {
-      const key = `${player.id}:${questionId}`
-      let score = 0
+    const question = row.questions ?? {}
+    const legacyRoundType: "general" | "audio" | "picture" =
+      question.round_type === "audio" ? "audio" : question.round_type === "picture" ? "picture" : "general"
 
-      if (answerMap.has(key)) {
-        score = Number(answerMap.get(key) ?? 0)
-      } else if (player.jokerRoundIndex === round.index) {
-        score = -1
-      }
-
-      player.rounds[round.index].score += score
-    }
-  }
-
-  finalPlayers.sort(sortPlayers)
-
-  const teamsMap = new Map<string, FinalTeamResult>()
-  for (const player of finalPlayers) {
-    const team = player.team || "No team"
-    const existing = teamsMap.get(team)
-
+    const existing = candidatesById.get(questionId)
     if (existing) {
-      existing.totalScore += player.totalScore
-      existing.playerCount += 1
-      existing.players.push(player)
+      if (!existing.packIds.includes(packId)) existing.packIds.push(packId)
       continue
     }
 
-    teamsMap.set(team, {
-      team,
-      totalScore: player.totalScore,
-      averageScore: 0,
-      playerCount: 1,
-      players: [player],
+    candidatesById.set(questionId, {
+      id: questionId,
+      legacyRoundType,
+      mediaType: deriveMediaType({
+        mediaType: question.media_type ?? null,
+        legacyRoundType,
+      }),
+      promptTarget: question.prompt_target ? String(question.prompt_target) : null,
+      clueSource: question.clue_source ? String(question.clue_source) : null,
+      primaryShowKey: question.primary_show_key ? String(question.primary_show_key) : null,
+      packIds: [packId],
     })
   }
 
-  const teams = Array.from(teamsMap.values()).map((team) => {
-    team.players.sort(sortPlayers)
-    team.averageScore = team.playerCount > 0 ? team.totalScore / team.playerCount : 0
-    return team
-  })
-
-  teams.sort((a, b) => {
-    if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
-    return a.team.localeCompare(b.team)
-  })
-
   return {
-    rounds: roundPlan.map((round) => ({
-      index: round.index,
-      number: round.number,
-      name: round.name,
-    })),
-    players: finalPlayers,
-    teams,
+    allActivePackIds,
+    candidates: [...candidatesById.values()],
+    scopePackIds,
   }
 }
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url)
-  const code = String(searchParams.get("code") ?? "").trim().toUpperCase()
+export async function POST(req: Request) {
+  const body = await req.json().catch(() => ({}))
 
-  if (!code) return NextResponse.json({ error: "Missing code" }, { status: 400 })
+  const buildMode = normaliseBuildMode(body.buildMode)
+  const gameModeRaw = String(body.gameMode ?? "teams").toLowerCase()
+  const gameMode = gameModeRaw === "solo" ? "solo" : "teams"
+  const teamScoreModeRaw = String(body.teamScoreMode ?? "total").toLowerCase()
+  const teamScoreMode = teamScoreModeRaw === "average" ? "average" : "total"
+  const teamNames = cleanStringArray(body.teamNames)
 
-  const roomRes = await supabaseAdmin.from("rooms").select("*").eq("code", code).single()
-  if (roomRes.error) return NextResponse.json({ error: "Room not found" }, { status: 404 })
+  if (gameMode === "teams") {
+    if (teamNames.length < 2) {
+      return NextResponse.json({ error: "Add at least two team names" }, { status: 400 })
+    }
+    const seen = new Set<string>()
+    for (const name of teamNames) {
+      const key = name.toLowerCase()
+      if (seen.has(key)) {
+        return NextResponse.json({ error: "Team names must be unique" }, { status: 400 })
+      }
+      seen.add(key)
+    }
+  }
 
-  const room = roomRes.data
+  const countdownSeconds = Number(body.countdownSeconds ?? 3)
+  const answerSeconds = Number(body.answerSeconds ?? 60)
+  const revealDelaySeconds = Number(body.revealDelaySeconds ?? 2)
+  const revealSeconds = Number(body.revealSeconds ?? 5)
+  const audioModeRaw = String(body.audioMode ?? "display").toLowerCase()
+  const audioMode = audioModeRaw === "phones" || audioModeRaw === "both" ? audioModeRaw : "display"
 
-  let players: any[] = []
-  const withJoker = await supabaseAdmin
-    .from("players")
-    .select("id, name, score, team_name, joker_round_index, joined_at")
-    .eq("room_id", room.id)
-    .order("joined_at", { ascending: true })
+  const roundFilter = normaliseRoundFilter(body.roundFilter)
+  const legacyRoundsInput: any[] = Array.isArray(body.rounds) ? body.rounds : []
+  const legacyRounds: LegacyRoundRequest[] = legacyRoundsInput
+    .map((round) => ({
+      packId: String(round?.packId ?? "").trim(),
+      count: Number(round?.count ?? 0),
+    }))
+    .filter((round) => round.packId && Number.isFinite(round.count) && round.count > 0)
 
-  if (!withJoker.error) {
-    players = withJoker.data ?? []
-  } else {
-    const message = String(withJoker.error.message ?? "").toLowerCase()
-    if (message.includes("joker_round_index")) {
-      const without = await supabaseAdmin
-        .from("players")
-        .select("id, name, score, team_name, joined_at")
-        .eq("room_id", room.id)
-        .order("joined_at", { ascending: true })
+  const selectedPacksInput: any[] = Array.isArray(body.selectedPacks) ? body.selectedPacks : []
+  const selectedPacks = selectedPacksInput.map((value) => String(value ?? "").trim()).filter(Boolean)
 
-      players = (without.data ?? []).map((player: any) => ({ ...player, joker_round_index: null }))
+  const totalQuestionsRaw =
+    body.totalQuestions != null ? Number(body.totalQuestions) : body.questionCount != null ? Number(body.questionCount) : 20
+  const totalQuestions = Number.isFinite(totalQuestionsRaw) && totalQuestionsRaw > 0 ? Math.floor(totalQuestionsRaw) : 20
+
+  const strategyFromBody = normaliseStrategy(body.selectionStrategy)
+  const inferredStrategy: SelectionStrategy = legacyRounds.length > 0 ? "per_pack" : "all_packs"
+  const strategy: SelectionStrategy = strategyFromBody ?? inferredStrategy
+
+  const roundCount = normaliseRoundCount(body.roundCount, totalQuestions)
+  const roundNames = normaliseRoundNames(body.roundNames, roundCount)
+
+  let roundPlan: import("../../../../lib/roomRoundPlan").RoomRoundPlan
+  let legacyFields: ReturnType<typeof getLegacyFieldsFromRoundPlan>
+  let selectedPacksToStore: string[] = []
+  let selectionStrategyToStore: SelectionStrategy = strategy
+  let roundFilterToStore: RoundFilter = roundFilter
+  let roundsToStore: PackSelectionInput[] | null = null
+  let effectiveTotalQuestions = totalQuestions
+
+  try {
+    if (buildMode === "manual_rounds") {
+      const manualRounds = cleanManualRounds(body.manualRounds)
+      const { allActivePackIds, candidates } = await loadQuestionPoolForManualRounds({
+        selectedPackIds: selectedPacks,
+        manualRounds,
+      })
+
+      roundPlan = buildManualRoomRoundPlan({
+        roundsInput: manualRounds,
+        selectedPackIds: selectedPacks,
+        allPackIds: allActivePackIds,
+        candidates,
+        buildMode,
+      })
+
+      legacyFields = getLegacyFieldsFromRoundPlan(roundPlan)
+      effectiveTotalQuestions = legacyFields.question_ids.length
+      selectedPacksToStore = [
+        ...new Set([
+          ...selectedPacks,
+          ...manualRounds.flatMap((round) => (round.sourceMode === "specific_packs" ? cleanStringArray(round.packIds) : [])),
+        ]),
+      ]
+      selectionStrategyToStore = "all_packs"
+      roundFilterToStore = "mixed"
+      roundsToStore = null
     } else {
-      return NextResponse.json({ error: withJoker.error.message }, { status: 500 })
-    }
-  }
+      const packIdsFromRounds = [...new Set(legacyRounds.map((round) => round.packId))]
+      const packIds = [...new Set([...(selectedPacks.length ? selectedPacks : []), ...packIdsFromRounds])].filter(Boolean)
 
-  const storedRoundPlan = getEffectiveRoomRoundPlan(room)
-  const legacyFields = getLegacyFieldsFromRoundPlan(storedRoundPlan)
-  const questionIds = legacyFields.question_ids
-  const questionCount = questionIds.length
-  const safeQuestionIndex = Math.max(0, Math.floor(Number(room.question_index ?? 0)) || 0)
-  const currentQuestionId = questionIds[safeQuestionIndex]
-
-  const now = new Date()
-  const baseStage = stageFromTimes(room.phase, now.getTime(), room.open_at, room.close_at, room.reveal_at, room.next_at)
-
-  const audioMode = String(room.audio_mode ?? "display")
-  const selectedPacks = Array.isArray(room.selected_packs) ? room.selected_packs : []
-  const isUntimedAnswers = Number(room.answer_seconds ?? 0) <= 0
-  const teamScoreMode: TeamScoreMode = String(room.team_score_mode ?? "total") === "average" ? "average" : "total"
-
-  const roundCount = legacyFields.round_count
-  const roundNames = legacyFields.round_names
-  const roundPlan = materialiseRoundPlan(storedRoundPlan)
-  const currentRound = findRoundForQuestionIndex(safeQuestionIndex, roundPlan)
-  const questionNumberInRound = Math.max(1, safeQuestionIndex - currentRound.startIndex + 1)
-
-  const isLastQuestionOverall = questionCount > 0 ? safeQuestionIndex >= questionCount - 1 : true
-  const isLastQuestionInRound = safeQuestionIndex >= currentRound.endIndex
-  const nextRound = !isLastQuestionOverall ? roundPlan[currentRound.index + 1] ?? null : null
-
-  const roundReviewSeconds = Math.min(120, Math.max(0, Math.floor(Number(room.countdown_seconds ?? 0)) || 0))
-  const roundSummaryEndsAt = buildRoundSummaryEndsAt(room.next_at, roundReviewSeconds)
-
-  let stage = baseStage
-  if (room.phase === "running" && baseStage === "needs_advance" && isLastQuestionInRound) {
-    if (roundSummaryEndsAt && now.getTime() < Date.parse(roundSummaryEndsAt)) {
-      stage = "round_summary"
-    } else {
-      stage = "needs_advance"
-    }
-  }
-
-  const canShowQuestion = room.phase === "running"
-
-  let questionPublic: any = null
-  let revealData: any = null
-
-  if (canShowQuestion && currentQuestionId) {
-    const question = await getQuestionById(String(currentQuestionId))
-
-    if (question) {
-      let options = question.options
-      let revealAnswerIndex = question.answerIndex
-
-      if (
-        question.answerType === "mcq" &&
-        question.answerIndex !== null &&
-        Array.isArray(question.options) &&
-        question.options.length > 1
-      ) {
-        const shuffled = shuffleMcqForRoom(question.options, question.answerIndex, room.id, question.id)
-        options = shuffled.options
-        revealAnswerIndex = shuffled.answerIndex
+      if (packIds.length === 0) {
+        return NextResponse.json({ error: "Pick at least one pack" }, { status: 400 })
       }
 
-      questionPublic = {
-        id: question.id,
-        roundType: question.roundType,
-        answerType: question.answerType,
-        text: question.text,
-        options,
-        audioUrl: question.audioPath ? `/api/audio?path=${encodeURIComponent(question.audioPath)}` : null,
-        imageUrl: question.imagePath ? `/api/image?path=${encodeURIComponent(question.imagePath)}` : null,
+      let selectionPacks: PackSelectionInput[] = []
+      if (strategy === "per_pack" && legacyRounds.length > 0) {
+        selectionPacks = legacyRounds.map((round) => ({
+          pack_id: round.packId,
+          count: Math.max(1, Math.floor(Number(round.count))),
+        }))
+      } else {
+        selectionPacks = packIds.map((id) => ({ pack_id: id }))
       }
 
-      if (stage === "reveal") {
-        revealData = {
-          answerType: question.answerType,
-          answerIndex: question.answerType === "mcq" ? revealAnswerIndex : null,
-          answerText: question.answerType === "text" ? (question.answerText ?? "") : null,
-          explanation: question.explanation,
-        }
+      const packQuestionsById: Record<string, Array<{ id: string; round_type: "general" | "audio" | "picture" }>> = {}
+      for (const pid of packIds) packQuestionsById[pid] = []
+
+      const linksRes = await supabaseAdmin
+        .from("pack_questions")
+        .select("pack_id, question_id, questions(round_type)")
+        .in("pack_id", packIds)
+
+      if (linksRes.error) {
+        return NextResponse.json({ error: linksRes.error.message }, { status: 500 })
       }
+
+      for (const row of (linksRes.data ?? []) as any[]) {
+        const pid = String(row.pack_id ?? "").trim()
+        const qid = String(row.question_id ?? "").trim()
+        const rt = row.questions?.round_type
+        if (!pid || !qid) continue
+        const round_type: "general" | "audio" | "picture" =
+          rt === "audio" ? "audio" : rt === "picture" ? "picture" : "general"
+        packQuestionsById[pid] ??= []
+        packQuestionsById[pid].push({ id: qid, round_type })
+      }
+
+      const result = buildQuestionIdList({
+        packs: selectionPacks,
+        packQuestionsById,
+        strategy,
+        totalQuestions,
+        roundFilter,
+      })
+
+      const pickedIds = result.questionIds
+      if (pickedIds.length === 0) {
+        return NextResponse.json(
+          { error: packIds.length ? `No questions found for packs: ${packIds.join(", ")}` : "No questions found" },
+          { status: 400 }
+        )
+      }
+
+      roundPlan = buildLegacyRoomRoundPlan(pickedIds, roundCount, roundNames, buildMode)
+      legacyFields = getLegacyFieldsFromRoundPlan(roundPlan)
+      effectiveTotalQuestions = legacyFields.question_ids.length
+      selectedPacksToStore = packIds
+      selectionStrategyToStore = strategy
+      roundFilterToStore = roundFilter
+      roundsToStore = strategy === "per_pack" ? selectionPacks : null
     }
-  }
-
-  let questionStats: StatsBlock = emptyStats()
-  if (currentQuestionId) {
-    const questionAnswersRes = await supabaseAdmin
-      .from("answers")
-      .select("player_id, is_correct, joker_active, score_delta")
-      .eq("room_id", room.id)
-      .eq("question_id", String(currentQuestionId))
-
-    const questionAnswers = (questionAnswersRes.data ?? []).map((answer: any) => {
-      const player = players.find((row: any) => row.id === answer.player_id)
-      return {
-        ...answer,
-        team_name: player?.team_name ?? "",
-      }
-    })
-
-    questionStats = buildStats(players, questionAnswers, teamScoreMode)
-  }
-
-  let roundStats: StatsBlock = emptyStats()
-  const roundAnswersRes = await supabaseAdmin
-    .from("answers")
-    .select("player_id, is_correct, joker_active, score_delta, round_index")
-    .eq("room_id", room.id)
-    .eq("round_index", currentRound.index)
-
-  const roundAnswers = (roundAnswersRes.data ?? []).map((answer: any) => {
-    const player = players.find((row: any) => row.id === answer.player_id)
-    return {
-      ...answer,
-      team_name: player?.team_name ?? "",
+  } catch (error: any) {
+    if (error instanceof SelectionError) {
+      return NextResponse.json({ error: error.message }, { status: 400 })
     }
-  })
-
-  roundStats = buildStats(players, roundAnswers, teamScoreMode, {
-    scopeRoundIndex: currentRound.index,
-    includePlannedJokerUsers: true,
-    uniqueJokerUsersByPlayer: true,
-  })
-
-  let finalResults: any = null
-  if (room.phase === "finished") {
-    const allAnswersRes = await supabaseAdmin
-      .from("answers")
-      .select("player_id, question_id, score_delta")
-      .eq("room_id", room.id)
-
-    finalResults = buildFinalResults(players, questionIds.map(String), roundPlan, allAnswersRes.data ?? [])
+    return NextResponse.json({ error: error?.message ?? "Could not create room" }, { status: 400 })
   }
 
-  return NextResponse.json({
-    serverNow: now.toISOString(),
-    code: room.code,
-    roomId: room.id,
-    phase: room.phase,
-    gameMode: String(room.game_mode ?? "teams") === "solo" ? "solo" : "teams",
-    teamNames: Array.isArray(room.team_names) ? room.team_names : [],
-    teamScoreMode,
-    stage,
-    audioMode,
-    selectedPacks,
-    questionIndex: room.question_index,
-    questionCount,
-    flow: {
-      isLastQuestionOverall,
-      isLastQuestionInRound,
-      nextRound: nextRound
-        ? {
-            index: nextRound.index,
-            number: nextRound.number,
-            name: nextRound.name,
-          }
-        : null,
-    },
-    settings: {
-      untimedAnswers: isUntimedAnswers,
-      answerSeconds: isUntimedAnswers ? null : Number(room.answer_seconds ?? 0),
-      answerAutoSubmitGraceSeconds: isUntimedAnswers ? 0 : ANSWER_AUTO_SUBMIT_GRACE_SECONDS,
-    },
-    rounds: {
-      buildMode: storedRoundPlan.buildMode,
-      count: roundCount,
-      names: roundNames,
-      jokerEligibleCount: countJokerEligibleRounds(roundPlan),
-      jokerEnabled: isJokerEnabledForRoundPlan(roundPlan),
-      plan: roundPlan,
-      current: {
-        index: currentRound.index,
-        number: currentRound.number,
-        name: currentRound.name,
-        jokerEligible: currentRound.jokerEligible,
-        countsTowardsScore: currentRound.countsTowardsScore,
-        startIndex: currentRound.startIndex,
-        endIndex: currentRound.endIndex,
-        questionsInRound: currentRound.size,
-        questionNumberInRound,
-      },
-    },
-    times: {
-      openAt: room.open_at,
-      closeAt: room.close_at,
-      revealAt: room.reveal_at,
-      nextAt: room.next_at,
-      roundSummaryEndsAt,
-    },
-    question: questionPublic,
-    reveal: revealData,
-    questionStats,
-    roundStats,
-    finalResults,
-    players,
-  })
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const code = randomCode(8)
+
+    const ins = await supabaseAdmin
+      .from("rooms")
+      .insert({
+        code,
+        phase: "lobby",
+        question_ids: legacyFields.question_ids,
+        question_index: 0,
+        countdown_seconds: countdownSeconds,
+        answer_seconds: answerSeconds,
+        reveal_delay_seconds: revealDelaySeconds,
+        reveal_seconds: revealSeconds,
+        audio_mode: audioMode,
+        selected_packs: selectedPacksToStore,
+        selection_strategy: selectionStrategyToStore,
+        round_filter: roundFilterToStore,
+        total_questions: effectiveTotalQuestions,
+        rounds: roundsToStore,
+        game_mode: gameMode,
+        team_names: gameMode === "teams" ? teamNames : [],
+        team_score_mode: gameMode === "teams" ? teamScoreMode : "total",
+        round_count: legacyFields.round_count,
+        round_names: legacyFields.round_names,
+        build_mode: buildMode,
+        round_plan: roundPlan,
+      })
+      .select("code")
+      .single()
+
+    if (!ins.error) return NextResponse.json({ code: ins.data.code })
+  }
+
+  return NextResponse.json({ error: "Could not create room" }, { status: 500 })
 }
