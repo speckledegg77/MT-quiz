@@ -19,6 +19,8 @@ export type RoundPlanItem = {
   sourceMode: RoundSourceMode
   packIds: string[]
   selectionRules: RoundSelectionRules
+  answerSeconds?: number
+  roundReviewSeconds?: number
   questionIds: string[]
 }
 
@@ -35,6 +37,15 @@ export type EffectiveRoundPlanItem = RoundPlanItem & {
   size: number
 }
 
+export function getDefaultAnswerSecondsForBehaviour(behaviourType: RoundBehaviourType) {
+  return behaviourType === "quickfire" ? 10 : 20
+}
+
+export function getDefaultRoundReviewSecondsForBehaviour(behaviourType: RoundBehaviourType) {
+  return behaviourType === "quickfire" ? 45 : 30
+}
+
+
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min
   return Math.min(max, Math.max(min, Math.floor(n)))
@@ -43,6 +54,13 @@ function clampInt(n: number, min: number, max: number) {
 function defaultRoundName(index: number) {
   return `Round ${index + 1}`
 }
+
+function cleanOptionalNonNegativeInt(raw: unknown) {
+  const value = Math.floor(Number(raw))
+  if (!Number.isFinite(value) || value < 0) return undefined
+  return clampInt(value, 0, 120)
+}
+
 
 function normaliseRoundCount(raw: unknown, questionCount: number) {
   const qc = Math.max(1, Math.floor(Number(questionCount ?? 0)) || 1)
@@ -135,6 +153,8 @@ export function buildLegacyRoomRoundPlan(
       sourceMode: "selected_packs",
       packIds: [],
       selectionRules: {},
+      answerSeconds: getDefaultAnswerSecondsForBehaviour("standard"),
+      roundReviewSeconds: getDefaultRoundReviewSecondsForBehaviour("standard"),
       questionIds: slice,
     })
 
@@ -169,6 +189,8 @@ function normaliseStoredRoundPlan(raw: unknown): RoomRoundPlan | null {
         sourceMode: normaliseSourceMode(round.sourceMode),
         packIds: cleanStringArray(round.packIds),
         selectionRules: normaliseSelectionRules(round.selectionRules),
+        answerSeconds: cleanOptionalNonNegativeInt(round.answerSeconds),
+        roundReviewSeconds: cleanOptionalNonNegativeInt(round.roundReviewSeconds),
         questionIds,
       }
     })

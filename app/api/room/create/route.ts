@@ -12,6 +12,8 @@ import {
 } from "../../../../lib/questionSelection"
 import {
   buildLegacyRoomRoundPlan,
+  getDefaultAnswerSecondsForBehaviour,
+  getDefaultRoundReviewSecondsForBehaviour,
   getLegacyFieldsFromRoundPlan,
   type RoomBuildMode,
   type RoundBehaviourType,
@@ -97,6 +99,11 @@ function cleanNumber(value: unknown, fallback: number) {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
+function cleanOptionalNonNegativeNumber(value: unknown) {
+  const parsed = Math.floor(Number(value))
+  return Number.isFinite(parsed) && parsed >= 0 ? Math.min(120, parsed) : undefined
+}
+
 function cleanSelectionRules(raw: unknown): RoundSelectionRules {
   const value = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {}
   return {
@@ -136,6 +143,8 @@ function cleanManualRounds(raw: unknown): ManualRoundDraftInput[] {
       sourceMode: cleanSourceMode(value.sourceMode),
       packIds: cleanStringArray(value.packIds),
       selectionRules: cleanSelectionRules(value.selectionRules),
+      answerSeconds: cleanOptionalNonNegativeNumber(value.answerSeconds),
+      roundReviewSeconds: cleanOptionalNonNegativeNumber(value.roundReviewSeconds),
     }
   })
 }
@@ -178,6 +187,10 @@ function mapTemplateToManualRound(template: any, index: number): ManualRoundDraf
     sourceMode: cleanSourceMode(template?.source_mode),
     packIds: cleanSourceMode(template?.source_mode) === "specific_packs" ? defaultPackIds : [],
     selectionRules: cleanSelectionRules(template?.selection_rules),
+    answerSeconds: cleanOptionalNonNegativeNumber(template?.default_answer_seconds) ?? getDefaultAnswerSecondsForBehaviour(behaviourType),
+    roundReviewSeconds:
+      cleanOptionalNonNegativeNumber(template?.default_round_review_seconds) ??
+      getDefaultRoundReviewSecondsForBehaviour(behaviourType),
   }
 }
 
@@ -273,8 +286,8 @@ export async function POST(req: Request) {
     }
   }
 
-  const countdownSeconds = Number(body.countdownSeconds ?? 3)
-  const answerSeconds = Number(body.answerSeconds ?? 60)
+  const countdownSeconds = Number(body.countdownSeconds ?? 30)
+  const answerSeconds = Number(body.answerSeconds ?? 20)
   const revealDelaySeconds = Number(body.revealDelaySeconds ?? 2)
   const revealSeconds = Number(body.revealSeconds ?? 5)
   const audioModeRaw = String(body.audioMode ?? "display").toLowerCase()

@@ -14,7 +14,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin"
 import { getQuestionById } from "@/lib/questionBank"
 import { shuffleMcqForRoom } from "@/lib/mcqShuffle"
 import { applyQuickfireFastestBonus, buildQuickfireRoundReview } from "@/lib/quickfire"
-import { isQuickfireRound } from "@/lib/roundFlow"
+import { getConfiguredAnswerSecondsForRound, getEffectiveRoundReviewSecondsForRound, isQuickfireRound } from "@/lib/roundFlow"
 
 type TeamPlayerRow = {
   id: string
@@ -445,20 +445,21 @@ export async function GET(req: Request) {
 
   const audioMode = String(room.audio_mode ?? "display")
   const selectedPacks = Array.isArray(room.selected_packs) ? room.selected_packs : []
-  const isUntimedAnswers = Number(room.answer_seconds ?? 0) <= 0
   const teamScoreMode: TeamScoreMode = String(room.team_score_mode ?? "total") === "average" ? "average" : "total"
 
   const roundCount = legacyFields.round_count
   const roundNames = legacyFields.round_names
   const roundPlan = materialiseRoundPlan(storedRoundPlan)
   const currentRound = findRoundForQuestionIndex(safeQuestionIndex, roundPlan)
+  const configuredAnswerSeconds = getConfiguredAnswerSecondsForRound(room, currentRound)
+  const isUntimedAnswers = configuredAnswerSeconds <= 0
   const questionNumberInRound = Math.max(1, safeQuestionIndex - currentRound.startIndex + 1)
 
   const isLastQuestionOverall = questionCount > 0 ? safeQuestionIndex >= questionCount - 1 : true
   const isLastQuestionInRound = safeQuestionIndex >= currentRound.endIndex
   const nextRound = !isLastQuestionOverall ? roundPlan[currentRound.index + 1] ?? null : null
 
-  const roundReviewSeconds = Math.min(120, Math.max(0, Math.floor(Number(room.countdown_seconds ?? 0)) || 0))
+  const roundReviewSeconds = getEffectiveRoundReviewSecondsForRound(room, currentRound)
   const roundSummaryEndsAt = buildRoundSummaryEndsAt(room.next_at, roundReviewSeconds)
 
   let stage = baseStage
@@ -623,7 +624,7 @@ export async function GET(req: Request) {
     },
     settings: {
       untimedAnswers: isUntimedAnswers,
-      answerSeconds: isUntimedAnswers ? null : Number(room.answer_seconds ?? 0),
+      answerSeconds: isUntimedAnswers ? null : configuredAnswerSeconds,
       answerAutoSubmitGraceSeconds: isUntimedAnswers ? 0 : ANSWER_AUTO_SUBMIT_GRACE_SECONDS,
     },
     rounds: {
@@ -644,6 +645,8 @@ export async function GET(req: Request) {
         endIndex: currentRound.endIndex,
         questionsInRound: currentRound.size,
         questionNumberInRound,
+        answerSeconds: configuredAnswerSeconds,
+        roundReviewSeconds,
       },
     },
     times: {

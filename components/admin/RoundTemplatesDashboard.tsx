@@ -10,6 +10,7 @@ import {
   type RoundTemplateRow,
   type RoundTemplateSourceMode,
 } from "@/lib/roundTemplates"
+import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour } from "@/lib/roomRoundPlan"
 
 type PackOption = {
   id: string
@@ -45,6 +46,8 @@ type TemplateEditorState = {
   description: string
   behaviourType: RoundTemplateBehaviourType
   defaultQuestionCount: number
+  defaultAnswerSeconds: string
+  defaultRoundReviewSeconds: string
   jokerEligible: boolean
   countsTowardsScore: boolean
   sourceMode: RoundTemplateSourceMode
@@ -119,12 +122,39 @@ function buildSelectionRulesFromEditor(editor: TemplateEditorState) {
   return rules
 }
 
+
+function buildTemplateTimingPayload(editor: TemplateEditorState) {
+  const payload: Record<string, number | null> = {}
+
+  if (editor.defaultAnswerSeconds.trim() === "") {
+    payload.defaultAnswerSeconds = null
+  } else {
+    const answerSeconds = Number(editor.defaultAnswerSeconds.trim())
+    if (Number.isFinite(answerSeconds) && answerSeconds >= 0) {
+      payload.defaultAnswerSeconds = Math.floor(answerSeconds)
+    }
+  }
+
+  if (editor.defaultRoundReviewSeconds.trim() === "") {
+    payload.defaultRoundReviewSeconds = null
+  } else {
+    const roundReviewSeconds = Number(editor.defaultRoundReviewSeconds.trim())
+    if (Number.isFinite(roundReviewSeconds) && roundReviewSeconds >= 0) {
+      payload.defaultRoundReviewSeconds = Math.floor(roundReviewSeconds)
+    }
+  }
+
+  return payload
+}
+
 function createBlankEditor(): TemplateEditorState {
   return {
     name: "",
     description: "",
     behaviourType: "standard",
     defaultQuestionCount: 10,
+    defaultAnswerSeconds: "",
+    defaultRoundReviewSeconds: "",
     jokerEligible: true,
     countsTowardsScore: true,
     sourceMode: "selected_packs",
@@ -148,6 +178,10 @@ function editorFromTemplate(template: RoundTemplateRow): TemplateEditorState {
     description: template.description ?? "",
     behaviourType: (template.behaviour_type ?? "standard") as RoundTemplateBehaviourType,
     defaultQuestionCount: Number(template.default_question_count ?? 10),
+    defaultAnswerSeconds:
+      template.default_answer_seconds == null ? "" : String(template.default_answer_seconds),
+    defaultRoundReviewSeconds:
+      template.default_round_review_seconds == null ? "" : String(template.default_round_review_seconds),
     jokerEligible: !!template.joker_eligible,
     countsTowardsScore: !!template.counts_towards_score,
     sourceMode: (template.source_mode ?? "selected_packs") as RoundTemplateSourceMode,
@@ -338,6 +372,7 @@ export function RoundTemplatesDashboard() {
           description: createEditor.description.trim(),
           behaviourType: createEditor.behaviourType,
           defaultQuestionCount: createEditor.defaultQuestionCount,
+          ...buildTemplateTimingPayload(createEditor),
           jokerEligible: createEditor.jokerEligible,
           countsTowardsScore: createEditor.countsTowardsScore,
           sourceMode: createEditor.sourceMode,
@@ -398,6 +433,7 @@ export function RoundTemplatesDashboard() {
           description: editEditor.description.trim(),
           behaviourType: editEditor.behaviourType,
           defaultQuestionCount: editEditor.defaultQuestionCount,
+          ...buildTemplateTimingPayload(editEditor),
           jokerEligible: editEditor.jokerEligible,
           countsTowardsScore: editEditor.countsTowardsScore,
           sourceMode: editEditor.sourceMode,
@@ -536,6 +572,15 @@ export function RoundTemplatesDashboard() {
                           <div className="mt-1 text-xs text-[var(--muted-foreground)]">
                             {template.default_question_count} questions · {template.behaviour_type} · {template.source_mode}
                           </div>
+                          <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                            {template.default_answer_seconds == null
+                              ? `Answer: ${getDefaultAnswerSecondsForBehaviour(template.behaviour_type)}s default`
+                              : `Answer: ${template.default_answer_seconds}s`}
+                            {" · "}
+                            {template.default_round_review_seconds == null
+                              ? `Round review: ${getDefaultRoundReviewSecondsForBehaviour(template.behaviour_type)}s default`
+                              : `Round review: ${template.default_round_review_seconds}s`}
+                          </div>
                         </div>
                         <div className="text-xs text-[var(--muted-foreground)]">
                           {template.is_active ? "Active" : "Inactive"}
@@ -672,6 +717,14 @@ function TemplateFields({
                 behaviourType: event.target.value as RoundTemplateBehaviourType,
                 jokerEligible: event.target.value === "quickfire" ? false : current.jokerEligible,
                 mediaType: event.target.value === "quickfire" && current.mediaType === "audio" ? "" : current.mediaType,
+                defaultAnswerSeconds:
+                  current.defaultAnswerSeconds.trim() === ""
+                    ? current.defaultAnswerSeconds
+                    : String(getDefaultAnswerSecondsForBehaviour(event.target.value as RoundTemplateBehaviourType)),
+                defaultRoundReviewSeconds:
+                  current.defaultRoundReviewSeconds.trim() === ""
+                    ? current.defaultRoundReviewSeconds
+                    : String(getDefaultRoundReviewSecondsForBehaviour(event.target.value as RoundTemplateBehaviourType)),
               }))
             }
             className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
@@ -698,6 +751,50 @@ function TemplateFields({
             }
             className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
           />
+        </label>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Default answer seconds</span>
+          <input
+            type="number"
+            min={0}
+            max={120}
+            value={editor.defaultAnswerSeconds}
+            onChange={(event) =>
+              setEditor((current) => ({
+                ...current,
+                defaultAnswerSeconds: event.target.value,
+              }))
+            }
+            placeholder={String(getDefaultAnswerSecondsForBehaviour(editor.behaviourType))}
+            className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+          />
+          <span className="text-xs text-[var(--muted-foreground)]">
+            Leave blank to use the {getDefaultAnswerSecondsForBehaviour(editor.behaviourType)} second {editor.behaviourType} default. Use 0 for untimed.
+          </span>
+        </label>
+
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Default round review seconds</span>
+          <input
+            type="number"
+            min={0}
+            max={120}
+            value={editor.defaultRoundReviewSeconds}
+            onChange={(event) =>
+              setEditor((current) => ({
+                ...current,
+                defaultRoundReviewSeconds: event.target.value,
+              }))
+            }
+            placeholder={String(getDefaultRoundReviewSecondsForBehaviour(editor.behaviourType))}
+            className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+          />
+          <span className="text-xs text-[var(--muted-foreground)]">
+            Leave blank to use the {getDefaultRoundReviewSecondsForBehaviour(editor.behaviourType)} second {editor.behaviourType} default.
+          </span>
         </label>
       </div>
 

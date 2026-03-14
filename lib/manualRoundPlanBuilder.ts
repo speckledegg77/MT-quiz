@@ -1,4 +1,4 @@
-import type { RoomRoundPlan, RoundBehaviourType, RoundPlanItem, RoundSelectionRules, RoundSourceMode } from "@/lib/roomRoundPlan"
+import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour, type RoomRoundPlan, type RoundBehaviourType, type RoundPlanItem, type RoundSelectionRules, type RoundSourceMode } from "@/lib/roomRoundPlan"
 import { isQuickfireBehaviour } from "@/lib/roundFlow"
 
 export type ManualRoundDraftInput = {
@@ -11,6 +11,8 @@ export type ManualRoundDraftInput = {
   sourceMode?: RoundSourceMode
   packIds?: string[]
   selectionRules?: RoundSelectionRules
+  answerSeconds?: number
+  roundReviewSeconds?: number
 }
 
 export type QuestionCandidate = {
@@ -75,6 +77,13 @@ function normaliseCount(raw: unknown) {
   const value = Math.floor(Number(raw ?? 0))
   return Number.isFinite(value) && value > 0 ? value : 0
 }
+
+function normaliseOptionalNonNegativeInt(raw: unknown, fallback: number) {
+  const value = Math.floor(Number(raw ?? fallback))
+  if (!Number.isFinite(value) || value < 0) return fallback
+  return Math.min(120, value)
+}
+
 
 function cleanPackIds(raw: unknown) {
   return [...new Set(cleanStringArray(raw))]
@@ -157,6 +166,14 @@ export function buildManualRoomRoundPlan(params: {
     }
 
     const selectionRules = normaliseSelectionRules(roundRaw.selectionRules)
+    const answerSeconds = normaliseOptionalNonNegativeInt(
+      roundRaw.answerSeconds,
+      getDefaultAnswerSecondsForBehaviour(behaviourType)
+    )
+    const roundReviewSeconds = normaliseOptionalNonNegativeInt(
+      roundRaw.roundReviewSeconds,
+      getDefaultRoundReviewSecondsForBehaviour(behaviourType)
+    )
 
     const available = candidates.filter((candidate) => {
       if (usedIds.has(candidate.id)) return false
@@ -193,6 +210,8 @@ export function buildManualRoomRoundPlan(params: {
       sourceMode,
       packIds: sourceMode === "specific_packs" ? sourcePackIds : [],
       selectionRules,
+      answerSeconds,
+      roundReviewSeconds,
       questionIds: chosen.map((candidate) => candidate.id),
     })
   }

@@ -7,6 +7,7 @@ import QRTile from "@/components/ui/QRTile"
 import { supabase } from "@/lib/supabaseClient"
 import { randomTeamName } from "@/lib/teamNameSuggestions"
 import { firstRuleValue, type RoundTemplateRow } from "@/lib/roundTemplates"
+import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour } from "@/lib/roomRoundPlan"
 
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card"
@@ -62,6 +63,8 @@ type ManualRoundDraft = {
   promptTarget: string
   clueSource: string
   primaryShowKey: string
+  answerSecondsStr: string
+  roundReviewSecondsStr: string
 }
 
 const LAST_HOST_CODE_KEY = "mtq_last_host_code"
@@ -121,17 +124,28 @@ function makeRoundId() {
   return `round_${Math.random().toString(36).slice(2, 10)}`
 }
 
+function getRoundTimingDefaults(behaviourType: RoundBehaviourType) {
+  return {
+    answerSeconds: getDefaultAnswerSecondsForBehaviour(behaviourType),
+    roundReviewSeconds: getDefaultRoundReviewSecondsForBehaviour(behaviourType),
+  }
+}
+
 function normaliseManualRoundDraft(draft: ManualRoundDraft): ManualRoundDraft {
   const behaviourType = draft.behaviourType === "quickfire" ? "quickfire" : "standard"
+  const defaults = getRoundTimingDefaults(behaviourType)
   return {
     ...draft,
     behaviourType,
     jokerEligible: behaviourType === "quickfire" ? false : draft.jokerEligible,
     mediaType: behaviourType === "quickfire" && draft.mediaType === "audio" ? "" : draft.mediaType,
+    answerSecondsStr: String(draft.answerSecondsStr ?? defaults.answerSeconds),
+    roundReviewSecondsStr: String(draft.roundReviewSecondsStr ?? defaults.roundReviewSeconds),
   }
 }
 
 function makeManualRound(index: number): ManualRoundDraft {
+  const defaults = getRoundTimingDefaults("standard")
   return normaliseManualRoundDraft({
     id: makeRoundId(),
     name: defaultRoundName(index),
@@ -145,6 +159,8 @@ function makeManualRound(index: number): ManualRoundDraft {
     promptTarget: "",
     clueSource: "",
     primaryShowKey: "",
+    answerSecondsStr: String(defaults.answerSeconds),
+    roundReviewSecondsStr: String(defaults.roundReviewSeconds),
   })
 }
 
@@ -164,7 +180,7 @@ export default function HostPage() {
 
   const [totalQuestionsStr, setTotalQuestionsStr] = useState("20")
   const [answerSecondsStr, setAnswerSecondsStr] = useState("20")
-  const [roundReviewSecondsStr, setRoundReviewSecondsStr] = useState("10")
+  const [roundReviewSecondsStr, setRoundReviewSecondsStr] = useState("30")
   const [untimedAnswers, setUntimedAnswers] = useState(false)
 
   const [roundCountStr, setRoundCountStr] = useState("4")
@@ -485,6 +501,14 @@ export default function HostPage() {
 
     const sourceMode = String(template.source_mode ?? "selected_packs") as RoundSourceMode
     const behaviourType = String(template.behaviour_type ?? "standard") === "quickfire" ? "quickfire" : "standard"
+    const answerSeconds =
+      template.default_answer_seconds == null
+        ? getDefaultAnswerSecondsForBehaviour(behaviourType)
+        : Math.max(0, Number(template.default_answer_seconds) || 0)
+    const roundReviewSeconds =
+      template.default_round_review_seconds == null
+        ? getDefaultRoundReviewSecondsForBehaviour(behaviourType)
+        : Math.max(0, Number(template.default_round_review_seconds) || 0)
 
     if (sourceMode === "selected_packs" && defaultPackIds.length) {
       setSelectedPacks((prev) => {
@@ -510,6 +534,8 @@ export default function HostPage() {
         promptTarget,
         clueSource,
         primaryShowKey,
+        answerSecondsStr: String(answerSeconds),
+        roundReviewSecondsStr: String(roundReviewSeconds),
       }),
     ])
   }
@@ -557,9 +583,10 @@ export default function HostPage() {
     setForceCloseError(null)
 
     try {
-      const roundReviewSeconds = clampInt(parseIntOr(roundReviewSecondsStr, 10), 0, 120)
-      const countdownSeconds = roundReviewSeconds
-      const answerSeconds = untimedAnswers ? 0 : clampInt(parseIntOr(answerSecondsStr, 20), 5, 120)
+      const fallbackRoundReviewSeconds = clampInt(parseIntOr(roundReviewSecondsStr, 30), 0, 120)
+      const fallbackAnswerSeconds = untimedAnswers ? 0 : clampInt(parseIntOr(answerSecondsStr, 20), 5, 120)
+      let countdownSeconds = fallbackRoundReviewSeconds
+      let answerSeconds = fallbackAnswerSeconds
       const cleanTeamNames = teamNames.map((t) => t.trim()).filter(Boolean)
 
       if (gameMode === "teams") {
@@ -613,6 +640,8 @@ export default function HostPage() {
             clueSources: round.clueSource ? [round.clueSource] : [],
             primaryShowKeys: round.primaryShowKey ? [round.primaryShowKey] : [],
           },
+          answerSeconds: clampInt(parseIntOr(round.answerSecondsStr, getDefaultAnswerSecondsForBehaviour(round.behaviourType)), 0, 120),
+          roundReviewSeconds: clampInt(parseIntOr(round.roundReviewSecondsStr, getDefaultRoundReviewSecondsForBehaviour(round.behaviourType)), 0, 120),
         }))
 
         for (const round of manualRoundsPayload) {
@@ -1074,7 +1103,18 @@ export default function HostPage() {
                             </div>
                             <div>
                               <div className="text-sm font-medium text-[var(--foreground)]">Behaviour</div>
-                              <select value={round.behaviourType} onChange={(e) => updateManualRound(round.id, { behaviourType: e.target.value as RoundBehaviourType })} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
+                              <select
+                                value={round.behaviourType}
+                                onChange={(e) => {
+                                  const behaviourType = e.target.value as RoundBehaviourType
+                                  updateManualRound(round.id, {
+                                    behaviourType,
+                                    answerSecondsStr: String(getDefaultAnswerSecondsForBehaviour(behaviourType)),
+                                    roundReviewSecondsStr: String(getDefaultRoundReviewSecondsForBehaviour(behaviourType)),
+                                  })
+                                }}
+                                className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
+                              >
                                 {ROUND_BEHAVIOUR_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                               </select>
                             </div>
@@ -1086,6 +1126,29 @@ export default function HostPage() {
                                 <option value="all_questions">All questions</option>
                               </select>
                             </div>
+                            <div>
+                              <div className="text-sm font-medium text-[var(--foreground)]">Answer seconds</div>
+                              <Input
+                                value={round.answerSecondsStr}
+                                onChange={(e) => updateManualRound(round.id, { answerSecondsStr: e.target.value })}
+                                inputMode="numeric"
+                              />
+                              <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                                Use 0 for untimed. Default for {round.behaviourType} is {getDefaultAnswerSecondsForBehaviour(round.behaviourType)}.
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-[var(--foreground)]">Round review seconds</div>
+                              <Input
+                                value={round.roundReviewSecondsStr}
+                                onChange={(e) => updateManualRound(round.id, { roundReviewSecondsStr: e.target.value })}
+                                inputMode="numeric"
+                              />
+                              <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                                Default for {round.behaviourType} is {getDefaultRoundReviewSecondsForBehaviour(round.behaviourType)}.
+                              </div>
+                            </div>
+
                             <div className="space-y-2 pt-6">
                               <label className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
                                 <input type="checkbox" checked={round.jokerEligible} onChange={(e) => updateManualRound(round.id, { jokerEligible: e.target.checked })} disabled={round.behaviourType === "quickfire"} />
@@ -1245,20 +1308,28 @@ export default function HostPage() {
                           <Input value={totalQuestionsStr} onChange={(e) => setTotalQuestionsStr(e.target.value)} inputMode="numeric" />
                         </div>
                       )}
-                      <div>
-                        <div className="text-sm font-medium text-[var(--foreground)]">Answer seconds</div>
-                        <Input value={answerSecondsStr} onChange={(e) => setAnswerSecondsStr(e.target.value)} inputMode="numeric" disabled={untimedAnswers} />
-                        <label className="mt-2 flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
-                          <input type="checkbox" checked={untimedAnswers} onChange={(e) => setUntimedAnswers(e.target.checked)} />
-                          Untimed answers (host controls)
-                        </label>
-                        {untimedAnswers ? <div className="mt-1 text-xs text-[var(--muted-foreground)]">The question stays open until everyone answers or you press Reveal answer.</div> : <div className="mt-1 text-xs text-[var(--muted-foreground)]">Questions open straight away. There is no get ready countdown.</div>}
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-[var(--foreground)]">Round review seconds</div>
-                        <Input value={roundReviewSecondsStr} onChange={(e) => setRoundReviewSecondsStr(e.target.value)} inputMode="numeric" />
-                        <div className="mt-1 text-xs text-[var(--muted-foreground)]">After the last question in a round, the round summary shows for this long before the next round starts.</div>
-                      </div>
+                      {buildMode === "quick_random" && quickRandomUseTemplates ? (
+                        <div className="sm:col-span-2 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 text-sm text-[var(--muted-foreground)]">
+                          Template-based quick random uses the timings saved on each template. If a template leaves timings blank, standard defaults to 20 answer seconds and 30 round-review seconds, while Quickfire defaults to 10 answer seconds and 45 round-review seconds.
+                        </div>
+                      ) : (
+                        <>
+                          <div>
+                            <div className="text-sm font-medium text-[var(--foreground)]">Answer seconds</div>
+                            <Input value={answerSecondsStr} onChange={(e) => setAnswerSecondsStr(e.target.value)} inputMode="numeric" disabled={untimedAnswers} />
+                            <label className="mt-2 flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+                              <input type="checkbox" checked={untimedAnswers} onChange={(e) => setUntimedAnswers(e.target.checked)} />
+                              Untimed answers (host controls)
+                            </label>
+                            {untimedAnswers ? <div className="mt-1 text-xs text-[var(--muted-foreground)]">The question stays open until everyone answers or you press Reveal answer.</div> : <div className="mt-1 text-xs text-[var(--muted-foreground)]">Questions open straight away. There is no get ready countdown.</div>}
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-[var(--foreground)]">Round review seconds</div>
+                            <Input value={roundReviewSecondsStr} onChange={(e) => setRoundReviewSecondsStr(e.target.value)} inputMode="numeric" />
+                            <div className="mt-1 text-xs text-[var(--muted-foreground)]">After the last question in a round, the round summary shows for this long before the next round starts.</div>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-3">
@@ -1299,20 +1370,8 @@ export default function HostPage() {
                 )}
 
                 {buildMode === "manual_rounds" ? (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <div className="text-sm font-medium text-[var(--foreground)]">Answer seconds</div>
-                      <Input value={answerSecondsStr} onChange={(e) => setAnswerSecondsStr(e.target.value)} inputMode="numeric" disabled={untimedAnswers} />
-                      <label className="mt-2 flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
-                        <input type="checkbox" checked={untimedAnswers} onChange={(e) => setUntimedAnswers(e.target.checked)} />
-                        Untimed answers (host controls)
-                      </label>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-[var(--foreground)]">Round review seconds</div>
-                      <Input value={roundReviewSecondsStr} onChange={(e) => setRoundReviewSecondsStr(e.target.value)} inputMode="numeric" />
-                      <div className="mt-1 text-xs text-[var(--muted-foreground)]">After the last question in a round, the round summary shows for this long before the next round starts.</div>
-                    </div>
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 text-sm text-[var(--muted-foreground)]">
+                    Manual rounds now store timings per round. Standard starts at 20 answer seconds and 30 round-review seconds. Quickfire starts at 10 answer seconds and 45 round-review seconds.
                   </div>
                 ) : null}
 

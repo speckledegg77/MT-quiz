@@ -38,6 +38,8 @@ const updateRoundTemplateSchema = z
     description: z.string().optional(),
     behaviourType: z.enum(ROUND_TEMPLATE_BEHAVIOUR_TYPE_VALUES).optional(),
     defaultQuestionCount: z.coerce.number().int().min(1).optional(),
+    defaultAnswerSeconds: z.union([z.coerce.number().int().min(0).max(120), z.null()]).optional(),
+    defaultRoundReviewSeconds: z.union([z.coerce.number().int().min(0).max(120), z.null()]).optional(),
     jokerEligible: z.boolean().optional(),
     countsTowardsScore: z.boolean().optional(),
     sourceMode: z.enum(ROUND_TEMPLATE_SOURCE_MODE_VALUES).optional(),
@@ -52,6 +54,8 @@ const updateRoundTemplateSchema = z
       value.description !== undefined ||
       value.behaviourType !== undefined ||
       value.defaultQuestionCount !== undefined ||
+      value.defaultAnswerSeconds !== undefined ||
+      value.defaultRoundReviewSeconds !== undefined ||
       value.jokerEligible !== undefined ||
       value.countsTowardsScore !== undefined ||
       value.sourceMode !== undefined ||
@@ -91,6 +95,8 @@ export async function PATCH(req: Request, context: RouteContext) {
   if (parsed.data.description !== undefined) update.description = String(parsed.data.description).trim()
   if (parsed.data.behaviourType !== undefined) update.behaviour_type = cleanBehaviourType(parsed.data.behaviourType)
   if (parsed.data.defaultQuestionCount !== undefined) update.default_question_count = parsed.data.defaultQuestionCount
+  if (parsed.data.defaultAnswerSeconds !== undefined) update.default_answer_seconds = parsed.data.defaultAnswerSeconds
+  if (parsed.data.defaultRoundReviewSeconds !== undefined) update.default_round_review_seconds = parsed.data.defaultRoundReviewSeconds
   if (parsed.data.jokerEligible !== undefined) update.joker_eligible = parsed.data.jokerEligible
   if (parsed.data.countsTowardsScore !== undefined) update.counts_towards_score = parsed.data.countsTowardsScore
   if (parsed.data.sourceMode !== undefined) update.source_mode = cleanSourceMode(parsed.data.sourceMode)

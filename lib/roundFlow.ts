@@ -1,4 +1,4 @@
-import type { EffectiveRoundPlanItem } from "@/lib/roomRoundPlan"
+import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour, type EffectiveRoundPlanItem } from "@/lib/roomRoundPlan"
 
 export const UNTIMED_SECONDS = 60 * 60 * 24 * 365
 export const ANSWER_AUTO_SUBMIT_GRACE_SECONDS = 2
@@ -25,9 +25,37 @@ export function isQuickfireRound(round: Pick<EffectiveRoundPlanItem, "behaviourT
   return isQuickfireBehaviour(round?.behaviourType)
 }
 
-export function getEffectiveAnswerSeconds(room: any) {
-  const rawAnswerSeconds = Number(room?.answer_seconds ?? 0)
-  return Number.isFinite(rawAnswerSeconds) && rawAnswerSeconds > 0 ? rawAnswerSeconds : UNTIMED_SECONDS
+export function getConfiguredAnswerSecondsForRound(room: any, round: { behaviourType?: unknown; answerSeconds?: unknown } | null | undefined) {
+  const roundAnswerSeconds = Number(round?.answerSeconds)
+  if (Number.isFinite(roundAnswerSeconds) && roundAnswerSeconds >= 0) {
+    return Math.floor(roundAnswerSeconds)
+  }
+
+  const roomAnswerSeconds = Number(room?.answer_seconds)
+  if (Number.isFinite(roomAnswerSeconds) && roomAnswerSeconds >= 0) {
+    return Math.floor(roomAnswerSeconds)
+  }
+
+  return getDefaultAnswerSecondsForBehaviour(isQuickfireRound(round) ? "quickfire" : "standard")
+}
+
+export function getEffectiveAnswerSeconds(room: any, round: { behaviourType?: unknown; answerSeconds?: unknown } | null | undefined) {
+  const configured = getConfiguredAnswerSecondsForRound(room, round)
+  return configured > 0 ? configured : UNTIMED_SECONDS
+}
+
+export function getEffectiveRoundReviewSecondsForRound(room: any, round: { behaviourType?: unknown; roundReviewSeconds?: unknown } | null | undefined) {
+  const roundReviewSeconds = Number(round?.roundReviewSeconds)
+  if (Number.isFinite(roundReviewSeconds) && roundReviewSeconds >= 0) {
+    return Math.floor(roundReviewSeconds)
+  }
+
+  const roomReviewSeconds = Number(room?.countdown_seconds)
+  if (Number.isFinite(roomReviewSeconds) && roomReviewSeconds >= 0) {
+    return Math.floor(roomReviewSeconds)
+  }
+
+  return getDefaultRoundReviewSecondsForBehaviour(isQuickfireRound(round) ? "quickfire" : "standard")
 }
 
 export function getRevealDelaySecondsForRound(room: any, round: { behaviourType?: unknown } | null | undefined) {
@@ -47,7 +75,7 @@ export function buildQuestionTimesForRound(params: {
 }) {
   const now = params.now ?? new Date()
   const openAt = now
-  const closeAt = addSeconds(openAt, getEffectiveAnswerSeconds(params.room) + ANSWER_AUTO_SUBMIT_GRACE_SECONDS)
+  const closeAt = addSeconds(openAt, getEffectiveAnswerSeconds(params.room, params.round) + ANSWER_AUTO_SUBMIT_GRACE_SECONDS)
   const revealAt = addSeconds(closeAt, getRevealDelaySecondsForRound(params.room, params.round))
   const nextAt = addSeconds(revealAt, getRevealSecondsForRound(params.room, params.round))
 

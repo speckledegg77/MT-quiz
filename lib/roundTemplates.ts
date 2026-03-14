@@ -24,6 +24,8 @@ export type RoundTemplateRow = {
   description: string
   behaviour_type: RoundTemplateBehaviourType
   default_question_count: number
+  default_answer_seconds?: number | null
+  default_round_review_seconds?: number | null
   joker_eligible: boolean
   counts_towards_score: boolean
   source_mode: RoundTemplateSourceMode

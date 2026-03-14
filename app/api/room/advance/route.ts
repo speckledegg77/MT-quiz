@@ -2,7 +2,7 @@ export const runtime = "nodejs"
 
 import { NextResponse } from "next/server"
 import { findRoundForQuestionIndex, getEffectiveRoomRoundPlan, materialiseRoundPlan } from "@/lib/roomRoundPlan"
-import { buildQuestionTimesForRound } from "@/lib/roundFlow"
+import { buildQuestionTimesForRound, getEffectiveRoundReviewSecondsForRound } from "@/lib/roundFlow"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 function stageFromTimes(
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
     room.next_at
   )
 
-  const roundReviewSeconds = Math.min(120, Math.max(0, Math.floor(Number(room.countdown_seconds ?? 0)) || 0))
+  const roundReviewSeconds = getEffectiveRoundReviewSecondsForRound(room, currentRound)
   const roundSummaryEndsAt = buildRoundSummaryEndsAt(room.next_at, roundReviewSeconds)
 
   let stage = baseStage
