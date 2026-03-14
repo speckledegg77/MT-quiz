@@ -4,6 +4,9 @@ import { NextResponse } from "next/server"
 import { supabaseAdmin } from "../../../../lib/supabaseAdmin"
 import { getQuestionById } from "../../../../lib/questionBank"
 import { shuffleMcqForRoom } from "../../../../lib/mcqShuffle"
+import { findRoundForQuestionIndex, getEffectiveRoomRoundPlan, materialiseRoundPlan } from "../../../../lib/roomRoundPlan"
+import { applyQuickfireFastestBonus } from "../../../../lib/quickfire"
+import { buildPostCloseTimes, getScoreDeltaForRound, isJokerActiveForRound, isQuickfireRound } from "../../../../lib/roundFlow"
 
 function addSeconds(date: Date, seconds: number) {
   return new Date(date.getTime() + seconds * 1000)
@@ -257,10 +260,18 @@ export async function POST(req: Request) {
     isCorrect = isTextCorrect(answerText, q.answerText ?? "", q.acceptedAnswers)
   }
 
-  const roundIdx = roundIndexForQuestion(Number(room.question_index ?? 0), ids.length, room.round_count)
-  const jokerIdx = playerRes.data.joker_round_index
-  const jokerActive = Number.isFinite(Number(jokerIdx)) && Number(jokerIdx) === roundIdx
-  const scoreDelta = jokerActive ? (isCorrect ? 2 : -1) : (isCorrect ? 1 : 0)
+  const effectiveRoundPlan = materialiseRoundPlan(getEffectiveRoomRoundPlan(room))
+  const currentRound = findRoundForQuestionIndex(Number(room.question_index ?? 0), effectiveRoundPlan)
+  const roundIdx = currentRound.index
+  const jokerActive = isJokerActiveForRound({
+    playerJokerRoundIndex: playerRes.data.joker_round_index,
+    round: currentRound,
+  })
+  const scoreDelta = getScoreDeltaForRound({
+    isCorrect,
+    jokerActive,
+    countsTowardsScore: currentRound.countsTowardsScore !== false,
+  })
 
   const ansRes = await supabaseAdmin.from("answers").insert({
     room_id: room.id,
@@ -303,17 +314,28 @@ export async function POST(req: Request) {
 
   if (playerCount > 0 && answerCount >= playerCount) {
     const now = new Date()
-    const revealAt = addSeconds(now, Number(room.reveal_delay_seconds ?? 0))
-    const nextAt = addSeconds(revealAt, Number(room.reveal_seconds ?? 0))
+    const roomTimes = buildPostCloseTimes({
+      closedAt: now,
+      room,
+      round: currentRound,
+    })
 
     await supabaseAdmin
       .from("rooms")
       .update({
-        close_at: now.toISOString(),
-        reveal_at: revealAt.toISOString(),
-        next_at: nextAt.toISOString(),
+        close_at: roomTimes.closeAt.toISOString(),
+        reveal_at: roomTimes.revealAt.toISOString(),
+        next_at: roomTimes.nextAt.toISOString(),
       })
       .eq("id", room.id)
+
+    if (isQuickfireRound(currentRound)) {
+      await applyQuickfireFastestBonus({
+        roomId: room.id,
+        questionId,
+        countsTowardsScore: currentRound.countsTowardsScore !== false,
+      })
+    }
 
     let revealAnswerIndex: number | null = q.answerIndex ?? null
     if (q.answerType === "mcq" && q.answerIndex !== null && Array.isArray(q.options) && q.options.length > 1) {
@@ -322,6 +344,7 @@ export async function POST(req: Request) {
     }
 
     const questionStats = await buildQuestionStats(room.id, questionId, players)
+    const nextStage = isQuickfireRound(currentRound) ? "needs_advance" : "reveal"
 
     return NextResponse.json({
       accepted: true,
@@ -329,18 +352,21 @@ export async function POST(req: Request) {
       jokerActive,
       scoreDelta,
       questionClosed: true,
+      nextStage,
       serverNow: now.toISOString(),
       roomTimes: {
-        closeAt: now.toISOString(),
-        revealAt: revealAt.toISOString(),
-        nextAt: nextAt.toISOString(),
+        closeAt: roomTimes.closeAt.toISOString(),
+        revealAt: roomTimes.revealAt.toISOString(),
+        nextAt: roomTimes.nextAt.toISOString(),
       },
-      reveal: {
-        answerType: q.answerType,
-        answerIndex: q.answerType === "mcq" ? revealAnswerIndex : null,
-        answerText: q.answerType === "text" ? q.answerText ?? "" : null,
-        explanation: q.explanation ?? null,
-      },
+      reveal: isQuickfireRound(currentRound)
+        ? null
+        : {
+            answerType: q.answerType,
+            answerIndex: q.answerType === "mcq" ? revealAnswerIndex : null,
+            answerText: q.answerType === "text" ? q.answerText ?? "" : null,
+            explanation: q.explanation ?? null,
+          },
       questionStats,
     })
   }

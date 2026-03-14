@@ -1,9 +1,11 @@
-import type { RoomRoundPlan, RoundPlanItem, RoundSelectionRules, RoundSourceMode } from "@/lib/roomRoundPlan"
+import type { RoomRoundPlan, RoundBehaviourType, RoundPlanItem, RoundSelectionRules, RoundSourceMode } from "@/lib/roomRoundPlan"
+import { isQuickfireBehaviour } from "@/lib/roundFlow"
 
 export type ManualRoundDraftInput = {
   id?: string
   name?: string
   questionCount?: number
+  behaviourType?: RoundBehaviourType
   jokerEligible?: boolean
   countsTowardsScore?: boolean
   sourceMode?: RoundSourceMode
@@ -14,6 +16,7 @@ export type ManualRoundDraftInput = {
 export type QuestionCandidate = {
   id: string
   legacyRoundType: "general" | "audio" | "picture"
+  answerType: "mcq" | "text"
   mediaType: "text" | "audio" | "image"
   promptTarget: string | null
   clueSource: string | null
@@ -56,6 +59,11 @@ function normaliseSourceMode(raw: unknown): RoundSourceMode {
   if (value === "specific_packs") return "specific_packs"
   if (value === "all_questions") return "all_questions"
   return "selected_packs"
+}
+
+
+function normaliseBehaviourType(raw: unknown): RoundBehaviourType {
+  return isQuickfireBehaviour(raw) ? "quickfire" : "standard"
 }
 
 function normaliseRoundName(raw: unknown, index: number) {
@@ -131,6 +139,7 @@ export function buildManualRoomRoundPlan(params: {
     }
 
     const sourceMode = normaliseSourceMode(roundRaw.sourceMode)
+    const behaviourType = normaliseBehaviourType(roundRaw.behaviourType)
     const packIds = cleanPackIds(roundRaw.packIds)
     const sourcePackIds = getSourcePackIds({
       sourceMode,
@@ -155,6 +164,11 @@ export function buildManualRoomRoundPlan(params: {
         const inScope = candidate.packIds.some((packId) => sourcePackIds.includes(packId))
         if (!inScope) return false
       }
+      if (behaviourType === "quickfire") {
+        if (candidate.answerType !== "mcq") return false
+        if (candidate.mediaType === "audio") return false
+      }
+
       return candidateMatchesRules(candidate, selectionRules)
     })
 
@@ -172,9 +186,9 @@ export function buildManualRoomRoundPlan(params: {
     rounds.push({
       id: String(roundRaw.id ?? `manual_round_${index + 1}`).trim() || `manual_round_${index + 1}`,
       name,
-      behaviourType: "standard",
+      behaviourType,
       questionCount,
-      jokerEligible: Boolean(roundRaw.jokerEligible ?? true),
+      jokerEligible: behaviourType === "quickfire" ? false : Boolean(roundRaw.jokerEligible ?? true),
       countsTowardsScore: Boolean(roundRaw.countsTowardsScore ?? true),
       sourceMode,
       packIds: sourceMode === "specific_packs" ? sourcePackIds : [],

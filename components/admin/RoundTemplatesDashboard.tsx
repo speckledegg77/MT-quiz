@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react"
 
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import {
   firstRuleValue,
+  type RoundTemplateBehaviourType,
   type RoundTemplateRow,
   type RoundTemplateSourceMode,
 } from "@/lib/roundTemplates"
@@ -42,6 +43,7 @@ type PacksResponse = {
 type TemplateEditorState = {
   name: string
   description: string
+  behaviourType: RoundTemplateBehaviourType
   defaultQuestionCount: number
   jokerEligible: boolean
   countsTowardsScore: boolean
@@ -54,6 +56,11 @@ type TemplateEditorState = {
   isActive: boolean
   sortOrder: number
 }
+
+const BEHAVIOUR_TYPE_OPTIONS: Array<{ value: RoundTemplateBehaviourType; label: string }> = [
+  { value: "standard", label: "standard" },
+  { value: "quickfire", label: "quickfire" },
+]
 
 const SOURCE_MODE_OPTIONS: Array<{ value: RoundTemplateSourceMode; label: string }> = [
   { value: "selected_packs", label: "selected_packs" },
@@ -116,6 +123,7 @@ function createBlankEditor(): TemplateEditorState {
   return {
     name: "",
     description: "",
+    behaviourType: "standard",
     defaultQuestionCount: 10,
     jokerEligible: true,
     countsTowardsScore: true,
@@ -138,6 +146,7 @@ function editorFromTemplate(template: RoundTemplateRow): TemplateEditorState {
   return {
     name: template.name,
     description: template.description ?? "",
+    behaviourType: (template.behaviour_type ?? "standard") as RoundTemplateBehaviourType,
     defaultQuestionCount: Number(template.default_question_count ?? 10),
     jokerEligible: !!template.joker_eligible,
     countsTowardsScore: !!template.counts_towards_score,
@@ -327,7 +336,7 @@ export function RoundTemplatesDashboard() {
         body: JSON.stringify({
           name: createEditor.name.trim(),
           description: createEditor.description.trim(),
-          behaviourType: "standard",
+          behaviourType: createEditor.behaviourType,
           defaultQuestionCount: createEditor.defaultQuestionCount,
           jokerEligible: createEditor.jokerEligible,
           countsTowardsScore: createEditor.countsTowardsScore,
@@ -387,7 +396,7 @@ export function RoundTemplatesDashboard() {
         body: JSON.stringify({
           name: editEditor.name.trim(),
           description: editEditor.description.trim(),
-          behaviourType: "standard",
+          behaviourType: editEditor.behaviourType,
           defaultQuestionCount: editEditor.defaultQuestionCount,
           jokerEligible: editEditor.jokerEligible,
           countsTowardsScore: editEditor.countsTowardsScore,
@@ -525,7 +534,7 @@ export function RoundTemplatesDashboard() {
                         <div>
                           <div className="font-medium">{template.name}</div>
                           <div className="mt-1 text-xs text-[var(--muted-foreground)]">
-                            {template.default_question_count} questions · {template.source_mode}
+                            {template.default_question_count} questions · {template.behaviour_type} · {template.source_mode}
                           </div>
                         </div>
                         <div className="text-xs text-[var(--muted-foreground)]">
@@ -625,7 +634,7 @@ function TemplateFields({
   shows,
 }: {
   editor: TemplateEditorState
-  setEditor: React.Dispatch<React.SetStateAction<TemplateEditorState>>
+  setEditor: Dispatch<SetStateAction<TemplateEditorState>>
   packs: PackOption[]
   shows: ShowOption[]
 }) {
@@ -654,6 +663,28 @@ function TemplateFields({
 
       <div className="grid gap-3 md:grid-cols-2">
         <label className="grid gap-1">
+          <span className="text-sm font-medium">Behaviour</span>
+          <select
+            value={editor.behaviourType}
+            onChange={(event) =>
+              setEditor((current) => ({
+                ...current,
+                behaviourType: event.target.value as RoundTemplateBehaviourType,
+                jokerEligible: event.target.value === "quickfire" ? false : current.jokerEligible,
+                mediaType: event.target.value === "quickfire" && current.mediaType === "audio" ? "" : current.mediaType,
+              }))
+            }
+            className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+          >
+            {BEHAVIOUR_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="grid gap-1">
           <span className="text-sm font-medium">Default question count</span>
           <input
             type="number"
@@ -668,7 +699,9 @@ function TemplateFields({
             className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
           />
         </label>
+      </div>
 
+      <div className="grid gap-3 md:grid-cols-2">
         <label className="grid gap-1">
           <span className="text-sm font-medium">Sort order</span>
           <input
@@ -683,27 +716,33 @@ function TemplateFields({
             className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
           />
         </label>
+
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Source mode</span>
+          <select
+            value={editor.sourceMode}
+            onChange={(event) =>
+              setEditor((current) => ({
+                ...current,
+                sourceMode: event.target.value as RoundTemplateSourceMode,
+              }))
+            }
+            className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+          >
+            {SOURCE_MODE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
-      <label className="grid gap-1">
-        <span className="text-sm font-medium">Source mode</span>
-        <select
-          value={editor.sourceMode}
-          onChange={(event) =>
-            setEditor((current) => ({
-              ...current,
-              sourceMode: event.target.value as RoundTemplateSourceMode,
-            }))
-          }
-          className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
-        >
-          {SOURCE_MODE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      {editor.behaviourType === "quickfire" ? (
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)]/30 px-3 py-2 text-xs text-[var(--muted-foreground)]">
+          Quickfire v1 excludes audio automatically and only uses non-audio MCQ questions.
+        </div>
+      ) : null}
 
       <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)]/30 p-3">
         <div className="text-sm font-medium">Default packs</div>
@@ -744,13 +783,11 @@ function TemplateFields({
             <span className="text-sm font-medium">media_type</span>
             <select
               value={editor.mediaType}
-              onChange={(event) =>
-                setEditor((current) => ({ ...current, mediaType: event.target.value }))
-              }
+              onChange={(event) => setEditor((current) => ({ ...current, mediaType: event.target.value }))}
               className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
             >
               {MEDIA_TYPE_OPTIONS.map((option) => (
-                <option key={option.value || "blank"} value={option.value}>
+                <option key={option.value || "blank"} value={option.value} disabled={option.value === "audio" && editor.behaviourType === "quickfire"}>
                   {option.label}
                 </option>
               ))}
@@ -761,9 +798,7 @@ function TemplateFields({
             <span className="text-sm font-medium">prompt_target</span>
             <select
               value={editor.promptTarget}
-              onChange={(event) =>
-                setEditor((current) => ({ ...current, promptTarget: event.target.value }))
-              }
+              onChange={(event) => setEditor((current) => ({ ...current, promptTarget: event.target.value }))}
               className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
             >
               {PROMPT_TARGET_OPTIONS.map((option) => (
@@ -778,9 +813,7 @@ function TemplateFields({
             <span className="text-sm font-medium">clue_source</span>
             <select
               value={editor.clueSource}
-              onChange={(event) =>
-                setEditor((current) => ({ ...current, clueSource: event.target.value }))
-              }
+              onChange={(event) => setEditor((current) => ({ ...current, clueSource: event.target.value }))}
               className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
             >
               {CLUE_SOURCE_OPTIONS.map((option) => (
@@ -795,9 +828,7 @@ function TemplateFields({
             <span className="text-sm font-medium">primary_show_key</span>
             <select
               value={editor.primaryShowKey}
-              onChange={(event) =>
-                setEditor((current) => ({ ...current, primaryShowKey: event.target.value }))
-              }
+              onChange={(event) => setEditor((current) => ({ ...current, primaryShowKey: event.target.value }))}
               className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
             >
               <option value="">No filter</option>
@@ -816,9 +847,8 @@ function TemplateFields({
           <input
             type="checkbox"
             checked={editor.jokerEligible}
-            onChange={(event) =>
-              setEditor((current) => ({ ...current, jokerEligible: event.target.checked }))
-            }
+            onChange={(event) => setEditor((current) => ({ ...current, jokerEligible: event.target.checked }))}
+            disabled={editor.behaviourType === "quickfire"}
           />
           Joker eligible
         </label>
@@ -827,9 +857,7 @@ function TemplateFields({
           <input
             type="checkbox"
             checked={editor.countsTowardsScore}
-            onChange={(event) =>
-              setEditor((current) => ({ ...current, countsTowardsScore: event.target.checked }))
-            }
+            onChange={(event) => setEditor((current) => ({ ...current, countsTowardsScore: event.target.checked }))}
           />
           Counts towards score
         </label>
@@ -838,9 +866,7 @@ function TemplateFields({
           <input
             type="checkbox"
             checked={editor.isActive}
-            onChange={(event) =>
-              setEditor((current) => ({ ...current, isActive: event.target.checked }))
-            }
+            onChange={(event) => setEditor((current) => ({ ...current, isActive: event.target.checked }))}
           />
           Active
         </label>

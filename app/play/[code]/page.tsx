@@ -337,14 +337,14 @@ export default function PlayerPage() {
       return {
         ...prev,
         serverNow: data?.serverNow ?? prev.serverNow,
-        stage: "reveal",
+        stage: data?.nextStage ?? "reveal",
         times: {
           ...prev.times,
           closeAt: data?.roomTimes?.closeAt ?? prev?.times?.closeAt,
           revealAt: data?.roomTimes?.revealAt ?? prev?.times?.revealAt,
           nextAt: data?.roomTimes?.nextAt ?? prev?.times?.nextAt,
         },
-        reveal: data?.reveal ?? prev.reveal,
+        reveal: data?.reveal ?? null,
         questionStats: data?.questionStats ?? prev.questionStats,
       }
     })
@@ -854,6 +854,7 @@ export default function PlayerPage() {
           gameMode={gameMode}
           isLastQuestionOverall={Boolean(state?.flow?.isLastQuestionOverall)}
           roundSummaryEndsAt={state?.times?.roundSummaryEndsAt ?? null}
+          roundReview={state?.roundReview}
         />
       ) : null}
 

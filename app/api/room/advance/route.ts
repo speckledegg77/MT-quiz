@@ -2,11 +2,8 @@ export const runtime = "nodejs"
 
 import { NextResponse } from "next/server"
 import { findRoundForQuestionIndex, getEffectiveRoomRoundPlan, materialiseRoundPlan } from "@/lib/roomRoundPlan"
+import { buildQuestionTimesForRound } from "@/lib/roundFlow"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
-
-function addSeconds(date: Date, seconds: number) {
-  return new Date(date.getTime() + seconds * 1000)
-}
 
 function stageFromTimes(
   phase: string,
@@ -29,9 +26,6 @@ function stageFromTimes(
   if (nowMs < next) return "reveal"
   return "needs_advance"
 }
-
-const UNTIMED_SECONDS = 60 * 60 * 24 * 365 // 1 year
-const ANSWER_AUTO_SUBMIT_GRACE_SECONDS = 2
 
 function buildRoundSummaryEndsAt(nextAt: string | null | undefined, roundReviewSeconds: number) {
   const nextMs = nextAt ? Date.parse(nextAt) : NaN
@@ -110,26 +104,22 @@ export async function POST(req: Request) {
     })
   }
 
-  const now = new Date()
-  const openAt = now
-
-  const rawAnswerSeconds = Number(room.answer_seconds ?? 0)
-  const effectiveAnswerSeconds =
-    Number.isFinite(rawAnswerSeconds) && rawAnswerSeconds > 0 ? rawAnswerSeconds : UNTIMED_SECONDS
-
-  const closeAt = addSeconds(openAt, effectiveAnswerSeconds + ANSWER_AUTO_SUBMIT_GRACE_SECONDS)
-  const revealAt = addSeconds(closeAt, Number(room.reveal_delay_seconds ?? 0))
-  const nextAt = addSeconds(revealAt, Number(room.reveal_seconds ?? 0))
+  const nextRound = findRoundForQuestionIndex(nextIndex, roundPlan)
+  const roomTimes = buildQuestionTimesForRound({
+    now: new Date(),
+    room,
+    round: nextRound,
+  })
 
   const updateRes = await supabaseAdmin
     .from("rooms")
     .update({
       question_index: nextIndex,
-      countdown_start_at: now.toISOString(),
-      open_at: openAt.toISOString(),
-      close_at: closeAt.toISOString(),
-      reveal_at: revealAt.toISOString(),
-      next_at: nextAt.toISOString(),
+      countdown_start_at: roomTimes.openAt.toISOString(),
+      open_at: roomTimes.openAt.toISOString(),
+      close_at: roomTimes.closeAt.toISOString(),
+      reveal_at: roomTimes.revealAt.toISOString(),
+      next_at: roomTimes.nextAt.toISOString(),
     })
     .eq("id", room.id)
     .eq("phase", "running")

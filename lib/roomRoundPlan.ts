@@ -1,5 +1,5 @@
 export type RoomBuildMode = "legacy_pack_mode" | "manual_rounds" | "auto_rounds" | "quick_random"
-export type RoundBehaviourType = "standard"
+export type RoundBehaviourType = "standard" | "quickfire"
 export type RoundSourceMode = "selected_packs" | "specific_packs" | "all_questions"
 
 export type RoundSelectionRules = {
@@ -89,7 +89,8 @@ function normaliseSourceMode(raw: unknown): RoundSourceMode {
 
 function normaliseBehaviourType(raw: unknown): RoundBehaviourType {
   const value = String(raw ?? "").trim().toLowerCase()
-  return value === "standard" ? "standard" : "standard"
+  if (value === "quickfire") return "quickfire"
+  return "standard"
 }
 
 function normaliseSelectionRules(raw: unknown): RoundSelectionRules {

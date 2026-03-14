@@ -1,4 +1,4 @@
-export const ROUND_TEMPLATE_BEHAVIOUR_TYPE_VALUES = ["standard"] as const
+export const ROUND_TEMPLATE_BEHAVIOUR_TYPE_VALUES = ["standard", "quickfire"] as const
 export const ROUND_TEMPLATE_SOURCE_MODE_VALUES = [
   "selected_packs",
   "specific_packs",
@@ -84,6 +84,6 @@ export function cleanSourceMode(raw: unknown): RoundTemplateSourceMode {
 
 export function cleanBehaviourType(raw: unknown): RoundTemplateBehaviourType {
   const value = String(raw ?? "").trim().toLowerCase()
-  if (value === "standard") return "standard"
+  if (value === "quickfire") return "quickfire"
   return "standard"
 }

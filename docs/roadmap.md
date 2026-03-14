@@ -10,7 +10,7 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Next feature candidates
 
-- [ ] Add Quickfire round rules.
+- [x] Add Quickfire round rules.
 - [ ] Add a Heads Up-style round.
 - [ ] Add Karaoke round format.
 - [ ] Rework room creation so the host chooses specific round types, not just packs.
@@ -29,6 +29,8 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Quality of life
 
+- [ ] Do a host, player, and display UX pass now that Quickfire exists as a real round behaviour.
+
 - [ ] Do a shared cleanup pass on repeated timer and state-handling logic across Host, Player, and Display.
 - [ ] Canonicalise Tailwind classes where useful so IntelliSense suggestions are reduced.
 - [ ] Review whether any host controls still feel duplicated or unclear.
@@ -46,6 +48,10 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Recently completed
 
+- [x] Quickfire v1 as a real round behaviour.
+- [x] Quickfire fastest-correct bonus scoring.
+- [x] Quickfire round review with correct answers and player-by-player results.
+- [x] Quickfire template support in the round template model.
 - [x] Teams mode and solo mode.
 - [x] Unique team names with random musical-pun suggestions.
 - [x] Joker round choice in lobby.

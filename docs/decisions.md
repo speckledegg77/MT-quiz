@@ -31,3 +31,9 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - The player and display pages should avoid repeated or cluttered labels where the same detail already appears elsewhere.
 - Shared theme surface tokens live in `app/globals.css` and should be used consistently.
 - Use the `JokerBadge` component instead of pasting the Joker symbol inline.
+- Quickfire is a real round behaviour, not just a naming convention.
+- Quickfire rounds are not Joker-eligible.
+- Quickfire skips the per-question reveal and goes straight to the round flow.
+- Quickfire v1 only uses non-audio MCQ questions.
+- Quickfire scoring is `+1` for any correct answer, plus `+1` for the fastest correct player on that question.
+- Quickfire round review shows the correct answer and exactly who got it right, with `⚡` on the fastest correct player.

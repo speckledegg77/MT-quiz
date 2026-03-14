@@ -14,6 +14,7 @@ import {
   buildLegacyRoomRoundPlan,
   getLegacyFieldsFromRoundPlan,
   type RoomBuildMode,
+  type RoundBehaviourType,
   type RoundSelectionRules,
   type RoundSourceMode,
 } from "../../../../lib/roomRoundPlan"
@@ -115,6 +116,12 @@ function cleanSourceMode(raw: unknown): RoundSourceMode {
   return "selected_packs"
 }
 
+function cleanBehaviourType(raw: unknown): RoundBehaviourType {
+  const value = String(raw ?? "").trim().toLowerCase()
+  if (value === "quickfire") return "quickfire"
+  return "standard"
+}
+
 function cleanManualRounds(raw: unknown): ManualRoundDraftInput[] {
   const arr = Array.isArray(raw) ? raw : []
   return arr.map((item, index) => {
@@ -123,6 +130,7 @@ function cleanManualRounds(raw: unknown): ManualRoundDraftInput[] {
       id: String(value.id ?? `manual_round_${index + 1}`).trim() || `manual_round_${index + 1}`,
       name: String(value.name ?? "").trim(),
       questionCount: cleanNumber(value.questionCount, 0),
+      behaviourType: cleanBehaviourType(value.behaviourType),
       jokerEligible: cleanBoolean(value.jokerEligible, true),
       countsTowardsScore: cleanBoolean(value.countsTowardsScore, true),
       sourceMode: cleanSourceMode(value.sourceMode),
@@ -159,11 +167,13 @@ async function loadQuickRandomTemplates(templateIds: string[]) {
 
 function mapTemplateToManualRound(template: any, index: number): ManualRoundDraftInput {
   const defaultPackIds = cleanStringArray(template?.default_pack_ids)
+  const behaviourType = cleanBehaviourType(template?.behaviour_type)
   return {
     id: String(template?.id ?? `quick_template_${index + 1}`),
     name: String(template?.name ?? "").trim() || `Round ${index + 1}`,
     questionCount: Math.max(1, cleanNumber(template?.default_question_count, 5)),
-    jokerEligible: cleanBoolean(template?.joker_eligible, true),
+    behaviourType,
+    jokerEligible: behaviourType === "quickfire" ? false : cleanBoolean(template?.joker_eligible, true),
     countsTowardsScore: cleanBoolean(template?.counts_towards_score, true),
     sourceMode: cleanSourceMode(template?.source_mode),
     packIds: cleanSourceMode(template?.source_mode) === "specific_packs" ? defaultPackIds : [],
@@ -194,7 +204,7 @@ async function loadQuestionPoolForManualRounds(params: {
   const linksRes = await supabaseAdmin
     .from("pack_questions")
     .select(
-      "pack_id, question_id, questions(round_type, media_type, prompt_target, clue_source, primary_show_key)"
+      "pack_id, question_id, questions(round_type, answer_type, media_type, prompt_target, clue_source, primary_show_key)"
     )
     .in("pack_id", scopePackIds)
 
@@ -220,6 +230,7 @@ async function loadQuestionPoolForManualRounds(params: {
     candidatesById.set(questionId, {
       id: questionId,
       legacyRoundType,
+      answerType: question.answer_type === "text" ? "text" : "mcq",
       mediaType: deriveMediaType({
         mediaType: question.media_type ?? null,
         legacyRoundType,

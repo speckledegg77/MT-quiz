@@ -109,6 +109,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - The host sets how long the round summary stays visible.
 - The next round then starts automatically.
 - The host can still skip the round review early.
+- Quickfire rounds now skip the per-question reveal and show a question-by-question review at the end of the round.
 
 ### End of game
 - Final summary shows nested team and player breakdowns.
@@ -128,6 +129,13 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Correct answer: `+2`
 - Wrong answer: `-1`
 - No submitted answer: `-1`
+
+### Quickfire
+- Quickfire is a real round behaviour.
+- Quickfire rounds are not Joker-eligible.
+- Each correct answer scores `+1`.
+- The fastest correct player on each question gets an extra `+1` bonus.
+- The end-of-round review shows the correct answer and exactly who got it right, with `⚡` on the fastest correct player.
 
 ### Team scoring
 - If team sizes match, teams use total points.

@@ -13,6 +13,8 @@ import {
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 import { getQuestionById } from "@/lib/questionBank"
 import { shuffleMcqForRoom } from "@/lib/mcqShuffle"
+import { applyQuickfireFastestBonus, buildQuickfireRoundReview } from "@/lib/quickfire"
+import { isQuickfireRound } from "@/lib/roundFlow"
 
 type TeamPlayerRow = {
   id: string
@@ -343,7 +345,7 @@ function buildFinalResults(
 
       if (answerMap.has(key)) {
         score = Number(answerMap.get(key) ?? 0)
-      } else if (player.jokerRoundIndex === round.index) {
+      } else if (player.jokerRoundIndex === round.index && round.jokerEligible !== false && round.countsTowardsScore !== false && !isQuickfireRound(round)) {
         score = -1
       }
 
@@ -468,6 +470,24 @@ export async function GET(req: Request) {
     }
   }
 
+  if (room.phase === "running" && currentQuestionId && isQuickfireRound(currentRound) && baseStage === "needs_advance") {
+    const quickfireBonus = await applyQuickfireFastestBonus({
+      roomId: room.id,
+      questionId: String(currentQuestionId),
+      countsTowardsScore: currentRound.countsTowardsScore !== false,
+    })
+
+    if (quickfireBonus.bonusApplied && quickfireBonus.fastestCorrectPlayerId) {
+      players = players.map((player: any) => {
+        if (String(player?.id ?? "") !== quickfireBonus.fastestCorrectPlayerId) return player
+        return {
+          ...player,
+          score: Number(player?.score ?? 0) + 1,
+        }
+      })
+    }
+  }
+
   const canShowQuestion = room.phase === "running"
 
   let questionPublic: any = null
@@ -552,6 +572,21 @@ export async function GET(req: Request) {
     uniqueJokerUsersByPlayer: true,
   })
 
+  let roundReview: any = null
+  if (stage === "round_summary" && isQuickfireRound(currentRound)) {
+    roundReview = {
+      behaviourType: currentRound.behaviourType,
+      questions: await buildQuickfireRoundReview({
+        roomId: room.id,
+        round: currentRound,
+        players: players.map((player: any) => ({
+          id: String(player?.id ?? ""),
+          name: String(player?.name ?? "").trim() || "Player",
+        })),
+      }),
+    }
+  }
+
   let finalResults: any = null
   if (room.phase === "finished") {
     const allAnswersRes = await supabaseAdmin
@@ -602,6 +637,7 @@ export async function GET(req: Request) {
         index: currentRound.index,
         number: currentRound.number,
         name: currentRound.name,
+        behaviourType: currentRound.behaviourType,
         jokerEligible: currentRound.jokerEligible,
         countsTowardsScore: currentRound.countsTowardsScore,
         startIndex: currentRound.startIndex,
@@ -621,6 +657,7 @@ export async function GET(req: Request) {
     reveal: revealData,
     questionStats,
     roundStats,
+    roundReview,
     finalResults,
     players,
   })

@@ -40,6 +40,7 @@ type RoundFilter =
 type AudioMode = "display" | "phones" | "both"
 type GameMode = "teams" | "solo"
 type BuildMode = "manual_rounds" | "quick_random" | "legacy_pack_mode"
+type RoundBehaviourType = "standard" | "quickfire"
 type RoundSourceMode = "selected_packs" | "specific_packs" | "all_questions"
 type RoomState = any
 
@@ -52,6 +53,7 @@ type ManualRoundDraft = {
   id: string
   name: string
   questionCountStr: string
+  behaviourType: RoundBehaviourType
   jokerEligible: boolean
   countsTowardsScore: boolean
   sourceMode: RoundSourceMode
@@ -72,6 +74,11 @@ const PROMPT_TARGET_OPTIONS = [
   { value: "character_name", label: "character_name" },
   { value: "creative_name", label: "creative_name" },
   { value: "fact_value", label: "fact_value" },
+]
+
+const ROUND_BEHAVIOUR_OPTIONS: Array<{ value: RoundBehaviourType; label: string }> = [
+  { value: "standard", label: "standard" },
+  { value: "quickfire", label: "quickfire" },
 ]
 
 const CLUE_SOURCE_OPTIONS = [
@@ -114,11 +121,22 @@ function makeRoundId() {
   return `round_${Math.random().toString(36).slice(2, 10)}`
 }
 
-function makeManualRound(index: number): ManualRoundDraft {
+function normaliseManualRoundDraft(draft: ManualRoundDraft): ManualRoundDraft {
+  const behaviourType = draft.behaviourType === "quickfire" ? "quickfire" : "standard"
   return {
+    ...draft,
+    behaviourType,
+    jokerEligible: behaviourType === "quickfire" ? false : draft.jokerEligible,
+    mediaType: behaviourType === "quickfire" && draft.mediaType === "audio" ? "" : draft.mediaType,
+  }
+}
+
+function makeManualRound(index: number): ManualRoundDraft {
+  return normaliseManualRoundDraft({
     id: makeRoundId(),
     name: defaultRoundName(index),
     questionCountStr: "5",
+    behaviourType: "standard",
     jokerEligible: true,
     countsTowardsScore: true,
     sourceMode: "selected_packs",
@@ -127,7 +145,7 @@ function makeManualRound(index: number): ManualRoundDraft {
     promptTarget: "",
     clueSource: "",
     primaryShowKey: "",
-  }
+  })
 }
 
 export default function HostPage() {
@@ -439,7 +457,9 @@ export default function HostPage() {
   }
 
   function updateManualRound(id: string, changes: Partial<ManualRoundDraft>) {
-    setManualRounds((prev) => prev.map((round) => (round.id === id ? { ...round, ...changes } : round)))
+    setManualRounds((prev) =>
+      prev.map((round) => (round.id === id ? normaliseManualRoundDraft({ ...round, ...changes }) : round))
+    )
   }
 
   function toggleManualRoundPack(roundId: string, packId: string) {
@@ -464,6 +484,7 @@ export default function HostPage() {
       : []
 
     const sourceMode = String(template.source_mode ?? "selected_packs") as RoundSourceMode
+    const behaviourType = String(template.behaviour_type ?? "standard") === "quickfire" ? "quickfire" : "standard"
 
     if (sourceMode === "selected_packs" && defaultPackIds.length) {
       setSelectedPacks((prev) => {
@@ -476,10 +497,11 @@ export default function HostPage() {
 
     setManualRounds((prev) => [
       ...prev,
-      {
+      normaliseManualRoundDraft({
         id: makeRoundId(),
         name: String(template.name ?? "").trim() || defaultRoundName(prev.length),
         questionCountStr: String(Math.max(1, Number(template.default_question_count ?? 5))),
+        behaviourType,
         jokerEligible: Boolean(template.joker_eligible ?? true),
         countsTowardsScore: Boolean(template.counts_towards_score ?? true),
         sourceMode,
@@ -488,7 +510,7 @@ export default function HostPage() {
         promptTarget,
         clueSource,
         primaryShowKey,
-      },
+      }),
     ])
   }
 
@@ -580,7 +602,8 @@ export default function HostPage() {
           id: round.id,
           name: round.name.trim() || defaultRoundName(index),
           questionCount: clampInt(parseIntOr(round.questionCountStr, 0), 1, 200),
-          jokerEligible: round.jokerEligible,
+          behaviourType: round.behaviourType,
+          jokerEligible: round.behaviourType === "quickfire" ? false : round.jokerEligible,
           countsTowardsScore: round.countsTowardsScore,
           sourceMode: round.sourceMode,
           packIds: round.packIds,
@@ -887,6 +910,11 @@ export default function HostPage() {
         ? "Questions move on automatically between questions. End of round waits for the host or the round review timer."
         : "The game is finished. Reset the room to play again with the same teams."
 
+  const quickfireCount = useMemo(
+    () => manualRounds.filter((round) => round.behaviourType === "quickfire").length,
+    [manualRounds]
+  )
+
   const manualJokerNote = jokerEligibleCount >= 2
     ? `${jokerEligibleCount} rounds are Joker eligible.`
     : "Joker will be hidden because fewer than two rounds are Joker eligible."
@@ -1023,6 +1051,7 @@ export default function HostPage() {
 
                     <div className="mt-3 space-y-1 text-xs text-[var(--muted-foreground)]">
                       <div>Total questions from rounds: {manualRoundsTotal}. {manualJokerNote}</div>
+                      {quickfireCount > 0 ? <div>Quickfire v1 skips Joker, skips per-question reveals, and only pulls non-audio MCQ questions.</div> : null}
                       {selectedTemplateToAdd?.description ? <div>Template: {selectedTemplateToAdd.description}</div> : null}
                     </div>
 
@@ -1044,6 +1073,12 @@ export default function HostPage() {
                               <Input value={round.questionCountStr} onChange={(e) => updateManualRound(round.id, { questionCountStr: e.target.value })} inputMode="numeric" />
                             </div>
                             <div>
+                              <div className="text-sm font-medium text-[var(--foreground)]">Behaviour</div>
+                              <select value={round.behaviourType} onChange={(e) => updateManualRound(round.id, { behaviourType: e.target.value as RoundBehaviourType })} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
+                                {ROUND_BEHAVIOUR_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                              </select>
+                            </div>
+                            <div>
                               <div className="text-sm font-medium text-[var(--foreground)]">Source mode</div>
                               <select value={round.sourceMode} onChange={(e) => updateManualRound(round.id, { sourceMode: e.target.value as RoundSourceMode })} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
                                 <option value="selected_packs">Selected packs</option>
@@ -1053,7 +1088,7 @@ export default function HostPage() {
                             </div>
                             <div className="space-y-2 pt-6">
                               <label className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
-                                <input type="checkbox" checked={round.jokerEligible} onChange={(e) => updateManualRound(round.id, { jokerEligible: e.target.checked })} />
+                                <input type="checkbox" checked={round.jokerEligible} onChange={(e) => updateManualRound(round.id, { jokerEligible: e.target.checked })} disabled={round.behaviourType === "quickfire"} />
                                 Joker eligible
                               </label>
                               <label className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
@@ -1093,6 +1128,10 @@ export default function HostPage() {
                               </select>
                             </div>
                           </div>
+
+                          {round.behaviourType === "quickfire" ? (
+                            <div className="mt-3 text-xs text-[var(--muted-foreground)]">Quickfire v1 excludes audio automatically and only uses MCQ questions so fastest correct scoring stays fair.</div>
+                          ) : null}
 
                           {round.sourceMode === "selected_packs" ? (
                             <div className="mt-3 text-xs text-[var(--muted-foreground)]">This round uses the packs selected in the pack panel on the right.</div>
