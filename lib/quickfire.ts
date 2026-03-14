@@ -13,9 +13,23 @@ export type QuickfireReviewQuestion = {
   fastestCorrectPlayerName: string | null
 }
 
-function compareCreatedAtAsc<T extends { created_at?: string | null; player_id?: string | null }>(a: T, b: T) {
-  const aMs = a.created_at ? Date.parse(String(a.created_at)) : NaN
-  const bMs = b.created_at ? Date.parse(String(b.created_at)) : NaN
+type QuickfireAnswerRow = {
+  id?: string | null
+  player_id?: string | null
+  question_id?: string | null
+  is_correct?: boolean | null
+  created_at?: string | null
+  received_at?: string | null
+  score_delta?: number | null
+}
+
+function getAnswerTimestamp(answer: QuickfireAnswerRow) {
+  return String(answer.created_at ?? answer.received_at ?? "").trim()
+}
+
+function compareCreatedAtAsc<T extends QuickfireAnswerRow>(a: T, b: T) {
+  const aMs = Date.parse(getAnswerTimestamp(a))
+  const bMs = Date.parse(getAnswerTimestamp(b))
 
   if (Number.isFinite(aMs) && Number.isFinite(bMs) && aMs !== bMs) {
     return aMs - bMs
@@ -45,7 +59,7 @@ export async function applyQuickfireFastestBonus(params: {
 }) {
   const answersRes = await supabaseAdmin
     .from("answers")
-    .select("id, player_id, is_correct, created_at, score_delta")
+    .select("*")
     .eq("room_id", params.roomId)
     .eq("question_id", params.questionId)
 
@@ -53,8 +67,8 @@ export async function applyQuickfireFastestBonus(params: {
     throw new Error(answersRes.error.message)
   }
 
-  const correctAnswers = (answersRes.data ?? [])
-    .filter((answer: any) => Boolean(answer?.is_correct))
+  const correctAnswers = ((answersRes.data ?? []) as QuickfireAnswerRow[])
+    .filter((answer) => Boolean(answer?.is_correct))
     .sort(compareCreatedAtAsc)
 
   const fastestCorrect = correctAnswers[0] ?? null
@@ -118,7 +132,7 @@ export async function buildQuickfireRoundReview(params: {
 
   const answersRes = await supabaseAdmin
     .from("answers")
-    .select("player_id, question_id, is_correct, created_at")
+    .select("*")
     .eq("room_id", params.roomId)
     .in("question_id", questionIds)
 
@@ -126,8 +140,8 @@ export async function buildQuickfireRoundReview(params: {
     throw new Error(answersRes.error.message)
   }
 
-  const answersByQuestion = new Map<string, any[]>()
-  for (const answer of answersRes.data ?? []) {
+  const answersByQuestion = new Map<string, QuickfireAnswerRow[]>()
+  for (const answer of (answersRes.data ?? []) as QuickfireAnswerRow[]) {
     const questionId = String(answer?.question_id ?? "").trim()
     if (!questionId) continue
     const list = answersByQuestion.get(questionId) ?? []
@@ -143,12 +157,12 @@ export async function buildQuickfireRoundReview(params: {
     questionIds.map(async (questionId, questionOffset) => {
       const question = await getQuestionById(questionId)
       const correctAnswers = (answersByQuestion.get(questionId) ?? [])
-        .filter((answer: any) => Boolean(answer?.is_correct))
+        .filter((answer) => Boolean(answer?.is_correct))
         .sort(compareCreatedAtAsc)
 
       const fastestCorrect = correctAnswers[0] ?? null
       const correctPlayerIds = correctAnswers
-        .map((answer: any) => String(answer?.player_id ?? "").trim())
+        .map((answer) => String(answer?.player_id ?? "").trim())
         .filter(Boolean)
 
       const correctPlayerNames = correctPlayerIds.map((playerId) => playerNameById.get(playerId) ?? "Player")
