@@ -2,6 +2,8 @@
 
 Keep this as a log of decisions we have already made so we do not keep reopening them.
 
+## Core working rules
+
 - No sign-in. Players join by room code.
 - The app is hosted by one person. The display screen is the TV view. Phones are for answering.
 - Work directly on `main` and let Vercel deploy from `main`.
@@ -9,6 +11,9 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Provide full replacement code for changed files.
 - Use shared UI components where they already exist.
 - Keep the app simple first and add round types one at a time.
+
+## Game structure and scoring
+
 - Teams mode and solo mode both stay.
 - In teams mode, players choose from host-defined team names.
 - Team names must be unique.
@@ -21,19 +26,43 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Selected but unsubmitted MCQ answers auto-submit at the end of the hidden grace window.
 - Free text answers stay manual.
 - The question should close early once every player has submitted.
+- End-of-round summaries stay. The host sets how long they remain visible.
+- The host can still skip the round review early.
+- The final summary should be mobile-friendly and should show the winner.
+
+## Audio and media
+
 - Audio modes stay as: display, phones, both.
 - Phone audio still needs a one-time enable tap, and manual play remains as fallback.
 - Audio should stop when the question closes.
 - The display should show the join QR code only before the game starts.
-- End-of-round summaries stay. The host sets how long they remain visible.
-- The host can still skip the round review early.
-- The final summary should be mobile-friendly and should show the winner.
-- The player and display pages should avoid repeated or cluttered labels where the same detail already appears elsewhere.
-- Shared theme surface tokens live in `app/globals.css` and should be used consistently.
-- Use the `JokerBadge` component instead of pasting the Joker symbol inline.
+- Store bucket-relative paths only in the database, not full URLs or bucket-prefixed paths.
+
+## Round-plan architecture
+
+- Packs are content sources.
+- Metadata defines question eligibility.
+- Round templates are reusable gameplay definitions.
+- Room round plans are the actual rounds chosen for one game.
+- Even Quick Random should still build real rounds under the hood.
+- Legacy pack-based rooms stay supported through a compatibility layer while the round-plan model beds in.
+
+## Quickfire
+
 - Quickfire is a real round behaviour, not just a naming convention.
 - Quickfire rounds are not Joker-eligible.
 - Quickfire skips the per-question reveal and goes straight to the round flow.
-- Quickfire v1 only uses non-audio MCQ questions.
+- Quickfire v1 stays limited to safe non-audio content until audio duration and pacing are handled properly.
 - Quickfire scoring is `+1` for any correct answer, plus `+1` for the fastest correct player on that question.
 - Quickfire round review shows the correct answer and exactly who got it right, with `⚡` on the fastest correct player.
+- Quickfire and Standard rounds can use different default timings.
+- Hosts can still override timings per round.
+
+## UI and code conventions
+
+- The player and display pages should avoid repeated or cluttered labels where the same detail already appears elsewhere.
+- Shared theme surface tokens live in `app/globals.css` and should be used consistently.
+- Use the `JokerBadge` component instead of pasting the Joker symbol inline.
+- When a colour or token already exists in the Tailwind theme, use the canonical utility class instead of an arbitrary value form.
+- Examples: `text-foreground` instead of `text-[var(--foreground)]`, `text-muted-foreground` instead of `text-[var(--muted-foreground)]`, `bg-card` instead of `bg-[var(--card)]`, `bg-muted` instead of `bg-[var(--muted)]`, and `border-border` instead of `border-[var(--border)]`.
+- Only use arbitrary value classes when there is no suitable canonical theme utility, or when the value is a true one-off such as a custom calculation or unusual dimension.

@@ -4,7 +4,7 @@ Live URL: https://mt-quiz.vercel.app
 Repo URL: https://github.com/speckledegg77/MT-quiz  
 Branch workflow: work directly on `main` and push to GitHub. Vercel auto-deploys from `main`.
 
-Context last updated: 2026-03-08  
+Context last updated: 2026-03-14  
 Repo commit: fill this in with `git rev-parse --short HEAD`
 
 ---
@@ -75,46 +75,59 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - `/play/[code]` player phone screen
 - `/display/[code]` TV screen
 - `/admin/import` admin import and media upload tools
+- `/admin/questions` question metadata dashboard
+- `/admin/shows` shows manager
+- `/admin/round-templates` round templates manager
 
 ---
 
-## Current game flow
+## Current build state
 
 ### Modes
 - Teams mode
 - Solo mode
 
 ### Lobby
-- Host creates a room and can choose packs, filters, timing, rounds, and audio mode.
+- Host creates a room and can choose timing, rounds, audio mode, and round-plan setup.
 - Players join from phones.
 - In teams mode, players choose a team from the host-defined team list.
 - Players choose a Joker round in the lobby.
 - TV display shows the join QR code before the game starts.
 
+### Round-plan model
+- Packs are content sources.
+- Metadata defines question eligibility.
+- Round templates are reusable gameplay definitions.
+- Room round plans are the actual rounds selected for one game.
+- Legacy pack-led rooms still work through a compatibility layer.
+
 ### Question flow
 - No “Get ready” countdown. Questions open straight away.
-- Timed mode uses an answer timer.
-- Untimed mode keeps the question open until everyone answers or the host reveals.
-- If every player submits before the timer ends, the question now closes much faster and moves to reveal quickly.
+- Timed and untimed answer modes both work.
+- If every player submits before the timer ends, the question closes much faster.
 - Selected but unsubmitted MCQ answers auto-submit at the end of the hidden grace window.
 - Free text answers stay manual.
 - Audio stops when the question closes.
 
-### Reveal
+### Standard round behaviour
 - Player and display pages show the correct answer on reveal.
-- MCQ option labels like “Option 1” have been removed from player and display.
-
-### End of round
-- After the last question in a round, the app shows a round summary screen.
-- The host sets how long the round summary stays visible.
-- The next round then starts automatically.
+- End-of-round summary screens stay in place and can auto-advance.
 - The host can still skip the round review early.
-- Quickfire rounds now skip the per-question reveal and show a question-by-question review at the end of the round.
+
+### Quickfire
+- Quickfire is a real round behaviour.
+- Quickfire rounds are not Joker-eligible.
+- Quickfire currently stays limited to safe non-audio content.
+- Each correct answer scores `+1`.
+- The fastest correct player on each question gets an extra `+1`.
+- Quickfire skips the per-question reveal.
+- Quickfire uses an end-of-round review that shows the correct answer and exactly who got it right, with `⚡` on the fastest correct player.
+- Default timings are now per round type rather than one shared room default.
 
 ### End of game
 - Final summary shows nested team and player breakdowns.
 - Mobile layout is card-based and no longer relies on a wide round matrix.
-- The summary now shows the winning player or team instead of only “Thanks for playing”.
+- The completed screen shows the winning player or team.
 
 ---
 
@@ -131,11 +144,9 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - No submitted answer: `-1`
 
 ### Quickfire
-- Quickfire is a real round behaviour.
-- Quickfire rounds are not Joker-eligible.
-- Each correct answer scores `+1`.
-- The fastest correct player on each question gets an extra `+1` bonus.
-- The end-of-round review shows the correct answer and exactly who got it right, with `⚡` on the fastest correct player.
+- Correct answer: `+1`
+- Fastest correct player bonus: `+1`
+- No Joker in Quickfire
 
 ### Team scoring
 - If team sizes match, teams use total points.
@@ -143,17 +154,36 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 
 ---
 
+## Metadata and admin model now live
+
+### Question metadata
+- Question metadata dashboard exists.
+- Metadata fields include `media_type`, `prompt_target`, `clue_source`, `primary_show_key`, and `metadata_review_state`.
+- The dashboard includes warnings, suggestions, bulk apply, bulk apply suggested values, filters for missing metadata, and a sticky detail panel.
+
+### Shows manager
+- Shows can be created and edited in the UI.
+- `primary_show_key` dropdowns now come from the `shows` table.
+- Show suggestions use question text first, then single-show pack fallback.
+
+### Round templates
+- There is a `round_templates` table.
+- Templates can be created and edited in the UI.
+- Host setup can add rounds from templates.
+- Manual rounds can be saved back as templates.
+- Quick Random can build rounds from selected active templates.
+
+---
+
 ## Important UI and behaviour decisions now live
 
 - Host page uses a cleaner two-column layout.
-- Packs show on the right when `Select packs` is ticked.
-- Host sidebar no longer uses sticky behaviour that clashes with the top bar.
 - Player page uses a shared page shell and a tighter mobile layout.
-- Player timer card and running score card sit on the same row.
-- iPhone input zoom issue is fixed by setting mobile form controls to `16px`.
-- Explicit light and dark theme switching works on phones, including when the device itself is in dark mode.
-- Shared theme surface tokens now exist in `app/globals.css`, including `--card`, `--border`, `--muted`, and `--muted-foreground`.
-- Special symbol issues were reduced by using a shared `JokerBadge` component.
+- Mobile form controls stay at `16px` to avoid iPhone zoom.
+- Explicit light and dark theme switching works on phones.
+- Shared theme surface tokens live in `app/globals.css`, including `--card`, `--border`, `--muted`, and `--muted-foreground`.
+- Use canonical Tailwind theme utilities where a theme token already exists, for example `text-foreground`, `text-muted-foreground`, `bg-card`, `bg-muted`, and `border-border`.
+- Use the `JokerBadge` component instead of pasting the Joker symbol inline.
 
 ---
 
@@ -198,6 +228,8 @@ Question bank:
 - `packs`
 - `questions`
 - `pack_questions`
+- `shows`
+- `round_templates`
 
 Game state:
 - `rooms`
@@ -207,6 +239,8 @@ Game state:
 - `question_finalisations`
 
 ### Important current fields
+- `rooms.build_mode`
+- `rooms.round_plan`
 - `rooms.round_count`
 - `rooms.round_names`
 - `players.joker_round_index`
@@ -223,6 +257,7 @@ Game state:
 
 ### Media path rule
 Store bucket-relative paths only in the DB.
+
 Examples:
 - `2026-02-17/audio-008.mp3`
 - `2026-02-17/image-003.png`
@@ -236,9 +271,6 @@ Do not store:
 
 ## Admin tools
 
-Admin page:
-- `/admin/import`
-
 Admin protection:
 - routes require header `x-admin-token`
 - token comes from `process.env.ADMIN_TOKEN`
@@ -248,6 +280,8 @@ Admin routes:
 - `/api/admin/upload-media`
 - `/api/admin/upload-audio`
 - `/api/admin/upload-image`
+- `/api/admin/round-templates`
+- `/api/admin/shows`
 
 ---
 
@@ -281,3 +315,4 @@ Pack loading:
 - When using uploaded files, say clearly that the upload is the source of truth.
 - For major changes, prefer small, testable steps.
 - For project continuity, update `docs/context.md`, `docs/roadmap.md`, and `docs/decisions.md` at the end of a substantial work block.
+- For UI and UX changes, prefer canonical Tailwind theme utilities over arbitrary value classes wherever a theme token already exists.
