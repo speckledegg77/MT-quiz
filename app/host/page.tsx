@@ -159,6 +159,9 @@ export default function HostPage() {
     makeManualRound(3),
   ])
   const [templateToAddId, setTemplateToAddId] = useState("")
+  const [templateAdminToken, setTemplateAdminToken] = useState("")
+  const [savingTemplateRoundId, setSavingTemplateRoundId] = useState<string | null>(null)
+  const [saveTemplateResult, setSaveTemplateResult] = useState<string | null>(null)
 
   const [gameMode, setGameMode] = useState<GameMode>("teams")
   const [teamNames, setTeamNames] = useState<string[]>(() => {
@@ -216,6 +219,15 @@ export default function HostPage() {
     try {
       const last = localStorage.getItem(LAST_HOST_CODE_KEY)
       if (last) setRehostCode(cleanRoomCode(last))
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("mtq_admin_token") ?? ""
+      if (saved) setTemplateAdminToken(saved)
     } catch {
       // ignore
     }
@@ -476,6 +488,84 @@ export default function HostPage() {
         primaryShowKey,
       },
     ])
+  }
+
+  async function saveRoundAsTemplate(round: ManualRoundDraft, index: number) {
+    const adminToken = templateAdminToken.trim()
+    if (!adminToken) {
+      setSaveTemplateResult("Enter your admin token to save templates from the host page.")
+      return
+    }
+
+    const name = round.name.trim() || defaultRoundName(index)
+    const defaultPackIds =
+      round.sourceMode === "specific_packs"
+        ? round.packIds
+        : round.sourceMode === "selected_packs"
+          ? selectedPackIds()
+          : []
+
+    setSavingTemplateRoundId(round.id)
+    setSaveTemplateResult(null)
+
+    try {
+      try {
+        sessionStorage.setItem("mtq_admin_token", adminToken)
+      } catch {
+        // ignore
+      }
+
+      const res = await fetch("/api/admin/round-templates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-token": adminToken,
+        },
+        body: JSON.stringify({
+          name,
+          description: "",
+          behaviourType: "standard",
+          defaultQuestionCount: clampInt(parseIntOr(round.questionCountStr, 0), 1, 200),
+          jokerEligible: round.jokerEligible,
+          countsTowardsScore: round.countsTowardsScore,
+          sourceMode: round.sourceMode,
+          defaultPackIds,
+          selectionRules: {
+            mediaTypes: round.mediaType ? [round.mediaType] : [],
+            promptTargets: round.promptTarget ? [round.promptTarget] : [],
+            clueSources: round.clueSource ? [round.clueSource] : [],
+            primaryShowKeys: round.primaryShowKey ? [round.primaryShowKey] : [],
+          },
+          isActive: true,
+          sortOrder: 0,
+        }),
+      })
+
+      const json = (await res.json().catch(() => ({}))) as { error?: string; template?: RoundTemplateRow }
+
+      if (!res.ok) {
+        setSaveTemplateResult(json.error || "Could not save round as template.")
+        return
+      }
+
+      if (json.template) {
+        setTemplates((prev) => {
+          const without = prev.filter((template) => template.id !== json.template?.id)
+          return [...without, json.template as RoundTemplateRow].sort((a, b) => {
+            const sortDiff = Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0)
+            if (sortDiff !== 0) return sortDiff
+            return String(a.name ?? "").localeCompare(String(b.name ?? ""))
+          })
+        })
+        setTemplateToAddId(json.template.id)
+      }
+
+      setSaveTemplateResult(`Saved "${name}" as a round template.`)
+    } catch (error: any) {
+      setSaveTemplateResult(error?.message || "Could not save round as template.")
+    } finally {
+      setSavingTemplateRoundId(null)
+    }
   }
 
   const selectedTemplateToAdd = useMemo(
@@ -974,12 +1064,27 @@ export default function HostPage() {
                       {selectedTemplateToAdd?.description ? <div>Template: {selectedTemplateToAdd.description}</div> : null}
                     </div>
 
+                    <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--background)] p-3">
+                      <div className="text-sm font-medium text-[var(--foreground)]">Save rounds as templates</div>
+                      <div className="mt-1 text-xs text-[var(--muted-foreground)]">Enter your admin token to save any current round into the template library. Selected-packs rounds save the currently selected host packs as defaults.</div>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                        <Input value={templateAdminToken} onChange={(e) => setTemplateAdminToken(e.target.value)} placeholder="Admin token for template saves" autoComplete="off" spellCheck={false} />
+                        <Button variant="secondary" onClick={() => setSaveTemplateResult(null)} disabled={!saveTemplateResult}>Clear message</Button>
+                      </div>
+                      {saveTemplateResult ? <div className={`mt-3 rounded-xl border p-3 text-sm ${saveTemplateResult.startsWith("Saved ") ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200" : "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200"}`}>{saveTemplateResult}</div> : null}
+                    </div>
+
                     <div className="mt-3 space-y-3">
                       {manualRounds.map((round, index) => (
                         <div key={round.id} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3">
                           <div className="flex items-start justify-between gap-3">
                             <div className="font-medium text-[var(--foreground)]">Round {index + 1}</div>
-                            <Button variant="ghost" onClick={() => removeManualRound(round.id)} disabled={manualRounds.length <= 1}>Remove</Button>
+                            <div className="flex flex-wrap gap-2">
+                              <Button variant="secondary" onClick={() => saveRoundAsTemplate(round, index)} disabled={savingTemplateRoundId === round.id}>
+                                {savingTemplateRoundId === round.id ? "Saving template..." : "Save as template"}
+                              </Button>
+                              <Button variant="ghost" onClick={() => removeManualRound(round.id)} disabled={manualRounds.length <= 1}>Remove</Button>
+                            </div>
                           </div>
 
                           <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
