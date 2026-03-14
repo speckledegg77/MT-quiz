@@ -911,7 +911,7 @@ export default function PlayerPage() {
             <CardContent className="space-y-4">
               {isPictureQ && q.imageUrl ? (
                 <div className="overflow-hidden rounded-xl border border-border bg-muted">
-                  <img src={q.imageUrl} alt="" className="max-h-[280px] w-full object-contain" />
+                  <img src={q.imageUrl} alt="" className="max-h-70 w-full object-contain" />
                 </div>
               ) : null}
 
