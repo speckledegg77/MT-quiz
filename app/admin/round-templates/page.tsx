@@ -1,97 +1,28 @@
 import Link from "next/link"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
+import { RoundTemplatesDashboard } from "@/components/admin/RoundTemplatesDashboard"
 
-function linkButtonClass(variant: "primary" | "secondary" = "primary") {
-  const base =
-    "inline-flex h-10 items-center justify-center rounded-lg border px-4 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--border)] focus:ring-offset-2 focus:ring-offset-[var(--background)]"
-
-  if (variant === "secondary") {
-    return `${base} border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] hover:bg-[var(--muted)]`
-  }
-
-  return `${base} border-[var(--foreground)] bg-[var(--foreground)] text-[var(--background)] hover:opacity-90`
+function linkButtonClass() {
+  return "inline-flex h-10 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--card)] px-4 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--border)] focus:ring-offset-2 focus:ring-offset-[var(--background)]"
 }
 
-export default function AdminHomePage() {
+export default function AdminRoundTemplatesPage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-6">
-        <div className="text-2xl font-semibold">Admin</div>
-        <div className="text-sm text-[var(--muted-foreground)]">Choose a tool.</div>
+    <main className="mx-auto max-w-7xl px-4 py-8">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-2xl font-semibold">Admin Round Templates</div>
+          <div className="text-sm text-[var(--muted-foreground)]">
+            Create reusable round definitions that can later be selected on the host page.
+          </div>
+        </div>
+
+        <Link href="/admin" className={linkButtonClass()}>
+          Back to Admin
+        </Link>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <Card>
-          <CardHeader>
-            <CardTitle>Questions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="text-sm text-[var(--muted-foreground)]">
-              Review question metadata, warnings, and suggested values before rounds start using the new fields.
-            </div>
-            <Link href="/admin/questions" className={linkButtonClass()}>
-              Open Questions
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Round Templates</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="text-sm text-[var(--muted-foreground)]">
-              Create reusable round definitions that can later be added to games from the host page.
-            </div>
-            <Link href="/admin/round-templates" className={linkButtonClass("secondary")}>
-              Open Templates
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Shows</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="text-sm text-[var(--muted-foreground)]">
-              Manage show keys and alternative names used by primary_show_key suggestions and dropdowns.
-            </div>
-            <Link href="/admin/shows" className={linkButtonClass("secondary")}>
-              Open Shows
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Import</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="text-sm text-[var(--muted-foreground)]">
-              Import questions from CSV and upload media in bulk.
-            </div>
-            <Link href="/admin/import" className={linkButtonClass("secondary")}>
-              Open Import
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Health</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="text-sm text-[var(--muted-foreground)]">
-              Check for missing media, broken paths, and duplicates.
-            </div>
-            <Link href="/admin/health" className={linkButtonClass("secondary")}>
-              Open Health
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+      <RoundTemplatesDashboard />
     </main>
   )
 }
