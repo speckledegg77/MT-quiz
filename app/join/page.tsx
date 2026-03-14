@@ -175,7 +175,7 @@ function JoinInner() {
       <Card>
         <CardHeader>
           <CardTitle>Join game</CardTitle>
-          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+          <p className="mt-1 text-sm text-muted-foreground">
             Enter the room code and your name.
           </p>
         </CardHeader>
@@ -191,7 +191,7 @@ function JoinInner() {
               spellCheck={false}
             />
             {loadingRoom ? (
-              <div className="text-xs text-[var(--muted-foreground)]">Loading room…</div>
+              <div className="text-xs text-muted-foreground">Loading room…</div>
             ) : null}
           </div>
 
@@ -203,7 +203,7 @@ function JoinInner() {
               placeholder="For example Elphaba"
               autoComplete="nickname"
             />
-            <div className="text-xs text-[var(--muted-foreground)]">Names must be unique in a room.</div>
+            <div className="text-xs text-muted-foreground">Names must be unique in a room.</div>
           </div>
 
           {needsTeam ? (
@@ -213,7 +213,7 @@ function JoinInner() {
                 <select
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
-                  className="h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 text-sm"
+                  className="h-12 w-full rounded-xl border border-border bg-card px-3 text-sm"
                 >
                   {teamNames.map((t) => (
                     <option key={t} value={t}>
@@ -240,7 +240,7 @@ function JoinInner() {
         </CardContent>
 
         <CardFooter className="flex items-center justify-between gap-3">
-          <a href="/host" className="text-sm underline text-[var(--muted-foreground)]">
+          <a href="/host" className="text-sm underline text-muted-foreground">
             Host instead
           </a>
 
@@ -259,7 +259,7 @@ export default function JoinPage() {
       fallback={
         <main className="mx-auto max-w-md px-4 py-10">
           <Card>
-            <CardContent className="py-8 text-sm text-[var(--muted-foreground)]">Loading…</CardContent>
+            <CardContent className="py-8 text-sm text-muted-foreground">Loading…</CardContent>
           </Card>
         </main>
       }

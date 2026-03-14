@@ -634,7 +634,7 @@ export default function PlayerPage() {
     return (
       <PageShell width="narrow" className="py-10 sm:py-12">
         <Card>
-          <CardContent className="py-8 text-sm text-[var(--muted-foreground)]">
+          <CardContent className="py-8 text-sm text-muted-foreground">
             Missing room code in the URL.
           </CardContent>
         </Card>
@@ -649,7 +649,7 @@ export default function PlayerPage() {
           <CardHeader>
             <CardTitle>Player not found</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-[var(--muted-foreground)]">
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
             This phone does not have a player ID for room {code}. Go back to Join and enter the code again.
           </CardContent>
           <CardFooter className="flex justify-end">
@@ -706,15 +706,15 @@ export default function PlayerPage() {
 
       <div className="mb-4 flex items-end justify-between gap-3">
         <div>
-          <div className="text-xs text-[var(--muted-foreground)]">Room</div>
+          <div className="text-xs text-muted-foreground">Room</div>
           <div className="text-lg font-semibold tracking-wide">{code}</div>
           {playerName ? (
-            <div className="text-xs text-[var(--muted-foreground)]">
-              Player: <span className="text-[var(--foreground)]">{playerName}</span>
+            <div className="text-xs text-muted-foreground">
+              Player: <span className="text-foreground">{playerName}</span>
               {gameMode === "teams" && teamName ? (
                 <>
                   <span className="mx-2">|</span>
-                  Team: <span className="text-[var(--foreground)]">{teamName}</span>
+                  Team: <span className="text-foreground">{teamName}</span>
                 </>
               ) : null}
             </div>
@@ -729,12 +729,12 @@ export default function PlayerPage() {
           {state.phase === "running" ? (
             <div className="flex flex-col items-end gap-2">
               {currentRound ? (
-                <span className="rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-xs text-[var(--muted-foreground)]">
+                <span className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
                   R{Number(currentRound.number ?? 0)}: {String(currentRound.name ?? "")}
                 </span>
               ) : null}
 
-              <span className="rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-xs text-[var(--muted-foreground)]">
+              <span className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
                 Q{questionNumber} of {questionCount}
               </span>
             </div>
@@ -747,11 +747,11 @@ export default function PlayerPage() {
           <CardHeader>
             <CardTitle>Waiting to start</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 text-sm text-[var(--muted-foreground)]">
+          <CardContent className="space-y-4 text-sm text-muted-foreground">
             <div>You have joined. Wait for the host to start the game.</div>
 
             {shouldPlayOnPhone ? (
-              <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
+              <div className="rounded-lg border border-border bg-muted px-3 py-2">
                 {!audioEnabled ? (
                   <Button onClick={unlockAudio} variant="secondary">
                     Enable audio on this phone
@@ -763,8 +763,8 @@ export default function PlayerPage() {
             ) : null}
 
             {roundsPlan.length > 0 ? (
-              <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-3">
-                <div className="text-sm font-medium text-[var(--foreground)]">Rounds</div>
+              <div className="rounded-lg border border-border bg-card px-3 py-3">
+                <div className="text-sm font-medium text-foreground">Rounds</div>
                 <div className="mt-2 grid gap-1">
                   {roundsPlan.map((round: any) => {
                     const selected = myJokerIndex === Number(round.index)
@@ -778,13 +778,13 @@ export default function PlayerPage() {
 
                         <div className="flex items-center gap-2">
                           {round.size ? (
-                            <div className="text-xs text-[var(--muted-foreground)] tabular-nums">
+                            <div className="text-xs text-muted-foreground tabular-nums">
                               {Number(round.size)} questions
                             </div>
                           ) : null}
 
                           {!jokerEligible ? (
-                            <span className="rounded-full border border-[var(--border)] bg-[var(--muted)] px-2 py-0.5 text-[10px] text-[var(--muted-foreground)]">
+                            <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
                               No Joker
                             </span>
                           ) : null}
@@ -803,8 +803,8 @@ export default function PlayerPage() {
             ) : null}
 
             {jokerEnabled && jokerEligibleCount >= 2 ? (
-              <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-3">
-                <div className="text-sm font-medium text-[var(--foreground)]">Pick your Joker round</div>
+              <div className="rounded-lg border border-border bg-muted px-3 py-3">
+                <div className="text-sm font-medium text-foreground">Pick your Joker round</div>
 
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   {jokerEligibleRounds.map((round: any) => {
@@ -822,7 +822,7 @@ export default function PlayerPage() {
                   })}
                 </div>
 
-                <div className="mt-2 text-xs text-[var(--muted-foreground)]">
+                <div className="mt-2 text-xs text-muted-foreground">
                   In your Joker round: correct +2. Wrong -1. No submitted answer -1.
                 </div>
 
@@ -860,7 +860,7 @@ export default function PlayerPage() {
 
       {!showLobby && !finished && suppressStaleQuestionBetweenRounds ? (
         <Card>
-          <CardContent className="py-10 text-center text-sm text-[var(--muted-foreground)]">
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
             Starting next round...
           </CardContent>
         </Card>
@@ -873,7 +873,7 @@ export default function PlayerPage() {
               {myPlayer ? (
                 <Card>
                   <CardContent className="flex items-center justify-between gap-3 py-3">
-                    <div className="min-w-0 text-xs text-[var(--muted-foreground)]">Your score</div>
+                    <div className="min-w-0 text-xs text-muted-foreground">Your score</div>
                     <div className="shrink-0 text-base font-semibold tabular-nums sm:text-lg">
                       {myPlayer.score ?? 0}
                     </div>
@@ -886,7 +886,7 @@ export default function PlayerPage() {
               {showTimerCard ? (
                 <Card>
                   <CardContent className="flex items-center justify-between gap-3 py-3">
-                    <div className="min-w-0 text-xs text-[var(--muted-foreground)]">{timerLabel}</div>
+                    <div className="min-w-0 text-xs text-muted-foreground">{timerLabel}</div>
                     <div className="text-right text-sm font-semibold leading-tight tabular-nums sm:text-base">
                       {timerValue}
                     </div>
@@ -902,7 +902,7 @@ export default function PlayerPage() {
             <CardHeader>
               <div className="flex items-center justify-between gap-3">
                 <CardTitle>Question</CardTitle>
-                <div className="text-sm text-[var(--muted-foreground)]">
+                <div className="text-sm text-muted-foreground">
                   {q.roundType === "audio" ? "Audio" : q.roundType === "picture" ? "Picture" : "General"}
                 </div>
               </div>
@@ -910,7 +910,7 @@ export default function PlayerPage() {
 
             <CardContent className="space-y-4">
               {isPictureQ && q.imageUrl ? (
-                <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--muted)]">
+                <div className="overflow-hidden rounded-xl border border-border bg-muted">
                   <img src={q.imageUrl} alt="" className="max-h-[280px] w-full object-contain" />
                 </div>
               ) : null}
@@ -918,17 +918,17 @@ export default function PlayerPage() {
               <div className="text-base font-semibold leading-tight">{q.text}</div>
 
               {isAudioQ && shouldPlayOnPhone ? (
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3">
+                <div className="rounded-xl border border-border bg-muted p-3">
                   {!audioEnabled ? (
                     <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm text-[var(--muted-foreground)]">Audio for this question</div>
+                      <div className="text-sm text-muted-foreground">Audio for this question</div>
                       <Button onClick={unlockAudio} variant="secondary" size="sm">
                         Enable audio
                       </Button>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <div className="text-sm text-[var(--muted-foreground)]">
+                      <div className="text-sm text-muted-foreground">
                         Audio enabled{autoplayFailed ? ". Tap Play clip." : "."}
                       </div>
                       <Button
@@ -945,7 +945,7 @@ export default function PlayerPage() {
                   )}
                 </div>
               ) : isAudioQ && audioMode === "display" ? (
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] p-3 text-sm text-[var(--muted-foreground)]">
+                <div className="rounded-xl border border-border bg-muted p-3 text-sm text-muted-foreground">
                   Audio plays on the TV display.
                 </div>
               ) : null}
@@ -981,7 +981,7 @@ export default function PlayerPage() {
                         const submitted = submittedIndex !== null
 
                         let cls = "rounded-xl border px-3 py-3 text-left text-sm transition-colors"
-                        cls += " border-[var(--border)] hover:bg-emerald-600/10"
+                        cls += " border-border hover:bg-emerald-600/10"
 
                         if (selected && !submitted) cls += " bg-emerald-600/15 border-emerald-500/40"
                         if (submitted) cls += " opacity-80 cursor-not-allowed"
@@ -995,7 +995,7 @@ export default function PlayerPage() {
                             onClick={() => pickOption(idx)}
                             disabled={!canAnswer || mcqSubmitting}
                           >
-                            <div className="text-sm text-[var(--foreground)]">{opt}</div>
+                            <div className="text-sm text-foreground">{opt}</div>
                           </button>
                         )
                       })
@@ -1031,12 +1031,12 @@ export default function PlayerPage() {
               {inReveal && correctAnswerText ? (
                 <div className="rounded-xl border border-emerald-600/30 bg-emerald-600/10 p-3">
                   <div className="text-sm font-medium text-emerald-200">Correct answer</div>
-                  <div className="mt-1 text-sm text-[var(--foreground)]">{correctAnswerText}</div>
+                  <div className="mt-1 text-sm text-foreground">{correctAnswerText}</div>
                 </div>
               ) : null}
 
               {isTextQ && typedSubmitted && typedIsCorrect !== null && !inReveal ? (
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-sm text-[var(--muted-foreground)]">
+                <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
                   Your answer has been submitted.
                 </div>
               ) : null}

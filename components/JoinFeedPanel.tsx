@@ -59,18 +59,18 @@ export default function JoinFeedPanel({ players }: { players: PlayerPublic[] }) 
     <Card>
       <CardHeader>
         <CardTitle>Players joining</CardTitle>
-        <div className="mt-1 text-sm text-[var(--muted-foreground)]">
+        <div className="mt-1 text-sm text-muted-foreground">
           Live join feed for this room
         </div>
       </CardHeader>
 
       <CardContent>
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-xl border border-[var(--border)] p-3">
+          <div className="rounded-xl border border-border p-3">
             <div className="text-sm font-semibold">Joined players ({uniquePlayers.length})</div>
 
             {uniquePlayers.length === 0 ? (
-              <div className="mt-2 text-sm text-[var(--muted-foreground)]">No players yet.</div>
+              <div className="mt-2 text-sm text-muted-foreground">No players yet.</div>
             ) : (
               <ul className="mt-2 space-y-2">
                 {uniquePlayers.map((p) => {
@@ -80,10 +80,10 @@ export default function JoinFeedPanel({ players }: { players: PlayerPublic[] }) 
                       <div className="min-w-0 truncate text-sm">
                         {p.name}
                         {p.team_name ? (
-                          <span className="ml-2 text-xs text-[var(--muted-foreground)]">{p.team_name}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">{p.team_name}</span>
                         ) : null}
                       </div>
-                      <div className="shrink-0 text-xs text-[var(--muted-foreground)]">
+                      <div className="shrink-0 text-xs text-muted-foreground">
                         {iso ? formatTime(iso) : ""}
                       </div>
                     </li>
@@ -93,11 +93,11 @@ export default function JoinFeedPanel({ players }: { players: PlayerPublic[] }) 
             )}
           </div>
 
-          <div className="rounded-xl border border-[var(--border)] p-3">
+          <div className="rounded-xl border border-border p-3">
             <div className="text-sm font-semibold">Just joined</div>
 
             {recent.length === 0 ? (
-              <div className="mt-2 text-sm text-[var(--muted-foreground)]">
+              <div className="mt-2 text-sm text-muted-foreground">
                 Waiting for the first join…
               </div>
             ) : (
@@ -109,10 +109,10 @@ export default function JoinFeedPanel({ players }: { players: PlayerPublic[] }) 
                       <div className="min-w-0 truncate text-sm">
                         {p.name}
                         {p.team_name ? (
-                          <span className="ml-2 text-xs text-[var(--muted-foreground)]">{p.team_name}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">{p.team_name}</span>
                         ) : null}
                       </div>
-                      <div className="shrink-0 text-xs text-[var(--muted-foreground)]">
+                      <div className="shrink-0 text-xs text-muted-foreground">
                         {iso ? formatTime(iso) : ""}
                       </div>
                     </li>

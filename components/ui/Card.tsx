@@ -10,7 +10,7 @@ export function Card({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cx("rounded-xl border border-[var(--border)] bg-[var(--card)]", className)}
+      className={cx("rounded-xl border border-border bg-card", className)}
       {...props}
     />
   );
@@ -20,7 +20,7 @@ export function CardHeader({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cx("px-4 py-3 border-b border-[var(--border)]", className)} {...props} />;
+  return <div className={cx("px-4 py-3 border-b border-border", className)} {...props} />;
 }
 
 export function CardTitle({
@@ -41,5 +41,5 @@ export function CardFooter({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cx("px-4 py-3 border-t border-[var(--border)]", className)} {...props} />;
+  return <div className={cx("px-4 py-3 border-t border-border", className)} {...props} />;
 }

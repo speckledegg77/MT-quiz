@@ -8,7 +8,7 @@ export default function AdminHealthPage() {
     <main className="mx-auto max-w-5xl px-4 py-8">
       <div className="mb-6">
         <div className="text-2xl font-semibold">Admin Health</div>
-        <div className="text-sm text-[var(--muted-foreground)]">
+        <div className="text-sm text-muted-foreground">
           This page will run checks on packs, questions, and media.
         </div>
       </div>
@@ -17,7 +17,7 @@ export default function AdminHealthPage() {
         <CardHeader>
           <CardTitle>Coming next</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm text-[var(--muted-foreground)]">
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div>Missing audio files</div>
           <div>Missing image files</div>
           <div>Broken media paths</div>

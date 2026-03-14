@@ -155,14 +155,14 @@ export default function RoundSummaryCard({
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-xs uppercase tracking-wide text-[var(--muted-foreground)]">End of round</div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">End of round</div>
             <CardTitle className="mt-1">Round {Number(round?.number ?? 0)}</CardTitle>
-            <div className="mt-1 text-sm text-[var(--muted-foreground)]">{String(round?.name ?? "Round summary")}</div>
+            <div className="mt-1 text-sm text-muted-foreground">{String(round?.name ?? "Round summary")}</div>
           </div>
 
           {remainingSeconds !== null ? (
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-right">
-              <div className="text-xs text-[var(--muted-foreground)]">
+            <div className="rounded-xl border border-border bg-card px-3 py-2 text-right">
+              <div className="text-xs text-muted-foreground">
                 {isLastQuestionOverall ? "Finishing game in" : "Next round starts in"}
               </div>
               <div className="text-lg font-semibold tabular-nums">{formatDuration(remainingSeconds)}</div>
@@ -173,21 +173,21 @@ export default function RoundSummaryCard({
 
       <CardContent className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3">
-            <div className="text-xs text-[var(--muted-foreground)]">Correct</div>
+          <div className="rounded-xl border border-border bg-card p-3">
+            <div className="text-xs text-muted-foreground">Correct</div>
             <div className="mt-1 text-lg font-semibold">
               {fmt(Number(roundStats?.correct ?? 0))}/{fmt(Number(roundStats?.answered ?? 0))}
             </div>
           </div>
 
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3">
-            <div className="text-xs text-[var(--muted-foreground)]">
+          <div className="rounded-xl border border-border bg-card p-3">
+            <div className="text-xs text-muted-foreground">
               {isQuickfire ? "Fastest bonuses" : "Joker usage"}
             </div>
             <div className="mt-1 text-lg font-semibold">
               {isQuickfire ? fmt(fastestAwardCount) : fmt(Number(roundStats?.jokerUsed ?? 0))}
             </div>
-            <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+            <div className="mt-1 text-xs text-muted-foreground">
               {isQuickfire ? "One bonus point for the fastest correct player on each question." : `Joker correct: ${fmt(Number(roundStats?.jokerCorrect ?? 0))}`}
             </div>
           </div>
@@ -195,19 +195,19 @@ export default function RoundSummaryCard({
 
         {isQuickfire && quickfireQuestions.length ? (
           <div className="space-y-3">
-            <div className="text-sm font-medium text-[var(--foreground)]">Question review</div>
+            <div className="text-sm font-medium text-foreground">Question review</div>
 
             <div className="space-y-3">
               {quickfireQuestions.map((question) => (
                 <div
                   key={question.questionId}
-                  className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-3"
+                  className="rounded-xl border border-border bg-card px-4 py-3"
                 >
-                  <div className="text-sm font-medium text-[var(--foreground)]">
+                  <div className="text-sm font-medium text-foreground">
                     Q{question.questionNumberInRound}. {question.questionText}
                   </div>
-                  <div className="mt-2 text-sm text-[var(--foreground)]">{question.correctAnswer || "No answer recorded"}</div>
-                  <div className="mt-2 text-sm text-[var(--muted-foreground)]">Correct: {formatCorrectNames(question)}</div>
+                  <div className="mt-2 text-sm text-foreground">{question.correctAnswer || "No answer recorded"}</div>
+                  <div className="mt-2 text-sm text-muted-foreground">Correct: {formatCorrectNames(question)}</div>
                 </div>
               ))}
             </div>
@@ -217,20 +217,20 @@ export default function RoundSummaryCard({
         {gameMode === "teams" ? (
           teamRows.length ? (
             <div className="space-y-3">
-              <div className="text-sm font-medium text-[var(--foreground)]">By team</div>
+              <div className="text-sm font-medium text-foreground">By team</div>
 
               {teamRows.map((team) => (
-                <div key={team.team} className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3">
+                <div key={team.team} className="rounded-xl border border-border bg-card p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-semibold text-[var(--foreground)]">{team.team}</div>
-                      <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                      <div className="text-sm font-semibold text-foreground">{team.team}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
                         Correct {fmt(Number(team.correct ?? 0))}/{fmt(Number(team.answered ?? 0))} | Joker {fmt(Number(team.jokerUsed ?? 0))}
                       </div>
                     </div>
 
                     <div className="text-right">
-                      <div className="text-xs text-[var(--muted-foreground)]">Team score so far</div>
+                      <div className="text-xs text-muted-foreground">Team score so far</div>
                       <div className="text-lg font-semibold tabular-nums">
                         {fmt(Number(team.displayScoreSoFar ?? team.totalScoreSoFar ?? 0))}
                       </div>
@@ -242,10 +242,10 @@ export default function RoundSummaryCard({
                       {team.playersList.map((player) => (
                         <div
                           key={player.id ?? player.name}
-                          className="flex items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--muted)] px-3 py-2"
+                          className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted px-3 py-2"
                         >
                           <div className="flex min-w-0 items-center gap-2">
-                            <div className="truncate text-sm text-[var(--foreground)]">{player.name}</div>
+                            <div className="truncate text-sm text-foreground">{player.name}</div>
                             {player.usedJokerInScope ? <JokerBadge /> : null}
                           </div>
 
@@ -260,16 +260,16 @@ export default function RoundSummaryCard({
           ) : null
         ) : soloPlayers.length ? (
           <div className="space-y-3">
-            <div className="text-sm font-medium text-[var(--foreground)]">Players</div>
+            <div className="text-sm font-medium text-foreground">Players</div>
 
             <div className="space-y-2">
               {soloPlayers.map((player) => (
                 <div
                   key={player.id ?? player.name}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-3"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3 py-3"
                 >
                   <div className="flex min-w-0 items-center gap-2">
-                    <div className="truncate text-sm text-[var(--foreground)]">{player.name}</div>
+                    <div className="truncate text-sm text-foreground">{player.name}</div>
                     {player.usedJokerInScope ? <JokerBadge /> : null}
                   </div>
 
@@ -281,7 +281,7 @@ export default function RoundSummaryCard({
         ) : null}
 
         {remainingSeconds === null ? (
-          <div className="text-sm text-[var(--muted-foreground)]">
+          <div className="text-sm text-muted-foreground">
             {isLastQuestionOverall ? "Waiting for the host to finish the game." : "Waiting for the next round to start."}
           </div>
         ) : null}

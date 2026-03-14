@@ -9,7 +9,7 @@ type Props = {
 
 export default function QRTile({ value, size = 112 }: Props) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-white p-2">
+    <div className="rounded-xl border border-border bg-white p-2">
       <QRCodeSVG
         value={value}
         size={size}

@@ -952,11 +952,11 @@ export default function HostPage() {
     <PageShell width="full" contentClassName="max-w-6xl">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[var(--foreground)]">Host</h1>
-          <p className="mt-1 text-sm text-[var(--muted-foreground)]">Create a room, share the code, and run the quiz.</p>
+          <h1 className="text-2xl font-semibold text-foreground">Host</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Create a room, share the code, and run the quiz.</p>
         </div>
 
-        <Link href="/" className="text-sm text-[var(--muted-foreground)] hover:underline">
+        <Link href="/" className="text-sm text-muted-foreground hover:underline">
           Back to home
         </Link>
       </div>
@@ -970,26 +970,26 @@ export default function HostPage() {
               </CardHeader>
 
               <CardContent className="space-y-4">
-                <div className="rounded-2xl border border-[var(--border)] p-3">
-                  <div className="text-sm font-semibold text-[var(--foreground)]">Game</div>
+                <div className="rounded-2xl border border-border p-3">
+                  <div className="text-sm font-semibold text-foreground">Game</div>
 
                   <div className="mt-3 grid gap-3 sm:grid-cols-3">
                     <div>
-                      <div className="text-sm font-medium text-[var(--foreground)]">Mode</div>
-                      <select value={gameMode} onChange={(e) => setGameMode(e.target.value as GameMode)} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
+                      <div className="text-sm font-medium text-foreground">Mode</div>
+                      <select value={gameMode} onChange={(e) => setGameMode(e.target.value as GameMode)} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
                         <option value="teams">Teams</option>
                         <option value="solo">No teams</option>
                       </select>
-                      <div className="mt-1 text-xs text-[var(--muted-foreground)]">One phone per person.</div>
+                      <div className="mt-1 text-xs text-muted-foreground">One phone per person.</div>
                     </div>
 
                     {gameMode === "teams" ? (
                       <div>
-                        <div className="text-sm font-medium text-[var(--foreground)]">Scoring</div>
-                        <div className="mt-2 text-sm text-[var(--muted-foreground)]">Total points. If team sizes differ, the scoreboard uses average points per player.</div>
+                        <div className="text-sm font-medium text-foreground">Scoring</div>
+                        <div className="mt-2 text-sm text-muted-foreground">Total points. If team sizes differ, the scoreboard uses average points per player.</div>
                       </div>
                     ) : (
-                      <div className="flex items-end text-sm text-[var(--muted-foreground)]">Players score individually.</div>
+                      <div className="flex items-end text-sm text-muted-foreground">Players score individually.</div>
                     )}
 
                     {gameMode === "teams" ? (
@@ -1009,30 +1009,30 @@ export default function HostPage() {
 
                   {gameMode === "teams" ? (
                     <div className="mt-3 space-y-2">
-                      <div className="text-sm text-[var(--muted-foreground)]">Teams (players pick one when joining)</div>
+                      <div className="text-sm text-muted-foreground">Teams (players pick one when joining)</div>
                       {teamNames.map((t, idx) => (
                         <div key={idx} className="flex items-center gap-2">
                           <Input value={t} onChange={(e) => setTeamNames((prev) => prev.map((x, i) => i === idx ? e.target.value : x))} placeholder="Team name" />
                           <Button variant="ghost" onClick={() => setTeamNames((prev) => prev.filter((_, i) => i !== idx))} disabled={teamNames.length <= 2}>Remove</Button>
                         </div>
                       ))}
-                      {teamNames.length <= 2 ? <div className="text-xs text-[var(--muted-foreground)]">Keep at least two teams.</div> : null}
+                      {teamNames.length <= 2 ? <div className="text-xs text-muted-foreground">Keep at least two teams.</div> : null}
                     </div>
                   ) : null}
                 </div>
 
-                <div className="rounded-2xl border border-[var(--border)] p-3">
-                  <div className="text-sm font-semibold text-[var(--foreground)]">Build mode</div>
+                <div className="rounded-2xl border border-border p-3">
+                  <div className="text-sm font-semibold text-foreground">Build mode</div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-3">
                     <div>
-                      <div className="text-sm font-medium text-[var(--foreground)]">Mode</div>
-                      <select value={buildMode} onChange={(e) => setBuildMode(e.target.value as BuildMode)} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
+                      <div className="text-sm font-medium text-foreground">Mode</div>
+                      <select value={buildMode} onChange={(e) => setBuildMode(e.target.value as BuildMode)} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
                         <option value="manual_rounds">Manual rounds</option>
                         <option value="quick_random">Quick random</option>
                         <option value="legacy_pack_mode">Legacy pack mode</option>
                       </select>
                     </div>
-                    <div className="sm:col-span-2 text-sm text-[var(--muted-foreground)]">
+                    <div className="sm:col-span-2 text-sm text-muted-foreground">
                       {buildMode === "manual_rounds"
                         ? "Create each round directly. Packs stay as sources, and metadata decides eligibility."
                         : buildMode === "quick_random"
@@ -1043,17 +1043,17 @@ export default function HostPage() {
                 </div>
 
                 {buildMode === "manual_rounds" ? (
-                  <div className="rounded-2xl border border-[var(--border)] p-3">
+                  <div className="rounded-2xl border border-border p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="text-sm font-semibold text-[var(--foreground)]">Manual rounds</div>
-                        <div className="mt-1 text-xs text-[var(--muted-foreground)]">Each round picks its own pool using pack scope and metadata rules.</div>
+                        <div className="text-sm font-semibold text-foreground">Manual rounds</div>
+                        <div className="mt-1 text-xs text-muted-foreground">Each round picks its own pool using pack scope and metadata rules.</div>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <select
                           value={templateToAddId}
                           onChange={(e) => setTemplateToAddId(e.target.value)}
-                          className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
+                          className="rounded-xl border border-border bg-card px-3 py-2 text-sm"
                           disabled={!templates.length}
                         >
                           {templates.length === 0 ? (
@@ -1078,7 +1078,7 @@ export default function HostPage() {
                       </div>
                     </div>
 
-                    <div className="mt-3 space-y-1 text-xs text-[var(--muted-foreground)]">
+                    <div className="mt-3 space-y-1 text-xs text-muted-foreground">
                       <div>Total questions from rounds: {manualRoundsTotal}. {manualJokerNote}</div>
                       {quickfireCount > 0 ? <div>Quickfire v1 skips Joker, skips per-question reveals, and only pulls non-audio MCQ questions.</div> : null}
                       {selectedTemplateToAdd?.description ? <div>Template: {selectedTemplateToAdd.description}</div> : null}
@@ -1086,23 +1086,23 @@ export default function HostPage() {
 
                     <div className="mt-3 space-y-3">
                       {manualRounds.map((round, index) => (
-                        <div key={round.id} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3">
+                        <div key={round.id} className="rounded-2xl border border-border bg-card p-3">
                           <div className="flex items-start justify-between gap-3">
-                            <div className="font-medium text-[var(--foreground)]">Round {index + 1}</div>
+                            <div className="font-medium text-foreground">Round {index + 1}</div>
                             <Button variant="ghost" onClick={() => removeManualRound(round.id)} disabled={manualRounds.length <= 1}>Remove</Button>
                           </div>
 
                           <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                             <div>
-                              <div className="text-sm font-medium text-[var(--foreground)]">Name</div>
+                              <div className="text-sm font-medium text-foreground">Name</div>
                               <Input value={round.name} onChange={(e) => updateManualRound(round.id, { name: e.target.value })} placeholder={defaultRoundName(index)} />
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-[var(--foreground)]">Questions</div>
+                              <div className="text-sm font-medium text-foreground">Questions</div>
                               <Input value={round.questionCountStr} onChange={(e) => updateManualRound(round.id, { questionCountStr: e.target.value })} inputMode="numeric" />
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-[var(--foreground)]">Behaviour</div>
+                              <div className="text-sm font-medium text-foreground">Behaviour</div>
                               <select
                                 value={round.behaviourType}
                                 onChange={(e) => {
@@ -1113,48 +1113,48 @@ export default function HostPage() {
                                     roundReviewSecondsStr: String(getDefaultRoundReviewSecondsForBehaviour(behaviourType)),
                                   })
                                 }}
-                                className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
+                                className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
                               >
                                 {ROUND_BEHAVIOUR_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                               </select>
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-[var(--foreground)]">Source mode</div>
-                              <select value={round.sourceMode} onChange={(e) => updateManualRound(round.id, { sourceMode: e.target.value as RoundSourceMode })} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
+                              <div className="text-sm font-medium text-foreground">Source mode</div>
+                              <select value={round.sourceMode} onChange={(e) => updateManualRound(round.id, { sourceMode: e.target.value as RoundSourceMode })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
                                 <option value="selected_packs">Selected packs</option>
                                 <option value="specific_packs">Specific packs</option>
                                 <option value="all_questions">All questions</option>
                               </select>
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-[var(--foreground)]">Answer seconds</div>
+                              <div className="text-sm font-medium text-foreground">Answer seconds</div>
                               <Input
                                 value={round.answerSecondsStr}
                                 onChange={(e) => updateManualRound(round.id, { answerSecondsStr: e.target.value })}
                                 inputMode="numeric"
                               />
-                              <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                              <div className="mt-1 text-xs text-muted-foreground">
                                 Use 0 for untimed. Default for {round.behaviourType} is {getDefaultAnswerSecondsForBehaviour(round.behaviourType)}.
                               </div>
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-[var(--foreground)]">Round review seconds</div>
+                              <div className="text-sm font-medium text-foreground">Round review seconds</div>
                               <Input
                                 value={round.roundReviewSecondsStr}
                                 onChange={(e) => updateManualRound(round.id, { roundReviewSecondsStr: e.target.value })}
                                 inputMode="numeric"
                               />
-                              <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                              <div className="mt-1 text-xs text-muted-foreground">
                                 Default for {round.behaviourType} is {getDefaultRoundReviewSecondsForBehaviour(round.behaviourType)}.
                               </div>
                             </div>
 
                             <div className="space-y-2 pt-6">
-                              <label className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+                              <label className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <input type="checkbox" checked={round.jokerEligible} onChange={(e) => updateManualRound(round.id, { jokerEligible: e.target.checked })} disabled={round.behaviourType === "quickfire"} />
                                 Joker eligible
                               </label>
-                              <label className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+                              <label className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <input type="checkbox" checked={round.countsTowardsScore} onChange={(e) => updateManualRound(round.id, { countsTowardsScore: e.target.checked })} />
                                 Counts towards score
                               </label>
@@ -1163,8 +1163,8 @@ export default function HostPage() {
 
                           <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                             <div>
-                              <div className="text-sm font-medium text-[var(--foreground)]">media_type</div>
-                              <select value={round.mediaType} onChange={(e) => updateManualRound(round.id, { mediaType: e.target.value as ManualRoundDraft["mediaType"] })} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
+                              <div className="text-sm font-medium text-foreground">media_type</div>
+                              <select value={round.mediaType} onChange={(e) => updateManualRound(round.id, { mediaType: e.target.value as ManualRoundDraft["mediaType"] })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
                                 <option value="">Any media</option>
                                 <option value="text">text</option>
                                 <option value="audio">audio</option>
@@ -1172,20 +1172,20 @@ export default function HostPage() {
                               </select>
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-[var(--foreground)]">prompt_target</div>
-                              <select value={round.promptTarget} onChange={(e) => updateManualRound(round.id, { promptTarget: e.target.value })} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
+                              <div className="text-sm font-medium text-foreground">prompt_target</div>
+                              <select value={round.promptTarget} onChange={(e) => updateManualRound(round.id, { promptTarget: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
                                 {PROMPT_TARGET_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
                               </select>
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-[var(--foreground)]">clue_source</div>
-                              <select value={round.clueSource} onChange={(e) => updateManualRound(round.id, { clueSource: e.target.value })} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
+                              <div className="text-sm font-medium text-foreground">clue_source</div>
+                              <select value={round.clueSource} onChange={(e) => updateManualRound(round.id, { clueSource: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
                                 {CLUE_SOURCE_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
                               </select>
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-[var(--foreground)]">primary_show_key</div>
-                              <select value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
+                              <div className="text-sm font-medium text-foreground">primary_show_key</div>
+                              <select value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
                                 <option value="">Any show</option>
                                 {shows.map((show) => <option key={show.show_key} value={show.show_key}>{show.display_name}</option>)}
                               </select>
@@ -1193,19 +1193,19 @@ export default function HostPage() {
                           </div>
 
                           {round.behaviourType === "quickfire" ? (
-                            <div className="mt-3 text-xs text-[var(--muted-foreground)]">Quickfire v1 excludes audio automatically and only uses MCQ questions so fastest correct scoring stays fair.</div>
+                            <div className="mt-3 text-xs text-muted-foreground">Quickfire v1 excludes audio automatically and only uses MCQ questions so fastest correct scoring stays fair.</div>
                           ) : null}
 
                           {round.sourceMode === "selected_packs" ? (
-                            <div className="mt-3 text-xs text-[var(--muted-foreground)]">This round uses the packs selected in the pack panel on the right.</div>
+                            <div className="mt-3 text-xs text-muted-foreground">This round uses the packs selected in the pack panel on the right.</div>
                           ) : round.sourceMode === "all_questions" ? (
-                            <div className="mt-3 text-xs text-[var(--muted-foreground)]">This round can draw from any question linked to an active pack.</div>
+                            <div className="mt-3 text-xs text-muted-foreground">This round can draw from any question linked to an active pack.</div>
                           ) : (
                             <div className="mt-3 space-y-2">
-                              <div className="text-xs text-[var(--muted-foreground)]">Choose packs for this round.</div>
+                              <div className="text-xs text-muted-foreground">Choose packs for this round.</div>
                               <div className="grid gap-2 sm:grid-cols-2">
                                 {packs.map((pack) => (
-                                  <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm">
+                                  <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm">
                                     <input type="checkbox" checked={round.packIds.includes(pack.id)} onChange={() => toggleManualRoundPack(round.id, pack.id)} />
                                     <span className="min-w-0 flex-1">{pack.display_name}</span>
                                   </label>
@@ -1219,20 +1219,20 @@ export default function HostPage() {
                   </div>
                 ) : (
                   <>
-                    <div className="rounded-2xl border border-[var(--border)] p-3">
-                      <div className="text-sm font-semibold text-[var(--foreground)]">Rounds</div>
+                    <div className="rounded-2xl border border-border p-3">
+                      <div className="text-sm font-semibold text-foreground">Rounds</div>
                       <div className="mt-3 grid gap-3 sm:grid-cols-3">
                         <div>
-                          <div className="text-sm font-medium text-[var(--foreground)]">Number of rounds</div>
+                          <div className="text-sm font-medium text-foreground">Number of rounds</div>
                           <Input value={roundCountStr} onChange={(e) => setRoundCountStr(e.target.value)} inputMode="numeric" />
-                          <div className="mt-1 text-xs text-[var(--muted-foreground)]">Players pick a Joker round in the lobby when enough rounds allow it.</div>
+                          <div className="mt-1 text-xs text-muted-foreground">Players pick a Joker round in the lobby when enough rounds allow it.</div>
                         </div>
                         <div className="sm:col-span-2">
                           {buildMode === "quick_random" ? (
                             <>
-                              <div className="text-sm font-medium text-[var(--foreground)]">Quick random source</div>
+                              <div className="text-sm font-medium text-foreground">Quick random source</div>
                               <div className="mt-2 flex flex-wrap items-center gap-3">
-                                <label className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+                                <label className="flex items-center gap-2 text-sm text-muted-foreground">
                                   <input
                                     type="checkbox"
                                     checked={quickRandomUseTemplates}
@@ -1241,7 +1241,7 @@ export default function HostPage() {
                                   Use round templates
                                 </label>
                               </div>
-                              <div className="mt-2 text-xs text-[var(--muted-foreground)]">
+                              <div className="mt-2 text-xs text-muted-foreground">
                                 {quickRandomUseTemplates
                                   ? "The app will randomly choose from the selected templates below. Each chosen template keeps its own default question count and filters."
                                   : "The app will create a simple generic round plan using the round names and total question count below."}
@@ -1249,24 +1249,24 @@ export default function HostPage() {
                             </>
                           ) : (
                             <>
-                              <div className="text-sm font-medium text-[var(--foreground)]">Round names</div>
+                              <div className="text-sm font-medium text-foreground">Round names</div>
                               <div className="mt-1 grid gap-2 sm:grid-cols-2">
                                 {roundNames.map((name, idx) => (
                                   <Input key={idx} value={name} onChange={(e) => setRoundNames((prev) => prev.map((n, i) => i === idx ? e.target.value : n))} placeholder={defaultRoundName(idx)} />
                                 ))}
                               </div>
-                              <div className="mt-2 text-xs text-[var(--muted-foreground)]">Empty names fall back to Round 1, Round 2, and so on.</div>
+                              <div className="mt-2 text-xs text-muted-foreground">Empty names fall back to Round 1, Round 2, and so on.</div>
                             </>
                           )}
                         </div>
                       </div>
 
                       {buildMode === "quick_random" && quickRandomUseTemplates ? (
-                        <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3">
+                        <div className="mt-4 rounded-2xl border border-border bg-card p-3">
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <div className="text-sm font-medium text-[var(--foreground)]">Template pool</div>
-                              <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                              <div className="text-sm font-medium text-foreground">Template pool</div>
+                              <div className="mt-1 text-xs text-muted-foreground">
                                 {selectedQuickRandomTemplates.length} template{selectedQuickRandomTemplates.length === 1 ? "" : "s"} selected. Default questions total: {quickRandomTemplatesQuestionTotal}.
                               </div>
                             </div>
@@ -1277,17 +1277,17 @@ export default function HostPage() {
                           </div>
                           <div className="mt-3 grid gap-2 sm:grid-cols-2">
                             {templates.length === 0 ? (
-                              <div className="text-sm text-[var(--muted-foreground)]">No active round templates are available yet.</div>
+                              <div className="text-sm text-muted-foreground">No active round templates are available yet.</div>
                             ) : (
                               templates.map((template) => (
-                                <label key={template.id} className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm">
+                                <label key={template.id} className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm">
                                   <input
                                     type="checkbox"
                                     checked={quickRandomTemplateIds.includes(template.id)}
                                     onChange={() => toggleQuickRandomTemplate(template.id)}
                                   />
                                   <span className="min-w-0 flex-1">{template.name}</span>
-                                  <span className="text-xs text-[var(--muted-foreground)]">{template.default_question_count}</span>
+                                  <span className="text-xs text-muted-foreground">{template.default_question_count}</span>
                                 </label>
                               ))
                             )}
@@ -1299,34 +1299,34 @@ export default function HostPage() {
                     <div className="grid gap-3 sm:grid-cols-3">
                       {buildMode === "quick_random" && quickRandomUseTemplates ? (
                         <div>
-                          <div className="text-sm font-medium text-[var(--foreground)]">Template randomiser</div>
-                          <div className="mt-2 text-sm text-[var(--muted-foreground)]">Randomly picks the number of rounds you set above from the selected template pool.</div>
+                          <div className="text-sm font-medium text-foreground">Template randomiser</div>
+                          <div className="mt-2 text-sm text-muted-foreground">Randomly picks the number of rounds you set above from the selected template pool.</div>
                         </div>
                       ) : (
                         <div>
-                          <div className="text-sm font-medium text-[var(--foreground)]">Total questions</div>
+                          <div className="text-sm font-medium text-foreground">Total questions</div>
                           <Input value={totalQuestionsStr} onChange={(e) => setTotalQuestionsStr(e.target.value)} inputMode="numeric" />
                         </div>
                       )}
                       {buildMode === "quick_random" && quickRandomUseTemplates ? (
-                        <div className="sm:col-span-2 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 text-sm text-[var(--muted-foreground)]">
+                        <div className="sm:col-span-2 rounded-2xl border border-border bg-card p-3 text-sm text-muted-foreground">
                           Template-based quick random uses the timings saved on each template. If a template leaves timings blank, standard defaults to 20 answer seconds and 30 round-review seconds, while Quickfire defaults to 10 answer seconds and 45 round-review seconds.
                         </div>
                       ) : (
                         <>
                           <div>
-                            <div className="text-sm font-medium text-[var(--foreground)]">Answer seconds</div>
+                            <div className="text-sm font-medium text-foreground">Answer seconds</div>
                             <Input value={answerSecondsStr} onChange={(e) => setAnswerSecondsStr(e.target.value)} inputMode="numeric" disabled={untimedAnswers} />
-                            <label className="mt-2 flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+                            <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                               <input type="checkbox" checked={untimedAnswers} onChange={(e) => setUntimedAnswers(e.target.checked)} />
                               Untimed answers (host controls)
                             </label>
-                            {untimedAnswers ? <div className="mt-1 text-xs text-[var(--muted-foreground)]">The question stays open until everyone answers or you press Reveal answer.</div> : <div className="mt-1 text-xs text-[var(--muted-foreground)]">Questions open straight away. There is no get ready countdown.</div>}
+                            {untimedAnswers ? <div className="mt-1 text-xs text-muted-foreground">The question stays open until everyone answers or you press Reveal answer.</div> : <div className="mt-1 text-xs text-muted-foreground">Questions open straight away. There is no get ready countdown.</div>}
                           </div>
                           <div>
-                            <div className="text-sm font-medium text-[var(--foreground)]">Round review seconds</div>
+                            <div className="text-sm font-medium text-foreground">Round review seconds</div>
                             <Input value={roundReviewSecondsStr} onChange={(e) => setRoundReviewSecondsStr(e.target.value)} inputMode="numeric" />
-                            <div className="mt-1 text-xs text-[var(--muted-foreground)]">After the last question in a round, the round summary shows for this long before the next round starts.</div>
+                            <div className="mt-1 text-xs text-muted-foreground">After the last question in a round, the round summary shows for this long before the next round starts.</div>
                           </div>
                         </>
                       )}
@@ -1335,13 +1335,13 @@ export default function HostPage() {
                     <div className="grid gap-3 sm:grid-cols-3">
                       {buildMode === "quick_random" && quickRandomUseTemplates ? (
                         <div>
-                          <div className="text-sm font-medium text-[var(--foreground)]">Template rules</div>
-                          <div className="mt-2 text-sm text-[var(--muted-foreground)]">Each chosen template keeps its own media, clue, and show filters.</div>
+                          <div className="text-sm font-medium text-foreground">Template rules</div>
+                          <div className="mt-2 text-sm text-muted-foreground">Each chosen template keeps its own media, clue, and show filters.</div>
                         </div>
                       ) : (
                         <div>
-                          <div className="text-sm font-medium text-[var(--foreground)]">Round filter</div>
-                          <select value={roundFilter} onChange={(e) => setRoundFilter(e.target.value as RoundFilter)} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
+                          <div className="text-sm font-medium text-foreground">Round filter</div>
+                          <select value={roundFilter} onChange={(e) => setRoundFilter(e.target.value as RoundFilter)} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
                             <option value="mixed">Mixed</option>
                             <option value="no_audio">No audio</option>
                             <option value="no_image">No pictures</option>
@@ -1352,15 +1352,15 @@ export default function HostPage() {
                         </div>
                       )}
                       <div>
-                        <div className="text-sm font-medium text-[var(--foreground)]">Audio mode</div>
-                        <select value={audioMode} onChange={(e) => setAudioMode(e.target.value as AudioMode)} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
+                        <div className="text-sm font-medium text-foreground">Audio mode</div>
+                        <select value={audioMode} onChange={(e) => setAudioMode(e.target.value as AudioMode)} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
                           <option value="display">Display only</option>
                           <option value="phones">Phones only</option>
                           <option value="both">Both</option>
                         </select>
                       </div>
                       <div className="flex items-end">
-                        <label className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+                        <label className="flex items-center gap-2 text-sm text-muted-foreground">
                           <input type="checkbox" checked={selectPacks} onChange={(e) => setSelectPacks(e.target.checked)} />
                           Select packs
                         </label>
@@ -1370,7 +1370,7 @@ export default function HostPage() {
                 )}
 
                 {buildMode === "manual_rounds" ? (
-                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 text-sm text-[var(--muted-foreground)]">
+                  <div className="rounded-2xl border border-border bg-card p-3 text-sm text-muted-foreground">
                     Manual rounds now store timings per round. Standard starts at 20 answer seconds and 30 round-review seconds. Quickfire starts at 10 answer seconds and 45 round-review seconds.
                   </div>
                 ) : null}
@@ -1379,7 +1379,7 @@ export default function HostPage() {
               </CardContent>
 
               <CardFooter className="flex items-center justify-between gap-3">
-                <div className="text-sm text-[var(--muted-foreground)]">
+                <div className="text-sm text-muted-foreground">
                   {buildMode === "manual_rounds"
                     ? `${manualRounds.length} round${manualRounds.length === 1 ? "" : "s"} planned.`
                     : buildMode === "quick_random" && quickRandomUseTemplates
@@ -1399,9 +1399,9 @@ export default function HostPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <CardTitle>Host controls</CardTitle>
-                    <div className="mt-1 text-sm text-[var(--muted-foreground)]">{roomSummaryText}</div>
+                    <div className="mt-1 text-sm text-muted-foreground">{roomSummaryText}</div>
                   </div>
-                  <div className="rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--foreground)]">{stagePill}</div>
+                  <div className="rounded-full border border-border px-3 py-1 text-xs text-foreground">{stagePill}</div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1411,8 +1411,8 @@ export default function HostPage() {
                 {resetOk ? <div className="whitespace-pre-line rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">{resetOk}</div> : null}
                 {forceCloseError ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{forceCloseError}</div> : null}
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3"><div className="text-xs text-[var(--muted-foreground)]">Room code</div><div className="mt-1 text-2xl font-semibold tracking-widest text-[var(--foreground)]">{roomCode}</div></div>
-                  <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3"><div className="text-xs text-[var(--muted-foreground)]">Current stage</div><div className="mt-1 text-lg font-semibold text-[var(--foreground)]">{stagePill}</div></div>
+                  <div className="rounded-xl border border-border bg-card p-3"><div className="text-xs text-muted-foreground">Room code</div><div className="mt-1 text-2xl font-semibold tracking-widest text-foreground">{roomCode}</div></div>
+                  <div className="rounded-xl border border-border bg-card p-3"><div className="text-xs text-muted-foreground">Current stage</div><div className="mt-1 text-lg font-semibold text-foreground">{stagePill}</div></div>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <Button onClick={startGame} disabled={!canStart}>{startLabel}</Button>
@@ -1420,7 +1420,7 @@ export default function HostPage() {
                 </div>
                 <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                   <Button variant="secondary" onClick={continueGame} disabled={!canContinue}>{continueLabel}</Button>
-                  <div className="flex items-center rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--muted-foreground)]">Round review advances automatically after the set time. Use the button to move on sooner.</div>
+                  <div className="flex items-center rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">Round review advances automatically after the set time. Use the button to move on sooner.</div>
                 </div>
                 <div className="flex justify-end"><Button variant="ghost" onClick={clearRoom}>Create another room</Button></div>
               </CardContent>
@@ -1436,9 +1436,9 @@ export default function HostPage() {
               <Card>
                 <CardHeader><CardTitle>Re-host room</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="text-sm text-[var(--muted-foreground)]">Enter a room code to continue hosting an existing room.</div>
+                  <div className="text-sm text-muted-foreground">Enter a room code to continue hosting an existing room.</div>
                   <div>
-                    <div className="text-sm font-medium text-[var(--foreground)]">Room code</div>
+                    <div className="text-sm font-medium text-foreground">Room code</div>
                     <Input value={rehostCode} onChange={(e) => setRehostCode(cleanRoomCode(e.target.value))} placeholder="For example 3PDSXFT5" autoCapitalize="characters" spellCheck={false} />
                   </div>
                   {rehostError ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{rehostError}</div> : null}
@@ -1452,9 +1452,9 @@ export default function HostPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <CardTitle>Selected packs</CardTitle>
-                        <div className="mt-1 text-sm text-[var(--muted-foreground)]">Rounds using Selected packs will draw from these packs.</div>
+                        <div className="mt-1 text-sm text-muted-foreground">Rounds using Selected packs will draw from these packs.</div>
                       </div>
-                      <div className="rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--muted-foreground)]">{selectedPackCount} selected</div>
+                      <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedPackCount} selected</div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -1464,7 +1464,7 @@ export default function HostPage() {
                     </div>
                     <div className="grid gap-2">
                       {packs.map((pack) => (
-                        <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2">
+                        <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
                           <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
                           <span className="min-w-0 flex-1 text-sm">{pack.display_name}</span>
                         </label>
@@ -1478,9 +1478,9 @@ export default function HostPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <CardTitle>Packs</CardTitle>
-                        <div className="mt-1 text-sm text-[var(--muted-foreground)]">Choose which packs to include.</div>
+                        <div className="mt-1 text-sm text-muted-foreground">Choose which packs to include.</div>
                       </div>
-                      <div className="rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--muted-foreground)]">{selectedPackCount} selected</div>
+                      <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedPackCount} selected</div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -1489,8 +1489,8 @@ export default function HostPage() {
                       <Button variant="secondary" onClick={() => setAllSelected(false)}>Clear</Button>
                       {buildMode === "legacy_pack_mode" ? (
                         <div className="ml-auto flex items-center gap-2">
-                          <div className="text-sm text-[var(--muted-foreground)]">Strategy</div>
-                          <select value={selectionStrategy} onChange={(e) => setSelectionStrategy(e.target.value as SelectionStrategy)} className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
+                          <div className="text-sm text-muted-foreground">Strategy</div>
+                          <select value={selectionStrategy} onChange={(e) => setSelectionStrategy(e.target.value as SelectionStrategy)} className="rounded-xl border border-border bg-card px-3 py-2 text-sm">
                             <option value="all_packs">Mix all selected packs</option>
                             <option value="per_pack">Set counts per pack</option>
                           </select>
@@ -1499,11 +1499,11 @@ export default function HostPage() {
                     </div>
                     <div className="grid gap-2">
                       {packs.map((pack) => (
-                        <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2">
+                        <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
                           <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
                           <span className="min-w-0 flex-1 text-sm">{pack.display_name}</span>
                           {buildMode === "legacy_pack_mode" && selectionStrategy === "per_pack" && selectedPacks[pack.id] ? (
-                            <input value={perPackCounts[pack.id] ?? ""} onChange={(e) => setPerPackCounts((prev) => ({ ...prev, [pack.id]: e.target.value }))} inputMode="numeric" placeholder="Count" className="w-24 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm" />
+                            <input value={perPackCounts[pack.id] ?? ""} onChange={(e) => setPerPackCounts((prev) => ({ ...prev, [pack.id]: e.target.value }))} inputMode="numeric" placeholder="Count" className="w-24 rounded-xl border border-border bg-card px-3 py-2 text-sm" />
                           ) : null}
                         </label>
                       ))}
@@ -1513,7 +1513,7 @@ export default function HostPage() {
               ) : (
                 <Card>
                   <CardHeader><CardTitle>Packs</CardTitle></CardHeader>
-                  <CardContent className="space-y-2 text-sm text-[var(--muted-foreground)]">
+                  <CardContent className="space-y-2 text-sm text-muted-foreground">
                     <div>You are currently using all active packs.</div>
                     <div>Tick Select packs on the left if you want to choose specific packs.</div>
                   </CardContent>
@@ -1525,9 +1525,9 @@ export default function HostPage() {
               <Card>
                 <CardHeader><CardTitle>Room access</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between gap-3"><div className="text-2xl font-semibold tracking-widest text-[var(--foreground)]">{roomCode}</div><QRTile value={joinUrl} size={112} /></div>
-                  <div className="text-sm text-[var(--muted-foreground)]">Players join at</div>
-                  <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"><a href={joinUrl} className="break-all underline">{joinUrl}</a></div>
+                  <div className="flex items-center justify-between gap-3"><div className="text-2xl font-semibold tracking-widest text-foreground">{roomCode}</div><QRTile value={joinUrl} size={112} /></div>
+                  <div className="text-sm text-muted-foreground">Players join at</div>
+                  <div className="rounded-xl border border-border bg-card px-3 py-2 text-sm"><a href={joinUrl} className="break-all underline">{joinUrl}</a></div>
                   <div className="grid gap-2 sm:grid-cols-2">
                     <Button onClick={() => openInNewWindow(displayUrl)}>Open TV display</Button>
                     <Button variant="secondary" onClick={() => openInNewWindow(joinPageUrl)}>Join room</Button>

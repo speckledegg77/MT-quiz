@@ -507,7 +507,7 @@ export function RoundTemplatesDashboard() {
                 placeholder="Paste ADMIN_TOKEN here"
                 autoComplete="off"
                 spellCheck={false}
-                className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
               />
               <Button variant="secondary" onClick={clearToken}>
                 Clear token
@@ -519,12 +519,12 @@ export function RoundTemplatesDashboard() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search round templates"
-                className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
               />
               <Button onClick={() => loadTemplates()}>Load templates</Button>
             </div>
 
-            <div className="text-sm text-[var(--muted-foreground)]">
+            <div className="text-sm text-muted-foreground">
               Round templates are reusable definitions. They do not store actual question IDs for a game.
             </div>
 
@@ -542,9 +542,9 @@ export function RoundTemplatesDashboard() {
           </CardHeader>
           <CardContent className="space-y-3">
             {listBusy ? (
-              <div className="text-sm text-[var(--muted-foreground)]">Loading round templates…</div>
+              <div className="text-sm text-muted-foreground">Loading round templates…</div>
             ) : filteredTemplates.length === 0 ? (
-              <div className="text-sm text-[var(--muted-foreground)]">
+              <div className="text-sm text-muted-foreground">
                 No round templates loaded yet. Enter your token, then click Load templates.
               </div>
             ) : (
@@ -562,17 +562,17 @@ export function RoundTemplatesDashboard() {
                       }}
                       className={`block w-full rounded-lg border px-3 py-3 text-left transition-colors ${
                         isSelected
-                          ? "border-[var(--foreground)] bg-[var(--muted)]"
-                          : "border-[var(--border)] bg-[var(--card)] hover:bg-[var(--muted)]/40"
+                          ? "border-foreground bg-muted"
+                          : "border-border bg-card hover:bg-muted/40"
                       }`}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
                           <div className="font-medium">{template.name}</div>
-                          <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                          <div className="mt-1 text-xs text-muted-foreground">
                             {template.default_question_count} questions · {template.behaviour_type} · {template.source_mode}
                           </div>
-                          <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                          <div className="mt-1 text-xs text-muted-foreground">
                             {template.default_answer_seconds == null
                               ? `Answer: ${getDefaultAnswerSecondsForBehaviour(template.behaviour_type)}s default`
                               : `Answer: ${template.default_answer_seconds}s`}
@@ -582,13 +582,13 @@ export function RoundTemplatesDashboard() {
                               : `Round review: ${template.default_round_review_seconds}s`}
                           </div>
                         </div>
-                        <div className="text-xs text-[var(--muted-foreground)]">
+                        <div className="text-xs text-muted-foreground">
                           {template.is_active ? "Active" : "Inactive"}
                         </div>
                       </div>
 
                       {template.description ? (
-                        <div className="mt-2 text-sm text-[var(--muted-foreground)]">{template.description}</div>
+                        <div className="mt-2 text-sm text-muted-foreground">{template.description}</div>
                       ) : null}
                     </button>
                   )
@@ -636,7 +636,7 @@ export function RoundTemplatesDashboard() {
           </CardHeader>
           <CardContent className="space-y-3">
             {!selectedTemplateId ? (
-              <div className="text-sm text-[var(--muted-foreground)]">
+              <div className="text-sm text-muted-foreground">
                 Select a round template from the list to edit it.
               </div>
             ) : (
@@ -691,7 +691,7 @@ function TemplateFields({
           value={editor.name}
           onChange={(event) => setEditor((current) => ({ ...current, name: event.target.value }))}
           placeholder="Song Intros"
-          className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+          className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
         />
       </label>
 
@@ -702,7 +702,7 @@ function TemplateFields({
           onChange={(event) => setEditor((current) => ({ ...current, description: event.target.value }))}
           rows={3}
           placeholder="Audio clips that ask players to identify songs from their openings."
-          className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+          className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-border"
         />
       </label>
 
@@ -727,7 +727,7 @@ function TemplateFields({
                     : String(getDefaultRoundReviewSecondsForBehaviour(event.target.value as RoundTemplateBehaviourType)),
               }))
             }
-            className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+            className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
           >
             {BEHAVIOUR_TYPE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -749,7 +749,7 @@ function TemplateFields({
                 defaultQuestionCount: Math.max(1, Number(event.target.value) || 1),
               }))
             }
-            className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+            className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
           />
         </label>
       </div>
@@ -769,9 +769,9 @@ function TemplateFields({
               }))
             }
             placeholder={String(getDefaultAnswerSecondsForBehaviour(editor.behaviourType))}
-            className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+            className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
           />
-          <span className="text-xs text-[var(--muted-foreground)]">
+          <span className="text-xs text-muted-foreground">
             Leave blank to use the {getDefaultAnswerSecondsForBehaviour(editor.behaviourType)} second {editor.behaviourType} default. Use 0 for untimed.
           </span>
         </label>
@@ -790,9 +790,9 @@ function TemplateFields({
               }))
             }
             placeholder={String(getDefaultRoundReviewSecondsForBehaviour(editor.behaviourType))}
-            className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+            className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
           />
-          <span className="text-xs text-[var(--muted-foreground)]">
+          <span className="text-xs text-muted-foreground">
             Leave blank to use the {getDefaultRoundReviewSecondsForBehaviour(editor.behaviourType)} second {editor.behaviourType} default.
           </span>
         </label>
@@ -810,7 +810,7 @@ function TemplateFields({
                 sortOrder: Number(event.target.value) || 0,
               }))
             }
-            className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+            className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
           />
         </label>
 
@@ -824,7 +824,7 @@ function TemplateFields({
                 sourceMode: event.target.value as RoundTemplateSourceMode,
               }))
             }
-            className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+            className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
           >
             {SOURCE_MODE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -836,14 +836,14 @@ function TemplateFields({
       </div>
 
       {editor.behaviourType === "quickfire" ? (
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)]/30 px-3 py-2 text-xs text-[var(--muted-foreground)]">
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
           Quickfire v1 excludes audio automatically and only uses non-audio MCQ questions.
         </div>
       ) : null}
 
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)]/30 p-3">
+      <div className="rounded-lg border border-border bg-muted/30 p-3">
         <div className="text-sm font-medium">Default packs</div>
-        <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+        <div className="mt-1 text-xs text-muted-foreground">
           These are saved with the template and can later prefill pack choices.
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -869,9 +869,9 @@ function TemplateFields({
         </div>
       </div>
 
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)]/30 p-3">
+      <div className="rounded-lg border border-border bg-muted/30 p-3">
         <div className="text-sm font-medium">Selection rules</div>
-        <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+        <div className="mt-1 text-xs text-muted-foreground">
           v1 supports one value per rule type. More complex combinations can come later.
         </div>
 
@@ -881,7 +881,7 @@ function TemplateFields({
             <select
               value={editor.mediaType}
               onChange={(event) => setEditor((current) => ({ ...current, mediaType: event.target.value }))}
-              className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
             >
               {MEDIA_TYPE_OPTIONS.map((option) => (
                 <option key={option.value || "blank"} value={option.value} disabled={option.value === "audio" && editor.behaviourType === "quickfire"}>
@@ -896,7 +896,7 @@ function TemplateFields({
             <select
               value={editor.promptTarget}
               onChange={(event) => setEditor((current) => ({ ...current, promptTarget: event.target.value }))}
-              className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
             >
               {PROMPT_TARGET_OPTIONS.map((option) => (
                 <option key={option.value || "blank"} value={option.value}>
@@ -911,7 +911,7 @@ function TemplateFields({
             <select
               value={editor.clueSource}
               onChange={(event) => setEditor((current) => ({ ...current, clueSource: event.target.value }))}
-              className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
             >
               {CLUE_SOURCE_OPTIONS.map((option) => (
                 <option key={option.value || "blank"} value={option.value}>
@@ -926,7 +926,7 @@ function TemplateFields({
             <select
               value={editor.primaryShowKey}
               onChange={(event) => setEditor((current) => ({ ...current, primaryShowKey: event.target.value }))}
-              className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
             >
               <option value="">No filter</option>
               {shows.map((show) => (

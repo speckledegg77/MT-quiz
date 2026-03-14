@@ -30,8 +30,8 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <EnsureAnonAuth />
-        <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-          <header className="sticky top-0 z-30 border-b border-[var(--border)] bg-[var(--card)]">
+        <div className="min-h-screen bg-background text-foreground">
+          <header className="sticky top-0 z-30 border-b border-border bg-card">
             <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
                 <Link href="/" className="text-base font-semibold">
@@ -41,13 +41,13 @@ export default function RootLayout({
                 <nav className="hidden items-center gap-3 sm:flex">
                   <Link
                     href="/host"
-                    className="rounded-md px-2 py-1 text-sm text-[var(--foreground)] hover:bg-[var(--muted)]"
+                    className="rounded-md px-2 py-1 text-sm text-foreground hover:bg-muted"
                   >
                     Host
                   </Link>
                   <Link
                     href="/join"
-                    className="rounded-md px-2 py-1 text-sm text-[var(--foreground)] hover:bg-[var(--muted)]"
+                    className="rounded-md px-2 py-1 text-sm text-foreground hover:bg-muted"
                   >
                     Join
                   </Link>

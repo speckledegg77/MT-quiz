@@ -10,7 +10,7 @@ export function Input({ className, ...props }: InputProps) {
   return (
     <input
       className={cx(
-        "h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--border)]",
+        "h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-border",
         className
       )}
       {...props}

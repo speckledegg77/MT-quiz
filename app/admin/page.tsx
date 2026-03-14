@@ -4,13 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 
 function linkButtonClass(variant: "primary" | "secondary" = "primary") {
   const base =
-    "inline-flex h-10 items-center justify-center rounded-lg border px-4 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--border)] focus:ring-offset-2 focus:ring-offset-[var(--background)]"
+    "inline-flex h-10 items-center justify-center rounded-lg border px-4 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-border focus:ring-offset-2 focus:ring-offset-background"
 
   if (variant === "secondary") {
-    return `${base} border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] hover:bg-[var(--muted)]`
+    return `${base} border-border bg-card text-foreground hover:bg-muted`
   }
 
-  return `${base} border-[var(--foreground)] bg-[var(--foreground)] text-[var(--background)] hover:opacity-90`
+  return `${base} border-foreground bg-foreground text-background hover:opacity-90`
 }
 
 export default function AdminHomePage() {
@@ -18,7 +18,7 @@ export default function AdminHomePage() {
     <main className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6">
         <div className="text-2xl font-semibold">Admin</div>
-        <div className="text-sm text-[var(--muted-foreground)]">Choose a tool.</div>
+        <div className="text-sm text-muted-foreground">Choose a tool.</div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -27,7 +27,7 @@ export default function AdminHomePage() {
             <CardTitle>Questions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="text-sm text-[var(--muted-foreground)]">
+            <div className="text-sm text-muted-foreground">
               Review question metadata, warnings, and suggested values before rounds start using the new fields.
             </div>
             <Link href="/admin/questions" className={linkButtonClass()}>
@@ -41,7 +41,7 @@ export default function AdminHomePage() {
             <CardTitle>Round Templates</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="text-sm text-[var(--muted-foreground)]">
+            <div className="text-sm text-muted-foreground">
               Create reusable round definitions that can later be added to games from the host page.
             </div>
             <Link href="/admin/round-templates" className={linkButtonClass("secondary")}>
@@ -55,7 +55,7 @@ export default function AdminHomePage() {
             <CardTitle>Shows</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="text-sm text-[var(--muted-foreground)]">
+            <div className="text-sm text-muted-foreground">
               Manage show keys and alternative names used by primary_show_key suggestions and dropdowns.
             </div>
             <Link href="/admin/shows" className={linkButtonClass("secondary")}>
@@ -69,7 +69,7 @@ export default function AdminHomePage() {
             <CardTitle>Import</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="text-sm text-[var(--muted-foreground)]">
+            <div className="text-sm text-muted-foreground">
               Import questions from CSV and upload media in bulk.
             </div>
             <Link href="/admin/import" className={linkButtonClass("secondary")}>
@@ -83,7 +83,7 @@ export default function AdminHomePage() {
             <CardTitle>Health</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="text-sm text-[var(--muted-foreground)]">
+            <div className="text-sm text-muted-foreground">
               Check for missing media, broken paths, and duplicates.
             </div>
             <Link href="/admin/health" className={linkButtonClass("secondary")}>

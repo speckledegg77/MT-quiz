@@ -238,7 +238,7 @@ function cx(...parts: Array<string | false | null | undefined>) {
 }
 
 function fieldCardClass() {
-  return "rounded-lg border border-[var(--border)] bg-[var(--muted)]/30 p-3"
+  return "rounded-lg border border-border bg-muted/30 p-3"
 }
 
 function normaliseEditorValue(value: string | null | undefined) {
@@ -735,7 +735,7 @@ export function QuestionMetadataDashboard() {
                 placeholder="Paste ADMIN_TOKEN here"
                 autoComplete="off"
                 spellCheck={false}
-                className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
               />
               <Button variant="secondary" onClick={clearToken}>
                 Clear token
@@ -746,7 +746,7 @@ export function QuestionMetadataDashboard() {
               <select
                 value={packId}
                 onChange={(event) => setPackId(event.target.value)}
-                className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
               >
                 <option value="">Any pack</option>
                 {packs.map((pack) => (
@@ -759,7 +759,7 @@ export function QuestionMetadataDashboard() {
               <select
                 value={legacyRoundType}
                 onChange={(event) => setLegacyRoundType(event.target.value)}
-                className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
               >
                 {LEGACY_ROUND_TYPE_OPTIONS.map((option) => (
                   <option key={option.value || "blank"} value={option.value}>
@@ -771,7 +771,7 @@ export function QuestionMetadataDashboard() {
               <select
                 value={answerType}
                 onChange={(event) => setAnswerType(event.target.value)}
-                className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
               >
                 {ANSWER_TYPE_OPTIONS.map((option) => (
                   <option key={option.value || "blank"} value={option.value}>
@@ -783,7 +783,7 @@ export function QuestionMetadataDashboard() {
               <select
                 value={reviewState}
                 onChange={(event) => setReviewState(event.target.value)}
-                className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
               >
                 {REVIEW_STATE_OPTIONS.map((option) => (
                   <option key={option.value || "blank"} value={option.value}>
@@ -795,7 +795,7 @@ export function QuestionMetadataDashboard() {
               <select
                 value={warningState}
                 onChange={(event) => setWarningState(event.target.value)}
-                className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
               >
                 {WARNING_FILTER_OPTIONS.map((option) => (
                   <option key={option.value || "blank"} value={option.value}>
@@ -807,7 +807,7 @@ export function QuestionMetadataDashboard() {
               <select
                 value={metadataGap}
                 onChange={(event) => setMetadataGap(event.target.value)}
-                className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
               >
                 {METADATA_GAP_OPTIONS.map((option) => (
                   <option key={option.value || "blank"} value={option.value}>
@@ -820,7 +820,7 @@ export function QuestionMetadataDashboard() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search question text"
-                className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
               />
             </div>
 
@@ -842,7 +842,7 @@ export function QuestionMetadataDashboard() {
               </Button>
             </div>
 
-            <div className="text-sm text-[var(--muted-foreground)]">
+            <div className="text-sm text-muted-foreground">
               Nothing writes to Supabase until you click Save, Bulk Apply, or Apply Suggested Values.
             </div>
 
@@ -859,7 +859,7 @@ export function QuestionMetadataDashboard() {
             <CardTitle>Bulk apply</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-sm text-[var(--muted-foreground)]">
+            <div className="text-sm text-muted-foreground">
               Apply the same metadata values to all selected visible questions, or apply each question’s own suggested values in one step.
             </div>
 
@@ -905,7 +905,7 @@ export function QuestionMetadataDashboard() {
                 <select
                   value={bulkEditor.mediaType}
                   onChange={(event) => setBulkEditor((current) => ({ ...current, mediaType: event.target.value }))}
-                  className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                  className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
                 >
                   {BULK_MEDIA_TYPE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -920,7 +920,7 @@ export function QuestionMetadataDashboard() {
                 <select
                   value={bulkEditor.promptTarget}
                   onChange={(event) => setBulkEditor((current) => ({ ...current, promptTarget: event.target.value }))}
-                  className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                  className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
                 >
                   {BULK_PROMPT_TARGET_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -935,7 +935,7 @@ export function QuestionMetadataDashboard() {
                 <select
                   value={bulkEditor.clueSource}
                   onChange={(event) => setBulkEditor((current) => ({ ...current, clueSource: event.target.value }))}
-                  className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                  className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
                 >
                   {BULK_CLUE_SOURCE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -952,7 +952,7 @@ export function QuestionMetadataDashboard() {
                   onChange={(event) =>
                     setBulkEditor((current) => ({ ...current, primaryShowKey: event.target.value }))
                   }
-                  className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                  className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
                 >
                   <option value={UNCHANGED_VALUE}>Leave unchanged</option>
                   <option value="">Set blank</option>
@@ -974,7 +974,7 @@ export function QuestionMetadataDashboard() {
                       metadataReviewState: event.target.value,
                     }))
                   }
-                  className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                  className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
                 >
                   {BULK_REVIEW_STATE_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -1012,9 +1012,9 @@ export function QuestionMetadataDashboard() {
           </CardHeader>
           <CardContent className="space-y-3">
             {listBusy ? (
-              <div className="text-sm text-[var(--muted-foreground)]">Loading questions…</div>
+              <div className="text-sm text-muted-foreground">Loading questions…</div>
             ) : items.length === 0 ? (
-              <div className="text-sm text-[var(--muted-foreground)]">
+              <div className="text-sm text-muted-foreground">
                 No questions loaded yet. Enter your token, then click Load questions.
               </div>
             ) : (
@@ -1029,8 +1029,8 @@ export function QuestionMetadataDashboard() {
                       className={cx(
                         "rounded-lg border px-3 py-3 transition-colours",
                         isSelected
-                          ? "border-[var(--foreground)] bg-[var(--muted)]"
-                          : "border-[var(--border)] bg-[var(--card)]"
+                          ? "border-foreground bg-muted"
+                          : "border-border bg-card"
                       )}
                     >
                       <div className="flex items-start gap-3">
@@ -1038,7 +1038,7 @@ export function QuestionMetadataDashboard() {
                           type="checkbox"
                           checked={isTicked}
                           onChange={() => toggleSelectedQuestion(item.question.id)}
-                          className="mt-1 h-4 w-4 rounded border-[var(--border)]"
+                          className="mt-1 h-4 w-4 rounded border-border"
                         />
 
                         <button
@@ -1054,20 +1054,20 @@ export function QuestionMetadataDashboard() {
                               <div className="font-medium">{item.question.id}</div>
                               <div className="mt-1 text-sm">{item.question.text}</div>
                             </div>
-                            <div className="text-xs text-[var(--muted-foreground)]">
+                            <div className="text-xs text-muted-foreground">
                               {item.metadata.warnings.length} warning{item.metadata.warnings.length === 1 ? "" : "s"}
                             </div>
                           </div>
 
-                          <div className="mt-2 text-xs text-[var(--muted-foreground)]">
+                          <div className="mt-2 text-xs text-muted-foreground">
                             Packs: {item.packs.map((pack) => pack.display_name).join(", ") || "None"}
                           </div>
 
-                          <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                          <div className="mt-1 text-xs text-muted-foreground">
                             Legacy: {item.question.round_type} · Answer: {item.question.answer_type}
                           </div>
 
-                          <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                          <div className="mt-1 text-xs text-muted-foreground">
                             {buildSummaryText(item)}
                           </div>
                         </button>
@@ -1088,36 +1088,36 @@ export function QuestionMetadataDashboard() {
           </CardHeader>
           <CardContent className="space-y-4">
             {detailBusy ? (
-              <div className="text-sm text-[var(--muted-foreground)]">Loading question detail…</div>
+              <div className="text-sm text-muted-foreground">Loading question detail…</div>
             ) : detailError ? (
               <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
                 {detailError}
               </div>
             ) : !detailItem ? (
-              <div className="text-sm text-[var(--muted-foreground)]">
+              <div className="text-sm text-muted-foreground">
                 Select a question to review its metadata.
               </div>
             ) : (
               <>
                 <div className={fieldCardClass()}>
-                  <div className="text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
+                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Question
                   </div>
                   <div className="mt-2 text-sm font-medium">{detailItem.question.id}</div>
                   <div className="mt-2 text-sm">{detailItem.question.text}</div>
-                  <div className="mt-3 text-xs text-[var(--muted-foreground)]">
+                  <div className="mt-3 text-xs text-muted-foreground">
                     Packs: {detailItem.packs.map((pack) => pack.display_name).join(", ") || "None"}
                   </div>
-                  <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                  <div className="mt-1 text-xs text-muted-foreground">
                     Legacy round type: {detailItem.question.round_type} · Answer type: {detailItem.question.answer_type}
                   </div>
                   {detailItem.question.audio_path ? (
-                    <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                    <div className="mt-1 text-xs text-muted-foreground">
                       audio_path: {detailItem.question.audio_path}
                     </div>
                   ) : null}
                   {detailItem.question.image_path ? (
-                    <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                    <div className="mt-1 text-xs text-muted-foreground">
                       image_path: {detailItem.question.image_path}
                     </div>
                   ) : null}
@@ -1129,7 +1129,7 @@ export function QuestionMetadataDashboard() {
                     <select
                       value={editor.mediaType}
                       onChange={(event) => setEditor((current) => ({ ...current, mediaType: event.target.value }))}
-                      className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                      className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
                     >
                       {MEDIA_TYPE_OPTIONS.map((option) => (
                         <option key={option.value || "blank"} value={option.value}>
@@ -1137,7 +1137,7 @@ export function QuestionMetadataDashboard() {
                         </option>
                       ))}
                     </select>
-                    <div className="text-xs text-[var(--muted-foreground)]">
+                    <div className="text-xs text-muted-foreground">
                       Choose the format the player receives: text, audio, or image.
                     </div>
                   </label>
@@ -1147,7 +1147,7 @@ export function QuestionMetadataDashboard() {
                     <select
                       value={editor.promptTarget}
                       onChange={(event) => setEditor((current) => ({ ...current, promptTarget: event.target.value }))}
-                      className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                      className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
                     >
                       {PROMPT_TARGET_OPTIONS.map((option) => (
                         <option key={option.value || "blank"} value={option.value}>
@@ -1155,7 +1155,7 @@ export function QuestionMetadataDashboard() {
                         </option>
                       ))}
                     </select>
-                    <div className="text-xs text-[var(--muted-foreground)]">
+                    <div className="text-xs text-muted-foreground">
                       Choose what the player must identify or supply.
                     </div>
                   </label>
@@ -1165,7 +1165,7 @@ export function QuestionMetadataDashboard() {
                     <select
                       value={editor.clueSource}
                       onChange={(event) => setEditor((current) => ({ ...current, clueSource: event.target.value }))}
-                      className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                      className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
                     >
                       {CLUE_SOURCE_OPTIONS.map((option) => (
                         <option key={option.value || "blank"} value={option.value}>
@@ -1173,7 +1173,7 @@ export function QuestionMetadataDashboard() {
                         </option>
                       ))}
                     </select>
-                    <div className="text-xs text-[var(--muted-foreground)]">
+                    <div className="text-xs text-muted-foreground">
                       Choose the kind of clue the player receives.
                     </div>
                   </label>
@@ -1183,7 +1183,7 @@ export function QuestionMetadataDashboard() {
                     <select
                       value={editor.primaryShowKey}
                       onChange={(event) => setEditor((current) => ({ ...current, primaryShowKey: event.target.value }))}
-                      className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                      className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
                     >
                       <option value="">Blank</option>
                       {shows.map((show) => (
@@ -1192,7 +1192,7 @@ export function QuestionMetadataDashboard() {
                         </option>
                       ))}
                     </select>
-                    <div className="text-xs text-[var(--muted-foreground)]">
+                    <div className="text-xs text-muted-foreground">
                       Choose the main show this question belongs to.
                     </div>
                   </label>
@@ -1207,7 +1207,7 @@ export function QuestionMetadataDashboard() {
                           metadataReviewState: event.target.value,
                         }))
                       }
-                      className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm"
+                      className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
                     >
                       {REVIEW_STATE_SAVE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -1250,14 +1250,14 @@ export function QuestionMetadataDashboard() {
           </CardHeader>
           <CardContent className="space-y-3">
             {!selectedSummary ? (
-              <div className="text-sm text-[var(--muted-foreground)]">
+              <div className="text-sm text-muted-foreground">
                 Select a question to see suggested values and warnings.
               </div>
             ) : (
               <>
                 <div className={fieldCardClass()}>
                   <div className="text-sm font-medium">Saved values</div>
-                  <div className="mt-2 space-y-1 text-sm text-[var(--muted-foreground)]">
+                  <div className="mt-2 space-y-1 text-sm text-muted-foreground">
                     <div>media_type: {selectedSummary.saved.mediaType || "Blank"}</div>
                     <div>prompt_target: {selectedSummary.saved.promptTarget || "Blank"}</div>
                     <div>clue_source: {selectedSummary.saved.clueSource || "Blank"}</div>
@@ -1271,7 +1271,7 @@ export function QuestionMetadataDashboard() {
                   <div className="mt-2 space-y-3 text-sm">
                     <div>
                       <div className="font-medium">media_type: {selectedSummary.suggested.mediaType || "Blank"}</div>
-                      <div className="text-[var(--muted-foreground)]">
+                      <div className="text-muted-foreground">
                         {selectedSummary.reasons.mediaType || "No reason available."}
                       </div>
                     </div>
@@ -1279,13 +1279,13 @@ export function QuestionMetadataDashboard() {
                       <div className="font-medium">
                         prompt_target: {selectedSummary.suggested.promptTarget || "Blank"}
                       </div>
-                      <div className="text-[var(--muted-foreground)]">
+                      <div className="text-muted-foreground">
                         {selectedSummary.reasons.promptTarget || "No reason available."}
                       </div>
                     </div>
                     <div>
                       <div className="font-medium">clue_source: {selectedSummary.suggested.clueSource || "Blank"}</div>
-                      <div className="text-[var(--muted-foreground)]">
+                      <div className="text-muted-foreground">
                         {selectedSummary.reasons.clueSource || "No reason available."}
                       </div>
                     </div>
@@ -1293,7 +1293,7 @@ export function QuestionMetadataDashboard() {
                       <div className="font-medium">
                         primary_show_key: {selectedSummary.suggested.primaryShowKey || "Blank"}
                       </div>
-                      <div className="text-[var(--muted-foreground)]">
+                      <div className="text-muted-foreground">
                         {selectedSummary.reasons.primaryShowKey || "No reason available."}
                       </div>
                     </div>
@@ -1303,7 +1303,7 @@ export function QuestionMetadataDashboard() {
                 <div className={fieldCardClass()}>
                   <div className="text-sm font-medium">Warnings</div>
                   {selectedSummary.warnings.length === 0 ? (
-                    <div className="mt-2 text-sm text-[var(--muted-foreground)]">No warnings.</div>
+                    <div className="mt-2 text-sm text-muted-foreground">No warnings.</div>
                   ) : (
                     <div className="mt-2 space-y-2">
                       {selectedSummary.warnings.map((warning) => (
@@ -1329,43 +1329,43 @@ export function QuestionMetadataDashboard() {
           <CardContent className="space-y-3 text-sm">
             <div className={fieldCardClass()}>
               <div className="font-medium">media_type</div>
-              <div className="mt-1 text-[var(--muted-foreground)]">
+              <div className="mt-1 text-muted-foreground">
                 Choose the format the player receives. Use text, audio, or image.
               </div>
-              <div className="mt-2 text-[var(--muted-foreground)]">
+              <div className="mt-2 text-muted-foreground">
                 Example: if the player hears a clip, choose{" "}
-                <span className="font-medium text-[var(--foreground)]">audio</span>.
+                <span className="font-medium text-foreground">audio</span>.
               </div>
             </div>
 
             <div className={fieldCardClass()}>
               <div className="font-medium">prompt_target</div>
-              <div className="mt-1 text-[var(--muted-foreground)]">
+              <div className="mt-1 text-muted-foreground">
                 Choose what the player must identify or supply.
               </div>
-              <div className="mt-2 text-[var(--muted-foreground)]">
+              <div className="mt-2 text-muted-foreground">
                 Example: “Name the show from this clip” should use{" "}
-                <span className="font-medium text-[var(--foreground)]">show_title</span>.
+                <span className="font-medium text-foreground">show_title</span>.
               </div>
             </div>
 
             <div className={fieldCardClass()}>
               <div className="font-medium">clue_source</div>
-              <div className="mt-1 text-[var(--muted-foreground)]">
+              <div className="mt-1 text-muted-foreground">
                 Choose the kind of clue the player receives.
               </div>
-              <div className="mt-2 text-[var(--muted-foreground)]">
+              <div className="mt-2 text-muted-foreground">
                 Example: a theatre poster should use{" "}
-                <span className="font-medium text-[var(--foreground)]">poster_art</span>.
+                <span className="font-medium text-foreground">poster_art</span>.
               </div>
             </div>
 
             <div className={fieldCardClass()}>
               <div className="font-medium">primary_show_key</div>
-              <div className="mt-1 text-[var(--muted-foreground)]">
+              <div className="mt-1 text-muted-foreground">
                 Choose the main show this question belongs to, even if the player is not asked to name the show directly.
               </div>
-              <div className="mt-2 text-[var(--muted-foreground)]">
+              <div className="mt-2 text-muted-foreground">
                 Example: a question about the overture from Follies should use the Follies show key.
               </div>
             </div>

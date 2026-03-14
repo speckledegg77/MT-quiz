@@ -322,7 +322,7 @@ export function ShowsDashboard() {
                 placeholder="Paste ADMIN_TOKEN here"
                 autoComplete="off"
                 spellCheck={false}
-                className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
               />
               <Button variant="secondary" onClick={clearToken}>
                 Clear token
@@ -334,12 +334,12 @@ export function ShowsDashboard() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search shows"
-                className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
               />
               <Button onClick={() => loadShows()}>Load shows</Button>
             </div>
 
-            <div className="text-sm text-[var(--muted-foreground)]">
+            <div className="text-sm text-muted-foreground">
               Shows in this list feed the primary_show_key dropdown and the suggestion matcher.
             </div>
 
@@ -357,9 +357,9 @@ export function ShowsDashboard() {
           </CardHeader>
           <CardContent className="space-y-3">
             {listBusy ? (
-              <div className="text-sm text-[var(--muted-foreground)]">Loading shows…</div>
+              <div className="text-sm text-muted-foreground">Loading shows…</div>
             ) : filteredShows.length === 0 ? (
-              <div className="text-sm text-[var(--muted-foreground)]">
+              <div className="text-sm text-muted-foreground">
                 No shows loaded yet. Enter your token, then click Load shows.
               </div>
             ) : (
@@ -375,21 +375,21 @@ export function ShowsDashboard() {
                       onClick={() => selectShow(show)}
                       className={`block w-full rounded-lg border px-3 py-3 text-left transition-colors ${
                         isSelected
-                          ? "border-[var(--foreground)] bg-[var(--muted)]"
-                          : "border-[var(--border)] bg-[var(--card)] hover:bg-[var(--muted)]/40"
+                          ? "border-foreground bg-muted"
+                          : "border-border bg-card hover:bg-muted/40"
                       }`}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
                           <div className="font-medium">{show.display_name}</div>
-                          <div className="mt-1 text-xs text-[var(--muted-foreground)]">{show.show_key}</div>
+                          <div className="mt-1 text-xs text-muted-foreground">{show.show_key}</div>
                         </div>
-                        <div className="text-xs text-[var(--muted-foreground)]">
+                        <div className="text-xs text-muted-foreground">
                           {show.is_active ? "Active" : "Inactive"}
                         </div>
                       </div>
 
-                      <div className="mt-2 text-xs text-[var(--muted-foreground)]">
+                      <div className="mt-2 text-xs text-muted-foreground">
                         Alt names: {altNames.length ? altNames.join(", ") : "None"}
                       </div>
                     </button>
@@ -415,7 +415,7 @@ export function ShowsDashboard() {
                   setAddShow((current) => ({ ...current, displayName: event.target.value }))
                 }
                 placeholder="The Curious Case of Benjamin Button"
-                className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
               />
             </label>
 
@@ -427,9 +427,9 @@ export function ShowsDashboard() {
                   setAddShow((current) => ({ ...current, showKey: event.target.value }))
                 }
                 placeholder={normaliseShowKey(addShow.displayName || "show_name")}
-                className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
               />
-              <div className="text-xs text-[var(--muted-foreground)]">
+              <div className="text-xs text-muted-foreground">
                 Leave blank to generate it automatically from the display name.
               </div>
             </label>
@@ -443,9 +443,9 @@ export function ShowsDashboard() {
                 }
                 rows={4}
                 placeholder={"Benjamin Button\nCurious Case of Benjamin Button"}
-                className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+                className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-border"
               />
-              <div className="text-xs text-[var(--muted-foreground)]">Enter one alternative name per line.</div>
+              <div className="text-xs text-muted-foreground">Enter one alternative name per line.</div>
             </label>
 
             <label className="flex items-center gap-2 text-sm">
@@ -483,17 +483,17 @@ export function ShowsDashboard() {
           </CardHeader>
           <CardContent className="space-y-3">
             {!selectedShow ? (
-              <div className="text-sm text-[var(--muted-foreground)]">
+              <div className="text-sm text-muted-foreground">
                 Select a show from the list to edit it.
               </div>
             ) : (
               <>
-                <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)]/30 p-3">
-                  <div className="text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">
+                <div className="rounded-lg border border-border bg-muted/30 p-3">
+                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Show key
                   </div>
                   <div className="mt-1 text-sm">{selectedShow.show_key}</div>
-                  <div className="mt-2 text-xs text-[var(--muted-foreground)]">
+                  <div className="mt-2 text-xs text-muted-foreground">
                     This stays fixed in v1 so question links remain stable.
                   </div>
                 </div>
@@ -505,7 +505,7 @@ export function ShowsDashboard() {
                     onChange={(event) =>
                       setEditShow((current) => ({ ...current, displayName: event.target.value }))
                     }
-                    className="h-10 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+                    className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
                   />
                 </label>
 
@@ -517,9 +517,9 @@ export function ShowsDashboard() {
                       setEditShow((current) => ({ ...current, altNamesText: event.target.value }))
                     }
                     rows={5}
-                    className="rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--border)]"
+                    className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-border"
                   />
-                  <div className="text-xs text-[var(--muted-foreground)]">Enter one alternative name per line.</div>
+                  <div className="text-xs text-muted-foreground">Enter one alternative name per line.</div>
                 </label>
 
                 <label className="flex items-center gap-2 text-sm">
