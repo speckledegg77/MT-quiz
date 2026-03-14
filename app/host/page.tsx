@@ -6,6 +6,7 @@ import QRTile from "@/components/ui/QRTile"
 
 import { supabase } from "@/lib/supabaseClient"
 import { randomTeamName } from "@/lib/teamNameSuggestions"
+import { firstRuleValue, type RoundTemplateRow } from "@/lib/roundTemplates"
 
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card"
@@ -41,6 +42,11 @@ type GameMode = "teams" | "solo"
 type BuildMode = "manual_rounds" | "quick_random" | "legacy_pack_mode"
 type RoundSourceMode = "selected_packs" | "specific_packs" | "all_questions"
 type RoomState = any
+
+type RoundTemplatesResponse = {
+  ok?: boolean
+  templates?: RoundTemplateRow[]
+}
 
 type ManualRoundDraft = {
   id: string
@@ -127,6 +133,7 @@ function makeManualRound(index: number): ManualRoundDraft {
 export default function HostPage() {
   const [packs, setPacks] = useState<PackRow[]>([])
   const [shows, setShows] = useState<ShowRow[]>([])
+  const [templates, setTemplates] = useState<RoundTemplateRow[]>([])
   const [packsLoading, setPacksLoading] = useState(true)
   const [packsError, setPacksError] = useState<string | null>(null)
 
@@ -151,6 +158,7 @@ export default function HostPage() {
     makeManualRound(2),
     makeManualRound(3),
   ])
+  const [templateToAddId, setTemplateToAddId] = useState("")
 
   const [gameMode, setGameMode] = useState<GameMode>("teams")
   const [teamNames, setTeamNames] = useState<string[]>(() => {
@@ -220,13 +228,17 @@ export default function HostPage() {
       setPacksLoading(true)
       setPacksError(null)
 
-      const [packsRes, showsRes] = await Promise.all([
+      const [packsRes, showsRes, templatesRes] = await Promise.all([
         supabase
           .from("packs")
           .select("id, display_name, round_type, sort_order, is_active")
           .eq("is_active", true)
           .order("sort_order", { ascending: true }),
         supabase.from("shows").select("show_key, display_name, is_active").eq("is_active", true).order("display_name"),
+        fetch("/api/round-templates", { cache: "no-store" }).then(async (res) => {
+          const json = (await res.json().catch(() => ({}))) as RoundTemplatesResponse
+          return res.ok ? (json.templates ?? []) : []
+        }).catch(() => [] as RoundTemplateRow[]),
       ])
 
       if (cancelled) return
@@ -242,12 +254,14 @@ export default function HostPage() {
         setPacksError(showsRes.error.message)
         setShows([])
         setPacks((packsRes.data ?? []) as PackRow[])
+        setTemplates(templatesRes)
         setPacksLoading(false)
         return
       }
 
       setPacks((packsRes.data ?? []) as PackRow[])
       setShows((showsRes.data ?? []) as ShowRow[])
+      setTemplates(templatesRes)
       setPacksLoading(false)
     }
 
@@ -276,6 +290,19 @@ export default function HostPage() {
       return next
     })
   }, [packs])
+
+
+  useEffect(() => {
+    if (!templates.length) {
+      setTemplateToAddId("")
+      return
+    }
+
+    setTemplateToAddId((current) => {
+      if (current && templates.some((template) => template.id === current)) return current
+      return templates[0]?.id ?? ""
+    })
+  }, [templates])
 
   useEffect(() => {
     if (!roomCode) return
@@ -412,6 +439,49 @@ export default function HostPage() {
       })
     )
   }
+
+  function addManualRoundFromTemplate(template: RoundTemplateRow) {
+    const mediaType = firstRuleValue(template.selection_rules, "mediaTypes")
+    const promptTarget = firstRuleValue(template.selection_rules, "promptTargets")
+    const clueSource = firstRuleValue(template.selection_rules, "clueSources")
+    const primaryShowKey = firstRuleValue(template.selection_rules, "primaryShowKeys")
+    const defaultPackIds = Array.isArray(template.default_pack_ids)
+      ? template.default_pack_ids.map((value) => String(value ?? "").trim()).filter(Boolean)
+      : []
+
+    const sourceMode = String(template.source_mode ?? "selected_packs") as RoundSourceMode
+
+    if (sourceMode === "selected_packs" && defaultPackIds.length) {
+      setSelectedPacks((prev) => {
+        const next = { ...prev }
+        for (const packId of defaultPackIds) next[packId] = true
+        return next
+      })
+      setSelectPacks(true)
+    }
+
+    setManualRounds((prev) => [
+      ...prev,
+      {
+        id: makeRoundId(),
+        name: String(template.name ?? "").trim() || defaultRoundName(prev.length),
+        questionCountStr: String(Math.max(1, Number(template.default_question_count ?? 5))),
+        jokerEligible: Boolean(template.joker_eligible ?? true),
+        countsTowardsScore: Boolean(template.counts_towards_score ?? true),
+        sourceMode,
+        packIds: sourceMode === "specific_packs" ? defaultPackIds : [],
+        mediaType: mediaType === "text" || mediaType === "audio" || mediaType === "image" ? mediaType : "",
+        promptTarget,
+        clueSource,
+        primaryShowKey,
+      },
+    ])
+  }
+
+  const selectedTemplateToAdd = useMemo(
+    () => templates.find((template) => template.id === templateToAddId) ?? null,
+    [templates, templateToAddId]
+  )
 
   const manualRoundsTotal = useMemo(() => {
     return manualRounds.reduce((sum, round) => sum + clampInt(parseIntOr(round.questionCountStr, 0), 0, 200), 0)
@@ -870,10 +940,39 @@ export default function HostPage() {
                         <div className="text-sm font-semibold text-[var(--foreground)]">Manual rounds</div>
                         <div className="mt-1 text-xs text-[var(--muted-foreground)]">Each round picks its own pool using pack scope and metadata rules.</div>
                       </div>
-                      <Button variant="secondary" onClick={addManualRound}>Add round</Button>
+                      <div className="flex flex-wrap gap-2">
+                        <select
+                          value={templateToAddId}
+                          onChange={(e) => setTemplateToAddId(e.target.value)}
+                          className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
+                          disabled={!templates.length}
+                        >
+                          {templates.length === 0 ? (
+                            <option value="">No active templates</option>
+                          ) : null}
+                          {templates.map((template) => (
+                            <option key={template.id} value={template.id}>
+                              {template.name}
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            if (selectedTemplateToAdd) addManualRoundFromTemplate(selectedTemplateToAdd)
+                          }}
+                          disabled={!selectedTemplateToAdd}
+                        >
+                          Add from template
+                        </Button>
+                        <Button variant="secondary" onClick={addManualRound}>Add blank round</Button>
+                      </div>
                     </div>
 
-                    <div className="mt-3 text-xs text-[var(--muted-foreground)]">Total questions from rounds: {manualRoundsTotal}. {manualJokerNote}</div>
+                    <div className="mt-3 space-y-1 text-xs text-[var(--muted-foreground)]">
+                      <div>Total questions from rounds: {manualRoundsTotal}. {manualJokerNote}</div>
+                      {selectedTemplateToAdd?.description ? <div>Template: {selectedTemplateToAdd.description}</div> : null}
+                    </div>
 
                     <div className="mt-3 space-y-3">
                       {manualRounds.map((round, index) => (
