@@ -7,7 +7,6 @@ import QRTile from "@/components/ui/QRTile"
 import { supabase } from "@/lib/supabaseClient"
 import { randomTeamName } from "@/lib/teamNameSuggestions"
 import { firstRuleValue, type RoundTemplateRow } from "@/lib/roundTemplates"
-import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour } from "@/lib/roomRoundPlan"
 
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card"
@@ -50,6 +49,40 @@ type RoundTemplatesResponse = {
   templates?: RoundTemplateRow[]
 }
 
+type FeasibilityRoundResult = {
+  id: string
+  name: string
+  requestedCount: number
+  eligibleCount: number
+  assignedCount: number
+  shortfall: number
+  feasible: boolean
+  setupError: string | null
+  behaviourType: RoundBehaviourType
+  sourceMode: RoundSourceMode
+  notes: string[]
+}
+
+type FeasibilitySetResult = {
+  rounds: FeasibilityRoundResult[]
+  summary: {
+    requestedTotal: number
+    unionEligibleQuestionCount: number
+    assignedTotal: number
+    shortfallTotal: number
+    allFeasible: boolean
+  }
+}
+
+type FeasibilityResponse = {
+  ok?: boolean
+  candidateCount?: number
+  scopePackCount?: number
+  manual?: FeasibilitySetResult | null
+  templates?: FeasibilitySetResult | null
+  error?: string
+}
+
 type ManualRoundDraft = {
   id: string
   name: string
@@ -63,8 +96,6 @@ type ManualRoundDraft = {
   promptTarget: string
   clueSource: string
   primaryShowKey: string
-  answerSecondsStr: string
-  roundReviewSecondsStr: string
 }
 
 const LAST_HOST_CODE_KEY = "mtq_last_host_code"
@@ -124,28 +155,17 @@ function makeRoundId() {
   return `round_${Math.random().toString(36).slice(2, 10)}`
 }
 
-function getRoundTimingDefaults(behaviourType: RoundBehaviourType) {
-  return {
-    answerSeconds: getDefaultAnswerSecondsForBehaviour(behaviourType),
-    roundReviewSeconds: getDefaultRoundReviewSecondsForBehaviour(behaviourType),
-  }
-}
-
 function normaliseManualRoundDraft(draft: ManualRoundDraft): ManualRoundDraft {
   const behaviourType = draft.behaviourType === "quickfire" ? "quickfire" : "standard"
-  const defaults = getRoundTimingDefaults(behaviourType)
   return {
     ...draft,
     behaviourType,
     jokerEligible: behaviourType === "quickfire" ? false : draft.jokerEligible,
     mediaType: behaviourType === "quickfire" && draft.mediaType === "audio" ? "" : draft.mediaType,
-    answerSecondsStr: String(draft.answerSecondsStr ?? defaults.answerSeconds),
-    roundReviewSecondsStr: String(draft.roundReviewSecondsStr ?? defaults.roundReviewSeconds),
   }
 }
 
 function makeManualRound(index: number): ManualRoundDraft {
-  const defaults = getRoundTimingDefaults("standard")
   return normaliseManualRoundDraft({
     id: makeRoundId(),
     name: defaultRoundName(index),
@@ -159,9 +179,67 @@ function makeManualRound(index: number): ManualRoundDraft {
     promptTarget: "",
     clueSource: "",
     primaryShowKey: "",
-    answerSecondsStr: String(defaults.answerSeconds),
-    roundReviewSecondsStr: String(defaults.roundReviewSeconds),
   })
+}
+
+function buildSelectionRulesFromDraft(round: ManualRoundDraft) {
+  return {
+    mediaTypes: round.mediaType ? [round.mediaType] : [],
+    promptTargets: round.promptTarget ? [round.promptTarget] : [],
+    clueSources: round.clueSource ? [round.clueSource] : [],
+    primaryShowKeys: round.primaryShowKey ? [round.primaryShowKey] : [],
+  }
+}
+
+function serialiseManualRoundDraft(round: ManualRoundDraft, index: number) {
+  return {
+    id: round.id,
+    name: round.name.trim() || defaultRoundName(index),
+    questionCount: clampInt(parseIntOr(round.questionCountStr, 0), 1, 200),
+    behaviourType: round.behaviourType,
+    jokerEligible: round.behaviourType === "quickfire" ? false : round.jokerEligible,
+    countsTowardsScore: round.countsTowardsScore,
+    sourceMode: round.sourceMode,
+    packIds: round.packIds,
+    selectionRules: buildSelectionRulesFromDraft(round),
+  }
+}
+
+function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
+  const mediaType = firstRuleValue(template.selection_rules, "mediaTypes")
+  const promptTarget = firstRuleValue(template.selection_rules, "promptTargets")
+  const clueSource = firstRuleValue(template.selection_rules, "clueSources")
+  const primaryShowKey = firstRuleValue(template.selection_rules, "primaryShowKeys")
+  const defaultPackIds = Array.isArray(template.default_pack_ids)
+    ? template.default_pack_ids.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : []
+  const behaviourType: RoundBehaviourType = String(template.behaviour_type ?? "standard") === "quickfire" ? "quickfire" : "standard"
+  const sourceMode: RoundSourceMode =
+    String(template.source_mode ?? "selected_packs") === "specific_packs"
+      ? "specific_packs"
+      : String(template.source_mode ?? "selected_packs") === "all_questions"
+        ? "all_questions"
+        : "selected_packs"
+
+  return {
+    id: String(template.id ?? `template_${index + 1}`),
+    name: String(template.name ?? "").trim() || defaultRoundName(index),
+    questionCount: Math.max(1, Number(template.default_question_count ?? 5) || 5),
+    behaviourType,
+    sourceMode,
+    packIds: sourceMode === "specific_packs" ? defaultPackIds : [],
+    selectionRules: {
+      mediaTypes: mediaType ? [mediaType as "text" | "audio" | "image"] : [],
+      promptTargets: promptTarget ? [promptTarget] : [],
+      clueSources: clueSource ? [clueSource] : [],
+      primaryShowKeys: primaryShowKey ? [primaryShowKey] : [],
+    },
+  }
+}
+
+function feasibilityTone(result: FeasibilityRoundResult) {
+  if (result.setupError || result.shortfall > 0) return "error"
+  return "ok"
 }
 
 export default function HostPage() {
@@ -180,7 +258,7 @@ export default function HostPage() {
 
   const [totalQuestionsStr, setTotalQuestionsStr] = useState("20")
   const [answerSecondsStr, setAnswerSecondsStr] = useState("20")
-  const [roundReviewSecondsStr, setRoundReviewSecondsStr] = useState("30")
+  const [roundReviewSecondsStr, setRoundReviewSecondsStr] = useState("10")
   const [untimedAnswers, setUntimedAnswers] = useState(false)
 
   const [roundCountStr, setRoundCountStr] = useState("4")
@@ -207,6 +285,10 @@ export default function HostPage() {
 
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+  const [feasibilityBusy, setFeasibilityBusy] = useState(false)
+  const [feasibilityError, setFeasibilityError] = useState<string | null>(null)
+  const [manualFeasibility, setManualFeasibility] = useState<FeasibilitySetResult | null>(null)
+  const [templateFeasibility, setTemplateFeasibility] = useState<FeasibilitySetResult | null>(null)
 
   const [roomCode, setRoomCode] = useState<string | null>(null)
   const [roomState, setRoomState] = useState<RoomState | null>(null)
@@ -501,14 +583,6 @@ export default function HostPage() {
 
     const sourceMode = String(template.source_mode ?? "selected_packs") as RoundSourceMode
     const behaviourType = String(template.behaviour_type ?? "standard") === "quickfire" ? "quickfire" : "standard"
-    const answerSeconds =
-      template.default_answer_seconds == null
-        ? getDefaultAnswerSecondsForBehaviour(behaviourType)
-        : Math.max(0, Number(template.default_answer_seconds) || 0)
-    const roundReviewSeconds =
-      template.default_round_review_seconds == null
-        ? getDefaultRoundReviewSecondsForBehaviour(behaviourType)
-        : Math.max(0, Number(template.default_round_review_seconds) || 0)
 
     if (sourceMode === "selected_packs" && defaultPackIds.length) {
       setSelectedPacks((prev) => {
@@ -534,8 +608,6 @@ export default function HostPage() {
         promptTarget,
         clueSource,
         primaryShowKey,
-        answerSecondsStr: String(answerSeconds),
-        roundReviewSecondsStr: String(roundReviewSeconds),
       }),
     ])
   }
@@ -548,6 +620,16 @@ export default function HostPage() {
   const selectedQuickRandomTemplates = useMemo(
     () => templates.filter((template) => quickRandomTemplateIds.includes(template.id)),
     [templates, quickRandomTemplateIds]
+  )
+
+  const manualRoundsPayload = useMemo(
+    () => manualRounds.map((round, index) => serialiseManualRoundDraft(round, index)),
+    [manualRounds]
+  )
+
+  const templateRoundsPayload = useMemo(
+    () => selectedQuickRandomTemplates.map((template, index) => serialiseTemplateAsRound(template, index)),
+    [selectedQuickRandomTemplates]
   )
 
   const quickRandomTemplatesQuestionTotal = useMemo(() => {
@@ -573,6 +655,110 @@ export default function HostPage() {
 
   const jokerEligibleCount = useMemo(() => manualRounds.filter((round) => round.jokerEligible).length, [manualRounds])
 
+  const selectedPackIdsForManual = useMemo(() => selectedPackIds(), [packs, selectedPacks])
+
+  const selectedPackIdsForQuickRandom = useMemo(() => {
+    if (!selectPacks) return packs.map((pack) => pack.id)
+    return selectedPackIds()
+  }, [packs, selectPacks, selectedPacks])
+
+  useEffect(() => {
+    if (roomCode) return
+    if (packsLoading) return
+
+    const shouldCheckManual = buildMode === "manual_rounds"
+    const shouldCheckTemplates = buildMode === "quick_random" && quickRandomUseTemplates
+
+    if (!shouldCheckManual && !shouldCheckTemplates) {
+      setFeasibilityBusy(false)
+      setFeasibilityError(null)
+      setManualFeasibility(null)
+      setTemplateFeasibility(null)
+      return
+    }
+
+    let cancelled = false
+    const timer = window.setTimeout(async () => {
+      try {
+        setFeasibilityBusy(true)
+        setFeasibilityError(null)
+
+        const response = await fetch("/api/room/feasibility", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            selectedPackIds: shouldCheckManual ? selectedPackIdsForManual : selectedPackIdsForQuickRandom,
+            manualRounds: shouldCheckManual ? manualRoundsPayload : [],
+            templateRounds: shouldCheckTemplates ? templateRoundsPayload : [],
+          }),
+        })
+
+        const json = (await response.json().catch(() => ({}))) as FeasibilityResponse
+        if (cancelled) return
+
+        if (!response.ok) {
+          setFeasibilityError(json.error ?? "Could not check round feasibility.")
+          setManualFeasibility(null)
+          setTemplateFeasibility(null)
+          setFeasibilityBusy(false)
+          return
+        }
+
+        setManualFeasibility(json.manual ?? null)
+        setTemplateFeasibility(json.templates ?? null)
+        setFeasibilityBusy(false)
+      } catch (error: any) {
+        if (cancelled) return
+        setFeasibilityError(error?.message ?? "Could not check round feasibility.")
+        setManualFeasibility(null)
+        setTemplateFeasibility(null)
+        setFeasibilityBusy(false)
+      }
+    }, 350)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [
+    buildMode,
+    manualRoundsPayload,
+    packsLoading,
+    quickRandomUseTemplates,
+    roomCode,
+    selectedPackIdsForManual,
+    selectedPackIdsForQuickRandom,
+    templateRoundsPayload,
+  ])
+
+  const manualFeasibilityById = useMemo(() => {
+    return new Map((manualFeasibility?.rounds ?? []).map((round) => [round.id, round]))
+  }, [manualFeasibility])
+
+  const templateFeasibilityById = useMemo(() => {
+    return new Map((templateFeasibility?.rounds ?? []).map((round) => [round.id, round]))
+  }, [templateFeasibility])
+
+  const createBlockReason = useMemo(() => {
+    if (buildMode === "manual_rounds" && manualFeasibility && !manualFeasibility.summary.allFeasible) {
+      if (manualFeasibility.summary.shortfallTotal > 0) {
+        return `Current manual rounds can only assign ${manualFeasibility.summary.assignedTotal} of ${manualFeasibility.summary.requestedTotal} requested questions.`
+      }
+      return "Current manual rounds are not feasible yet."
+    }
+
+    if (buildMode === "quick_random" && quickRandomUseTemplates && templateFeasibility) {
+      const invalidTemplates = templateFeasibility.rounds.filter((round) => !round.feasible)
+      if (invalidTemplates.length > 0) {
+        return invalidTemplates.length === 1
+          ? `Template "${invalidTemplates[0]?.name ?? "Template"}" cannot currently fill its default question count.`
+          : `${invalidTemplates.length} selected templates cannot currently fill their default question counts.`
+      }
+    }
+
+    return null
+  }, [buildMode, manualFeasibility, quickRandomUseTemplates, templateFeasibility])
+
   async function createRoom() {
     setCreating(true)
     setCreateError(null)
@@ -583,10 +769,15 @@ export default function HostPage() {
     setForceCloseError(null)
 
     try {
-      const fallbackRoundReviewSeconds = clampInt(parseIntOr(roundReviewSecondsStr, 30), 0, 120)
-      const fallbackAnswerSeconds = untimedAnswers ? 0 : clampInt(parseIntOr(answerSecondsStr, 20), 5, 120)
-      let countdownSeconds = fallbackRoundReviewSeconds
-      let answerSeconds = fallbackAnswerSeconds
+      if (createBlockReason) {
+        setCreateError(createBlockReason)
+        setCreating(false)
+        return
+      }
+
+      const roundReviewSeconds = clampInt(parseIntOr(roundReviewSecondsStr, 10), 0, 120)
+      const countdownSeconds = roundReviewSeconds
+      const answerSeconds = untimedAnswers ? 0 : clampInt(parseIntOr(answerSecondsStr, 20), 5, 120)
       const cleanTeamNames = teamNames.map((t) => t.trim()).filter(Boolean)
 
       if (gameMode === "teams") {
@@ -618,31 +809,11 @@ export default function HostPage() {
       }
 
       if (buildMode === "manual_rounds") {
-        const selectedPackIdsForManual = selectedPackIds()
         if (manualRounds.length === 0) {
           setCreateError("Add at least one round.")
           setCreating(false)
           return
         }
-
-        const manualRoundsPayload = manualRounds.map((round, index) => ({
-          id: round.id,
-          name: round.name.trim() || defaultRoundName(index),
-          questionCount: clampInt(parseIntOr(round.questionCountStr, 0), 1, 200),
-          behaviourType: round.behaviourType,
-          jokerEligible: round.behaviourType === "quickfire" ? false : round.jokerEligible,
-          countsTowardsScore: round.countsTowardsScore,
-          sourceMode: round.sourceMode,
-          packIds: round.packIds,
-          selectionRules: {
-            mediaTypes: round.mediaType ? [round.mediaType] : [],
-            promptTargets: round.promptTarget ? [round.promptTarget] : [],
-            clueSources: round.clueSource ? [round.clueSource] : [],
-            primaryShowKeys: round.primaryShowKey ? [round.primaryShowKey] : [],
-          },
-          answerSeconds: clampInt(parseIntOr(round.answerSecondsStr, getDefaultAnswerSecondsForBehaviour(round.behaviourType)), 0, 120),
-          roundReviewSeconds: clampInt(parseIntOr(round.roundReviewSecondsStr, getDefaultRoundReviewSecondsForBehaviour(round.behaviourType)), 0, 120),
-        }))
 
         for (const round of manualRoundsPayload) {
           if (round.sourceMode === "selected_packs" && selectedPackIdsForManual.length === 0) {
@@ -1084,6 +1255,29 @@ export default function HostPage() {
                       {selectedTemplateToAdd?.description ? <div>Template: {selectedTemplateToAdd.description}</div> : null}
                     </div>
 
+                    {buildMode === "manual_rounds" ? (
+                      <div className="mt-3 rounded-2xl border border-border bg-card p-3 text-sm">
+                        {feasibilityBusy ? (
+                          <div className="text-muted-foreground">Checking round feasibility...</div>
+                        ) : feasibilityError ? (
+                          <div className="text-red-700 dark:text-red-200">{feasibilityError}</div>
+                        ) : manualFeasibility ? (
+                          <div className="space-y-1">
+                            <div className={manualFeasibility.summary.allFeasible ? "text-foreground" : "text-amber-700 dark:text-amber-200"}>
+                              {manualFeasibility.summary.allFeasible
+                                ? `Current rounds can assign all ${manualFeasibility.summary.requestedTotal} requested questions.`
+                                : `Current rounds can assign ${manualFeasibility.summary.assignedTotal} of ${manualFeasibility.summary.requestedTotal} requested questions.`}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Unique eligible questions across these rounds: {manualFeasibility.summary.unionEligibleQuestionCount}.
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-muted-foreground">Feasibility will appear once round settings are ready.</div>
+                        )}
+                      </div>
+                    ) : null}
+
                     <div className="mt-3 space-y-3">
                       {manualRounds.map((round, index) => (
                         <div key={round.id} className="rounded-2xl border border-border bg-card p-3">
@@ -1103,18 +1297,7 @@ export default function HostPage() {
                             </div>
                             <div>
                               <div className="text-sm font-medium text-foreground">Behaviour</div>
-                              <select
-                                value={round.behaviourType}
-                                onChange={(e) => {
-                                  const behaviourType = e.target.value as RoundBehaviourType
-                                  updateManualRound(round.id, {
-                                    behaviourType,
-                                    answerSecondsStr: String(getDefaultAnswerSecondsForBehaviour(behaviourType)),
-                                    roundReviewSecondsStr: String(getDefaultRoundReviewSecondsForBehaviour(behaviourType)),
-                                  })
-                                }}
-                                className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
-                              >
+                              <select value={round.behaviourType} onChange={(e) => updateManualRound(round.id, { behaviourType: e.target.value as RoundBehaviourType })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
                                 {ROUND_BEHAVIOUR_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                               </select>
                             </div>
@@ -1126,29 +1309,6 @@ export default function HostPage() {
                                 <option value="all_questions">All questions</option>
                               </select>
                             </div>
-                            <div>
-                              <div className="text-sm font-medium text-foreground">Answer seconds</div>
-                              <Input
-                                value={round.answerSecondsStr}
-                                onChange={(e) => updateManualRound(round.id, { answerSecondsStr: e.target.value })}
-                                inputMode="numeric"
-                              />
-                              <div className="mt-1 text-xs text-muted-foreground">
-                                Use 0 for untimed. Default for {round.behaviourType} is {getDefaultAnswerSecondsForBehaviour(round.behaviourType)}.
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-sm font-medium text-foreground">Round review seconds</div>
-                              <Input
-                                value={round.roundReviewSecondsStr}
-                                onChange={(e) => updateManualRound(round.id, { roundReviewSecondsStr: e.target.value })}
-                                inputMode="numeric"
-                              />
-                              <div className="mt-1 text-xs text-muted-foreground">
-                                Default for {round.behaviourType} is {getDefaultRoundReviewSecondsForBehaviour(round.behaviourType)}.
-                              </div>
-                            </div>
-
                             <div className="space-y-2 pt-6">
                               <label className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <input type="checkbox" checked={round.jokerEligible} onChange={(e) => updateManualRound(round.id, { jokerEligible: e.target.checked })} disabled={round.behaviourType === "quickfire"} />
@@ -1191,6 +1351,35 @@ export default function HostPage() {
                               </select>
                             </div>
                           </div>
+
+                          {(() => {
+                            const feasibility = manualFeasibilityById.get(round.id)
+                            if (!feasibility) return null
+                            const tone = feasibilityTone(feasibility)
+                            return (
+                              <div
+                                className={
+                                  tone === "error"
+                                    ? "mt-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950"
+                                    : "mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm dark:border-emerald-900 dark:bg-emerald-950"
+                                }
+                              >
+                                <div className={tone === "error" ? "text-red-700 dark:text-red-200" : "text-emerald-800 dark:text-emerald-200"}>
+                                  {feasibility.setupError
+                                    ? feasibility.setupError
+                                    : feasibility.feasible
+                                      ? `Can assign ${feasibility.assignedCount} of ${feasibility.requestedCount} requested questions.`
+                                      : `Can assign ${feasibility.assignedCount} of ${feasibility.requestedCount} requested questions. Reduce the count or widen the filters.`}
+                                </div>
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  Eligible now: {feasibility.eligibleCount}. Assigned under current overlap: {feasibility.assignedCount}.
+                                </div>
+                                {feasibility.notes.length ? (
+                                  <div className="mt-1 text-xs text-muted-foreground">{feasibility.notes.join(" ")}</div>
+                                ) : null}
+                              </div>
+                            )
+                          })()}
 
                           {round.behaviourType === "quickfire" ? (
                             <div className="mt-3 text-xs text-muted-foreground">Quickfire v1 excludes audio automatically and only uses MCQ questions so fastest correct scoring stays fair.</div>
@@ -1275,21 +1464,62 @@ export default function HostPage() {
                               <Button variant="secondary" onClick={() => setAllQuickRandomTemplates(false)} disabled={!quickRandomTemplateIds.length}>Clear</Button>
                             </div>
                           </div>
+                          {quickRandomUseTemplates ? (
+                            <div className="mt-3 rounded-2xl border border-border bg-background p-3 text-sm">
+                              {feasibilityBusy ? (
+                                <div className="text-muted-foreground">Checking template feasibility...</div>
+                              ) : feasibilityError ? (
+                                <div className="text-red-700 dark:text-red-200">{feasibilityError}</div>
+                              ) : templateFeasibility ? (
+                                <div className="space-y-1">
+                                  <div className={templateFeasibility.summary.allFeasible ? "text-foreground" : "text-amber-700 dark:text-amber-200"}>
+                                    {templateFeasibility.summary.allFeasible
+                                      ? "All selected templates can currently fill their default question counts."
+                                      : "One or more selected templates cannot currently fill their default question counts."}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Unique eligible questions across selected templates: {templateFeasibility.summary.unionEligibleQuestionCount}.
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-muted-foreground">Feasibility will appear once you choose templates.</div>
+                              )}
+                            </div>
+                          ) : null}
                           <div className="mt-3 grid gap-2 sm:grid-cols-2">
                             {templates.length === 0 ? (
                               <div className="text-sm text-muted-foreground">No active round templates are available yet.</div>
                             ) : (
-                              templates.map((template) => (
-                                <label key={template.id} className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm">
-                                  <input
-                                    type="checkbox"
-                                    checked={quickRandomTemplateIds.includes(template.id)}
-                                    onChange={() => toggleQuickRandomTemplate(template.id)}
-                                  />
-                                  <span className="min-w-0 flex-1">{template.name}</span>
-                                  <span className="text-xs text-muted-foreground">{template.default_question_count}</span>
-                                </label>
-                              ))
+                              templates.map((template) => {
+                                const selected = quickRandomTemplateIds.includes(template.id)
+                                const feasibility = templateFeasibilityById.get(template.id)
+                                const tone = feasibility ? feasibilityTone(feasibility) : null
+                                return (
+                                  <label key={template.id} className="rounded-xl border border-border bg-background px-3 py-2 text-sm">
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="checkbox"
+                                        checked={selected}
+                                        onChange={() => toggleQuickRandomTemplate(template.id)}
+                                      />
+                                      <span className="min-w-0 flex-1">{template.name}</span>
+                                      <span className="text-xs text-muted-foreground">{template.default_question_count}</span>
+                                    </div>
+                                    {selected && feasibility ? (
+                                      <div className="mt-2 pl-6 text-xs">
+                                        <div className={tone === "error" ? "text-red-700 dark:text-red-200" : "text-emerald-700 dark:text-emerald-200"}>
+                                          {feasibility.setupError
+                                            ? feasibility.setupError
+                                            : feasibility.feasible
+                                              ? `Can fill ${feasibility.requestedCount} questions.`
+                                              : `Can fill ${feasibility.assignedCount} of ${feasibility.requestedCount} questions.`}
+                                        </div>
+                                        <div className="mt-1 text-muted-foreground">Eligible now: {feasibility.eligibleCount}.</div>
+                                      </div>
+                                    ) : null}
+                                  </label>
+                                )
+                              })
                             )}
                           </div>
                         </div>
@@ -1308,28 +1538,20 @@ export default function HostPage() {
                           <Input value={totalQuestionsStr} onChange={(e) => setTotalQuestionsStr(e.target.value)} inputMode="numeric" />
                         </div>
                       )}
-                      {buildMode === "quick_random" && quickRandomUseTemplates ? (
-                        <div className="sm:col-span-2 rounded-2xl border border-border bg-card p-3 text-sm text-muted-foreground">
-                          Template-based quick random uses the timings saved on each template. If a template leaves timings blank, standard defaults to 20 answer seconds and 30 round-review seconds, while Quickfire defaults to 10 answer seconds and 45 round-review seconds.
-                        </div>
-                      ) : (
-                        <>
-                          <div>
-                            <div className="text-sm font-medium text-foreground">Answer seconds</div>
-                            <Input value={answerSecondsStr} onChange={(e) => setAnswerSecondsStr(e.target.value)} inputMode="numeric" disabled={untimedAnswers} />
-                            <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                              <input type="checkbox" checked={untimedAnswers} onChange={(e) => setUntimedAnswers(e.target.checked)} />
-                              Untimed answers (host controls)
-                            </label>
-                            {untimedAnswers ? <div className="mt-1 text-xs text-muted-foreground">The question stays open until everyone answers or you press Reveal answer.</div> : <div className="mt-1 text-xs text-muted-foreground">Questions open straight away. There is no get ready countdown.</div>}
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-foreground">Round review seconds</div>
-                            <Input value={roundReviewSecondsStr} onChange={(e) => setRoundReviewSecondsStr(e.target.value)} inputMode="numeric" />
-                            <div className="mt-1 text-xs text-muted-foreground">After the last question in a round, the round summary shows for this long before the next round starts.</div>
-                          </div>
-                        </>
-                      )}
+                      <div>
+                        <div className="text-sm font-medium text-foreground">Answer seconds</div>
+                        <Input value={answerSecondsStr} onChange={(e) => setAnswerSecondsStr(e.target.value)} inputMode="numeric" disabled={untimedAnswers} />
+                        <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                          <input type="checkbox" checked={untimedAnswers} onChange={(e) => setUntimedAnswers(e.target.checked)} />
+                          Untimed answers (host controls)
+                        </label>
+                        {untimedAnswers ? <div className="mt-1 text-xs text-muted-foreground">The question stays open until everyone answers or you press Reveal answer.</div> : <div className="mt-1 text-xs text-muted-foreground">Questions open straight away. There is no get ready countdown.</div>}
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-foreground">Round review seconds</div>
+                        <Input value={roundReviewSecondsStr} onChange={(e) => setRoundReviewSecondsStr(e.target.value)} inputMode="numeric" />
+                        <div className="mt-1 text-xs text-muted-foreground">After the last question in a round, the round summary shows for this long before the next round starts.</div>
+                      </div>
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-3">
@@ -1370,12 +1592,25 @@ export default function HostPage() {
                 )}
 
                 {buildMode === "manual_rounds" ? (
-                  <div className="rounded-2xl border border-border bg-card p-3 text-sm text-muted-foreground">
-                    Manual rounds now store timings per round. Standard starts at 20 answer seconds and 30 round-review seconds. Quickfire starts at 10 answer seconds and 45 round-review seconds.
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <div className="text-sm font-medium text-foreground">Answer seconds</div>
+                      <Input value={answerSecondsStr} onChange={(e) => setAnswerSecondsStr(e.target.value)} inputMode="numeric" disabled={untimedAnswers} />
+                      <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                        <input type="checkbox" checked={untimedAnswers} onChange={(e) => setUntimedAnswers(e.target.checked)} />
+                        Untimed answers (host controls)
+                      </label>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-foreground">Round review seconds</div>
+                      <Input value={roundReviewSecondsStr} onChange={(e) => setRoundReviewSecondsStr(e.target.value)} inputMode="numeric" />
+                      <div className="mt-1 text-xs text-muted-foreground">After the last question in a round, the round summary shows for this long before the next round starts.</div>
+                    </div>
                   </div>
                 ) : null}
 
                 {createError ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{createError}</div> : null}
+                {!createError && createBlockReason ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">{createBlockReason}</div> : null}
               </CardContent>
 
               <CardFooter className="flex items-center justify-between gap-3">
@@ -1390,7 +1625,7 @@ export default function HostPage() {
                           ? `${selectedPackCount} pack${selectedPackCount === 1 ? "" : "s"} selected.`
                           : "No packs selected yet."}
                 </div>
-                <Button onClick={createRoom} disabled={creating || packsLoading}>{creating ? "Creating..." : packsLoading ? "Loading packs..." : "Create room"}</Button>
+                <Button onClick={createRoom} disabled={creating || packsLoading || Boolean(createBlockReason)}>{creating ? "Creating..." : packsLoading ? "Loading packs..." : "Create room"}</Button>
               </CardFooter>
             </Card>
           ) : (
