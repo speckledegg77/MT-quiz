@@ -26,6 +26,7 @@ import {
 
 type LegacyRoundRequest = { packId: string; count: number }
 
+
 function randomCode(len = 8) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
   let out = ""
@@ -129,6 +130,45 @@ function cleanManualRounds(raw: unknown): ManualRoundDraftInput[] {
       selectionRules: cleanSelectionRules(value.selectionRules),
     }
   })
+}
+
+function shuffleInPlace<T>(items: T[]) {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const tmp = items[i]
+    items[i] = items[j]
+    items[j] = tmp
+  }
+}
+
+async function loadQuickRandomTemplates(templateIds: string[]) {
+  let query = supabaseAdmin
+    .from("round_templates")
+    .select("*")
+    .eq("is_active", true)
+
+  const cleanedIds = [...new Set(cleanStringArray(templateIds))]
+  if (cleanedIds.length) {
+    query = query.in("id", cleanedIds)
+  }
+
+  const templatesRes = await query
+  if (templatesRes.error) throw new Error(templatesRes.error.message)
+  return (templatesRes.data ?? []) as any[]
+}
+
+function mapTemplateToManualRound(template: any, index: number): ManualRoundDraftInput {
+  const defaultPackIds = cleanStringArray(template?.default_pack_ids)
+  return {
+    id: String(template?.id ?? `quick_template_${index + 1}`),
+    name: String(template?.name ?? "").trim() || `Round ${index + 1}`,
+    questionCount: Math.max(1, cleanNumber(template?.default_question_count, 5)),
+    jokerEligible: cleanBoolean(template?.joker_eligible, true),
+    countsTowardsScore: cleanBoolean(template?.counts_towards_score, true),
+    sourceMode: cleanSourceMode(template?.source_mode),
+    packIds: cleanSourceMode(template?.source_mode) === "specific_packs" ? defaultPackIds : [],
+    selectionRules: cleanSelectionRules(template?.selection_rules),
+  }
 }
 
 async function loadQuestionPoolForManualRounds(params: {
@@ -288,6 +328,9 @@ export async function POST(req: Request) {
       roundFilterToStore = "mixed"
       roundsToStore = null
     } else {
+      const usingTemplateQuickRandom =
+        buildMode === "quick_random" && Boolean(body.quickRandomUseTemplates)
+
       const packIdsFromRounds = [...new Set(legacyRounds.map((round) => round.packId))]
       const packIds = [...new Set([...(selectedPacks.length ? selectedPacks : []), ...packIdsFromRounds])].filter(Boolean)
 
@@ -295,62 +338,108 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Pick at least one pack" }, { status: 400 })
       }
 
-      let selectionPacks: PackSelectionInput[] = []
-      if (strategy === "per_pack" && legacyRounds.length > 0) {
-        selectionPacks = legacyRounds.map((round) => ({
-          pack_id: round.packId,
-          count: Math.max(1, Math.floor(Number(round.count))),
-        }))
+      if (usingTemplateQuickRandom) {
+        const quickRandomTemplateIds = cleanStringArray(body.quickRandomTemplateIds)
+        const activeTemplates = await loadQuickRandomTemplates(quickRandomTemplateIds)
+
+        if (!activeTemplates.length) {
+          return NextResponse.json({ error: "No active round templates matched your selection." }, { status: 400 })
+        }
+
+        if (roundCount > activeTemplates.length) {
+          return NextResponse.json(
+            { error: "Number of rounds cannot be greater than the number of selected templates." },
+            { status: 400 }
+          )
+        }
+
+        const shuffledTemplates = [...activeTemplates]
+        shuffleInPlace(shuffledTemplates)
+        const chosenTemplates = shuffledTemplates.slice(0, roundCount)
+        const quickRandomRounds = chosenTemplates.map((template, index) => mapTemplateToManualRound(template, index))
+
+        const { allActivePackIds, candidates } = await loadQuestionPoolForManualRounds({
+          selectedPackIds: packIds,
+          manualRounds: quickRandomRounds,
+        })
+
+        roundPlan = buildManualRoomRoundPlan({
+          roundsInput: quickRandomRounds,
+          selectedPackIds: packIds,
+          allPackIds: allActivePackIds,
+          candidates,
+          buildMode,
+        })
+
+        legacyFields = getLegacyFieldsFromRoundPlan(roundPlan)
+        effectiveTotalQuestions = legacyFields.question_ids.length
+        selectedPacksToStore = [
+          ...new Set([
+            ...packIds,
+            ...quickRandomRounds.flatMap((round) => (round.sourceMode === "specific_packs" ? cleanStringArray(round.packIds) : [])),
+          ]),
+        ]
+        selectionStrategyToStore = "all_packs"
+        roundFilterToStore = "mixed"
+        roundsToStore = null
       } else {
-        selectionPacks = packIds.map((id) => ({ pack_id: id }))
+        let selectionPacks: PackSelectionInput[] = []
+        if (strategy === "per_pack" && legacyRounds.length > 0) {
+          selectionPacks = legacyRounds.map((round) => ({
+            pack_id: round.packId,
+            count: Math.max(1, Math.floor(Number(round.count))),
+          }))
+        } else {
+          selectionPacks = packIds.map((id) => ({ pack_id: id }))
+        }
+
+        const packQuestionsById: Record<string, Array<{ id: string; round_type: "general" | "audio" | "picture" }>> = {}
+        for (const pid of packIds) packQuestionsById[pid] = []
+
+        const linksRes = await supabaseAdmin
+          .from("pack_questions")
+          .select("pack_id, question_id, questions(round_type)")
+          .in("pack_id", packIds)
+
+        if (linksRes.error) {
+          return NextResponse.json({ error: linksRes.error.message }, { status: 500 })
+        }
+
+        for (const row of (linksRes.data ?? []) as any[]) {
+          const pid = String(row.pack_id ?? "").trim()
+          const qid = String(row.question_id ?? "").trim()
+          const rt = row.questions?.round_type
+          if (!pid || !qid) continue
+          const round_type: "general" | "audio" | "picture" =
+            rt === "audio" ? "audio" : rt === "picture" ? "picture" : "general"
+          packQuestionsById[pid] ??= []
+          packQuestionsById[pid].push({ id: qid, round_type })
+        }
+
+        const result = buildQuestionIdList({
+          packs: selectionPacks,
+          packQuestionsById,
+          strategy,
+          totalQuestions,
+          roundFilter,
+        })
+
+        const pickedIds = result.questionIds
+        if (pickedIds.length === 0) {
+          return NextResponse.json(
+            { error: packIds.length ? `No questions found for packs: ${packIds.join(", ")}` : "No questions found" },
+            { status: 400 }
+          )
+        }
+
+        roundPlan = buildLegacyRoomRoundPlan(pickedIds, roundCount, roundNames, buildMode)
+        legacyFields = getLegacyFieldsFromRoundPlan(roundPlan)
+        effectiveTotalQuestions = legacyFields.question_ids.length
+        selectedPacksToStore = packIds
+        selectionStrategyToStore = strategy
+        roundFilterToStore = roundFilter
+        roundsToStore = strategy === "per_pack" ? selectionPacks : null
       }
-
-      const packQuestionsById: Record<string, Array<{ id: string; round_type: "general" | "audio" | "picture" }>> = {}
-      for (const pid of packIds) packQuestionsById[pid] = []
-
-      const linksRes = await supabaseAdmin
-        .from("pack_questions")
-        .select("pack_id, question_id, questions(round_type)")
-        .in("pack_id", packIds)
-
-      if (linksRes.error) {
-        return NextResponse.json({ error: linksRes.error.message }, { status: 500 })
-      }
-
-      for (const row of (linksRes.data ?? []) as any[]) {
-        const pid = String(row.pack_id ?? "").trim()
-        const qid = String(row.question_id ?? "").trim()
-        const rt = row.questions?.round_type
-        if (!pid || !qid) continue
-        const round_type: "general" | "audio" | "picture" =
-          rt === "audio" ? "audio" : rt === "picture" ? "picture" : "general"
-        packQuestionsById[pid] ??= []
-        packQuestionsById[pid].push({ id: qid, round_type })
-      }
-
-      const result = buildQuestionIdList({
-        packs: selectionPacks,
-        packQuestionsById,
-        strategy,
-        totalQuestions,
-        roundFilter,
-      })
-
-      const pickedIds = result.questionIds
-      if (pickedIds.length === 0) {
-        return NextResponse.json(
-          { error: packIds.length ? `No questions found for packs: ${packIds.join(", ")}` : "No questions found" },
-          { status: 400 }
-        )
-      }
-
-      roundPlan = buildLegacyRoomRoundPlan(pickedIds, roundCount, roundNames, buildMode)
-      legacyFields = getLegacyFieldsFromRoundPlan(roundPlan)
-      effectiveTotalQuestions = legacyFields.question_ids.length
-      selectedPacksToStore = packIds
-      selectionStrategyToStore = strategy
-      roundFilterToStore = roundFilter
-      roundsToStore = strategy === "per_pack" ? selectionPacks : null
     }
   } catch (error: any) {
     if (error instanceof SelectionError) {

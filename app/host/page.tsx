@@ -159,9 +159,8 @@ export default function HostPage() {
     makeManualRound(3),
   ])
   const [templateToAddId, setTemplateToAddId] = useState("")
-  const [templateAdminToken, setTemplateAdminToken] = useState("")
-  const [savingTemplateRoundId, setSavingTemplateRoundId] = useState<string | null>(null)
-  const [saveTemplateResult, setSaveTemplateResult] = useState<string | null>(null)
+  const [quickRandomUseTemplates, setQuickRandomUseTemplates] = useState(true)
+  const [quickRandomTemplateIds, setQuickRandomTemplateIds] = useState<string[]>([])
 
   const [gameMode, setGameMode] = useState<GameMode>("teams")
   const [teamNames, setTeamNames] = useState<string[]>(() => {
@@ -219,15 +218,6 @@ export default function HostPage() {
     try {
       const last = localStorage.getItem(LAST_HOST_CODE_KEY)
       if (last) setRehostCode(cleanRoomCode(last))
-    } catch {
-      // ignore
-    }
-  }, [])
-
-  useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem("mtq_admin_token") ?? ""
-      if (saved) setTemplateAdminToken(saved)
     } catch {
       // ignore
     }
@@ -313,6 +303,18 @@ export default function HostPage() {
     setTemplateToAddId((current) => {
       if (current && templates.some((template) => template.id === current)) return current
       return templates[0]?.id ?? ""
+    })
+  }, [templates])
+
+  useEffect(() => {
+    if (!templates.length) {
+      setQuickRandomTemplateIds([])
+      return
+    }
+
+    setQuickRandomTemplateIds((current) => {
+      const valid = current.filter((id) => templates.some((template) => template.id === id))
+      return valid.length ? valid : templates.map((template) => template.id)
     })
   }, [templates])
 
@@ -490,88 +492,32 @@ export default function HostPage() {
     ])
   }
 
-  async function saveRoundAsTemplate(round: ManualRoundDraft, index: number) {
-    const adminToken = templateAdminToken.trim()
-    if (!adminToken) {
-      setSaveTemplateResult("Enter your admin token to save templates from the host page.")
-      return
-    }
-
-    const name = round.name.trim() || defaultRoundName(index)
-    const defaultPackIds =
-      round.sourceMode === "specific_packs"
-        ? round.packIds
-        : round.sourceMode === "selected_packs"
-          ? selectedPackIds()
-          : []
-
-    setSavingTemplateRoundId(round.id)
-    setSaveTemplateResult(null)
-
-    try {
-      try {
-        sessionStorage.setItem("mtq_admin_token", adminToken)
-      } catch {
-        // ignore
-      }
-
-      const res = await fetch("/api/admin/round-templates", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-token": adminToken,
-        },
-        body: JSON.stringify({
-          name,
-          description: "",
-          behaviourType: "standard",
-          defaultQuestionCount: clampInt(parseIntOr(round.questionCountStr, 0), 1, 200),
-          jokerEligible: round.jokerEligible,
-          countsTowardsScore: round.countsTowardsScore,
-          sourceMode: round.sourceMode,
-          defaultPackIds,
-          selectionRules: {
-            mediaTypes: round.mediaType ? [round.mediaType] : [],
-            promptTargets: round.promptTarget ? [round.promptTarget] : [],
-            clueSources: round.clueSource ? [round.clueSource] : [],
-            primaryShowKeys: round.primaryShowKey ? [round.primaryShowKey] : [],
-          },
-          isActive: true,
-          sortOrder: 0,
-        }),
-      })
-
-      const json = (await res.json().catch(() => ({}))) as { error?: string; template?: RoundTemplateRow }
-
-      if (!res.ok) {
-        setSaveTemplateResult(json.error || "Could not save round as template.")
-        return
-      }
-
-      if (json.template) {
-        setTemplates((prev) => {
-          const without = prev.filter((template) => template.id !== json.template?.id)
-          return [...without, json.template as RoundTemplateRow].sort((a, b) => {
-            const sortDiff = Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0)
-            if (sortDiff !== 0) return sortDiff
-            return String(a.name ?? "").localeCompare(String(b.name ?? ""))
-          })
-        })
-        setTemplateToAddId(json.template.id)
-      }
-
-      setSaveTemplateResult(`Saved "${name}" as a round template.`)
-    } catch (error: any) {
-      setSaveTemplateResult(error?.message || "Could not save round as template.")
-    } finally {
-      setSavingTemplateRoundId(null)
-    }
-  }
-
   const selectedTemplateToAdd = useMemo(
     () => templates.find((template) => template.id === templateToAddId) ?? null,
     [templates, templateToAddId]
   )
+
+  const selectedQuickRandomTemplates = useMemo(
+    () => templates.filter((template) => quickRandomTemplateIds.includes(template.id)),
+    [templates, quickRandomTemplateIds]
+  )
+
+  const quickRandomTemplatesQuestionTotal = useMemo(() => {
+    return selectedQuickRandomTemplates.reduce(
+      (sum, template) => sum + Math.max(1, Number(template.default_question_count ?? 0) || 0),
+      0
+    )
+  }, [selectedQuickRandomTemplates])
+
+  function toggleQuickRandomTemplate(templateId: string) {
+    setQuickRandomTemplateIds((prev) =>
+      prev.includes(templateId) ? prev.filter((id) => id !== templateId) : [...prev, templateId]
+    )
+  }
+
+  function setAllQuickRandomTemplates(value: boolean) {
+    setQuickRandomTemplateIds(value ? templates.map((template) => template.id) : [])
+  }
 
   const manualRoundsTotal = useMemo(() => {
     return manualRounds.reduce((sum, round) => sum + clampInt(parseIntOr(round.questionCountStr, 0), 0, 200), 0)
@@ -707,6 +653,20 @@ export default function HostPage() {
             roundNames: roundNamesToSend,
           }
         } else {
+          if (quickRandomUseTemplates) {
+            if (quickRandomTemplateIds.length === 0) {
+              setCreateError("Select at least one round template, or untick Use round templates.")
+              setCreating(false)
+              return
+            }
+
+            if (roundCount > quickRandomTemplateIds.length) {
+              setCreateError("Number of rounds cannot be greater than the number of selected templates.")
+              setCreating(false)
+              return
+            }
+          }
+
           payload = {
             ...payload,
             selectionStrategy: "all_packs",
@@ -716,6 +676,8 @@ export default function HostPage() {
             rounds: [],
             roundCount,
             roundNames: roundNamesToSend,
+            quickRandomUseTemplates,
+            quickRandomTemplateIds,
           }
         }
       }
@@ -1017,7 +979,7 @@ export default function HostPage() {
                       {buildMode === "manual_rounds"
                         ? "Create each round directly. Packs stay as sources, and metadata decides eligibility."
                         : buildMode === "quick_random"
-                          ? "Choose packs, total questions, and round names. The app creates a simple round plan for you."
+                          ? "Choose packs and either use saved round templates or let the app create a simple generic round plan for you."
                           : "Use the older pack-based builder with optional per-pack counts while you transition."}
                     </div>
                   </div>
@@ -1064,27 +1026,12 @@ export default function HostPage() {
                       {selectedTemplateToAdd?.description ? <div>Template: {selectedTemplateToAdd.description}</div> : null}
                     </div>
 
-                    <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--background)] p-3">
-                      <div className="text-sm font-medium text-[var(--foreground)]">Save rounds as templates</div>
-                      <div className="mt-1 text-xs text-[var(--muted-foreground)]">Enter your admin token to save any current round into the template library. Selected-packs rounds save the currently selected host packs as defaults.</div>
-                      <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                        <Input value={templateAdminToken} onChange={(e) => setTemplateAdminToken(e.target.value)} placeholder="Admin token for template saves" autoComplete="off" spellCheck={false} />
-                        <Button variant="secondary" onClick={() => setSaveTemplateResult(null)} disabled={!saveTemplateResult}>Clear message</Button>
-                      </div>
-                      {saveTemplateResult ? <div className={`mt-3 rounded-xl border p-3 text-sm ${saveTemplateResult.startsWith("Saved ") ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200" : "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200"}`}>{saveTemplateResult}</div> : null}
-                    </div>
-
                     <div className="mt-3 space-y-3">
                       {manualRounds.map((round, index) => (
                         <div key={round.id} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3">
                           <div className="flex items-start justify-between gap-3">
                             <div className="font-medium text-[var(--foreground)]">Round {index + 1}</div>
-                            <div className="flex flex-wrap gap-2">
-                              <Button variant="secondary" onClick={() => saveRoundAsTemplate(round, index)} disabled={savingTemplateRoundId === round.id}>
-                                {savingTemplateRoundId === round.id ? "Saving template..." : "Save as template"}
-                              </Button>
-                              <Button variant="ghost" onClick={() => removeManualRound(round.id)} disabled={manualRounds.length <= 1}>Remove</Button>
-                            </div>
+                            <Button variant="ghost" onClick={() => removeManualRound(round.id)} disabled={manualRounds.length <= 1}>Remove</Button>
                           </div>
 
                           <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -1176,25 +1123,89 @@ export default function HostPage() {
                         <div>
                           <div className="text-sm font-medium text-[var(--foreground)]">Number of rounds</div>
                           <Input value={roundCountStr} onChange={(e) => setRoundCountStr(e.target.value)} inputMode="numeric" />
-                          <div className="mt-1 text-xs text-[var(--muted-foreground)]">Players pick a Joker round in the lobby.</div>
+                          <div className="mt-1 text-xs text-[var(--muted-foreground)]">Players pick a Joker round in the lobby when enough rounds allow it.</div>
                         </div>
                         <div className="sm:col-span-2">
-                          <div className="text-sm font-medium text-[var(--foreground)]">Round names</div>
-                          <div className="mt-1 grid gap-2 sm:grid-cols-2">
-                            {roundNames.map((name, idx) => (
-                              <Input key={idx} value={name} onChange={(e) => setRoundNames((prev) => prev.map((n, i) => i === idx ? e.target.value : n))} placeholder={defaultRoundName(idx)} />
-                            ))}
-                          </div>
-                          <div className="mt-2 text-xs text-[var(--muted-foreground)]">Empty names fall back to Round 1, Round 2, and so on.</div>
+                          {buildMode === "quick_random" ? (
+                            <>
+                              <div className="text-sm font-medium text-[var(--foreground)]">Quick random source</div>
+                              <div className="mt-2 flex flex-wrap items-center gap-3">
+                                <label className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+                                  <input
+                                    type="checkbox"
+                                    checked={quickRandomUseTemplates}
+                                    onChange={(e) => setQuickRandomUseTemplates(e.target.checked)}
+                                  />
+                                  Use round templates
+                                </label>
+                              </div>
+                              <div className="mt-2 text-xs text-[var(--muted-foreground)]">
+                                {quickRandomUseTemplates
+                                  ? "The app will randomly choose from the selected templates below. Each chosen template keeps its own default question count and filters."
+                                  : "The app will create a simple generic round plan using the round names and total question count below."}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="text-sm font-medium text-[var(--foreground)]">Round names</div>
+                              <div className="mt-1 grid gap-2 sm:grid-cols-2">
+                                {roundNames.map((name, idx) => (
+                                  <Input key={idx} value={name} onChange={(e) => setRoundNames((prev) => prev.map((n, i) => i === idx ? e.target.value : n))} placeholder={defaultRoundName(idx)} />
+                                ))}
+                              </div>
+                              <div className="mt-2 text-xs text-[var(--muted-foreground)]">Empty names fall back to Round 1, Round 2, and so on.</div>
+                            </>
+                          )}
                         </div>
                       </div>
+
+                      {buildMode === "quick_random" && quickRandomUseTemplates ? (
+                        <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-sm font-medium text-[var(--foreground)]">Template pool</div>
+                              <div className="mt-1 text-xs text-[var(--muted-foreground)]">
+                                {selectedQuickRandomTemplates.length} template{selectedQuickRandomTemplates.length === 1 ? "" : "s"} selected. Default questions total: {quickRandomTemplatesQuestionTotal}.
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <Button variant="secondary" onClick={() => setAllQuickRandomTemplates(true)} disabled={!templates.length}>Select all</Button>
+                              <Button variant="secondary" onClick={() => setAllQuickRandomTemplates(false)} disabled={!quickRandomTemplateIds.length}>Clear</Button>
+                            </div>
+                          </div>
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                            {templates.length === 0 ? (
+                              <div className="text-sm text-[var(--muted-foreground)]">No active round templates are available yet.</div>
+                            ) : (
+                              templates.map((template) => (
+                                <label key={template.id} className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm">
+                                  <input
+                                    type="checkbox"
+                                    checked={quickRandomTemplateIds.includes(template.id)}
+                                    onChange={() => toggleQuickRandomTemplate(template.id)}
+                                  />
+                                  <span className="min-w-0 flex-1">{template.name}</span>
+                                  <span className="text-xs text-[var(--muted-foreground)]">{template.default_question_count}</span>
+                                </label>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-3">
-                      <div>
-                        <div className="text-sm font-medium text-[var(--foreground)]">Total questions</div>
-                        <Input value={totalQuestionsStr} onChange={(e) => setTotalQuestionsStr(e.target.value)} inputMode="numeric" />
-                      </div>
+                      {buildMode === "quick_random" && quickRandomUseTemplates ? (
+                        <div>
+                          <div className="text-sm font-medium text-[var(--foreground)]">Template randomiser</div>
+                          <div className="mt-2 text-sm text-[var(--muted-foreground)]">Randomly picks the number of rounds you set above from the selected template pool.</div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="text-sm font-medium text-[var(--foreground)]">Total questions</div>
+                          <Input value={totalQuestionsStr} onChange={(e) => setTotalQuestionsStr(e.target.value)} inputMode="numeric" />
+                        </div>
+                      )}
                       <div>
                         <div className="text-sm font-medium text-[var(--foreground)]">Answer seconds</div>
                         <Input value={answerSecondsStr} onChange={(e) => setAnswerSecondsStr(e.target.value)} inputMode="numeric" disabled={untimedAnswers} />
@@ -1212,17 +1223,24 @@ export default function HostPage() {
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-3">
-                      <div>
-                        <div className="text-sm font-medium text-[var(--foreground)]">Round filter</div>
-                        <select value={roundFilter} onChange={(e) => setRoundFilter(e.target.value as RoundFilter)} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
-                          <option value="mixed">Mixed</option>
-                          <option value="no_audio">No audio</option>
-                          <option value="no_image">No pictures</option>
-                          <option value="audio_only">Audio only</option>
-                          <option value="picture_only">Pictures only</option>
-                          <option value="audio_and_image">Audio and pictures</option>
-                        </select>
-                      </div>
+                      {buildMode === "quick_random" && quickRandomUseTemplates ? (
+                        <div>
+                          <div className="text-sm font-medium text-[var(--foreground)]">Template rules</div>
+                          <div className="mt-2 text-sm text-[var(--muted-foreground)]">Each chosen template keeps its own media, clue, and show filters.</div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="text-sm font-medium text-[var(--foreground)]">Round filter</div>
+                          <select value={roundFilter} onChange={(e) => setRoundFilter(e.target.value as RoundFilter)} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
+                            <option value="mixed">Mixed</option>
+                            <option value="no_audio">No audio</option>
+                            <option value="no_image">No pictures</option>
+                            <option value="audio_only">Audio only</option>
+                            <option value="picture_only">Pictures only</option>
+                            <option value="audio_and_image">Audio and pictures</option>
+                          </select>
+                        </div>
+                      )}
                       <div>
                         <div className="text-sm font-medium text-[var(--foreground)]">Audio mode</div>
                         <select value={audioMode} onChange={(e) => setAudioMode(e.target.value as AudioMode)} className="mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm">
@@ -1266,11 +1284,13 @@ export default function HostPage() {
                 <div className="text-sm text-[var(--muted-foreground)]">
                   {buildMode === "manual_rounds"
                     ? `${manualRounds.length} round${manualRounds.length === 1 ? "" : "s"} planned.`
-                    : !selectPacks
-                      ? "Using all active packs."
-                      : selectedPackCount > 0
-                        ? `${selectedPackCount} pack${selectedPackCount === 1 ? "" : "s"} selected.`
-                        : "No packs selected yet."}
+                    : buildMode === "quick_random" && quickRandomUseTemplates
+                      ? `${quickRandomTemplateIds.length} template${quickRandomTemplateIds.length === 1 ? "" : "s"} in the quick-random pool.`
+                      : !selectPacks
+                        ? "Using all active packs."
+                        : selectedPackCount > 0
+                          ? `${selectedPackCount} pack${selectedPackCount === 1 ? "" : "s"} selected.`
+                          : "No packs selected yet."}
                 </div>
                 <Button onClick={createRoom} disabled={creating || packsLoading}>{creating ? "Creating..." : packsLoading ? "Loading packs..." : "Create room"}</Button>
               </CardFooter>
