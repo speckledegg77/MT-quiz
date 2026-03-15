@@ -1,0 +1,223 @@
+﻿            }
+            className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
+          />
+        </label>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Default answer seconds</span>
+          <input
+            type="number"
+            min={0}
+            max={120}
+            value={editor.defaultAnswerSeconds}
+            onChange={(event) =>
+              setEditor((current) => ({
+                ...current,
+                defaultAnswerSeconds: event.target.value,
+              }))
+            }
+            placeholder={String(getDefaultAnswerSecondsForBehaviour(editor.behaviourType))}
+            className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
+          />
+          <span className="text-xs text-muted-foreground">
+            Leave blank to use the {getDefaultAnswerSecondsForBehaviour(editor.behaviourType)} second {editor.behaviourType} default. Use 0 for untimed.
+          </span>
+        </label>
+
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Default round review seconds</span>
+          <input
+            type="number"
+            min={0}
+            max={120}
+            value={editor.defaultRoundReviewSeconds}
+            onChange={(event) =>
+              setEditor((current) => ({
+                ...current,
+                defaultRoundReviewSeconds: event.target.value,
+              }))
+            }
+            placeholder={String(getDefaultRoundReviewSecondsForBehaviour(editor.behaviourType))}
+            className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
+          />
+          <span className="text-xs text-muted-foreground">
+            Leave blank to use the {getDefaultRoundReviewSecondsForBehaviour(editor.behaviourType)} second {editor.behaviourType} default.
+          </span>
+        </label>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Sort order</span>
+          <input
+            type="number"
+            value={editor.sortOrder}
+            onChange={(event) =>
+              setEditor((current) => ({
+                ...current,
+                sortOrder: Number(event.target.value) || 0,
+              }))
+            }
+            className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
+          />
+        </label>
+
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Source mode</span>
+          <select
+            value={editor.sourceMode}
+            onChange={(event) =>
+              setEditor((current) => ({
+                ...current,
+                sourceMode: event.target.value as RoundTemplateSourceMode,
+              }))
+            }
+            className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
+          >
+            {SOURCE_MODE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {editor.behaviourType === "quickfire" ? (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+          Quickfire v1 excludes audio automatically and only uses non-audio MCQ questions.
+        </div>
+      ) : null}
+
+      <div className="rounded-lg border border-border bg-muted/30 p-3">
+        <div className="text-sm font-medium">Default packs</div>
+        <div className="mt-1 text-xs text-muted-foreground">
+          These are saved with the template and can later prefill pack choices.
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {packs.map((pack) => {
+            const checked = editor.defaultPackIds.includes(pack.id)
+            return (
+              <label key={pack.id} className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() =>
+                    setEditor((current) => ({
+                      ...current,
+                      defaultPackIds: toggleInArray(current.defaultPackIds, pack.id),
+                    }))
+                  }
+                  className="mt-0.5"
+                />
+                <span>{pack.label}</span>
+              </label>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-border bg-muted/30 p-3">
+        <div className="text-sm font-medium">Selection rules</div>
+        <div className="mt-1 text-xs text-muted-foreground">
+          v1 supports one value per rule type. More complex combinations can come later.
+        </div>
+
+        <div className="mt-3 grid gap-3">
+          <label className="grid gap-1">
+            <span className="text-sm font-medium">media_type</span>
+            <select
+              value={editor.mediaType}
+              onChange={(event) => setEditor((current) => ({ ...current, mediaType: event.target.value }))}
+              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
+            >
+              {MEDIA_TYPE_OPTIONS.map((option) => (
+                <option key={option.value || "blank"} value={option.value} disabled={option.value === "audio" && editor.behaviourType === "quickfire"}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-1">
+            <span className="text-sm font-medium">prompt_target</span>
+            <select
+              value={editor.promptTarget}
+              onChange={(event) => setEditor((current) => ({ ...current, promptTarget: event.target.value }))}
+              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
+            >
+              {PROMPT_TARGET_OPTIONS.map((option) => (
+                <option key={option.value || "blank"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-1">
+            <span className="text-sm font-medium">clue_source</span>
+            <select
+              value={editor.clueSource}
+              onChange={(event) => setEditor((current) => ({ ...current, clueSource: event.target.value }))}
+              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
+            >
+              {CLUE_SOURCE_OPTIONS.map((option) => (
+                <option key={option.value || "blank"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-1">
+            <span className="text-sm font-medium">primary_show_key</span>
+            <select
+              value={editor.primaryShowKey}
+              onChange={(event) => setEditor((current) => ({ ...current, primaryShowKey: event.target.value }))}
+              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
+            >
+              <option value="">No filter</option>
+              {shows.map((show) => (
+                <option key={show.show_key} value={show.show_key}>
+                  {show.display_name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={editor.jokerEligible}
+            onChange={(event) => setEditor((current) => ({ ...current, jokerEligible: event.target.checked }))}
+            disabled={editor.behaviourType === "quickfire"}
+          />
+          Joker eligible
+        </label>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={editor.countsTowardsScore}
+            onChange={(event) => setEditor((current) => ({ ...current, countsTowardsScore: event.target.checked }))}
+          />
+          Counts towards score
+        </label>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={editor.isActive}
+            onChange={(event) => setEditor((current) => ({ ...current, isActive: event.target.checked }))}
+          />
+          Active
+        </label>
+      </div>
+    </div>
+  )
+}

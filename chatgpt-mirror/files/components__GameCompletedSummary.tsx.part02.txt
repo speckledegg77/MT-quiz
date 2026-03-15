@@ -1,0 +1,19 @@
+﻿              )
+            })}
+          </div>
+        ) : (
+          <div className="space-y-3 sm:space-y-4">
+            {players.map((player) => (
+              <PlayerCard
+                key={player.id}
+                player={player}
+                rounds={rounds}
+                isHighlighted={player.id === highlightPlayerId}
+              />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}

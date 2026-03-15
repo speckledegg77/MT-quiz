@@ -1,0 +1,250 @@
+﻿          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+              <input
+                value={token}
+                onChange={(event) => setToken(event.target.value)}
+                placeholder="Paste ADMIN_TOKEN here"
+                autoComplete="off"
+                spellCheck={false}
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
+              />
+              <Button variant="secondary" onClick={clearToken}>
+                Clear token
+              </Button>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search round templates"
+                className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
+              />
+              <Button onClick={() => loadTemplates()}>Load templates</Button>
+            </div>
+
+            <div className="text-sm text-muted-foreground">
+              Round templates are reusable definitions. They do not store actual question IDs for a game.
+            </div>
+
+            {listError ? (
+              <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {listError}
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Round templates</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {listBusy ? (
+              <div className="text-sm text-muted-foreground">Loading round templatesâ€¦</div>
+            ) : filteredTemplates.length === 0 ? (
+              <div className="text-sm text-muted-foreground">
+                No round templates loaded yet. Enter your token, then click Load templates.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {filteredTemplates.map((template) => {
+                  const isSelected = template.id === selectedTemplateId
+                  return (
+                    <button
+                      key={template.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTemplateId(template.id)
+                        setEditEditor(editorFromTemplate(template))
+                        setSaveResult("")
+                      }}
+                      className={`block w-full rounded-lg border px-3 py-3 text-left transition-colors ${
+                        isSelected
+                          ? "border-foreground bg-muted"
+                          : "border-border bg-card hover:bg-muted/40"
+                      }`}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <div className="font-medium">{template.name}</div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            {template.default_question_count} questions Â· {template.behaviour_type} Â· {template.source_mode}
+                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            {template.default_answer_seconds == null
+                              ? `Answer: ${getDefaultAnswerSecondsForBehaviour(template.behaviour_type)}s default`
+                              : `Answer: ${template.default_answer_seconds}s`}
+                            {" Â· "}
+                            {template.default_round_review_seconds == null
+                              ? `Round review: ${getDefaultRoundReviewSecondsForBehaviour(template.behaviour_type)}s default`
+                              : `Round review: ${template.default_round_review_seconds}s`}
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {template.is_active ? "Active" : "Inactive"}
+                        </div>
+                      </div>
+
+                      {template.description ? (
+                        <div className="mt-2 text-sm text-muted-foreground">{template.description}</div>
+                      ) : null}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="space-y-4 xl:sticky xl:top-4 xl:self-start xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1">
+        <Card>
+          <CardHeader>
+            <CardTitle>Add round template</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <TemplateFields
+              editor={createEditor}
+              setEditor={setCreateEditor}
+              packs={packs}
+              shows={shows}
+            />
+
+            <Button onClick={createTemplate} disabled={createBusy}>
+              {createBusy ? "Creatingâ€¦" : "Create round template"}
+            </Button>
+
+            {createResult ? (
+              <div
+                className={`rounded-lg px-3 py-2 text-sm ${
+                  createResult === "Round template created."
+                    ? "border border-green-300 bg-green-50 text-green-700"
+                    : "border border-red-300 bg-red-50 text-red-700"
+                }`}
+              >
+                {createResult}
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Edit selected template</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {!selectedTemplateId ? (
+              <div className="text-sm text-muted-foreground">
+                Select a round template from the list to edit it.
+              </div>
+            ) : (
+              <>
+                <TemplateFields
+                  editor={editEditor}
+                  setEditor={setEditEditor}
+                  packs={packs}
+                  shows={shows}
+                />
+
+                <Button onClick={saveTemplate} disabled={saveBusy}>
+                  {saveBusy ? "Savingâ€¦" : "Save changes"}
+                </Button>
+
+                {saveResult ? (
+                  <div
+                    className={`rounded-lg px-3 py-2 text-sm ${
+                      saveResult === "Saved."
+                        ? "border border-green-300 bg-green-50 text-green-700"
+                        : "border border-red-300 bg-red-50 text-red-700"
+                    }`}
+                  >
+                    {saveResult}
+                  </div>
+                ) : null}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+function TemplateFields({
+  editor,
+  setEditor,
+  packs,
+  shows,
+}: {
+  editor: TemplateEditorState
+  setEditor: Dispatch<SetStateAction<TemplateEditorState>>
+  packs: PackOption[]
+  shows: ShowOption[]
+}) {
+  return (
+    <div className="grid gap-3">
+      <label className="grid gap-1">
+        <span className="text-sm font-medium">Name</span>
+        <input
+          value={editor.name}
+          onChange={(event) => setEditor((current) => ({ ...current, name: event.target.value }))}
+          placeholder="Song Intros"
+          className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
+        />
+      </label>
+
+      <label className="grid gap-1">
+        <span className="text-sm font-medium">Description</span>
+        <textarea
+          value={editor.description}
+          onChange={(event) => setEditor((current) => ({ ...current, description: event.target.value }))}
+          rows={3}
+          placeholder="Audio clips that ask players to identify songs from their openings."
+          className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-border"
+        />
+      </label>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Behaviour</span>
+          <select
+            value={editor.behaviourType}
+            onChange={(event) =>
+              setEditor((current) => ({
+                ...current,
+                behaviourType: event.target.value as RoundTemplateBehaviourType,
+                jokerEligible: event.target.value === "quickfire" ? false : current.jokerEligible,
+                mediaType: event.target.value === "quickfire" && current.mediaType === "audio" ? "" : current.mediaType,
+                defaultAnswerSeconds:
+                  current.defaultAnswerSeconds.trim() === ""
+                    ? current.defaultAnswerSeconds
+                    : String(getDefaultAnswerSecondsForBehaviour(event.target.value as RoundTemplateBehaviourType)),
+                defaultRoundReviewSeconds:
+                  current.defaultRoundReviewSeconds.trim() === ""
+                    ? current.defaultRoundReviewSeconds
+                    : String(getDefaultRoundReviewSecondsForBehaviour(event.target.value as RoundTemplateBehaviourType)),
+              }))
+            }
+            className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
+          >
+            {BEHAVIOUR_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="grid gap-1">
+          <span className="text-sm font-medium">Default question count</span>
+          <input
+            type="number"
+            min={1}
+            value={editor.defaultQuestionCount}
+            onChange={(event) =>
+              setEditor((current) => ({
+                ...current,
+                defaultQuestionCount: Math.max(1, Number(event.target.value) || 1),
+              }))

@@ -1,0 +1,250 @@
+﻿      }
+    }
+
+    tick()
+    const id = setInterval(tick, 1000)
+
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [roomCode])
+
+  useEffect(() => {
+    if (!roomCode) return
+    if (roomPhase !== "running") return
+    if (roomStage !== "needs_advance") return
+    if (advancingRef.current) return
+
+    let cancelled = false
+    advancingRef.current = true
+
+    async function autoAdvance() {
+      try {
+        await fetch("/api/room/advance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: roomCode }),
+        })
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) {
+          window.setTimeout(() => {
+            advancingRef.current = false
+          }, 300)
+        } else {
+          advancingRef.current = false
+        }
+      }
+    }
+
+    autoAdvance()
+
+    return () => {
+      cancelled = true
+    }
+  }, [roomCode, roomPhase, roomStage])
+
+  function rememberHostCode(code: string) {
+    try {
+      localStorage.setItem(LAST_HOST_CODE_KEY, code)
+    } catch {
+      // ignore
+    }
+  }
+
+  function openInNewWindow(url: string) {
+    if (!url) return
+    const w = window.open(url, "_blank", "noopener,noreferrer")
+    if (w) w.opener = null
+  }
+
+  async function copyJoinLink() {
+    if (!joinUrl) return
+    try {
+      await navigator.clipboard.writeText(joinUrl)
+    } catch {
+      // ignore
+    }
+  }
+
+  function setAllSelected(value: boolean) {
+    const next: Record<string, boolean> = {}
+    for (const p of packs) next[p.id] = value
+    setSelectedPacks(next)
+  }
+
+  function togglePack(id: string) {
+    setSelectedPacks((prev) => ({ ...prev, [id]: !prev[id] }))
+  }
+
+  function selectedPackIds() {
+    return packs.filter((p) => selectedPacks[p.id]).map((p) => p.id)
+  }
+
+  function buildLegacyRoundsPayload(packIds: string[]) {
+    return packIds
+      .map((packId) => {
+        const raw = perPackCounts[packId] ?? ""
+        const count = clampInt(parseIntOr(raw, 0), 0, 9999)
+        return { packId, count }
+      })
+      .filter((round) => round.count > 0)
+  }
+
+  function addManualRound() {
+    setManualRounds((prev) => [...prev, makeManualRound(prev.length)])
+  }
+
+  function removeManualRound(id: string) {
+    setManualRounds((prev) => prev.filter((round) => round.id !== id))
+  }
+
+  function updateManualRound(id: string, changes: Partial<ManualRoundDraft>) {
+    setManualRounds((prev) =>
+      prev.map((round) => (round.id === id ? normaliseManualRoundDraft({ ...round, ...changes }) : round))
+    )
+  }
+
+  function toggleManualRoundPack(roundId: string, packId: string) {
+    setManualRounds((prev) =>
+      prev.map((round) => {
+        if (round.id !== roundId) return round
+        const nextPackIds = round.packIds.includes(packId)
+          ? round.packIds.filter((id) => id !== packId)
+          : [...round.packIds, packId]
+        return { ...round, packIds: nextPackIds }
+      })
+    )
+  }
+
+  function addManualRoundFromTemplate(template: RoundTemplateRow) {
+    const mediaType = firstRuleValue(template.selection_rules, "mediaTypes")
+    const promptTarget = firstRuleValue(template.selection_rules, "promptTargets")
+    const clueSource = firstRuleValue(template.selection_rules, "clueSources")
+    const primaryShowKey = firstRuleValue(template.selection_rules, "primaryShowKeys")
+    const defaultPackIds = Array.isArray(template.default_pack_ids)
+      ? template.default_pack_ids.map((value) => String(value ?? "").trim()).filter(Boolean)
+      : []
+
+    const sourceMode = String(template.source_mode ?? "selected_packs") as RoundSourceMode
+    const behaviourType = String(template.behaviour_type ?? "standard") === "quickfire" ? "quickfire" : "standard"
+
+    if (sourceMode === "selected_packs" && defaultPackIds.length) {
+      setSelectedPacks((prev) => {
+        const next = { ...prev }
+        for (const packId of defaultPackIds) next[packId] = true
+        return next
+      })
+      setSelectPacks(true)
+    }
+
+    setManualRounds((prev) => [
+      ...prev,
+      normaliseManualRoundDraft({
+        id: makeRoundId(),
+        name: String(template.name ?? "").trim() || defaultRoundName(prev.length),
+        questionCountStr: String(Math.max(1, Number(template.default_question_count ?? 5))),
+        behaviourType,
+        jokerEligible: Boolean(template.joker_eligible ?? true),
+        countsTowardsScore: Boolean(template.counts_towards_score ?? true),
+        sourceMode,
+        packIds: sourceMode === "specific_packs" ? defaultPackIds : [],
+        mediaType: mediaType === "text" || mediaType === "audio" || mediaType === "image" ? mediaType : "",
+        promptTarget,
+        clueSource,
+        primaryShowKey,
+        useTimingOverride: false,
+        answerSecondsStr: "",
+        roundReviewSecondsStr: "",
+      }),
+    ])
+  }
+
+  const selectedTemplateToAdd = useMemo(
+    () => templates.find((template) => template.id === templateToAddId) ?? null,
+    [templates, templateToAddId]
+  )
+
+  const selectedQuickRandomTemplates = useMemo(
+    () => templates.filter((template) => quickRandomTemplateIds.includes(template.id)),
+    [templates, quickRandomTemplateIds]
+  )
+
+  const manualRoundsPayload = useMemo(
+    () => manualRounds.map((round, index) => serialiseManualRoundDraft(round, index)),
+    [manualRounds]
+  )
+
+  const templateRoundsPayload = useMemo(
+    () => selectedQuickRandomTemplates.map((template, index) => serialiseTemplateAsRound(template, index)),
+    [selectedQuickRandomTemplates]
+  )
+
+  const quickRandomTemplatesQuestionTotal = useMemo(() => {
+    return selectedQuickRandomTemplates.reduce(
+      (sum, template) => sum + Math.max(1, Number(template.default_question_count ?? 0) || 0),
+      0
+    )
+  }, [selectedQuickRandomTemplates])
+
+  function toggleQuickRandomTemplate(templateId: string) {
+    setQuickRandomTemplateIds((prev) =>
+      prev.includes(templateId) ? prev.filter((id) => id !== templateId) : [...prev, templateId]
+    )
+  }
+
+  function setAllQuickRandomTemplates(value: boolean) {
+    setQuickRandomTemplateIds(value ? templates.map((template) => template.id) : [])
+  }
+
+  const manualRoundsTotal = useMemo(() => {
+    return manualRounds.reduce((sum, round) => sum + clampInt(parseIntOr(round.questionCountStr, 0), 0, 200), 0)
+  }, [manualRounds])
+
+  const jokerEligibleCount = useMemo(() => manualRounds.filter((round) => round.jokerEligible).length, [manualRounds])
+
+  const selectedPackIdsForManual = useMemo(() => selectedPackIds(), [packs, selectedPacks])
+
+  const selectedPackIdsForQuickRandom = useMemo(() => {
+    if (!selectPacks) return packs.map((pack) => pack.id)
+    return selectedPackIds()
+  }, [packs, selectPacks, selectedPacks])
+
+  useEffect(() => {
+    if (roomCode) return
+    if (packsLoading) return
+
+    const shouldCheckManual = buildMode === "manual_rounds"
+    const shouldCheckTemplates = buildMode === "quick_random" && quickRandomUseTemplates
+
+    if (!shouldCheckManual && !shouldCheckTemplates) {
+      setFeasibilityBusy(false)
+      setFeasibilityError(null)
+      setManualFeasibility(null)
+      setTemplateFeasibility(null)
+      return
+    }
+
+    let cancelled = false
+    const timer = window.setTimeout(async () => {
+      try {
+        setFeasibilityBusy(true)
+        setFeasibilityError(null)
+
+        const response = await fetch("/api/room/feasibility", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            selectedPackIds: shouldCheckManual ? selectedPackIdsForManual : selectedPackIdsForQuickRandom,
+            manualRounds: shouldCheckManual ? manualRoundsPayload : [],
+            templateRounds: shouldCheckTemplates ? templateRoundsPayload : [],
+          }),
+        })
+
+        const json = (await response.json().catch(() => ({}))) as FeasibilityResponse
+        if (cancelled) return
+
+        if (!response.ok) {
+          setFeasibilityError(json.error ?? "Could not check round feasibility.")

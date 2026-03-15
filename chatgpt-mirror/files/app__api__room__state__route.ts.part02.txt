@@ -1,0 +1,250 @@
+﻿      }
+
+    const totalScoreSoFar = teamPlayers.reduce((sum, player) => sum + Number(player?.score ?? 0), 0)
+    const averageScoreSoFar = teamPlayers.length > 0 ? totalScoreSoFar / teamPlayers.length : 0
+    const displayScoreSoFar = teamScoreMode === "average" ? averageScoreSoFar : totalScoreSoFar
+
+    const playersList: TeamPlayerRow[] = [...teamPlayers]
+      .sort((a, b) => {
+        const scoreDiff = Number(b?.score ?? 0) - Number(a?.score ?? 0)
+        if (scoreDiff !== 0) return scoreDiff
+        return String(a?.name ?? "").localeCompare(String(b?.name ?? ""))
+      })
+      .map((player) => ({
+        id: String(player?.id ?? ""),
+        name: String(player?.name ?? "").trim() || "Player",
+        totalScore: Number(player?.score ?? 0),
+        usedJokerInScope: includePlannedJokerUsers
+          ? Number(player?.joker_round_index) === scopeRoundIndex || entry.usedJokerPlayerIds.has(String(player?.id ?? ""))
+          : entry.usedJokerPlayerIds.has(String(player?.id ?? "")),
+      }))
+
+    return {
+      team,
+      players: teamPlayers.length,
+      answered: entry.answered,
+      correct: entry.correct,
+      jokerUsed: uniqueJokerUsersByPlayer || includePlannedJokerUsers ? entry.usedJokerPlayerIds.size : entry.jokerUsed,
+      jokerCorrect: entry.jokerCorrect,
+      totalScoreSoFar,
+      averageScoreSoFar,
+      displayScoreSoFar,
+      playersList,
+    }
+  })
+
+  teamRows.sort((a, b) => {
+    if (b.displayScoreSoFar !== a.displayScoreSoFar) return b.displayScoreSoFar - a.displayScoreSoFar
+    if (b.totalScoreSoFar !== a.totalScoreSoFar) return b.totalScoreSoFar - a.totalScoreSoFar
+    return a.team.localeCompare(b.team)
+  })
+
+  if (uniqueJokerUsersByPlayer || includePlannedJokerUsers) {
+    jokerUsed = globalUsedJokerPlayerIds.size
+  }
+
+  return { answered, correct, jokerUsed, jokerCorrect, byTeam: teamRows }
+}
+
+function sortPlayers(a: FinalPlayerResult, b: FinalPlayerResult) {
+  if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
+  return a.name.localeCompare(b.name)
+}
+
+function buildFinalResults(
+  players: any[],
+  questionIds: string[],
+  roundPlan: RoundPlanRow[],
+  answers: Array<{ player_id: string; question_id: string; score_delta: number | null }>
+) {
+  const answerMap = new Map<string, number>()
+  for (const answer of answers) {
+    answerMap.set(
+      `${String(answer.player_id ?? "").trim()}:${String(answer.question_id ?? "").trim()}`,
+      Number(answer.score_delta ?? 0)
+    )
+  }
+
+  const finalPlayers: FinalPlayerResult[] = players.map((player: any) => {
+    const jokerRoundNumber = Number(player?.joker_round_index)
+    const jokerRoundIndex = Number.isFinite(jokerRoundNumber) ? jokerRoundNumber : null
+
+    return {
+      id: String(player?.id ?? ""),
+      name: String(player?.name ?? "").trim() || "Player",
+      team: String(player?.team_name ?? "").trim() || "No team",
+      totalScore: Number(player?.score ?? 0),
+      jokerRoundIndex,
+      rounds: roundPlan.map((round) => ({
+        index: round.index,
+        number: round.number,
+        name: round.name,
+        score: 0,
+        jokerUsed: jokerRoundIndex === round.index,
+      })),
+    }
+  })
+
+  for (let questionIndex = 0; questionIndex < questionIds.length; questionIndex++) {
+    const questionId = String(questionIds[questionIndex] ?? "")
+    const round = findRoundForQuestionIndex(questionIndex, roundPlan)
+
+    for (const player of finalPlayers) {
+      const key = `${player.id}:${questionId}`
+      let score = 0
+
+      if (answerMap.has(key)) {
+        score = Number(answerMap.get(key) ?? 0)
+      } else if (player.jokerRoundIndex === round.index && round.jokerEligible !== false && round.countsTowardsScore !== false && !isQuickfireRound(round)) {
+        score = -1
+      }
+
+      player.rounds[round.index].score += score
+    }
+  }
+
+  finalPlayers.sort(sortPlayers)
+
+  const teamsMap = new Map<string, FinalTeamResult>()
+  for (const player of finalPlayers) {
+    const team = player.team || "No team"
+    const existing = teamsMap.get(team)
+
+    if (existing) {
+      existing.totalScore += player.totalScore
+      existing.playerCount += 1
+      existing.players.push(player)
+      continue
+    }
+
+    teamsMap.set(team, {
+      team,
+      totalScore: player.totalScore,
+      averageScore: 0,
+      playerCount: 1,
+      players: [player],
+    })
+  }
+
+  const teams = Array.from(teamsMap.values()).map((team) => {
+    team.players.sort(sortPlayers)
+    team.averageScore = team.playerCount > 0 ? team.totalScore / team.playerCount : 0
+    return team
+  })
+
+  teams.sort((a, b) => {
+    if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
+    return a.team.localeCompare(b.team)
+  })
+
+  return {
+    rounds: roundPlan.map((round) => ({
+      index: round.index,
+      number: round.number,
+      name: round.name,
+    })),
+    players: finalPlayers,
+    teams,
+  }
+}
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const code = String(searchParams.get("code") ?? "").trim().toUpperCase()
+
+  if (!code) return NextResponse.json({ error: "Missing code" }, { status: 400 })
+
+  const roomRes = await supabaseAdmin.from("rooms").select("*").eq("code", code).single()
+  if (roomRes.error) return NextResponse.json({ error: "Room not found" }, { status: 404 })
+
+  const room = roomRes.data
+
+  let players: any[] = []
+  const withJoker = await supabaseAdmin
+    .from("players")
+    .select("id, name, score, team_name, joker_round_index, joined_at")
+    .eq("room_id", room.id)
+    .order("joined_at", { ascending: true })
+
+  if (!withJoker.error) {
+    players = withJoker.data ?? []
+  } else {
+    const message = String(withJoker.error.message ?? "").toLowerCase()
+    if (message.includes("joker_round_index")) {
+      const without = await supabaseAdmin
+        .from("players")
+        .select("id, name, score, team_name, joined_at")
+        .eq("room_id", room.id)
+        .order("joined_at", { ascending: true })
+
+      players = (without.data ?? []).map((player: any) => ({ ...player, joker_round_index: null }))
+    } else {
+      return NextResponse.json({ error: withJoker.error.message }, { status: 500 })
+    }
+  }
+
+  const storedRoundPlan = getEffectiveRoomRoundPlan(room)
+  const legacyFields = getLegacyFieldsFromRoundPlan(storedRoundPlan)
+  const questionIds = legacyFields.question_ids
+  const questionCount = questionIds.length
+  const safeQuestionIndex = Math.max(0, Math.floor(Number(room.question_index ?? 0)) || 0)
+  const currentQuestionId = questionIds[safeQuestionIndex]
+
+  const now = new Date()
+  const baseStage = stageFromTimes(room.phase, now.getTime(), room.open_at, room.close_at, room.reveal_at, room.next_at)
+
+  const audioMode = String(room.audio_mode ?? "display")
+  const selectedPacks = Array.isArray(room.selected_packs) ? room.selected_packs : []
+  const teamScoreMode: TeamScoreMode = String(room.team_score_mode ?? "total") === "average" ? "average" : "total"
+
+  const roundCount = legacyFields.round_count
+  const roundNames = legacyFields.round_names
+  const roundPlan = materialiseRoundPlan(storedRoundPlan)
+  const currentRound = findRoundForQuestionIndex(safeQuestionIndex, roundPlan)
+  const configuredAnswerSeconds = getConfiguredAnswerSecondsForRound(room, currentRound)
+  const isUntimedAnswers = configuredAnswerSeconds <= 0
+  const questionNumberInRound = Math.max(1, safeQuestionIndex - currentRound.startIndex + 1)
+
+  const isLastQuestionOverall = questionCount > 0 ? safeQuestionIndex >= questionCount - 1 : true
+  const isLastQuestionInRound = safeQuestionIndex >= currentRound.endIndex
+  const nextRound = !isLastQuestionOverall ? roundPlan[currentRound.index + 1] ?? null : null
+
+  const roundReviewSeconds = getEffectiveRoundReviewSecondsForRound(room, currentRound)
+  const roundSummaryEndsAt = buildRoundSummaryEndsAt(room.next_at, roundReviewSeconds)
+
+  let stage = baseStage
+  if (room.phase === "running" && baseStage === "needs_advance" && isLastQuestionInRound) {
+    if (roundSummaryEndsAt && now.getTime() < Date.parse(roundSummaryEndsAt)) {
+      stage = "round_summary"
+    } else {
+      stage = "needs_advance"
+    }
+  }
+
+  if (room.phase === "running" && currentQuestionId && isQuickfireRound(currentRound) && baseStage === "needs_advance") {
+    const quickfireBonus = await applyQuickfireFastestBonus({
+      roomId: room.id,
+      questionId: String(currentQuestionId),
+      countsTowardsScore: currentRound.countsTowardsScore !== false,
+    })
+
+    if (quickfireBonus.bonusApplied && quickfireBonus.fastestCorrectPlayerId) {
+      players = players.map((player: any) => {
+        if (String(player?.id ?? "") !== quickfireBonus.fastestCorrectPlayerId) return player
+        return {
+          ...player,
+          score: Number(player?.score ?? 0) + 1,
+        }
+      })
+    }
+  }
+
+  const canShowQuestion = room.phase === "running"
+
+  let questionPublic: any = null
+  let revealData: any = null
+
+  if (canShowQuestion && currentQuestionId) {
+    const question = await getQuestionById(String(currentQuestionId))
+
+    if (question) {

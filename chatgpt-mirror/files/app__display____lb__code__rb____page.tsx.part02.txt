@@ -1,0 +1,149 @@
+﻿              <div className="text-base">Players can join on their phones before the game starts.</div>
+              <div className="rounded-xl border border-border bg-muted px-3 py-3">
+                <div className="text-sm text-muted-foreground">Join URL</div>
+                <a
+                  className="mt-1 block break-all text-sm text-foreground underline underline-offset-2"
+                  href={joinUrl}
+                >
+                  {joinUrl}
+                </a>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Start the game from the host screen when everyone is ready.
+              </div>
+            </div>
+
+            <div className="flex justify-center lg:justify-end">
+              <QRTile value={joinUrl} size={160} />
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {!showJoin && !finished && stage === "round_summary" ? (
+        <RoundSummaryCard
+          round={currentRound}
+          roundStats={roundStats}
+          isLastQuestionOverall={Boolean(state?.flow?.isLastQuestionOverall)}
+          roundSummaryEndsAt={state?.times?.roundSummaryEndsAt ?? null}
+          gameMode={String(state?.gameMode ?? "teams") === "solo" ? "solo" : "teams"}
+          roundReview={state?.roundReview}
+        />
+      ) : null}
+
+      {!showJoin && !finished && suppressStaleQuestionBetweenRounds ? (
+        <Card>
+          <CardContent className="py-16 text-center text-lg text-muted-foreground">
+            Starting next round...
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {!showJoin && !finished && stage !== "round_summary" && !suppressStaleQuestionBetweenRounds ? (
+        <div className="space-y-4">
+          {q ? (
+            <Card>
+              <CardHeader>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <CardTitle>Question</CardTitle>
+                  {isQuickfireRound ? (
+                    <span className="rounded-full border border-violet-500/40 bg-violet-600/10 px-3 py-1 text-sm text-violet-200">
+                      Quickfire
+                    </span>
+                  ) : null}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isPictureQ && q.imageUrl ? (
+                  <div className="overflow-hidden rounded-xl border border-border">
+                    <img src={q.imageUrl} alt="" className="block w-full" />
+                  </div>
+                ) : null}
+
+                {isQuickfireRound ? (
+                  <div className="rounded-xl border border-violet-500/30 bg-violet-600/10 px-4 py-3 text-sm">
+                    <div className="font-medium text-foreground">Quickfire round</div>
+                    <div className="mt-1 text-muted-foreground">
+                      No reveal appears after each question. The round review at the end shows the answer, who got it
+                      right, and who was fastest.
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="text-xl font-semibold">{q.text}</div>
+
+                {isAudioQ && audioMode === "phones" ? (
+                  <div className="text-sm text-muted-foreground">Audio plays on phones for this game.</div>
+                ) : null}
+
+                {isAudioQ && shouldPlayOnDisplay && !audioEnabled ? (
+                  <div className="rounded-xl border border-border bg-muted px-3 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm text-muted-foreground">Audio for this display</div>
+                      <Button variant="secondary" onClick={unlockAudio}>
+                        Enable audio
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {isAudioQ && shouldPlayOnDisplay && audioEnabled && q.audioUrl ? (
+                  <div className="rounded-xl border border-border bg-muted px-3 py-2">
+                    <div className="text-sm text-muted-foreground">Audio clip</div>
+                    <div className="mt-2">
+                      <Button variant="secondary" onClick={() => playClip().catch(() => {})}>
+                        Play again
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {q.answerType === "mcq" && Array.isArray(q.options) && q.options.length ? (
+                  <div className="grid gap-2">
+                    {q.options.map((opt: string, index: number) => {
+                      const isCorrect = stage === "reveal" && correctIndex === index;
+
+                      return (
+                        <div
+                          key={index}
+                          className={[
+                            "rounded-xl border px-3 py-2",
+                            isCorrect
+                              ? "border-emerald-600/40 bg-emerald-600/10"
+                              : "border-border bg-card",
+                          ].join(" ")}
+                        >
+                          <div className="text-sm">{opt}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+
+                {isTextQ ? (
+                  <div className="text-sm text-muted-foreground">Players type their answer on their phones.</div>
+                ) : null}
+
+                {stage === "reveal" && correctAnswerText ? (
+                  <div className="rounded-xl border border-emerald-600/30 bg-emerald-600/10 p-4">
+                    <div className="text-sm font-medium text-emerald-200">Correct answer</div>
+                    <div className="mt-1 text-base text-foreground">{correctAnswerText}</div>
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+      ) : null}
+
+      {finished ? (
+        <GameCompletedSummary
+          gameMode={String(state?.gameMode ?? "teams") === "solo" ? "solo" : "teams"}
+          teamScoreMode={String(state?.teamScoreMode ?? "total") === "average" ? "average" : "total"}
+          finalResults={state?.finalResults}
+          title="Game completed"
+        />
+      ) : null}
+    </PageShell>
+  );
+}

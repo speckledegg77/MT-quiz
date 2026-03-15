@@ -1,0 +1,250 @@
+﻿  const jokerEnabled = useMemo(() => {
+    if (typeof state?.rounds?.jokerEnabled === "boolean") {
+      return state.rounds.jokerEnabled
+    }
+    return jokerEligibleCount >= 2
+  }, [state?.rounds?.jokerEnabled, jokerEligibleCount])
+
+  const currentRound = state?.rounds?.current ?? null
+  const isQuickfireRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "quickfire"
+  const isUntimedAnswers = Boolean(state?.settings?.untimedAnswers)
+
+  const actualCloseAtMs = state?.times?.closeAt ? Date.parse(String(state.times.closeAt)) : null
+  const displayCloseAtRaw =
+    state?.times?.displayCloseAt ?? state?.times?.visibleCloseAt ?? state?.times?.closeAt ?? null
+  const displayCloseAtMs = displayCloseAtRaw ? Date.parse(String(displayCloseAtRaw)) : null
+  const adjustedNowMs = liveNowMs + serverOffsetMs
+
+  const secondsRemaining =
+    displayCloseAtMs && Number.isFinite(displayCloseAtMs)
+      ? Math.max(0, Math.ceil((displayCloseAtMs - adjustedNowMs) / 1000))
+      : 0
+
+  useEffect(() => {
+    if (!playerId || !q?.id) return
+    if (answerType !== "mcq") return
+    if (state?.phase !== "running") return
+    if (state?.stage !== "open") return
+    if (isUntimedAnswers) return
+    if (selectedIndex === null) return
+    if (submittedIndex !== null) return
+    if (mcqSubmitting) return
+    if (!actualCloseAtMs || !Number.isFinite(actualCloseAtMs)) return
+
+    const millisRemaining = actualCloseAtMs - adjustedNowMs
+    if (millisRemaining > 200) return
+
+    const attemptKey = `${q.id}:${selectedIndex}`
+    if (autoSubmitAttemptKeyRef.current === attemptKey) return
+    autoSubmitAttemptKeyRef.current = attemptKey
+
+    void submitMcqOption(selectedIndex, "auto")
+  }, [
+    playerId,
+    q?.id,
+    answerType,
+    state?.phase,
+    state?.stage,
+    isUntimedAnswers,
+    selectedIndex,
+    submittedIndex,
+    mcqSubmitting,
+    actualCloseAtMs,
+    adjustedNowMs,
+  ])
+
+  const teamRows = useMemo(() => {
+    const byTeam = new Map<string, { label: string; total: number; size: number }>()
+
+    for (const player of players) {
+      const team = String(player.team_name ?? "").trim() || "No team"
+      const entry = byTeam.get(team) ?? { label: team, total: 0, size: 0 }
+      entry.total += Number(player.score ?? 0)
+      entry.size += 1
+      byTeam.set(team, entry)
+    }
+
+    const rows = Array.from(byTeam.values()).map((team) => {
+      const average = team.size > 0 ? team.total / team.size : 0
+      const score = teamScoreMode === "average" ? average : team.total
+      return {
+        id: team.label,
+        label: team.label,
+        score,
+        size: team.size,
+        total: team.total,
+        average,
+      }
+    })
+
+    return rows.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score
+      if (b.total !== a.total) return b.total - a.total
+      return a.label.localeCompare(b.label)
+    })
+  }, [players, teamScoreMode])
+
+  const myTeamRow = useMemo(() => {
+    if (gameMode !== "teams") return null
+    const resolvedTeamName = String(myPlayer?.team_name ?? teamName ?? "").trim() || "No team"
+    return teamRows.find((team) => team.label === resolvedTeamName) ?? null
+  }, [gameMode, myPlayer?.team_name, teamName, teamRows])
+
+  function applyClosedQuestionState(data: any) {
+    if (!data?.questionClosed) return
+
+    setState((prev: any) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        serverNow: data?.serverNow ?? prev.serverNow,
+        stage: data?.nextStage ?? "reveal",
+        times: {
+          ...prev.times,
+          closeAt: data?.roomTimes?.closeAt ?? prev?.times?.closeAt,
+          revealAt: data?.roomTimes?.revealAt ?? prev?.times?.revealAt,
+          nextAt: data?.roomTimes?.nextAt ?? prev?.times?.nextAt,
+        },
+        reveal: data?.reveal ?? null,
+        questionStats: data?.questionStats ?? prev.questionStats,
+      }
+    })
+
+    if (data?.serverNow) {
+      const serverNowMs = Date.parse(String(data.serverNow))
+      if (Number.isFinite(serverNowMs)) {
+        setServerOffsetMs(serverNowMs - Date.now())
+      }
+    }
+  }
+
+  function pickOption(optionIndex: number) {
+    if (!canAnswer) return
+    setAnswerError(null)
+    setSelectedIndex(optionIndex)
+  }
+
+  async function submitMcqOption(optionIndex: number, mode: "manual" | "auto" = "manual") {
+    if (!playerId || !q?.id) return false
+    if (!canAnswer) return false
+    if (!Number.isFinite(optionIndex)) return false
+
+    setAnswerError(null)
+    setMcqSubmitting(true)
+
+    try {
+      const res = await fetch("/api/room/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, playerId, questionId: q.id, optionIndex }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        setAnswerError(data?.error ?? "Could not send answer.")
+        setMcqSubmitting(false)
+        return false
+      }
+
+      if (data?.accepted === false) {
+        if (data?.reason === "already_answered") {
+          setSubmittedIndex(-1)
+          setSelectedIndex(null)
+          setAnswerError("You already submitted an answer for this question.")
+          setMcqSubmitting(false)
+          return false
+        }
+
+        if (mode === "auto" && data?.reason === "not_open") {
+          setAnswerError("Time expired before your selected answer could be locked in.")
+          setMcqSubmitting(false)
+          return false
+        }
+
+        setAnswerError("Answer not accepted.")
+        setMcqSubmitting(false)
+        return false
+      }
+
+      setSubmittedIndex(optionIndex)
+      setMcqAutoSubmitted(mode === "auto")
+      setMcqSubmitting(false)
+
+      if (data?.questionClosed) {
+        applyClosedQuestionState(data)
+      } else {
+        void refreshState()
+      }
+
+      return true
+    } catch {
+      setAnswerError("Could not send answer.")
+      setMcqSubmitting(false)
+      return false
+    }
+  }
+
+  async function submitMcq() {
+    if (selectedIndex === null) return
+    await submitMcqOption(selectedIndex, "manual")
+  }
+
+  async function submitTyped() {
+    if (!playerId || !q?.id) return
+    if (!canAnswer) return
+
+    const trimmed = typedValue.trim()
+    if (!trimmed) {
+      setAnswerError("Type an answer first.")
+      return
+    }
+
+    setAnswerError(null)
+    setTypedSubmitted(true)
+
+    try {
+      const res = await fetch("/api/room/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, playerId, questionId: q.id, answerText: trimmed }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok || data?.accepted === false) {
+        setAnswerError(data?.error ?? "Answer not accepted.")
+        setTypedSubmitted(false)
+        return
+      }
+
+      setTypedIsCorrect(Boolean(data?.isCorrect))
+
+      if (data?.questionClosed) {
+        applyClosedQuestionState(data)
+      } else {
+        void refreshState()
+      }
+    } catch {
+      setAnswerError("Could not send answer.")
+      setTypedSubmitted(false)
+    }
+  }
+
+  async function pickJoker(roundIndex: number) {
+    if (!playerId) return
+    if (state?.phase !== "lobby") return
+
+    setJokerError(null)
+    setJokerBusy(true)
+
+    try {
+      const res = await fetch("/api/room/joker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, playerId, jokerRoundIndex: roundIndex }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {

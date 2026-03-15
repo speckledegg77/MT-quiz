@@ -1,0 +1,250 @@
+﻿"use client"
+
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react"
+
+import { Button } from "@/components/ui/Button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
+import {
+  firstRuleValue,
+  type RoundTemplateBehaviourType,
+  type RoundTemplateRow,
+  type RoundTemplateSourceMode,
+} from "@/lib/roundTemplates"
+import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour } from "@/lib/roomRoundPlan"
+
+type PackOption = {
+  id: string
+  label: string
+  questionCount: number
+  audioCount: number
+}
+
+type ShowOption = {
+  show_key: string
+  display_name: string
+}
+
+type TemplatesResponse = {
+  ok: true
+  templates: RoundTemplateRow[]
+}
+
+type ShowsResponse = {
+  ok: true
+  shows: Array<{
+    show_key: string
+    display_name: string
+  }>
+}
+
+type PacksResponse = {
+  packs: PackOption[]
+}
+
+type TemplateEditorState = {
+  name: string
+  description: string
+  behaviourType: RoundTemplateBehaviourType
+  defaultQuestionCount: number
+  defaultAnswerSeconds: string
+  defaultRoundReviewSeconds: string
+  jokerEligible: boolean
+  countsTowardsScore: boolean
+  sourceMode: RoundTemplateSourceMode
+  defaultPackIds: string[]
+  mediaType: string
+  promptTarget: string
+  clueSource: string
+  primaryShowKey: string
+  isActive: boolean
+  sortOrder: number
+}
+
+const BEHAVIOUR_TYPE_OPTIONS: Array<{ value: RoundTemplateBehaviourType; label: string }> = [
+  { value: "standard", label: "standard" },
+  { value: "quickfire", label: "quickfire" },
+]
+
+const SOURCE_MODE_OPTIONS: Array<{ value: RoundTemplateSourceMode; label: string }> = [
+  { value: "selected_packs", label: "selected_packs" },
+  { value: "specific_packs", label: "specific_packs" },
+  { value: "all_questions", label: "all_questions" },
+]
+
+const MEDIA_TYPE_OPTIONS = [
+  { value: "", label: "No filter" },
+  { value: "text", label: "text" },
+  { value: "audio", label: "audio" },
+  { value: "image", label: "image" },
+]
+
+const PROMPT_TARGET_OPTIONS = [
+  { value: "", label: "No filter" },
+  { value: "show_title", label: "show_title" },
+  { value: "song_title", label: "song_title" },
+  { value: "performer_name", label: "performer_name" },
+  { value: "character_name", label: "character_name" },
+  { value: "creative_name", label: "creative_name" },
+  { value: "fact_value", label: "fact_value" },
+]
+
+const CLUE_SOURCE_OPTIONS = [
+  { value: "", label: "No filter" },
+  { value: "direct_fact", label: "direct_fact" },
+  { value: "song_clip", label: "song_clip" },
+  { value: "overture_clip", label: "overture_clip" },
+  { value: "entracte_clip", label: "entracte_clip" },
+  { value: "lyric_excerpt", label: "lyric_excerpt" },
+  { value: "poster_art", label: "poster_art" },
+  { value: "production_photo", label: "production_photo" },
+  { value: "cast_headshot", label: "cast_headshot" },
+  { value: "prop_image", label: "prop_image" },
+]
+
+function buildAdminHeaders(token: string) {
+  return {
+    "x-admin-token": token.trim(),
+  }
+}
+
+function toggleInArray(values: string[], value: string) {
+  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value]
+}
+
+function buildSelectionRulesFromEditor(editor: TemplateEditorState) {
+  const rules: Record<string, string[]> = {}
+
+  if (editor.mediaType) rules.mediaTypes = [editor.mediaType]
+  if (editor.promptTarget) rules.promptTargets = [editor.promptTarget]
+  if (editor.clueSource) rules.clueSources = [editor.clueSource]
+  if (editor.primaryShowKey) rules.primaryShowKeys = [editor.primaryShowKey]
+
+  return rules
+}
+
+
+function buildTemplateTimingPayload(editor: TemplateEditorState) {
+  const payload: Record<string, number | null> = {}
+
+  if (editor.defaultAnswerSeconds.trim() === "") {
+    payload.defaultAnswerSeconds = null
+  } else {
+    const answerSeconds = Number(editor.defaultAnswerSeconds.trim())
+    if (Number.isFinite(answerSeconds) && answerSeconds >= 0) {
+      payload.defaultAnswerSeconds = Math.floor(answerSeconds)
+    }
+  }
+
+  if (editor.defaultRoundReviewSeconds.trim() === "") {
+    payload.defaultRoundReviewSeconds = null
+  } else {
+    const roundReviewSeconds = Number(editor.defaultRoundReviewSeconds.trim())
+    if (Number.isFinite(roundReviewSeconds) && roundReviewSeconds >= 0) {
+      payload.defaultRoundReviewSeconds = Math.floor(roundReviewSeconds)
+    }
+  }
+
+  return payload
+}
+
+function createBlankEditor(): TemplateEditorState {
+  return {
+    name: "",
+    description: "",
+    behaviourType: "standard",
+    defaultQuestionCount: 10,
+    defaultAnswerSeconds: "",
+    defaultRoundReviewSeconds: "",
+    jokerEligible: true,
+    countsTowardsScore: true,
+    sourceMode: "selected_packs",
+    defaultPackIds: [],
+    mediaType: "",
+    promptTarget: "",
+    clueSource: "",
+    primaryShowKey: "",
+    isActive: true,
+    sortOrder: 0,
+  }
+}
+
+function editorFromTemplate(template: RoundTemplateRow): TemplateEditorState {
+  const defaultPackIds = Array.isArray(template.default_pack_ids)
+    ? template.default_pack_ids.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : []
+
+  return {
+    name: template.name,
+    description: template.description ?? "",
+    behaviourType: (template.behaviour_type ?? "standard") as RoundTemplateBehaviourType,
+    defaultQuestionCount: Number(template.default_question_count ?? 10),
+    defaultAnswerSeconds:
+      template.default_answer_seconds == null ? "" : String(template.default_answer_seconds),
+    defaultRoundReviewSeconds:
+      template.default_round_review_seconds == null ? "" : String(template.default_round_review_seconds),
+    jokerEligible: !!template.joker_eligible,
+    countsTowardsScore: !!template.counts_towards_score,
+    sourceMode: (template.source_mode ?? "selected_packs") as RoundTemplateSourceMode,
+    defaultPackIds,
+    mediaType: firstRuleValue(template.selection_rules, "mediaTypes"),
+    promptTarget: firstRuleValue(template.selection_rules, "promptTargets"),
+    clueSource: firstRuleValue(template.selection_rules, "clueSources"),
+    primaryShowKey: firstRuleValue(template.selection_rules, "primaryShowKeys"),
+    isActive: !!template.is_active,
+    sortOrder: Number(template.sort_order ?? 0),
+  }
+}
+
+export function RoundTemplatesDashboard() {
+  const [token, setToken] = useState("")
+  const cleanToken = token.trim()
+
+  const [search, setSearch] = useState("")
+  const [templates, setTemplates] = useState<RoundTemplateRow[]>([])
+  const [packs, setPacks] = useState<PackOption[]>([])
+  const [shows, setShows] = useState<ShowOption[]>([])
+
+  const [listBusy, setListBusy] = useState(false)
+  const [listError, setListError] = useState("")
+
+  const [selectedTemplateId, setSelectedTemplateId] = useState("")
+  const [createBusy, setCreateBusy] = useState(false)
+  const [createResult, setCreateResult] = useState("")
+  const [saveBusy, setSaveBusy] = useState(false)
+  const [saveResult, setSaveResult] = useState("")
+
+  const [createEditor, setCreateEditor] = useState<TemplateEditorState>(createBlankEditor())
+  const [editEditor, setEditEditor] = useState<TemplateEditorState>(createBlankEditor())
+
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("mtq_admin_token") ?? ""
+      if (saved) setToken(saved)
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadPacks() {
+      try {
+        const res = await fetch("/api/packs", { cache: "no-store" })
+        const json = (await res.json()) as PacksResponse
+        if (!cancelled) setPacks(Array.isArray(json.packs) ? json.packs : [])
+      } catch {
+        if (!cancelled) setPacks([])
+      }
+    }
+
+    loadPacks()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!cleanToken) {
+      setShows([])

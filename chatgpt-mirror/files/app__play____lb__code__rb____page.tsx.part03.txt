@@ -1,0 +1,250 @@
+﻿        setJokerError(String(data?.error ?? "Could not save joker round."))
+        setJokerBusy(false)
+        return
+      }
+
+      setJokerBusy(false)
+      void refreshState()
+    } catch {
+      setJokerError("Could not save joker round.")
+      setJokerBusy(false)
+    }
+  }
+
+  function stopClip(reset = true) {
+    const el = audioRef.current
+    if (!el) return
+
+    try {
+      el.pause()
+      if (reset) el.currentTime = 0
+    } catch {
+      // ignore
+    }
+  }
+
+  async function unlockAudio() {
+    setAudioEnabled(true)
+    setAutoplayFailed(false)
+
+    try {
+      const anyWindow = window as any
+      const Ctx = anyWindow.AudioContext || anyWindow.webkitAudioContext
+      if (Ctx) {
+        const ctx = new Ctx()
+        await ctx.resume()
+        const buf = ctx.createBuffer(1, 1, 22050)
+        const src = ctx.createBufferSource()
+        src.buffer = buf
+        src.connect(ctx.destination)
+        src.start(0)
+        src.stop(0.01)
+        await new Promise((resolve) => setTimeout(resolve, 20))
+        await ctx.close()
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  function prepareClip() {
+    const el = audioRef.current
+    if (!q?.audioUrl || !el) return
+    if (preparedForQ === q.id) return
+
+    try {
+      el.pause()
+      el.currentTime = 0
+    } catch {
+      // ignore
+    }
+
+    el.src = q.audioUrl
+    el.preload = "auto"
+    el.load()
+    setPreparedForQ(q.id)
+  }
+
+  async function playClip(): Promise<boolean> {
+    const el = audioRef.current
+    if (!q?.audioUrl || !el) return false
+
+    try {
+      if (preparedForQ !== q.id) {
+        el.src = q.audioUrl
+        el.preload = "auto"
+        el.load()
+        setPreparedForQ(q.id)
+      }
+
+      await el.play()
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  useEffect(() => {
+    if (!shouldPlayOnPhone) return
+    if (!isAudioQ) return
+    if (!q?.audioUrl) return
+    prepareClip()
+  }, [shouldPlayOnPhone, isAudioQ, q?.id, q?.audioUrl])
+
+  useEffect(() => {
+    if (!shouldPlayOnPhone) return
+    if (!audioEnabled) return
+    if (!isAudioQ) return
+    if (state?.stage !== "open") return
+    if (!q?.audioUrl) return
+    if (playedForQ === q.id) return
+
+    let cancelled = false
+
+    async function attempt() {
+      const ok = await playClip()
+      if (cancelled) return
+
+      if (ok) {
+        setPlayedForQ(q.id)
+        setAutoplayFailed(false)
+        return
+      }
+
+      setAutoplayFailed(true)
+    }
+
+    attempt().catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [shouldPlayOnPhone, audioEnabled, isAudioQ, state?.stage, q?.id, q?.audioUrl, playedForQ])
+
+  useEffect(() => {
+    const shouldKeepPlaying =
+      state?.phase === "running" &&
+      state?.stage === "open" &&
+      shouldPlayOnPhone &&
+      audioEnabled &&
+      isAudioQ &&
+      Boolean(q?.audioUrl)
+
+    if (!shouldKeepPlaying) {
+      stopClip()
+    }
+  }, [state?.phase, state?.stage, q?.id, q?.audioUrl, shouldPlayOnPhone, audioEnabled, isAudioQ])
+
+  useEffect(() => {
+    return () => {
+      stopClip()
+    }
+  }, [])
+
+  if (!code) {
+    return (
+      <PageShell width="narrow" className="py-10 sm:py-12">
+        <Card>
+          <CardContent className="py-8 text-sm text-muted-foreground">
+            Missing room code in the URL.
+          </CardContent>
+        </Card>
+      </PageShell>
+    )
+  }
+
+  if (!playerId) {
+    return (
+      <PageShell width="narrow" className="py-10 sm:py-12">
+        <Card>
+          <CardHeader>
+            <CardTitle>Player not found</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            This phone does not have a player ID for room {code}. Go back to Join and enter the code again.
+          </CardContent>
+          <CardFooter className="flex justify-end">
+            <Button onClick={() => router.push(`/join?code=${code}`)}>Go to Join</Button>
+          </CardFooter>
+        </Card>
+      </PageShell>
+    )
+  }
+
+  if (!state) return null
+
+  const stage = String(state?.stage ?? "")
+  const status = statusText(stage)
+
+  const questionNumber = Number(state.questionIndex ?? 0) + 1
+  const questionCount = Number(state.questionCount ?? 0)
+
+  const showLobby = state.phase === "lobby"
+  const finished = state.phase === "finished"
+
+  const suppressStaleQuestionBetweenRounds =
+    !showLobby &&
+    !finished &&
+    stage !== "round_summary" &&
+    roundTransitionQuestionIndex !== null &&
+    Number(state?.questionIndex ?? -1) === roundTransitionQuestionIndex
+
+  const showScoreTimerRow =
+    !showLobby &&
+    !finished &&
+    stage !== "round_summary" &&
+    (Boolean(myPlayer) || Boolean(q))
+
+  const showTimerCard = !showLobby && !finished && stage !== "round_summary" && Boolean(q)
+
+  let timerLabel = isUntimedAnswers
+    ? isQuickfireRound
+      ? "Quickfire window"
+      : "Answer window"
+    : isQuickfireRound
+      ? "Quickfire closes in"
+      : "Time remaining"
+  let timerValue = isUntimedAnswers ? "Waiting for host" : formatDuration(secondsRemaining)
+
+  if (stage !== "open") {
+    timerValue = isUntimedAnswers ? "Closed" : formatDuration(secondsRemaining)
+  }
+
+  const correctAnswerText =
+    answerType === "mcq"
+      ? correctIndex !== null && Array.isArray(q?.options)
+        ? String(q.options[correctIndex] ?? "")
+        : revealAnswerText
+      : revealAnswerText
+
+  return (
+    <PageShell width="narrow">
+      <audio ref={audioRef} />
+
+      <div className="mb-4 flex items-end justify-between gap-3">
+        <div>
+          <div className="text-xs text-muted-foreground">Room</div>
+          <div className="text-lg font-semibold tracking-wide">{code}</div>
+          {playerName ? (
+            <div className="text-xs text-muted-foreground">
+              Player: <span className="text-foreground">{playerName}</span>
+              {gameMode === "teams" && teamName ? (
+                <>
+                  <span className="mx-2">|</span>
+                  Team: <span className="text-foreground">{teamName}</span>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex flex-col items-end gap-2">
+          {status ? (
+            <span className={`rounded-full border px-3 py-1 text-xs ${pillClass(stage)}`}>{status}</span>
+          ) : null}
+
+          {state.phase === "running" ? (
+            <div className="flex flex-col items-end gap-2">
+              {currentRound ? (
+                <span className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
+                  R{Number(currentRound.number ?? 0)}: {String(currentRound.name ?? "")}

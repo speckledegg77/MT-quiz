@@ -1,0 +1,187 @@
+﻿import { getQuestionById } from "@/lib/questionBank"
+import { supabaseAdmin } from "@/lib/supabaseAdmin"
+
+export type QuickfireReviewQuestion = {
+  questionId: string
+  questionIndex: number
+  questionNumberInRound: number
+  questionText: string
+  correctAnswer: string
+  correctPlayerIds: string[]
+  correctPlayerNames: string[]
+  fastestCorrectPlayerId: string | null
+  fastestCorrectPlayerName: string | null
+}
+
+type QuickfireAnswerRow = {
+  id?: string | null
+  player_id?: string | null
+  question_id?: string | null
+  is_correct?: boolean | null
+  created_at?: string | null
+  received_at?: string | null
+  score_delta?: number | null
+}
+
+function getAnswerTimestamp(answer: QuickfireAnswerRow) {
+  return String(answer.created_at ?? answer.received_at ?? "").trim()
+}
+
+function compareCreatedAtAsc<T extends QuickfireAnswerRow>(a: T, b: T) {
+  const aMs = Date.parse(getAnswerTimestamp(a))
+  const bMs = Date.parse(getAnswerTimestamp(b))
+
+  if (Number.isFinite(aMs) && Number.isFinite(bMs) && aMs !== bMs) {
+    return aMs - bMs
+  }
+
+  if (Number.isFinite(aMs) && !Number.isFinite(bMs)) return -1
+  if (!Number.isFinite(aMs) && Number.isFinite(bMs)) return 1
+
+  return String(a.player_id ?? "").localeCompare(String(b.player_id ?? ""))
+}
+
+function getCorrectAnswerText(question: Awaited<ReturnType<typeof getQuestionById>>) {
+  if (!question) return ""
+
+  if (question.answerType === "mcq") {
+    if (question.answerIndex === null) return ""
+    return String(question.options[question.answerIndex] ?? "").trim()
+  }
+
+  return String(question.answerText ?? "").trim()
+}
+
+export async function applyQuickfireFastestBonus(params: {
+  roomId: string
+  questionId: string
+  countsTowardsScore: boolean
+}) {
+  const answersRes = await supabaseAdmin
+    .from("answers")
+    .select("*")
+    .eq("room_id", params.roomId)
+    .eq("question_id", params.questionId)
+
+  if (answersRes.error) {
+    throw new Error(answersRes.error.message)
+  }
+
+  const correctAnswers = ((answersRes.data ?? []) as QuickfireAnswerRow[])
+    .filter((answer) => Boolean(answer?.is_correct))
+    .sort(compareCreatedAtAsc)
+
+  const fastestCorrect = correctAnswers[0] ?? null
+
+  if (!fastestCorrect || !params.countsTowardsScore) {
+    return {
+      fastestCorrectPlayerId: fastestCorrect ? String(fastestCorrect.player_id ?? "") : null,
+      bonusApplied: false,
+    }
+  }
+
+  const currentScoreDelta = Number(fastestCorrect.score_delta ?? 0)
+  const targetScoreDelta = 2
+  const scoreAdjustment = targetScoreDelta - currentScoreDelta
+
+  if (scoreAdjustment <= 0) {
+    return {
+      fastestCorrectPlayerId: String(fastestCorrect.player_id ?? "") || null,
+      bonusApplied: false,
+    }
+  }
+
+  const updateRes = await supabaseAdmin
+    .from("answers")
+    .update({ score_delta: targetScoreDelta })
+    .eq("id", fastestCorrect.id)
+    .eq("score_delta", currentScoreDelta)
+    .select("id")
+    .maybeSingle()
+
+  if (updateRes.error) {
+    throw new Error(updateRes.error.message)
+  }
+
+  if (updateRes.data) {
+    await supabaseAdmin.rpc("increment_player_score_by", {
+      p_player_id: fastestCorrect.player_id,
+      p_delta: scoreAdjustment,
+    })
+  }
+
+  return {
+    fastestCorrectPlayerId: String(fastestCorrect.player_id ?? "") || null,
+    bonusApplied: Boolean(updateRes.data),
+  }
+}
+
+export async function buildQuickfireRoundReview(params: {
+  roomId: string
+  round: {
+    startIndex: number
+    questionIds: string[]
+  }
+  players: Array<{ id: string; name: string }>
+}) {
+  const questionIds = Array.isArray(params.round.questionIds)
+    ? params.round.questionIds.map((value) => String(value ?? "").trim()).filter(Boolean)
+    : []
+
+  if (questionIds.length === 0) return [] as QuickfireReviewQuestion[]
+
+  const answersRes = await supabaseAdmin
+    .from("answers")
+    .select("*")
+    .eq("room_id", params.roomId)
+    .in("question_id", questionIds)
+
+  if (answersRes.error) {
+    throw new Error(answersRes.error.message)
+  }
+
+  const answersByQuestion = new Map<string, QuickfireAnswerRow[]>()
+  for (const answer of (answersRes.data ?? []) as QuickfireAnswerRow[]) {
+    const questionId = String(answer?.question_id ?? "").trim()
+    if (!questionId) continue
+    const list = answersByQuestion.get(questionId) ?? []
+    list.push(answer)
+    answersByQuestion.set(questionId, list)
+  }
+
+  const playerNameById = new Map(
+    params.players.map((player) => [String(player.id ?? "").trim(), String(player.name ?? "").trim() || "Player"])
+  )
+
+  const reviewRows = await Promise.all(
+    questionIds.map(async (questionId, questionOffset) => {
+      const question = await getQuestionById(questionId)
+      const correctAnswers = (answersByQuestion.get(questionId) ?? [])
+        .filter((answer) => Boolean(answer?.is_correct))
+        .sort(compareCreatedAtAsc)
+
+      const fastestCorrect = correctAnswers[0] ?? null
+      const correctPlayerIds = correctAnswers
+        .map((answer) => String(answer?.player_id ?? "").trim())
+        .filter(Boolean)
+
+      const correctPlayerNames = correctPlayerIds.map((playerId) => playerNameById.get(playerId) ?? "Player")
+
+      return {
+        questionId,
+        questionIndex: params.round.startIndex + questionOffset,
+        questionNumberInRound: questionOffset + 1,
+        questionText: String(question?.text ?? "Question").trim() || "Question",
+        correctAnswer: getCorrectAnswerText(question),
+        correctPlayerIds,
+        correctPlayerNames,
+        fastestCorrectPlayerId: fastestCorrect ? String(fastestCorrect.player_id ?? "").trim() || null : null,
+        fastestCorrectPlayerName: fastestCorrect
+          ? playerNameById.get(String(fastestCorrect.player_id ?? "").trim()) ?? "Player"
+          : null,
+      } satisfies QuickfireReviewQuestion
+    })
+  )
+
+  return reviewRows
+}

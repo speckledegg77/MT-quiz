@@ -1,0 +1,125 @@
+﻿
+  if (q.answerType === "mcq") {
+    if (!Number.isFinite(optionIndex)) return NextResponse.json({ error: "Missing optionIndex" }, { status: 400 })
+    if (q.answerIndex === null) return NextResponse.json({ accepted: false, reason: "bad_question" })
+
+    const shuffled = shuffleMcqForRoom(q.options, q.answerIndex, room.id, q.id)
+    isCorrect = optionIndex === shuffled.answerIndex
+  } else {
+    if (!answerText) return NextResponse.json({ error: "Missing answerText" }, { status: 400 })
+    isCorrect = isTextCorrect(answerText, q.answerText ?? "", q.acceptedAnswers)
+  }
+
+  const effectiveRoundPlan = materialiseRoundPlan(getEffectiveRoomRoundPlan(room))
+  const currentRound = findRoundForQuestionIndex(Number(room.question_index ?? 0), effectiveRoundPlan)
+  const roundIdx = currentRound.index
+  const jokerActive = isJokerActiveForRound({
+    playerJokerRoundIndex: playerRes.data.joker_round_index,
+    round: currentRound,
+  })
+  const scoreDelta = getScoreDeltaForRound({
+    isCorrect,
+    jokerActive,
+    countsTowardsScore: currentRound.countsTowardsScore !== false,
+  })
+
+  const ansRes = await supabaseAdmin.from("answers").insert({
+    room_id: room.id,
+    player_id: playerId,
+    question_id: questionId,
+    option_index: q.answerType === "mcq" ? optionIndex : null,
+    answer_text: q.answerType === "text" ? answerText : null,
+    is_correct: isCorrect,
+
+    joker_active: jokerActive,
+    score_delta: scoreDelta,
+    round_index: roundIdx,
+  })
+
+  if (ansRes.error) {
+    const pgCode = String((ansRes.error as any).code ?? "")
+    if (pgCode === "23505") {
+      return NextResponse.json({ accepted: false, reason: "already_answered" })
+    }
+    return NextResponse.json({ error: ansRes.error.message }, { status: 500 })
+  }
+
+  if (scoreDelta !== 0) {
+    await supabaseAdmin.rpc("increment_player_score_by", { p_player_id: playerId, p_delta: scoreDelta })
+  }
+
+  const playersCountRes = await supabaseAdmin
+    .from("players")
+    .select("id", { count: "exact", head: true })
+    .eq("room_id", room.id)
+
+  const answersCountRes = await supabaseAdmin
+    .from("answers")
+    .select("id", { count: "exact", head: true })
+    .eq("room_id", room.id)
+    .eq("question_id", questionId)
+
+  const playerCount = playersCountRes.count ?? 0
+  const answerCount = answersCountRes.count ?? 0
+
+  if (playerCount > 0 && answerCount >= playerCount) {
+    const now = new Date()
+    const roomTimes = buildPostCloseTimes({
+      closedAt: now,
+      room,
+      round: currentRound,
+    })
+
+    await supabaseAdmin
+      .from("rooms")
+      .update({
+        close_at: roomTimes.closeAt.toISOString(),
+        reveal_at: roomTimes.revealAt.toISOString(),
+        next_at: roomTimes.nextAt.toISOString(),
+      })
+      .eq("id", room.id)
+
+    if (isQuickfireRound(currentRound)) {
+      await applyQuickfireFastestBonus({
+        roomId: room.id,
+        questionId,
+        countsTowardsScore: currentRound.countsTowardsScore !== false,
+      })
+    }
+
+    let revealAnswerIndex: number | null = q.answerIndex ?? null
+    if (q.answerType === "mcq" && q.answerIndex !== null && Array.isArray(q.options) && q.options.length > 1) {
+      const shuffled = shuffleMcqForRoom(q.options, q.answerIndex, room.id, q.id)
+      revealAnswerIndex = shuffled.answerIndex
+    }
+
+    const questionStats = await buildQuestionStats(room.id, questionId, players)
+    const nextStage = isQuickfireRound(currentRound) ? "needs_advance" : "reveal"
+
+    return NextResponse.json({
+      accepted: true,
+      isCorrect,
+      jokerActive,
+      scoreDelta,
+      questionClosed: true,
+      nextStage,
+      serverNow: now.toISOString(),
+      roomTimes: {
+        closeAt: roomTimes.closeAt.toISOString(),
+        revealAt: roomTimes.revealAt.toISOString(),
+        nextAt: roomTimes.nextAt.toISOString(),
+      },
+      reveal: isQuickfireRound(currentRound)
+        ? null
+        : {
+            answerType: q.answerType,
+            answerIndex: q.answerType === "mcq" ? revealAnswerIndex : null,
+            answerText: q.answerType === "text" ? q.answerText ?? "" : null,
+            explanation: q.explanation ?? null,
+          },
+      questionStats,
+    })
+  }
+
+  return NextResponse.json({ accepted: true, isCorrect, jokerActive, scoreDelta, questionClosed: false })
+}

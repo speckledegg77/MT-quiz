@@ -1,0 +1,250 @@
+﻿    try {
+      const res = await fetch(`/api/room/state?code=${encodeURIComponent(code)}`, { cache: "no-store" })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setRehostError(String(data?.error ?? "Room not found."))
+        setRehostBusy(false)
+        return
+      }
+      setRoomCode(code)
+      setRoomState(data)
+      setRoomPhase(String(data?.phase ?? "lobby"))
+      setRoomStage(String(data?.stage ?? "lobby"))
+      rememberHostCode(code)
+    } catch {
+      setRehostError("Could not load that room.")
+    } finally {
+      setRehostBusy(false)
+    }
+  }
+
+  async function startGame() {
+    if (!roomCode) return
+    setStarting(true)
+    setStartError(null)
+    setStartOk(null)
+    try {
+      const res = await fetch("/api/room/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: roomCode }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setStartError(data?.error ?? "Could not start game.")
+        return
+      }
+      setRoomPhase("running")
+      setRoomStage("open")
+      setStartOk("Game started.\nJoining is now closed.")
+    } catch (error: any) {
+      setStartError(error?.message ?? "Could not start game.")
+    } finally {
+      setStarting(false)
+    }
+  }
+
+  async function resetRoom() {
+    if (!roomCode) return
+    setResetting(true)
+    setResetError(null)
+    setResetOk(null)
+    setStartError(null)
+    setStartOk(null)
+    setForceCloseError(null)
+    try {
+      const res = await fetch("/api/room/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: roomCode }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setResetError(data?.error ?? "Reset failed.")
+        return
+      }
+      setRoomPhase("lobby")
+      setRoomStage("lobby")
+      setResetOk("Room reset.\nTeams kept, scores set to 0, and joining is open again.")
+    } catch (error: any) {
+      setResetError(error?.message ?? "Reset failed.")
+    } finally {
+      setResetting(false)
+    }
+  }
+
+  async function continueGame() {
+    if (!roomCode) return
+    setForcingClose(true)
+    setForceCloseError(null)
+    const route = roomStage === "open" ? "/api/room/force-close" : "/api/room/advance"
+    try {
+      const res = await fetch(route, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: roomCode }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setForceCloseError(data?.error ?? "Could not move on.")
+      }
+    } catch {
+      setForceCloseError("Could not move on.")
+    } finally {
+      setForcingClose(false)
+    }
+  }
+
+  function clearRoom() {
+    setRoomCode(null)
+    setRoomState(null)
+    setRoomPhase("lobby")
+    setRoomStage("lobby")
+    setStartError(null)
+    setStartOk(null)
+    setResetError(null)
+    setResetOk(null)
+    setForceCloseError(null)
+  }
+
+  const stagePill = useMemo(() => {
+    if (roomPhase === "running") {
+      if (roomStage === "countdown") return "Countdown"
+      if (roomStage === "open") return "Answering"
+      if (roomStage === "wait") return "Waiting"
+      if (roomStage === "reveal") return "Reveal"
+      if (roomStage === "round_summary") return "End of round"
+      if (roomStage === "needs_advance") return "Next question"
+      return "Running"
+    }
+    if (roomPhase === "finished") return "Finished"
+    return "Lobby"
+  }, [roomPhase, roomStage])
+
+  const hasRoom = Boolean(roomCode)
+  const selectedPackCount = packs.filter((p) => selectedPacks[p.id]).length
+  const canStart = hasRoom && roomPhase === "lobby" && !starting
+  const canContinue =
+    hasRoom && roomPhase === "running" && ["open", "round_summary", "needs_advance"].includes(roomStage) && !forcingClose
+
+  const continueLabel =
+    roomStage === "open"
+      ? forcingClose
+        ? "Moving on..."
+        : "Reveal answer"
+      : roomStage === "round_summary"
+        ? forcingClose
+          ? "Moving on..."
+          : Boolean(roomState?.flow?.isLastQuestionOverall)
+            ? "Finish now"
+            : "Skip round review"
+        : forcingClose
+          ? "Moving on..."
+          : Boolean(roomState?.flow?.isLastQuestionOverall)
+            ? "Finish now"
+            : "Next question"
+
+  const startLabel =
+    roomPhase === "lobby"
+      ? starting
+        ? "Starting..."
+        : "Start game"
+      : roomPhase === "running"
+        ? "Game running"
+        : "Game finished"
+
+  const roomSummaryText =
+    roomPhase === "lobby"
+      ? "Players can still join. When you are ready, start the game from the host controls."
+      : roomPhase === "running"
+        ? "Questions move on automatically between questions. End of round waits for the host or the round review timer."
+        : "The game is finished. Reset the room to play again with the same teams."
+
+  const quickfireCount = useMemo(
+    () => manualRounds.filter((round) => round.behaviourType === "quickfire").length,
+    [manualRounds]
+  )
+
+  const manualJokerNote = jokerEligibleCount >= 2
+    ? `${jokerEligibleCount} rounds are Joker eligible.`
+    : "Joker will be hidden because fewer than two rounds are Joker eligible."
+
+  return (
+    <PageShell width="full" contentClassName="max-w-6xl">
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Host</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Create a room, share the code, and run the quiz.</p>
+        </div>
+
+        <Link href="/" className="text-sm text-muted-foreground hover:underline">
+          Back to home
+        </Link>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="space-y-6">
+          {!hasRoom ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Create a room</CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <div className="rounded-2xl border border-border p-3">
+                  <div className="text-sm font-semibold text-foreground">Game</div>
+
+                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <div className="text-sm font-medium text-foreground">Mode</div>
+                      <select value={gameMode} onChange={(e) => setGameMode(e.target.value as GameMode)} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                        <option value="teams">Teams</option>
+                        <option value="solo">No teams</option>
+                      </select>
+                      <div className="mt-1 text-xs text-muted-foreground">One phone per person.</div>
+                    </div>
+
+                    {gameMode === "teams" ? (
+                      <div>
+                        <div className="text-sm font-medium text-foreground">Scoring</div>
+                        <div className="mt-2 text-sm text-muted-foreground">Total points. If team sizes differ, the scoreboard uses average points per player.</div>
+                      </div>
+                    ) : (
+                      <div className="flex items-end text-sm text-muted-foreground">Players score individually.</div>
+                    )}
+
+                    {gameMode === "teams" ? (
+                      <div className="flex items-end justify-end">
+                        <Button variant="secondary" onClick={() => {
+                          setTeamNames((prev) => {
+                            const used = new Set(prev.map((x) => x.trim()).filter(Boolean))
+                            const nextName = randomTeamName(used)
+                            return [...prev, nextName]
+                          })
+                        }}>
+                          Add team
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {gameMode === "teams" ? (
+                    <div className="mt-3 space-y-2">
+                      <div className="text-sm text-muted-foreground">Teams (players pick one when joining)</div>
+                      {teamNames.map((t, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <Input value={t} onChange={(e) => setTeamNames((prev) => prev.map((x, i) => i === idx ? e.target.value : x))} placeholder="Team name" />
+                          <Button variant="ghost" onClick={() => setTeamNames((prev) => prev.filter((_, i) => i !== idx))} disabled={teamNames.length <= 2}>Remove</Button>
+                        </div>
+                      ))}
+                      {teamNames.length <= 2 ? <div className="text-xs text-muted-foreground">Keep at least two teams.</div> : null}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="rounded-2xl border border-border p-3">
+                  <div className="text-sm font-semibold text-foreground">Build mode</div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <div className="text-sm font-medium text-foreground">Mode</div>
+                      <select value={buildMode} onChange={(e) => setBuildMode(e.target.value as BuildMode)} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
