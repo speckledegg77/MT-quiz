@@ -38,7 +38,7 @@ export async function GET(req: Request, context: RouteContext) {
     supabaseAdmin
       .from("questions")
       .select(
-        "id, text, round_type, answer_type, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, created_at, updated_at"
+        "id, text, round_type, answer_type, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, created_at, updated_at"
       )
       .eq("id", questionId)
       .maybeSingle(),
@@ -92,6 +92,7 @@ export async function GET(req: Request, context: RouteContext) {
           clueSource: question.clue_source ?? null,
           primaryShowKey: question.primary_show_key ?? null,
           metadataReviewState: question.metadata_review_state ?? "unreviewed",
+          mediaDurationMs: question.media_duration_ms ?? null,
         },
         suggested: analysis.suggested,
         reasons: analysis.reasons,

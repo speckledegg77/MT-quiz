@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     supabaseAdmin
       .from("questions")
       .select(
-        "id, text, round_type, answer_type, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, created_at, updated_at"
+        "id, text, round_type, answer_type, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, created_at, updated_at"
       )
       .in("id", questionIds),
     supabaseAdmin

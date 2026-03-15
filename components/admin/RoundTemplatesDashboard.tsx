@@ -837,7 +837,7 @@ function TemplateFields({
 
       {editor.behaviourType === "quickfire" ? (
         <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-          Quickfire v1 excludes audio automatically and only uses non-audio MCQ questions.
+          Quickfire allows MCQ questions only. Audio is allowed when media_duration_ms is set and the clip is 5 seconds or shorter.
         </div>
       ) : null}
 

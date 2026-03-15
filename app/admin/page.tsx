@@ -21,7 +21,7 @@ export default function AdminHomePage() {
         <div className="text-sm text-muted-foreground">Choose a tool.</div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
         <Card>
           <CardHeader>
             <CardTitle>Questions</CardTitle>
@@ -74,6 +74,21 @@ export default function AdminHomePage() {
             </div>
             <Link href="/admin/import" className={linkButtonClass("secondary")}>
               Open Import
+            </Link>
+          </CardContent>
+        </Card>
+
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Readiness</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="text-sm text-muted-foreground">
+              See which questions are currently ready for standard rounds, Quickfire, and short-audio Quickfire.
+            </div>
+            <Link href="/admin/readiness" className={linkButtonClass("secondary")}>
+              Open Readiness
             </Link>
           </CardContent>
         </Card>

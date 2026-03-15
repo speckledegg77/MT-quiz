@@ -21,6 +21,7 @@ const bulkMetadataSchema = z.object({
       clueSource: z.enum(CLUE_SOURCE_VALUES).nullable().optional(),
       primaryShowKey: z.string().trim().nullable().optional(),
       metadataReviewState: z.enum(METADATA_REVIEW_STATE_VALUES).optional(),
+      mediaDurationMs: z.number().int().min(0).nullable().optional(),
     })
     .refine(
       (value) =>
@@ -28,7 +29,8 @@ const bulkMetadataSchema = z.object({
         value.promptTarget !== undefined ||
         value.clueSource !== undefined ||
         value.primaryShowKey !== undefined ||
-        value.metadataReviewState !== undefined,
+        value.metadataReviewState !== undefined ||
+        value.mediaDurationMs !== undefined,
       { message: "At least one metadata change must be provided." }
     ),
 })
@@ -65,6 +67,7 @@ export async function POST(req: Request) {
   if (changes.clueSource !== undefined) update.clue_source = changes.clueSource
   if (changes.primaryShowKey !== undefined) update.primary_show_key = normaliseShowKey(changes.primaryShowKey)
   if (changes.metadataReviewState !== undefined) update.metadata_review_state = changes.metadataReviewState
+  if (changes.mediaDurationMs !== undefined) update.media_duration_ms = changes.mediaDurationMs
 
   const updateRes = await supabaseAdmin
     .from("questions")

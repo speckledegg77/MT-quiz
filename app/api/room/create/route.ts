@@ -26,6 +26,7 @@ import {
   type ManualRoundDraftInput,
   type QuestionCandidate,
 } from "../../../../lib/manualRoundPlanBuilder"
+import { normaliseMediaDurationMs } from "../../../../lib/quickfireEligibility"
 
 type LegacyRoundRequest = { packId: string; count: number }
 
@@ -217,7 +218,7 @@ async function loadQuestionPoolForManualRounds(params: {
   const linksRes = await supabaseAdmin
     .from("pack_questions")
     .select(
-      "pack_id, question_id, questions(round_type, answer_type, media_type, prompt_target, clue_source, primary_show_key)"
+      "pack_id, question_id, questions(round_type, answer_type, media_type, prompt_target, clue_source, primary_show_key, media_duration_ms)"
     )
     .in("pack_id", scopePackIds)
 
@@ -251,6 +252,7 @@ async function loadQuestionPoolForManualRounds(params: {
       promptTarget: question.prompt_target ? String(question.prompt_target) : null,
       clueSource: question.clue_source ? String(question.clue_source) : null,
       primaryShowKey: question.primary_show_key ? String(question.primary_show_key) : null,
+      mediaDurationMs: normaliseMediaDurationMs(question.media_duration_ms),
       packIds: [packId],
     })
   }

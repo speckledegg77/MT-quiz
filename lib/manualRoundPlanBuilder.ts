@@ -1,5 +1,6 @@
 import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour, type RoomRoundPlan, type RoundBehaviourType, type RoundPlanItem, type RoundSelectionRules, type RoundSourceMode } from "@/lib/roomRoundPlan"
 import { isQuickfireBehaviour } from "@/lib/roundFlow"
+import { isQuickfireEligibleItem, normaliseMediaDurationMs } from "@/lib/quickfireEligibility"
 
 export type ManualRoundDraftInput = {
   id?: string
@@ -23,6 +24,7 @@ export type QuestionCandidate = {
   promptTarget: string | null
   clueSource: string | null
   primaryShowKey: string | null
+  mediaDurationMs: number | null
   packIds: string[]
 }
 
@@ -181,10 +183,7 @@ export function buildManualRoomRoundPlan(params: {
         const inScope = candidate.packIds.some((packId) => sourcePackIds.includes(packId))
         if (!inScope) return false
       }
-      if (behaviourType === "quickfire") {
-        if (candidate.answerType !== "mcq") return false
-        if (candidate.mediaType === "audio") return false
-      }
+      if (behaviourType === "quickfire" && !isQuickfireEligibleItem(candidate)) return false
 
       return candidateMatchesRules(candidate, selectionRules)
     })

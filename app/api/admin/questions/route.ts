@@ -51,10 +51,12 @@ function isBlank(value: string | null | undefined) {
 function itemMatchesMetadataGap(
   item: {
     question: {
+      round_type?: string | null
       primary_show_key?: string | null
       media_type?: string | null
       prompt_target?: string | null
       clue_source?: string | null
+      media_duration_ms?: number | null
     }
   },
   metadataGap: string | null
@@ -65,11 +67,14 @@ function itemMatchesMetadataGap(
   const isMissingMediaType = isBlank(item.question.media_type)
   const isMissingPromptTarget = isBlank(item.question.prompt_target)
   const isMissingClueSource = isBlank(item.question.clue_source)
+  const isAudioQuestion = String(item.question.media_type ?? "").trim() === "audio" || String(item.question.round_type ?? "").trim() === "audio"
+  const isMissingAudioDuration = isAudioQuestion && item.question.media_duration_ms == null
 
   if (metadataGap === "missing_primary_show_key") return isMissingPrimaryShowKey
   if (metadataGap === "missing_media_type") return isMissingMediaType
   if (metadataGap === "missing_prompt_target") return isMissingPromptTarget
   if (metadataGap === "missing_clue_source") return isMissingClueSource
+  if (metadataGap === "missing_audio_duration") return isMissingAudioDuration
   if (metadataGap === "missing_any_core_metadata") {
     return isMissingPrimaryShowKey || isMissingMediaType || isMissingPromptTarget || isMissingClueSource
   }
@@ -116,7 +121,7 @@ export async function GET(req: Request) {
   let dataQuery = supabaseAdmin
     .from("questions")
     .select(
-      "id, text, round_type, answer_type, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, created_at, updated_at"
+      "id, text, round_type, answer_type, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, created_at, updated_at"
     )
     .order("id", { ascending: true })
     .range(offset, offset + limit - 1)
@@ -241,6 +246,7 @@ export async function GET(req: Request) {
             clueSource: question.clue_source ?? null,
             primaryShowKey: question.primary_show_key ?? null,
             metadataReviewState: question.metadata_review_state ?? "unreviewed",
+            mediaDurationMs: question.media_duration_ms ?? null,
           },
           suggested: analysis.suggested,
           reasons: analysis.reasons,

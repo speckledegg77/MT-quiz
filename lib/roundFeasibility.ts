@@ -1,4 +1,5 @@
 import { deriveMediaType, type QuestionCandidate } from "@/lib/manualRoundPlanBuilder"
+import { QUICKFIRE_AUDIO_MAX_DURATION_MS, getQuickfireIneligibilityReasons, normaliseMediaDurationMs } from "@/lib/quickfireEligibility"
 import type { RoundBehaviourType, RoundSelectionRules, RoundSourceMode } from "@/lib/roomRoundPlan"
 
 export type RoundFeasibilityInput = {
@@ -252,6 +253,7 @@ export function buildQuestionCandidatesFromPackRows(rows: any[]) {
       promptTarget: question.prompt_target ? String(question.prompt_target) : null,
       clueSource: question.clue_source ? String(question.clue_source) : null,
       primaryShowKey: question.primary_show_key ? String(question.primary_show_key) : null,
+      mediaDurationMs: normaliseMediaDurationMs(question.media_duration_ms),
       packIds: [packId],
     })
   }
@@ -282,7 +284,7 @@ export function evaluateRoundsFeasibility(params: {
       let setupError: string | null = null
 
       if (behaviourType === "quickfire") {
-        notes.push("Quickfire v1 currently allows non-audio MCQ only.")
+        notes.push(`Quickfire allows MCQ questions only. Audio clips need media_duration_ms and must be ${QUICKFIRE_AUDIO_MAX_DURATION_MS / 1000} seconds or shorter.`)
       }
 
       if (sourceMode === "selected_packs" && sourcePackIds.length === 0) {
@@ -302,8 +304,7 @@ export function evaluateRoundsFeasibility(params: {
                 if (!inScope) return false
               }
               if (behaviourType === "quickfire") {
-                if (candidate.answerType !== "mcq") return false
-                if (candidate.mediaType === "audio") return false
+                if (getQuickfireIneligibilityReasons(candidate).length > 0) return false
               }
               return candidateMatchesRules(candidate, rules)
             })

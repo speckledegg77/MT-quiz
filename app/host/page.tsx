@@ -165,7 +165,6 @@ function normaliseManualRoundDraft(draft: ManualRoundDraft): ManualRoundDraft {
     ...draft,
     behaviourType,
     jokerEligible: behaviourType === "quickfire" ? false : draft.jokerEligible,
-    mediaType: behaviourType === "quickfire" && draft.mediaType === "audio" ? "" : draft.mediaType,
   }
 }
 
@@ -263,7 +262,7 @@ function roundBehaviourBadgeClass(behaviourType: RoundBehaviourType) {
 
 function roundBehaviourSummary(behaviourType: RoundBehaviourType) {
   if (behaviourType === "quickfire") {
-    return "Fast answers, no Joker, no reveal after each question, and the fastest correct player gets a bonus point."
+    return "Fast answers, no Joker, no reveal after each question, and the fastest correct player gets a bonus point. Quickfire audio is allowed only when the clip is 5 seconds or shorter."
   }
 
   return "Classic question flow with the normal reveal after each question. Joker can be enabled if you want it."
@@ -1301,7 +1300,7 @@ export default function HostPage() {
 
                     <div className="mt-3 space-y-1 text-xs text-muted-foreground">
                       <div>Total questions from rounds: {manualRoundsTotal}. {manualJokerNote}</div>
-                      {quickfireCount > 0 ? <div>Quickfire v1 skips Joker, skips per-question reveals, and only pulls non-audio MCQ questions.</div> : null}
+                      {quickfireCount > 0 ? <div>Quickfire skips Joker, skips per-question reveals, and only pulls MCQ questions. Audio is allowed only when media_duration_ms is set and the clip is 5 seconds or shorter.</div> : null}
                       {selectedTemplateToAdd?.description ? <div>Template: {selectedTemplateToAdd.description}</div> : null}
                     </div>
 
@@ -1324,7 +1323,7 @@ export default function HostPage() {
                           <span className="text-xs text-muted-foreground">{roundBehaviourTimingText("quickfire")}</span>
                         </div>
                         <div className="mt-2 text-sm text-foreground">{roundBehaviourSummary("quickfire")}</div>
-                        <div className="mt-2 text-xs text-muted-foreground">Quickfire v1 question pool: non-audio MCQ only.</div>
+                        <div className="mt-2 text-xs text-muted-foreground">Quickfire question pool: MCQ only. Audio is allowed when media_duration_ms is set and the clip is 5 seconds or shorter.</div>
                       </div>
                     </div>
 
@@ -1517,7 +1516,7 @@ export default function HostPage() {
 
                           {round.behaviourType === "quickfire" ? (
                             <div className="mt-3 rounded-xl border border-violet-500/30 bg-violet-600/10 px-3 py-2 text-xs text-muted-foreground">
-                              Quickfire v1 question pool: non-audio MCQ only. Audio and typed answers are excluded automatically.
+                              Quickfire question pool: MCQ only. Audio is allowed when media_duration_ms is set and the clip is 5 seconds or shorter. Audio and typed answers are excluded automatically.
                             </div>
                           ) : null}
 

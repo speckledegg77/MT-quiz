@@ -82,7 +82,7 @@ export async function POST(req: Request) {
       const linksRes = await supabaseAdmin
         .from("pack_questions")
         .select(
-          "pack_id, question_id, questions(round_type, answer_type, media_type, prompt_target, clue_source, primary_show_key)"
+          "pack_id, question_id, questions(round_type, answer_type, media_type, prompt_target, clue_source, primary_show_key, media_duration_ms)"
         )
         .in("pack_id", scopePackIds)
 

@@ -25,6 +25,7 @@ const metadataSchema = z
     clueSource: z.enum(CLUE_SOURCE_VALUES).nullable().optional(),
     primaryShowKey: z.string().trim().nullable().optional(),
     metadataReviewState: z.enum(METADATA_REVIEW_STATE_VALUES).optional(),
+    mediaDurationMs: z.number().int().min(0).nullable().optional(),
   })
   .refine(
     (value) =>
@@ -32,7 +33,8 @@ const metadataSchema = z
       value.promptTarget !== undefined ||
       value.clueSource !== undefined ||
       value.primaryShowKey !== undefined ||
-      value.metadataReviewState !== undefined,
+      value.metadataReviewState !== undefined ||
+      value.mediaDurationMs !== undefined,
     { message: "At least one metadata field must be provided." }
   )
 
@@ -68,13 +70,14 @@ export async function PATCH(req: Request, context: RouteContext) {
   if (parsed.data.clueSource !== undefined) update.clue_source = parsed.data.clueSource
   if (parsed.data.primaryShowKey !== undefined) update.primary_show_key = normaliseShowKey(parsed.data.primaryShowKey)
   if (parsed.data.metadataReviewState !== undefined) update.metadata_review_state = parsed.data.metadataReviewState
+  if (parsed.data.mediaDurationMs !== undefined) update.media_duration_ms = parsed.data.mediaDurationMs
 
   const updateRes = await supabaseAdmin
     .from("questions")
     .update(update)
     .eq("id", questionId)
     .select(
-      "id, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, metadata_updated_at"
+      "id, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, metadata_updated_at"
     )
     .maybeSingle()
 

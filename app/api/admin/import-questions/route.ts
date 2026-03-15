@@ -28,6 +28,7 @@ type CsvRow = {
   explanation?: string
   audio_path?: string
   image_path?: string
+  media_duration_ms?: string
 }
 
 function unauthorised() {
@@ -128,6 +129,13 @@ export async function POST(req: Request) {
       const imagePathRaw = String(r.image_path ?? "").trim()
       const imagePath = imagePathRaw ? imagePathRaw : null
 
+      const mediaDurationRaw = String(r.media_duration_ms ?? "").trim()
+      const parsedMediaDuration = mediaDurationRaw ? Number(mediaDurationRaw) : null
+      const mediaDurationMs =
+        parsedMediaDuration !== null && Number.isFinite(parsedMediaDuration)
+          ? Math.floor(parsedMediaDuration)
+          : null
+
       if (!packId || !packName) {
         return NextResponse.json({ error: "Each row must include pack_id and pack_name" }, { status: 400 })
       }
@@ -150,6 +158,13 @@ export async function POST(req: Request) {
 
       if (questionRoundType === "picture" && !imagePath) {
         return NextResponse.json({ error: `Picture question ${questionId} needs image_path` }, { status: 400 })
+      }
+
+      if (
+        mediaDurationRaw &&
+        (parsedMediaDuration === null || !Number.isFinite(parsedMediaDuration) || mediaDurationMs === null || mediaDurationMs < 0)
+      ) {
+        return NextResponse.json({ error: `Invalid media_duration_ms for question ${questionId}` }, { status: 400 })
       }
 
       let options: string[] | null = null
@@ -204,6 +219,7 @@ export async function POST(req: Request) {
         explanation,
         audio_path: audioPath,
         image_path: imagePath,
+        media_duration_ms: mediaDurationMs,
         updated_at: new Date().toISOString(),
       })
 

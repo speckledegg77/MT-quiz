@@ -1,3 +1,8 @@
+import {
+  QUICKFIRE_AUDIO_MAX_DURATION_MS,
+  normaliseMediaDurationMs,
+} from "@/lib/quickfireEligibility"
+
 export const MEDIA_TYPE_VALUES = ["text", "audio", "image"] as const
 export const PROMPT_TARGET_VALUES = [
   "show_title",
@@ -58,6 +63,7 @@ export type QuestionRowForMetadata = {
   clue_source?: string | null
   primary_show_key?: string | null
   metadata_review_state?: string | null
+  media_duration_ms?: number | null
 }
 
 export type SuggestedMetadata = {
@@ -405,6 +411,7 @@ export function analyseQuestionMetadata(
 
   const savedMediaType = valueOrNull(question.media_type)
   const effectiveMediaType = savedMediaType ?? mediaTypeSuggestion.value
+  const mediaDurationMs = normaliseMediaDurationMs(question.media_duration_ms)
 
   if (effectiveMediaType === "audio" && !cleanText(question.audio_path)) {
     addWarning(warnings, "missing_audio_path", "This question looks like audio but has no audio_path.")
@@ -412,6 +419,22 @@ export function analyseQuestionMetadata(
 
   if (effectiveMediaType === "image" && !cleanText(question.image_path)) {
     addWarning(warnings, "missing_image_path", "This question looks like image-based but has no image_path.")
+  }
+
+  if (effectiveMediaType === "audio" && mediaDurationMs === null) {
+    addWarning(warnings, "missing_audio_duration", "This audio question needs media_duration_ms before Quickfire can use it safely.")
+  }
+
+  if (effectiveMediaType === "audio" && mediaDurationMs !== null && mediaDurationMs > QUICKFIRE_AUDIO_MAX_DURATION_MS) {
+    addWarning(
+      warnings,
+      "quickfire_audio_too_long",
+      `This audio clip is longer than ${QUICKFIRE_AUDIO_MAX_DURATION_MS / 1000} seconds and is not Quickfire-safe.`
+    )
+  }
+
+  if (effectiveMediaType !== "audio" && mediaDurationMs !== null) {
+    addWarning(warnings, "duration_on_non_audio", "media_duration_ms is set, but this question does not currently look audio-based.")
   }
 
   if (isBadMediaPath(question.audio_path)) {
