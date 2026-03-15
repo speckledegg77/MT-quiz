@@ -39,8 +39,8 @@ export async function POST(req: Request) {
     }
   }
 
-  const roomRoundPlan = materialiseRoundPlan(getEffectiveRoomRoundPlan(room))
-  const firstRound = findRoundForQuestionIndex(0, roomRoundPlan)
+  const roundPlan = materialiseRoundPlan(getEffectiveRoomRoundPlan(room))
+  const firstRound = findRoundForQuestionIndex(0, roundPlan)
   const roomTimes = buildQuestionTimesForRound({
     now: new Date(),
     room,
