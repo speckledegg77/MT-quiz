@@ -25,6 +25,7 @@ export type QuestionCandidate = {
   clueSource: string | null
   primaryShowKey: string | null
   mediaDurationMs: number | null
+  audioClipType: string | null
   packIds: string[]
 }
 
@@ -55,6 +56,7 @@ function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
     promptTargets: cleanStringArray(value.promptTargets),
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
+    audioClipTypes: cleanStringArray(value.audioClipTypes),
   }
 }
 
@@ -107,6 +109,7 @@ function candidateMatchesRules(candidate: QuestionCandidate, rules: RoundSelecti
   if (rules.promptTargets?.length && !rules.promptTargets.includes(candidate.promptTarget ?? "")) return false
   if (rules.clueSources?.length && !rules.clueSources.includes(candidate.clueSource ?? "")) return false
   if (rules.primaryShowKeys?.length && !rules.primaryShowKeys.includes(candidate.primaryShowKey ?? "")) return false
+  if (rules.audioClipTypes?.length && !rules.audioClipTypes.includes(candidate.audioClipType ?? "")) return false
   return true
 }
 

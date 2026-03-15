@@ -114,6 +114,7 @@ function cleanSelectionRules(raw: unknown): RoundSelectionRules {
     promptTargets: cleanStringArray(value.promptTargets),
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
+    audioClipTypes: cleanStringArray(value.audioClipTypes),
   }
 }
 
@@ -218,7 +219,7 @@ async function loadQuestionPoolForManualRounds(params: {
   const linksRes = await supabaseAdmin
     .from("pack_questions")
     .select(
-      "pack_id, question_id, questions(round_type, answer_type, media_type, prompt_target, clue_source, primary_show_key, media_duration_ms)"
+      "pack_id, question_id, questions(round_type, answer_type, media_type, prompt_target, clue_source, primary_show_key, media_duration_ms, audio_clip_type)"
     )
     .in("pack_id", scopePackIds)
 
@@ -253,6 +254,7 @@ async function loadQuestionPoolForManualRounds(params: {
       clueSource: question.clue_source ? String(question.clue_source) : null,
       primaryShowKey: question.primary_show_key ? String(question.primary_show_key) : null,
       mediaDurationMs: normaliseMediaDurationMs(question.media_duration_ms),
+      audioClipType: question.audio_clip_type ? String(question.audio_clip_type) : null,
       packIds: [packId],
     })
   }

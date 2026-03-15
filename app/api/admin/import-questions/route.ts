@@ -29,6 +29,7 @@ type CsvRow = {
   audio_path?: string
   image_path?: string
   media_duration_ms?: string
+  audio_clip_type?: string
 }
 
 function unauthorised() {
@@ -130,11 +131,13 @@ export async function POST(req: Request) {
       const imagePath = imagePathRaw ? imagePathRaw : null
 
       const mediaDurationRaw = String(r.media_duration_ms ?? "").trim()
+      const audioClipTypeRaw = String(r.audio_clip_type ?? "").trim().toLowerCase()
       const parsedMediaDuration = mediaDurationRaw ? Number(mediaDurationRaw) : null
       const mediaDurationMs =
         parsedMediaDuration !== null && Number.isFinite(parsedMediaDuration)
           ? Math.floor(parsedMediaDuration)
           : null
+      const audioClipType = audioClipTypeRaw || null
 
       if (!packId || !packName) {
         return NextResponse.json({ error: "Each row must include pack_id and pack_name" }, { status: 400 })
@@ -165,6 +168,10 @@ export async function POST(req: Request) {
         (parsedMediaDuration === null || !Number.isFinite(parsedMediaDuration) || mediaDurationMs === null || mediaDurationMs < 0)
       ) {
         return NextResponse.json({ error: `Invalid media_duration_ms for question ${questionId}` }, { status: 400 })
+      }
+
+      if (audioClipType && !["song_intro","song_clip","instrumental_section","vocal_section","dialogue_quote","character_voice","sound_effect","other"].includes(audioClipType)) {
+        return NextResponse.json({ error: `Invalid audio_clip_type for question ${questionId}` }, { status: 400 })
       }
 
       let options: string[] | null = null
@@ -220,6 +227,7 @@ export async function POST(req: Request) {
         audio_path: audioPath,
         image_path: imagePath,
         media_duration_ms: mediaDurationMs,
+        audio_clip_type: audioClipType,
         updated_at: new Date().toISOString(),
       })
 

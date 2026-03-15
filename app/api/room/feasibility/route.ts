@@ -28,6 +28,7 @@ function cleanSelectionRules(raw: unknown): RoundSelectionRules {
     promptTargets: cleanStringArray(value.promptTargets),
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
+    audioClipTypes: cleanStringArray(value.audioClipTypes),
   }
 }
 
@@ -82,7 +83,7 @@ export async function POST(req: Request) {
       const linksRes = await supabaseAdmin
         .from("pack_questions")
         .select(
-          "pack_id, question_id, questions(round_type, answer_type, media_type, prompt_target, clue_source, primary_show_key, media_duration_ms)"
+          "pack_id, question_id, questions(round_type, answer_type, media_type, prompt_target, clue_source, primary_show_key, media_duration_ms, audio_clip_type)"
         )
         .in("pack_id", scopePackIds)
 

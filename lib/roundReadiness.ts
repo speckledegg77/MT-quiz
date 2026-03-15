@@ -1,3 +1,4 @@
+import { AUDIO_CLIP_TYPE_VALUES, normaliseAudioClipType } from "@/lib/audioClipTypes"
 import { deriveMediaType } from "@/lib/manualRoundPlanBuilder"
 import {
   QUICKFIRE_AUDIO_MAX_DURATION_MS,
@@ -17,6 +18,7 @@ export type ReadinessQuestionRow = {
   primary_show_key: string | null
   metadata_review_state: string | null
   media_duration_ms: number | null
+  audio_clip_type: string | null
 }
 
 export type ReadinessPackRow = {
@@ -64,6 +66,7 @@ export type ReadinessReport = {
     confirmedMetadataCount: number
     missingCoreMetadataCount: number
   }
+  audioClipTypeCounts: Array<{ code: string; label: string; count: number }>
   quickfireExclusionReasons: Array<{ code: string; label: string; count: number }>
   metadataGapCounts: Array<{ code: string; label: string; count: number }>
   byPack: ReadinessBreakdownRow[]
@@ -77,6 +80,7 @@ type NormalisedQuestion = {
   mediaDurationMs: number | null
   primaryShowKey: string | null
   metadataReviewState: string | null
+  audioClipType: string | null
   hasCoreMetadataGap: boolean
   isAudioQuestion: boolean
   quickfireReasons: string[]
@@ -94,6 +98,7 @@ const METADATA_GAP_LABELS: Record<string, string> = {
   missing_clue_source: "Missing clue_source",
   missing_primary_show_key: "Missing primary_show_key",
   missing_audio_duration: "Missing media_duration_ms on audio",
+  missing_audio_clip_type: "Missing audio_clip_type on audio",
   missing_any_core_metadata: "Missing any core metadata",
 }
 
@@ -106,6 +111,7 @@ function normaliseQuestion(row: ReadinessQuestionRow): NormalisedQuestion {
   const mediaDurationMs = normaliseMediaDurationMs(row.media_duration_ms)
   const primaryShowKey = String(row.primary_show_key ?? "").trim() || null
   const metadataReviewState = String(row.metadata_review_state ?? "").trim() || null
+  const audioClipType = normaliseAudioClipType(row.audio_clip_type)
   const isAudioQuestion = mediaType === "audio"
   const missingMediaType = !String(row.media_type ?? "").trim()
   const missingPromptTarget = !String(row.prompt_target ?? "").trim()
@@ -120,12 +126,14 @@ function normaliseQuestion(row: ReadinessQuestionRow): NormalisedQuestion {
     mediaDurationMs,
     primaryShowKey,
     metadataReviewState,
+    audioClipType,
     hasCoreMetadataGap: missingMediaType || missingPromptTarget || missingClueSource || missingPrimaryShowKey,
     isAudioQuestion,
     quickfireReasons: getQuickfireIneligibilityReasons({
       answerType,
       mediaType,
       mediaDurationMs,
+      audioClipType,
     }),
   }
 }
@@ -206,6 +214,7 @@ export function buildRoundReadinessReport(params: {
 
   const quickfireReasonCounts = new Map<string, number>()
   const metadataGapCounts = new Map<string, number>()
+  const audioClipTypeCounts = new Map<string, number>()
   let summary = emptyBreakdownRow("summary", "Summary")
   let confirmedMetadataCount = 0
   let missingCoreMetadataCount = 0
@@ -236,6 +245,13 @@ export function buildRoundReadinessReport(params: {
     if (question.isAudioQuestion && question.mediaDurationMs === null) {
       metadataGapCounts.set("missing_audio_duration", (metadataGapCounts.get("missing_audio_duration") ?? 0) + 1)
     }
+    if (question.isAudioQuestion && question.audioClipType === null) {
+      metadataGapCounts.set("missing_audio_clip_type", (metadataGapCounts.get("missing_audio_clip_type") ?? 0) + 1)
+    }
+    if (question.isAudioQuestion) {
+      const code = question.audioClipType ?? "(blank)"
+      audioClipTypeCounts.set(code, (audioClipTypeCounts.get(code) ?? 0) + 1)
+    }
     if (question.hasCoreMetadataGap) {
       metadataGapCounts.set("missing_any_core_metadata", (metadataGapCounts.get("missing_any_core_metadata") ?? 0) + 1)
     }
@@ -256,6 +272,9 @@ export function buildRoundReadinessReport(params: {
       confirmedMetadataCount,
       missingCoreMetadataCount,
     },
+    audioClipTypeCounts: ["(blank)", ...AUDIO_CLIP_TYPE_VALUES]
+      .map((code) => ({ code, label: code === "(blank)" ? "Blank" : code, count: audioClipTypeCounts.get(code) ?? 0 }))
+      .filter((item) => item.count > 0),
     quickfireExclusionReasons: Object.entries(QUICKFIRE_REASON_LABELS)
       .map(([code, label]) => ({ code, label, count: quickfireReasonCounts.get(code) ?? 0 }))
       .filter((item) => item.count > 0),

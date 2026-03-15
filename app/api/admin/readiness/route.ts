@@ -19,7 +19,7 @@ export async function GET(req: Request) {
     supabaseAdmin
       .from("questions")
       .select(
-        "id, round_type, answer_type, media_type, audio_path, image_path, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms"
+        "id, round_type, answer_type, media_type, audio_path, image_path, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, audio_clip_type"
       )
       .order("id", { ascending: true }),
     supabaseAdmin.from("pack_questions").select("question_id, pack_id"),

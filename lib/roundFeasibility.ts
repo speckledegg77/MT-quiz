@@ -68,6 +68,7 @@ function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
     promptTargets: cleanStringArray(value.promptTargets),
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
+    audioClipTypes: cleanStringArray(value.audioClipTypes),
   }
 }
 
@@ -112,6 +113,7 @@ function candidateMatchesRules(candidate: QuestionCandidate, rules: RoundSelecti
   if (rules.promptTargets?.length && !rules.promptTargets.includes(candidate.promptTarget ?? "")) return false
   if (rules.clueSources?.length && !rules.clueSources.includes(candidate.clueSource ?? "")) return false
   if (rules.primaryShowKeys?.length && !rules.primaryShowKeys.includes(candidate.primaryShowKey ?? "")) return false
+  if (rules.audioClipTypes?.length && !rules.audioClipTypes.includes(candidate.audioClipType ?? "")) return false
   return true
 }
 
@@ -254,6 +256,7 @@ export function buildQuestionCandidatesFromPackRows(rows: any[]) {
       clueSource: question.clue_source ? String(question.clue_source) : null,
       primaryShowKey: question.primary_show_key ? String(question.primary_show_key) : null,
       mediaDurationMs: normaliseMediaDurationMs(question.media_duration_ms),
+      audioClipType: question.audio_clip_type ? String(question.audio_clip_type) : null,
       packIds: [packId],
     })
   }

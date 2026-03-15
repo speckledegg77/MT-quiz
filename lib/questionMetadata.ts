@@ -1,3 +1,4 @@
+import { AUDIO_CLIP_TYPE_VALUES, type AudioClipType, normaliseAudioClipType } from "@/lib/audioClipTypes"
 import {
   QUICKFIRE_AUDIO_MAX_DURATION_MS,
   normaliseMediaDurationMs,
@@ -23,6 +24,8 @@ export const CLUE_SOURCE_VALUES = [
   "cast_headshot",
   "prop_image",
 ] as const
+export const AUDIO_CLIP_TYPE_VALUES_FOR_METADATA = AUDIO_CLIP_TYPE_VALUES
+
 export const METADATA_REVIEW_STATE_VALUES = [
   "unreviewed",
   "suggested",
@@ -34,6 +37,7 @@ export type MediaType = (typeof MEDIA_TYPE_VALUES)[number]
 export type PromptTarget = (typeof PROMPT_TARGET_VALUES)[number]
 export type ClueSource = (typeof CLUE_SOURCE_VALUES)[number]
 export type MetadataReviewState = (typeof METADATA_REVIEW_STATE_VALUES)[number]
+export type QuestionAudioClipType = AudioClipType
 
 export type ShowRow = {
   show_key: string
@@ -64,6 +68,7 @@ export type QuestionRowForMetadata = {
   primary_show_key?: string | null
   metadata_review_state?: string | null
   media_duration_ms?: number | null
+  audio_clip_type?: string | null
 }
 
 export type SuggestedMetadata = {
@@ -412,6 +417,7 @@ export function analyseQuestionMetadata(
   const savedMediaType = valueOrNull(question.media_type)
   const effectiveMediaType = savedMediaType ?? mediaTypeSuggestion.value
   const mediaDurationMs = normaliseMediaDurationMs(question.media_duration_ms)
+  const audioClipType = normaliseAudioClipType(question.audio_clip_type)
 
   if (effectiveMediaType === "audio" && !cleanText(question.audio_path)) {
     addWarning(warnings, "missing_audio_path", "This question looks like audio but has no audio_path.")
@@ -425,6 +431,10 @@ export function analyseQuestionMetadata(
     addWarning(warnings, "missing_audio_duration", "This audio question needs media_duration_ms before Quickfire can use it safely.")
   }
 
+  if (effectiveMediaType === "audio" && audioClipType === null) {
+    addWarning(warnings, "missing_audio_clip_type", "This audio question needs audio_clip_type so you can filter intros, clips, dialogue, and effects reliably.")
+  }
+
   if (effectiveMediaType === "audio" && mediaDurationMs !== null && mediaDurationMs > QUICKFIRE_AUDIO_MAX_DURATION_MS) {
     addWarning(
       warnings,
@@ -435,6 +445,10 @@ export function analyseQuestionMetadata(
 
   if (effectiveMediaType !== "audio" && mediaDurationMs !== null) {
     addWarning(warnings, "duration_on_non_audio", "media_duration_ms is set, but this question does not currently look audio-based.")
+  }
+
+  if (effectiveMediaType !== "audio" && audioClipType !== null) {
+    addWarning(warnings, "audio_clip_type_on_non_audio", "audio_clip_type is set, but this question does not currently look audio-based.")
   }
 
   if (isBadMediaPath(question.audio_path)) {

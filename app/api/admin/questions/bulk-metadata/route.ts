@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 
 import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/adminAuth"
+import { AUDIO_CLIP_TYPE_VALUES } from "@/lib/audioClipTypes"
 import {
   CLUE_SOURCE_VALUES,
   MEDIA_TYPE_VALUES,
@@ -22,6 +23,7 @@ const bulkMetadataSchema = z.object({
       primaryShowKey: z.string().trim().nullable().optional(),
       metadataReviewState: z.enum(METADATA_REVIEW_STATE_VALUES).optional(),
       mediaDurationMs: z.number().int().min(0).nullable().optional(),
+      audioClipType: z.enum(AUDIO_CLIP_TYPE_VALUES).nullable().optional(),
     })
     .refine(
       (value) =>
@@ -30,7 +32,8 @@ const bulkMetadataSchema = z.object({
         value.clueSource !== undefined ||
         value.primaryShowKey !== undefined ||
         value.metadataReviewState !== undefined ||
-        value.mediaDurationMs !== undefined,
+        value.mediaDurationMs !== undefined ||
+        value.audioClipType !== undefined,
       { message: "At least one metadata change must be provided." }
     ),
 })
@@ -68,6 +71,7 @@ export async function POST(req: Request) {
   if (changes.primaryShowKey !== undefined) update.primary_show_key = normaliseShowKey(changes.primaryShowKey)
   if (changes.metadataReviewState !== undefined) update.metadata_review_state = changes.metadataReviewState
   if (changes.mediaDurationMs !== undefined) update.media_duration_ms = changes.mediaDurationMs
+  if (changes.audioClipType !== undefined) update.audio_clip_type = changes.audioClipType
 
   const updateRes = await supabaseAdmin
     .from("questions")

@@ -97,6 +97,7 @@ type ManualRoundDraft = {
   promptTarget: string
   clueSource: string
   primaryShowKey: string
+  audioClipType: string
   useTimingOverride: boolean
   answerSecondsStr: string
   roundReviewSecondsStr: string
@@ -117,6 +118,18 @@ const PROMPT_TARGET_OPTIONS = [
 const ROUND_BEHAVIOUR_OPTIONS: Array<{ value: RoundBehaviourType; label: string }> = [
   { value: "standard", label: "Standard" },
   { value: "quickfire", label: "Quickfire" },
+]
+
+const AUDIO_CLIP_TYPE_OPTIONS = [
+  { value: "", label: "Any audio clip type" },
+  { value: "song_intro", label: "song_intro" },
+  { value: "song_clip", label: "song_clip" },
+  { value: "instrumental_section", label: "instrumental_section" },
+  { value: "vocal_section", label: "vocal_section" },
+  { value: "dialogue_quote", label: "dialogue_quote" },
+  { value: "character_voice", label: "character_voice" },
+  { value: "sound_effect", label: "sound_effect" },
+  { value: "other", label: "other" },
 ]
 
 const CLUE_SOURCE_OPTIONS = [
@@ -182,6 +195,7 @@ function makeManualRound(index: number): ManualRoundDraft {
     promptTarget: "",
     clueSource: "",
     primaryShowKey: "",
+    audioClipType: "",
     useTimingOverride: false,
     answerSecondsStr: "",
     roundReviewSecondsStr: "",
@@ -194,6 +208,7 @@ function buildSelectionRulesFromDraft(round: ManualRoundDraft) {
     promptTargets: round.promptTarget ? [round.promptTarget] : [],
     clueSources: round.clueSource ? [round.clueSource] : [],
     primaryShowKeys: round.primaryShowKey ? [round.primaryShowKey] : [],
+    audioClipTypes: round.audioClipType ? [round.audioClipType] : [],
   }
 }
 
@@ -218,6 +233,7 @@ function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
   const promptTarget = firstRuleValue(template.selection_rules, "promptTargets")
   const clueSource = firstRuleValue(template.selection_rules, "clueSources")
   const primaryShowKey = firstRuleValue(template.selection_rules, "primaryShowKeys")
+  const audioClipType = firstRuleValue(template.selection_rules, "audioClipTypes")
   const defaultPackIds = Array.isArray(template.default_pack_ids)
     ? template.default_pack_ids.map((value) => String(value ?? "").trim()).filter(Boolean)
     : []
@@ -241,6 +257,7 @@ function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
       promptTargets: promptTarget ? [promptTarget] : [],
       clueSources: clueSource ? [clueSource] : [],
       primaryShowKeys: primaryShowKey ? [primaryShowKey] : [],
+      audioClipTypes: audioClipType ? [audioClipType] : [],
     },
   }
 }
@@ -623,6 +640,7 @@ export default function HostPage() {
     const promptTarget = firstRuleValue(template.selection_rules, "promptTargets")
     const clueSource = firstRuleValue(template.selection_rules, "clueSources")
     const primaryShowKey = firstRuleValue(template.selection_rules, "primaryShowKeys")
+    const audioClipType = firstRuleValue(template.selection_rules, "audioClipTypes")
     const defaultPackIds = Array.isArray(template.default_pack_ids)
       ? template.default_pack_ids.map((value) => String(value ?? "").trim()).filter(Boolean)
       : []
@@ -654,6 +672,7 @@ export default function HostPage() {
         promptTarget,
         clueSource,
         primaryShowKey,
+        audioClipType,
         useTimingOverride: false,
         answerSecondsStr: "",
         roundReviewSecondsStr: "",
@@ -1481,6 +1500,13 @@ export default function HostPage() {
                               <select value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
                                 <option value="">Any show</option>
                                 {shows.map((show) => <option key={show.show_key} value={show.show_key}>{show.display_name}</option>)}
+                              </select>
+                            </div>
+
+                            <div>
+                              <div className="text-sm font-medium text-foreground">audio_clip_type</div>
+                              <select value={round.audioClipType} onChange={(e) => updateManualRound(round.id, { audioClipType: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" disabled={round.mediaType !== "audio"}>
+                                {AUDIO_CLIP_TYPE_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
                               </select>
                             </div>
                           </div>

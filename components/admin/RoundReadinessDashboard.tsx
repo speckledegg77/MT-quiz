@@ -37,6 +37,7 @@ type ReadinessResponse = {
       confirmedMetadataCount: number
       missingCoreMetadataCount: number
     }
+    audioClipTypeCounts: Array<{ code: string; label: string; count: number }>
     quickfireExclusionReasons: Array<{ code: string; label: string; count: number }>
     metadataGapCounts: Array<{ code: string; label: string; count: number }>
     byPack: ReadinessBreakdownRow[]
@@ -209,6 +210,20 @@ export function RoundReadinessDashboard() {
           </Card>
 
           <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Audio clip types</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {report?.audioClipTypeCounts.length ? report.audioClipTypeCounts.map((item) => (
+                  <div key={item.code} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm">
+                    <span>{item.label}</span>
+                    <span className={cx("rounded-full px-2 py-0.5 text-xs font-medium", item.count > 0 ? "bg-sky-100 text-sky-900" : "bg-muted text-muted-foreground")}>{item.count}</span>
+                  </div>
+                )) : <div className="text-sm text-muted-foreground">No audio clip types found.</div>}
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>Quickfire exclusions</CardTitle>

@@ -56,6 +56,7 @@ type TemplateEditorState = {
   promptTarget: string
   clueSource: string
   primaryShowKey: string
+  audioClipType: string
   isActive: boolean
   sortOrder: number
 }
@@ -88,6 +89,18 @@ const PROMPT_TARGET_OPTIONS = [
   { value: "fact_value", label: "fact_value" },
 ]
 
+const AUDIO_CLIP_TYPE_OPTIONS = [
+  { value: "", label: "No filter" },
+  { value: "song_intro", label: "song_intro" },
+  { value: "song_clip", label: "song_clip" },
+  { value: "instrumental_section", label: "instrumental_section" },
+  { value: "vocal_section", label: "vocal_section" },
+  { value: "dialogue_quote", label: "dialogue_quote" },
+  { value: "character_voice", label: "character_voice" },
+  { value: "sound_effect", label: "sound_effect" },
+  { value: "other", label: "other" },
+]
+
 const CLUE_SOURCE_OPTIONS = [
   { value: "", label: "No filter" },
   { value: "direct_fact", label: "direct_fact" },
@@ -118,6 +131,7 @@ function buildSelectionRulesFromEditor(editor: TemplateEditorState) {
   if (editor.promptTarget) rules.promptTargets = [editor.promptTarget]
   if (editor.clueSource) rules.clueSources = [editor.clueSource]
   if (editor.primaryShowKey) rules.primaryShowKeys = [editor.primaryShowKey]
+  if (editor.audioClipType) rules.audioClipTypes = [editor.audioClipType]
 
   return rules
 }
@@ -163,6 +177,7 @@ function createBlankEditor(): TemplateEditorState {
     promptTarget: "",
     clueSource: "",
     primaryShowKey: "",
+    audioClipType: "",
     isActive: true,
     sortOrder: 0,
   }
@@ -190,6 +205,7 @@ function editorFromTemplate(template: RoundTemplateRow): TemplateEditorState {
     promptTarget: firstRuleValue(template.selection_rules, "promptTargets"),
     clueSource: firstRuleValue(template.selection_rules, "clueSources"),
     primaryShowKey: firstRuleValue(template.selection_rules, "primaryShowKeys"),
+    audioClipType: firstRuleValue(template.selection_rules, "audioClipTypes"),
     isActive: !!template.is_active,
     sortOrder: Number(template.sort_order ?? 0),
   }
@@ -932,6 +948,22 @@ function TemplateFields({
               {shows.map((show) => (
                 <option key={show.show_key} value={show.show_key}>
                   {show.display_name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-1">
+            <span className="text-sm font-medium">audio_clip_type</span>
+            <select
+              value={editor.audioClipType}
+              onChange={(event) => setEditor((current) => ({ ...current, audioClipType: event.target.value }))}
+              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
+              disabled={editor.mediaType !== "audio"}
+            >
+              {AUDIO_CLIP_TYPE_OPTIONS.map((option) => (
+                <option key={option.value || "blank"} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>

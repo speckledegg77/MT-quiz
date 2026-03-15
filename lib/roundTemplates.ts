@@ -16,6 +16,7 @@ export type RoundTemplateSelectionRules = {
   promptTargets?: string[]
   clueSources?: string[]
   primaryShowKeys?: string[]
+  audioClipTypes?: string[]
 }
 
 export type RoundTemplateRow = {
@@ -57,6 +58,7 @@ export function normaliseSelectionRules(raw: unknown): RoundTemplateSelectionRul
   const promptTargets = cleanStringArray(value.promptTargets)
   const clueSources = cleanStringArray(value.clueSources)
   const primaryShowKeys = cleanStringArray(value.primaryShowKeys)
+  const audioClipTypes = cleanStringArray(value.audioClipTypes)
 
   const result: RoundTemplateSelectionRules = {}
 
@@ -64,6 +66,7 @@ export function normaliseSelectionRules(raw: unknown): RoundTemplateSelectionRul
   if (promptTargets.length) result.promptTargets = promptTargets
   if (clueSources.length) result.clueSources = clueSources
   if (primaryShowKeys.length) result.primaryShowKeys = primaryShowKeys
+  if (audioClipTypes.length) result.audioClipTypes = audioClipTypes
 
   return result
 }

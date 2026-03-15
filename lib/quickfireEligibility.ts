@@ -4,6 +4,7 @@ export type QuickfireEligibilityLike = {
   answerType?: string | null
   mediaType?: string | null
   mediaDurationMs?: number | null
+  audioClipType?: string | null
 }
 
 export function normaliseMediaDurationMs(raw: unknown): number | null {

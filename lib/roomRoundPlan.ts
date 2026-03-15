@@ -7,6 +7,7 @@ export type RoundSelectionRules = {
   promptTargets?: string[]
   clueSources?: string[]
   primaryShowKeys?: string[]
+  audioClipTypes?: string[]
 }
 
 export type RoundPlanItem = {
@@ -118,6 +119,7 @@ function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
     promptTargets: cleanStringArray(value.promptTargets),
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
+    audioClipTypes: cleanStringArray(value.audioClipTypes),
   }
 }
 

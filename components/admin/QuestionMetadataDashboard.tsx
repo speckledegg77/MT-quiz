@@ -24,6 +24,7 @@ type MetadataSaved = {
   primaryShowKey: string | null
   metadataReviewState: string | null
   mediaDurationMs: number | null
+  audioClipType: string | null
 }
 
 type MetadataSuggested = {
@@ -62,6 +63,7 @@ type QuestionSummaryItem = {
     primary_show_key: string | null
     metadata_review_state: string | null
     media_duration_ms: number | null
+    audio_clip_type: string | null
     created_at: string
     updated_at: string
   }
@@ -108,6 +110,7 @@ type EditorState = {
   promptTarget: string
   clueSource: string
   primaryShowKey: string
+  audioClipType: string
   metadataReviewState: string
   mediaDurationMs: string
 }
@@ -117,6 +120,7 @@ type BulkEditorState = {
   promptTarget: string
   clueSource: string
   primaryShowKey: string
+  audioClipType: string
   metadataReviewState: string
 }
 
@@ -137,6 +141,18 @@ const PROMPT_TARGET_OPTIONS = [
   { value: "character_name", label: "character_name" },
   { value: "creative_name", label: "creative_name" },
   { value: "fact_value", label: "fact_value" },
+]
+
+const AUDIO_CLIP_TYPE_OPTIONS = [
+  { value: "", label: "Blank" },
+  { value: "song_intro", label: "song_intro" },
+  { value: "song_clip", label: "song_clip" },
+  { value: "instrumental_section", label: "instrumental_section" },
+  { value: "vocal_section", label: "vocal_section" },
+  { value: "dialogue_quote", label: "dialogue_quote" },
+  { value: "character_voice", label: "character_voice" },
+  { value: "sound_effect", label: "sound_effect" },
+  { value: "other", label: "other" },
 ]
 
 const CLUE_SOURCE_OPTIONS = [
@@ -180,6 +196,7 @@ const METADATA_GAP_OPTIONS = [
   { value: "missing_prompt_target", label: "Missing prompt_target" },
   { value: "missing_clue_source", label: "Missing clue_source" },
   { value: "missing_audio_duration", label: "Missing media_duration_ms on audio" },
+  { value: "missing_audio_clip_type", label: "Missing audio_clip_type on audio" },
   { value: "missing_any_core_metadata", label: "Missing any core metadata" },
 ]
 
@@ -227,6 +244,19 @@ const BULK_CLUE_SOURCE_OPTIONS = [
   { value: "production_photo", label: "production_photo" },
   { value: "cast_headshot", label: "cast_headshot" },
   { value: "prop_image", label: "prop_image" },
+]
+
+const BULK_AUDIO_CLIP_TYPE_OPTIONS = [
+  { value: UNCHANGED_VALUE, label: "Leave unchanged" },
+  { value: "", label: "Set blank" },
+  { value: "song_intro", label: "song_intro" },
+  { value: "song_clip", label: "song_clip" },
+  { value: "instrumental_section", label: "instrumental_section" },
+  { value: "vocal_section", label: "vocal_section" },
+  { value: "dialogue_quote", label: "dialogue_quote" },
+  { value: "character_voice", label: "character_voice" },
+  { value: "sound_effect", label: "sound_effect" },
+  { value: "other", label: "other" },
 ]
 
 const BULK_REVIEW_STATE_OPTIONS = [
@@ -278,6 +308,7 @@ function buildSummaryText(item: QuestionSummaryItem) {
     item.metadata.saved.promptTarget || item.metadata.suggested.promptTarget || "target ?",
     item.metadata.saved.clueSource || item.metadata.suggested.clueSource || "clue ?",
   ]
+  if (item.metadata.saved.audioClipType) parts.push(item.metadata.saved.audioClipType)
   return parts.join(" · ")
 }
 
@@ -325,6 +356,7 @@ export function QuestionMetadataDashboard() {
     promptTarget: "",
     clueSource: "",
     primaryShowKey: "",
+    audioClipType: "",
     metadataReviewState: "unreviewed",
     mediaDurationMs: "",
   })
@@ -334,6 +366,7 @@ export function QuestionMetadataDashboard() {
     promptTarget: UNCHANGED_VALUE,
     clueSource: UNCHANGED_VALUE,
     primaryShowKey: UNCHANGED_VALUE,
+    audioClipType: UNCHANGED_VALUE,
     metadataReviewState: UNCHANGED_VALUE,
   })
 
@@ -508,6 +541,7 @@ export function QuestionMetadataDashboard() {
         promptTarget: normaliseEditorValue(nextItem.metadata.saved.promptTarget),
         clueSource: normaliseEditorValue(nextItem.metadata.saved.clueSource),
         primaryShowKey: normaliseEditorValue(nextItem.metadata.saved.primaryShowKey),
+        audioClipType: normaliseEditorValue(nextItem.metadata.saved.audioClipType),
         metadataReviewState: normaliseEditorValue(nextItem.metadata.saved.metadataReviewState || "unreviewed"),
         mediaDurationMs: normaliseDurationEditorValue(nextItem.metadata.saved.mediaDurationMs),
       })
@@ -528,6 +562,7 @@ export function QuestionMetadataDashboard() {
       promptTarget: detailItem.metadata.suggested.promptTarget || current.promptTarget,
       clueSource: detailItem.metadata.suggested.clueSource || current.clueSource,
       primaryShowKey: detailItem.metadata.suggested.primaryShowKey || current.primaryShowKey,
+      audioClipType: current.audioClipType,
       metadataReviewState:
         current.metadataReviewState === "unreviewed" ? "suggested" : current.metadataReviewState,
     }))
@@ -551,6 +586,7 @@ export function QuestionMetadataDashboard() {
           promptTarget: trimToNull(editor.promptTarget),
           clueSource: trimToNull(editor.clueSource),
           primaryShowKey: trimToNull(editor.primaryShowKey),
+          audioClipType: trimToNull(editor.audioClipType),
           metadataReviewState: editor.metadataReviewState || "unreviewed",
           mediaDurationMs: parseDurationMs(editor.mediaDurationMs),
         }),
@@ -599,6 +635,10 @@ export function QuestionMetadataDashboard() {
 
     if (bulkEditor.primaryShowKey !== UNCHANGED_VALUE) {
       changes.primaryShowKey = trimToNull(bulkEditor.primaryShowKey)
+    }
+
+    if (bulkEditor.audioClipType !== UNCHANGED_VALUE) {
+      changes.audioClipType = trimToNull(bulkEditor.audioClipType)
     }
 
     if (bulkEditor.metadataReviewState !== UNCHANGED_VALUE) {
@@ -991,6 +1031,21 @@ export function QuestionMetadataDashboard() {
               </label>
 
               <label className="grid gap-1">
+                <span className="text-sm font-medium">audio_clip_type</span>
+                <select
+                  value={bulkEditor.audioClipType}
+                  onChange={(event) => setBulkEditor((current) => ({ ...current, audioClipType: event.target.value }))}
+                  className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
+                >
+                  {BULK_AUDIO_CLIP_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="grid gap-1">
                 <span className="text-sm font-medium">metadata_review_state</span>
                 <select
                   value={bulkEditor.metadataReviewState}
@@ -1224,6 +1279,25 @@ export function QuestionMetadataDashboard() {
                   </label>
 
                   <label className="grid gap-1">
+                    <span className="text-sm font-medium">audio_clip_type</span>
+                    <select
+                      value={editor.audioClipType}
+                      onChange={(event) => setEditor((current) => ({ ...current, audioClipType: event.target.value }))}
+                      className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
+                      disabled={editor.mediaType !== "audio"}
+                    >
+                      {AUDIO_CLIP_TYPE_OPTIONS.map((option) => (
+                        <option key={option.value || "blank"} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="text-xs text-muted-foreground">
+                      Distinguish intros, dialogue, vocal clips, instrumental sections, and effects. Leave blank for non-audio questions.
+                    </div>
+                  </label>
+
+                  <label className="grid gap-1">
                     <span className="text-sm font-medium">media_duration_ms</span>
                     <input
                       value={editor.mediaDurationMs}
@@ -1304,6 +1378,7 @@ export function QuestionMetadataDashboard() {
                     <div>primary_show_key: {selectedSummary.saved.primaryShowKey || "Blank"}</div>
                     <div>metadata_review_state: {selectedSummary.saved.metadataReviewState || "Blank"}</div>
                     <div>media_duration_ms: {formatDurationMs(selectedSummary.saved.mediaDurationMs)}</div>
+                    <div>audio_clip_type: {selectedSummary.saved.audioClipType || "Blank"}</div>
                   </div>
                 </div>
 
