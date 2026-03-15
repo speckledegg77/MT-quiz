@@ -1193,9 +1193,25 @@ export function QuestionMetadataDashboard() {
                     Legacy round type: {detailItem.question.round_type} · Answer type: {detailItem.question.answer_type}
                   </div>
                   {detailItem.question.audio_path ? (
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      audio_path: {detailItem.question.audio_path}
-                    </div>
+                    <>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        audio_path: {detailItem.question.audio_path}
+                      </div>
+                      <div className="mt-3 rounded-lg border border-border bg-background p-3">
+                        <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Audio preview
+                        </div>
+                        <audio
+                          key={`${detailItem.question.id}:${detailItem.question.audio_path}`}
+                          controls
+                          preload="metadata"
+                          className="w-full"
+                          src={`/api/audio?path=${encodeURIComponent(detailItem.question.audio_path)}`}
+                        >
+                          Your browser does not support audio preview.
+                        </audio>
+                      </div>
+                    </>
                   ) : null}
                   {detailItem.question.image_path ? (
                     <div className="mt-1 text-xs text-muted-foreground">
