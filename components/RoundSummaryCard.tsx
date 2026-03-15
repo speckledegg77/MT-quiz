@@ -98,13 +98,26 @@ function parseEndsAt(value: Props["roundSummaryEndsAt"]) {
   return Number.isFinite(ms) ? ms : null
 }
 
+function roundModeLabel(isQuickfire: boolean) {
+  return isQuickfire ? "Quickfire" : "Standard"
+}
+
+function roundModeBadgeClass(isQuickfire: boolean) {
+  return isQuickfire
+    ? "border-violet-500/40 bg-violet-600/10 text-violet-200"
+    : "border-emerald-500/40 bg-emerald-600/10 text-emerald-200"
+}
+
 function formatCorrectNames(question: QuickfireReviewQuestion) {
   if (!Array.isArray(question.correctPlayerNames) || question.correctPlayerNames.length === 0) {
     return "no-one"
   }
 
   return question.correctPlayerNames
-    .map((name) => (name === question.fastestCorrectPlayerName ? `${name}⚡` : name))
+    .map((name, index) => {
+      const playerId = String(question.correctPlayerIds[index] ?? "")
+      return playerId && playerId === question.fastestCorrectPlayerId ? `${name}⚡` : name
+    })
     .join(", ")
 }
 
@@ -156,7 +169,12 @@ export default function RoundSummaryCard({
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="text-xs uppercase tracking-wide text-muted-foreground">End of round</div>
-            <CardTitle className="mt-1">Round {Number(round?.number ?? 0)}</CardTitle>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <CardTitle>Round {Number(round?.number ?? 0)}</CardTitle>
+              <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${roundModeBadgeClass(isQuickfire)}`}>
+                {roundModeLabel(isQuickfire)}
+              </span>
+            </div>
             <div className="mt-1 text-sm text-muted-foreground">{String(round?.name ?? "Round summary")}</div>
           </div>
 
@@ -172,6 +190,16 @@ export default function RoundSummaryCard({
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {isQuickfire ? (
+          <div className="rounded-xl border border-violet-500/30 bg-violet-600/10 px-4 py-3 text-sm">
+            <div className="font-medium text-foreground">Quickfire review</div>
+            <div className="mt-1 text-muted-foreground">
+              There was no reveal after each question. This review shows the correct answer, who got it right, and
+              who earned the fastest bonus point. The lightning mark shows the fastest correct player.
+            </div>
+          </div>
+        ) : null}
+
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-xl border border-border bg-card p-3">
             <div className="text-xs text-muted-foreground">Correct</div>
@@ -181,14 +209,14 @@ export default function RoundSummaryCard({
           </div>
 
           <div className="rounded-xl border border-border bg-card p-3">
-            <div className="text-xs text-muted-foreground">
-              {isQuickfire ? "Fastest bonuses" : "Joker usage"}
-            </div>
+            <div className="text-xs text-muted-foreground">{isQuickfire ? "Fastest bonuses" : "Joker usage"}</div>
             <div className="mt-1 text-lg font-semibold">
               {isQuickfire ? fmt(fastestAwardCount) : fmt(Number(roundStats?.jokerUsed ?? 0))}
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
-              {isQuickfire ? "One bonus point for the fastest correct player on each question." : `Joker correct: ${fmt(Number(roundStats?.jokerCorrect ?? 0))}`}
+              {isQuickfire
+                ? "One bonus point goes to the fastest correct player on each question."
+                : `Joker correct: ${fmt(Number(roundStats?.jokerCorrect ?? 0))}`}
             </div>
           </div>
         </div>
@@ -199,15 +227,27 @@ export default function RoundSummaryCard({
 
             <div className="space-y-3">
               {quickfireQuestions.map((question) => (
-                <div
-                  key={question.questionId}
-                  className="rounded-xl border border-border bg-card px-4 py-3"
-                >
-                  <div className="text-sm font-medium text-foreground">
-                    Q{question.questionNumberInRound}. {question.questionText}
+                <div key={question.questionId} className="rounded-xl border border-border bg-card px-4 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium leading-relaxed text-foreground">
+                        Q{question.questionNumberInRound}. {question.questionText}
+                      </div>
+                    </div>
+
+                    {question.fastestCorrectPlayerName ? (
+                      <span className="shrink-0 rounded-full border border-violet-500/40 bg-violet-600/10 px-2 py-0.5 text-[11px] text-violet-200">
+                        Fastest bonus
+                      </span>
+                    ) : null}
                   </div>
-                  <div className="mt-2 text-sm text-foreground">{question.correctAnswer || "No answer recorded"}</div>
-                  <div className="mt-2 text-sm text-muted-foreground">Correct: {formatCorrectNames(question)}</div>
+
+                  <div className="mt-3 text-xs uppercase tracking-wide text-muted-foreground">Answer</div>
+                  <div className="mt-1 whitespace-pre-wrap text-sm text-foreground">
+                    {question.correctAnswer || "No answer recorded"}
+                  </div>
+
+                  <div className="mt-3 text-sm text-muted-foreground">Correct: {formatCorrectNames(question)}</div>
                 </div>
               ))}
             </div>
@@ -225,7 +265,9 @@ export default function RoundSummaryCard({
                     <div>
                       <div className="text-sm font-semibold text-foreground">{team.team}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        Correct {fmt(Number(team.correct ?? 0))}/{fmt(Number(team.answered ?? 0))} | Joker {fmt(Number(team.jokerUsed ?? 0))}
+                        {isQuickfire
+                          ? `Correct ${fmt(Number(team.correct ?? 0))}/${fmt(Number(team.answered ?? 0))}`
+                          : `Correct ${fmt(Number(team.correct ?? 0))}/${fmt(Number(team.answered ?? 0))} | Joker ${fmt(Number(team.jokerUsed ?? 0))}`}
                       </div>
                     </div>
 

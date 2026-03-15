@@ -7,6 +7,7 @@ import QRTile from "@/components/ui/QRTile"
 import { supabase } from "@/lib/supabaseClient"
 import { randomTeamName } from "@/lib/teamNameSuggestions"
 import { firstRuleValue, type RoundTemplateRow } from "@/lib/roundTemplates"
+import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour } from "@/lib/roomRoundPlan"
 
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card"
@@ -111,8 +112,8 @@ const PROMPT_TARGET_OPTIONS = [
 ]
 
 const ROUND_BEHAVIOUR_OPTIONS: Array<{ value: RoundBehaviourType; label: string }> = [
-  { value: "standard", label: "standard" },
-  { value: "quickfire", label: "quickfire" },
+  { value: "standard", label: "Standard" },
+  { value: "quickfire", label: "Quickfire" },
 ]
 
 const CLUE_SOURCE_OPTIONS = [
@@ -202,6 +203,8 @@ function serialiseManualRoundDraft(round: ManualRoundDraft, index: number) {
     sourceMode: round.sourceMode,
     packIds: round.packIds,
     selectionRules: buildSelectionRulesFromDraft(round),
+    answerSeconds: getDefaultAnswerSecondsForBehaviour(round.behaviourType),
+    roundReviewSeconds: getDefaultRoundReviewSecondsForBehaviour(round.behaviourType),
   }
 }
 
@@ -242,6 +245,28 @@ function feasibilityTone(result: FeasibilityRoundResult) {
   return "ok"
 }
 
+function roundBehaviourLabel(behaviourType: RoundBehaviourType) {
+  return behaviourType === "quickfire" ? "Quickfire" : "Standard"
+}
+
+function roundBehaviourBadgeClass(behaviourType: RoundBehaviourType) {
+  return behaviourType === "quickfire"
+    ? "border-violet-500/40 bg-violet-600/10 text-violet-200"
+    : "border-emerald-500/40 bg-emerald-600/10 text-emerald-200"
+}
+
+function roundBehaviourSummary(behaviourType: RoundBehaviourType) {
+  if (behaviourType === "quickfire") {
+    return "Fast answers, no Joker, no reveal after each question, and the fastest correct player gets a bonus point."
+  }
+
+  return "Classic question flow with the normal reveal after each question. Joker can be enabled if you want it."
+}
+
+function roundBehaviourTimingText(behaviourType: RoundBehaviourType) {
+  return `${getDefaultAnswerSecondsForBehaviour(behaviourType)}s answer window, ${getDefaultRoundReviewSecondsForBehaviour(behaviourType)}s round review`
+}
+
 export default function HostPage() {
   const [packs, setPacks] = useState<PackRow[]>([])
   const [shows, setShows] = useState<ShowRow[]>([])
@@ -258,7 +283,7 @@ export default function HostPage() {
 
   const [totalQuestionsStr, setTotalQuestionsStr] = useState("20")
   const [answerSecondsStr, setAnswerSecondsStr] = useState("20")
-  const [roundReviewSecondsStr, setRoundReviewSecondsStr] = useState("10")
+  const [roundReviewSecondsStr, setRoundReviewSecondsStr] = useState("30")
   const [untimedAnswers, setUntimedAnswers] = useState(false)
 
   const [roundCountStr, setRoundCountStr] = useState("4")
@@ -1255,6 +1280,29 @@ export default function HostPage() {
                       {selectedTemplateToAdd?.description ? <div>Template: {selectedTemplateToAdd.description}</div> : null}
                     </div>
 
+                    <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                      <div className="rounded-2xl border border-border bg-card p-3">
+                        <div className="flex items-center gap-2">
+                          <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${roundBehaviourBadgeClass("standard")}`}>
+                            {roundBehaviourLabel("standard")}
+                          </span>
+                          <span className="text-xs text-muted-foreground">{roundBehaviourTimingText("standard")}</span>
+                        </div>
+                        <div className="mt-2 text-sm text-foreground">{roundBehaviourSummary("standard")}</div>
+                      </div>
+
+                      <div className="rounded-2xl border border-border bg-card p-3">
+                        <div className="flex items-center gap-2">
+                          <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${roundBehaviourBadgeClass("quickfire")}`}>
+                            {roundBehaviourLabel("quickfire")}
+                          </span>
+                          <span className="text-xs text-muted-foreground">{roundBehaviourTimingText("quickfire")}</span>
+                        </div>
+                        <div className="mt-2 text-sm text-foreground">{roundBehaviourSummary("quickfire")}</div>
+                        <div className="mt-2 text-xs text-muted-foreground">Quickfire v1 question pool: non-audio MCQ only.</div>
+                      </div>
+                    </div>
+
                     {buildMode === "manual_rounds" ? (
                       <div className="mt-3 rounded-2xl border border-border bg-card p-3 text-sm">
                         {feasibilityBusy ? (
@@ -1282,7 +1330,15 @@ export default function HostPage() {
                       {manualRounds.map((round, index) => (
                         <div key={round.id} className="rounded-2xl border border-border bg-card p-3">
                           <div className="flex items-start justify-between gap-3">
-                            <div className="font-medium text-foreground">Round {index + 1}</div>
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div className="font-medium text-foreground">Round {index + 1}</div>
+                                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${roundBehaviourBadgeClass(round.behaviourType)}`}>
+                                  {roundBehaviourLabel(round.behaviourType)}
+                                </span>
+                              </div>
+                              <div className="mt-1 text-xs text-muted-foreground">{roundBehaviourSummary(round.behaviourType)}</div>
+                            </div>
                             <Button variant="ghost" onClick={() => removeManualRound(round.id)} disabled={manualRounds.length <= 1}>Remove</Button>
                           </div>
 
@@ -1300,6 +1356,7 @@ export default function HostPage() {
                               <select value={round.behaviourType} onChange={(e) => updateManualRound(round.id, { behaviourType: e.target.value as RoundBehaviourType })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
                                 {ROUND_BEHAVIOUR_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                               </select>
+                              <div className="mt-1 text-xs text-muted-foreground">{roundBehaviourTimingText(round.behaviourType)}</div>
                             </div>
                             <div>
                               <div className="text-sm font-medium text-foreground">Source mode</div>
@@ -1382,7 +1439,9 @@ export default function HostPage() {
                           })()}
 
                           {round.behaviourType === "quickfire" ? (
-                            <div className="mt-3 text-xs text-muted-foreground">Quickfire v1 excludes audio automatically and only uses MCQ questions so fastest correct scoring stays fair.</div>
+                            <div className="mt-3 rounded-xl border border-violet-500/30 bg-violet-600/10 px-3 py-2 text-xs text-muted-foreground">
+                              Quickfire v1 question pool: non-audio MCQ only. Audio and typed answers are excluded automatically.
+                            </div>
                           ) : null}
 
                           {round.sourceMode === "selected_packs" ? (
@@ -1594,17 +1653,18 @@ export default function HostPage() {
                 {buildMode === "manual_rounds" ? (
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div>
-                      <div className="text-sm font-medium text-foreground">Answer seconds</div>
+                      <div className="text-sm font-medium text-foreground">Fallback answer seconds</div>
                       <Input value={answerSecondsStr} onChange={(e) => setAnswerSecondsStr(e.target.value)} inputMode="numeric" disabled={untimedAnswers} />
                       <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                         <input type="checkbox" checked={untimedAnswers} onChange={(e) => setUntimedAnswers(e.target.checked)} />
                         Untimed answers (host controls)
                       </label>
+                      <div className="mt-1 text-xs text-muted-foreground">Manual rounds now carry their own standard or Quickfire timing defaults. This value is kept as the room fallback.</div>
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-foreground">Round review seconds</div>
+                      <div className="text-sm font-medium text-foreground">Fallback round review seconds</div>
                       <Input value={roundReviewSecondsStr} onChange={(e) => setRoundReviewSecondsStr(e.target.value)} inputMode="numeric" />
-                      <div className="mt-1 text-xs text-muted-foreground">After the last question in a round, the round summary shows for this long before the next round starts.</div>
+                      <div className="mt-1 text-xs text-muted-foreground">Used only if a round does not already carry its own review timing.</div>
                     </div>
                   </div>
                 ) : null}

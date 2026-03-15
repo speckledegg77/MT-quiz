@@ -183,6 +183,7 @@ export default function DisplayPage() {
   const showJoin = state.phase === "lobby";
   const finished = state.phase === "finished";
   const currentRound = state?.rounds?.current ?? null;
+  const isQuickfireRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "quickfire";
   const questionNumber = Number(state.questionIndex ?? 0) + 1;
   const questionCount = Number(state.questionCount ?? 0);
   const roundStats = state?.roundStats ?? null;
@@ -223,6 +224,12 @@ export default function DisplayPage() {
           {state.phase === "running" && currentRound ? (
             <span className="rounded-full border border-border bg-card px-3 py-1 text-sm text-muted-foreground">
               R{Number(currentRound.number ?? 0)}: {String(currentRound.name ?? "")}
+            </span>
+          ) : null}
+
+          {state.phase === "running" && currentRound ? (
+            <span className={`rounded-full border px-3 py-1 text-sm ${isQuickfireRound ? "border-violet-500/40 bg-violet-600/10 text-violet-200" : "border-emerald-500/40 bg-emerald-600/10 text-emerald-200"}`}>
+              {isQuickfireRound ? "Quickfire" : "Standard"}
             </span>
           ) : null}
 
@@ -287,12 +294,29 @@ export default function DisplayPage() {
           {q ? (
             <Card>
               <CardHeader>
-                <CardTitle>Question</CardTitle>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <CardTitle>Question</CardTitle>
+                  {isQuickfireRound ? (
+                    <span className="rounded-full border border-violet-500/40 bg-violet-600/10 px-3 py-1 text-sm text-violet-200">
+                      Quickfire
+                    </span>
+                  ) : null}
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {isPictureQ && q.imageUrl ? (
                   <div className="overflow-hidden rounded-xl border border-border">
                     <img src={q.imageUrl} alt="" className="block w-full" />
+                  </div>
+                ) : null}
+
+                {isQuickfireRound ? (
+                  <div className="rounded-xl border border-violet-500/30 bg-violet-600/10 px-4 py-3 text-sm">
+                    <div className="font-medium text-foreground">Quickfire round</div>
+                    <div className="mt-1 text-muted-foreground">
+                      No reveal appears after each question. The round review at the end shows the answer, who got it
+                      right, and who was fastest.
+                    </div>
                   </div>
                 ) : null}
 

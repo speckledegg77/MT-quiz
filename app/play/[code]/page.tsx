@@ -38,6 +38,16 @@ function formatDuration(totalSeconds: number) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`
 }
 
+function roundModeLabel(behaviourType: unknown) {
+  return String(behaviourType ?? "").trim().toLowerCase() === "quickfire" ? "Quickfire" : "Standard"
+}
+
+function roundModeBadgeClass(behaviourType: unknown) {
+  return String(behaviourType ?? "").trim().toLowerCase() === "quickfire"
+    ? "border-violet-500/40 bg-violet-600/10 text-violet-200"
+    : "border-emerald-500/40 bg-emerald-600/10 text-emerald-200"
+}
+
 export default function PlayerPage() {
   const params = useParams<{ code?: string }>()
   const router = useRouter()
@@ -246,6 +256,7 @@ export default function PlayerPage() {
   }, [state?.rounds?.jokerEnabled, jokerEligibleCount])
 
   const currentRound = state?.rounds?.current ?? null
+  const isQuickfireRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "quickfire"
   const isUntimedAnswers = Boolean(state?.settings?.untimedAnswers)
 
   const actualCloseAtMs = state?.times?.closeAt ? Date.parse(String(state.times.closeAt)) : null
@@ -686,7 +697,13 @@ export default function PlayerPage() {
 
   const showTimerCard = !showLobby && !finished && stage !== "round_summary" && Boolean(q)
 
-  let timerLabel = isUntimedAnswers ? "Answer window" : "Time remaining"
+  let timerLabel = isUntimedAnswers
+    ? isQuickfireRound
+      ? "Quickfire window"
+      : "Answer window"
+    : isQuickfireRound
+      ? "Quickfire closes in"
+      : "Time remaining"
   let timerValue = isUntimedAnswers ? "Waiting for host" : formatDuration(secondsRemaining)
 
   if (stage !== "open") {
@@ -734,6 +751,12 @@ export default function PlayerPage() {
                 </span>
               ) : null}
 
+              {currentRound ? (
+                <span className={`rounded-full border px-3 py-1 text-xs ${roundModeBadgeClass(currentRound.behaviourType)}`}>
+                  {roundModeLabel(currentRound.behaviourType)}
+                </span>
+              ) : null}
+
               <span className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
                 Q{questionNumber} of {questionCount}
               </span>
@@ -772,8 +795,13 @@ export default function PlayerPage() {
 
                     return (
                       <div key={round.index} className="flex items-center justify-between gap-3">
-                        <div className="min-w-0 truncate">
-                          {Number(round.number)}. {String(round.name)}
+                        <div className="min-w-0">
+                          <div className="truncate">
+                            {Number(round.number)}. {String(round.name)}
+                          </div>
+                          {String(round?.behaviourType ?? "").trim().toLowerCase() === "quickfire" ? (
+                            <div className="mt-1 text-[11px] text-muted-foreground">Quickfire, fastest correct +1, no Joker</div>
+                          ) : null}
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -912,6 +940,16 @@ export default function PlayerPage() {
               {isPictureQ && q.imageUrl ? (
                 <div className="overflow-hidden rounded-xl border border-border bg-muted">
                   <img src={q.imageUrl} alt="" className="max-h-70 w-full object-contain" />
+                </div>
+              ) : null}
+
+              {isQuickfireRound ? (
+                <div className="rounded-xl border border-violet-500/30 bg-violet-600/10 px-3 py-3 text-sm">
+                  <div className="font-medium text-foreground">Quickfire</div>
+                  <div className="mt-1 text-muted-foreground">
+                    Answer fast. There is no reveal after this question. The end-of-round review will show the answer,
+                    who got it right, and who was fastest.
+                  </div>
                 </div>
               ) : null}
 
