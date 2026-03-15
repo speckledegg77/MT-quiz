@@ -97,6 +97,9 @@ type ManualRoundDraft = {
   promptTarget: string
   clueSource: string
   primaryShowKey: string
+  useTimingOverride: boolean
+  answerSecondsStr: string
+  roundReviewSecondsStr: string
 }
 
 const LAST_HOST_CODE_KEY = "mtq_last_host_code"
@@ -180,6 +183,9 @@ function makeManualRound(index: number): ManualRoundDraft {
     promptTarget: "",
     clueSource: "",
     primaryShowKey: "",
+    useTimingOverride: false,
+    answerSecondsStr: "",
+    roundReviewSecondsStr: "",
   })
 }
 
@@ -203,8 +209,8 @@ function serialiseManualRoundDraft(round: ManualRoundDraft, index: number) {
     sourceMode: round.sourceMode,
     packIds: round.packIds,
     selectionRules: buildSelectionRulesFromDraft(round),
-    answerSeconds: getDefaultAnswerSecondsForBehaviour(round.behaviourType),
-    roundReviewSeconds: getDefaultRoundReviewSecondsForBehaviour(round.behaviourType),
+    answerSeconds: getManualRoundAnswerSeconds(round),
+    roundReviewSeconds: getManualRoundReviewSeconds(round),
   }
 }
 
@@ -265,6 +271,22 @@ function roundBehaviourSummary(behaviourType: RoundBehaviourType) {
 
 function roundBehaviourTimingText(behaviourType: RoundBehaviourType) {
   return `${getDefaultAnswerSecondsForBehaviour(behaviourType)}s answer window, ${getDefaultRoundReviewSecondsForBehaviour(behaviourType)}s round review`
+}
+
+function getManualRoundAnswerSeconds(round: ManualRoundDraft) {
+  if (!round.useTimingOverride) return getDefaultAnswerSecondsForBehaviour(round.behaviourType)
+  return clampInt(parseIntOr(round.answerSecondsStr, getDefaultAnswerSecondsForBehaviour(round.behaviourType)), 0, 120)
+}
+
+function getManualRoundReviewSeconds(round: ManualRoundDraft) {
+  if (!round.useTimingOverride) return getDefaultRoundReviewSecondsForBehaviour(round.behaviourType)
+  return clampInt(parseIntOr(round.roundReviewSecondsStr, getDefaultRoundReviewSecondsForBehaviour(round.behaviourType)), 0, 120)
+}
+
+function getManualRoundTimingSummary(round: ManualRoundDraft) {
+  const answerSeconds = getManualRoundAnswerSeconds(round)
+  const roundReviewSeconds = getManualRoundReviewSeconds(round)
+  return `${answerSeconds}s answer window, ${roundReviewSeconds}s round review`
 }
 
 export default function HostPage() {
@@ -633,6 +655,9 @@ export default function HostPage() {
         promptTarget,
         clueSource,
         primaryShowKey,
+        useTimingOverride: false,
+        answerSecondsStr: "",
+        roundReviewSecondsStr: "",
       }),
     ])
   }
@@ -1356,7 +1381,7 @@ export default function HostPage() {
                               <select value={round.behaviourType} onChange={(e) => updateManualRound(round.id, { behaviourType: e.target.value as RoundBehaviourType })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
                                 {ROUND_BEHAVIOUR_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                               </select>
-                              <div className="mt-1 text-xs text-muted-foreground">{roundBehaviourTimingText(round.behaviourType)}</div>
+                              <div className="mt-1 text-xs text-muted-foreground">{getManualRoundTimingSummary(round)}</div>
                             </div>
                             <div>
                               <div className="text-sm font-medium text-foreground">Source mode</div>
@@ -1377,6 +1402,58 @@ export default function HostPage() {
                               </label>
                             </div>
                           </div>
+
+                          {round.behaviourType === "quickfire" ? (
+                            <div className="mt-3 rounded-2xl border border-border bg-background p-3">
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div>
+                                  <div className="text-sm font-medium text-foreground">Quickfire timing override</div>
+                                  <div className="mt-1 text-xs text-muted-foreground">
+                                    Default Quickfire timings are {roundBehaviourTimingText("quickfire")}. Turn this on if your group needs a slower or faster pace.
+                                  </div>
+                                </div>
+                                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <input
+                                    type="checkbox"
+                                    checked={round.useTimingOverride}
+                                    onChange={(e) =>
+                                      updateManualRound(round.id, {
+                                        useTimingOverride: e.target.checked,
+                                        answerSecondsStr: e.target.checked
+                                          ? round.answerSecondsStr || String(getDefaultAnswerSecondsForBehaviour(round.behaviourType))
+                                          : "",
+                                        roundReviewSecondsStr: e.target.checked
+                                          ? round.roundReviewSecondsStr || String(getDefaultRoundReviewSecondsForBehaviour(round.behaviourType))
+                                          : "",
+                                      })
+                                    }
+                                  />
+                                  Override timings
+                                </label>
+                              </div>
+
+                              {round.useTimingOverride ? (
+                                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                  <div>
+                                    <div className="text-sm font-medium text-foreground">Question seconds</div>
+                                    <Input
+                                      value={round.answerSecondsStr}
+                                      onChange={(e) => updateManualRound(round.id, { answerSecondsStr: e.target.value })}
+                                      inputMode="numeric"
+                                    />
+                                  </div>
+                                  <div>
+                                    <div className="text-sm font-medium text-foreground">Round review seconds</div>
+                                    <Input
+                                      value={round.roundReviewSecondsStr}
+                                      onChange={(e) => updateManualRound(round.id, { roundReviewSecondsStr: e.target.value })}
+                                      inputMode="numeric"
+                                    />
+                                  </div>
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
 
                           <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                             <div>
@@ -1742,7 +1819,7 @@ export default function HostPage() {
               </Card>
 
               {buildMode === "manual_rounds" ? (
-                <Card>
+                <Card className="lg:sticky lg:top-4 self-start">
                   <CardHeader>
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -1752,7 +1829,7 @@ export default function HostPage() {
                       <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedPackCount} selected</div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-3 max-h-[70vh] overflow-y-auto">
                     <div className="flex flex-wrap gap-2">
                       <Button variant="secondary" onClick={() => setAllSelected(true)}>Select all</Button>
                       <Button variant="secondary" onClick={() => setAllSelected(false)}>Clear</Button>
@@ -1768,7 +1845,7 @@ export default function HostPage() {
                   </CardContent>
                 </Card>
               ) : selectPacks ? (
-                <Card>
+                <Card className="lg:sticky lg:top-4 self-start">
                   <CardHeader>
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -1778,7 +1855,7 @@ export default function HostPage() {
                       <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedPackCount} selected</div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="space-y-3 max-h-[70vh] overflow-y-auto">
                     <div className="flex flex-wrap gap-2">
                       <Button variant="secondary" onClick={() => setAllSelected(true)}>Select all</Button>
                       <Button variant="secondary" onClick={() => setAllSelected(false)}>Clear</Button>
