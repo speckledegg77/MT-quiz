@@ -288,23 +288,49 @@ function compactCardContentClass() {
 }
 
 function metadataFieldLabelClass() {
-  return "grid gap-0.5"
+  return "grid gap-1"
+}
+
+function metadataFieldHeaderClass() {
+  return "flex items-center gap-1.5"
 }
 
 function metadataFieldNameClass() {
-  return "text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground"
+  return "text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground"
 }
 
 function metadataSelectClass() {
-  return "h-8 rounded-md border border-border bg-background px-2.5 pr-8 text-xs text-foreground outline-none transition-colors focus:ring-2 focus:ring-border"
+  return "h-7 rounded-md border border-border bg-background px-2 pr-7 text-[11px] text-foreground outline-none transition-colors focus:ring-2 focus:ring-border"
 }
 
 function metadataInputClass() {
-  return "h-8 rounded-md border border-border bg-background px-2.5 text-xs text-foreground outline-none transition-colors focus:ring-2 focus:ring-border"
+  return "h-7 rounded-md border border-border bg-background px-2 text-[11px] text-foreground outline-none transition-colors focus:ring-2 focus:ring-border"
 }
 
-function metadataHintClass() {
-  return "text-[11px] leading-4 text-muted-foreground"
+function metadataTooltipButtonClass() {
+  return "inline-flex h-4 w-4 items-center justify-center rounded-full border border-border bg-background text-[10px] font-semibold text-muted-foreground transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-border"
+}
+
+function metadataWorkspaceButtonSize() {
+  return "sm" as const
+}
+
+type MetadataHintProps = {
+  label: string
+  hint: string
+}
+
+function MetadataHint({ label, hint }: MetadataHintProps) {
+  return (
+    <button
+      type="button"
+      className={metadataTooltipButtonClass()}
+      title={hint}
+      aria-label={`${label}: ${hint}`}
+    >
+      ?
+    </button>
+  )
 }
 
 function pillClass(tone: "default" | "success" | "warning" | "accent" = "default") {
@@ -847,22 +873,22 @@ export function QuestionMetadataDashboard() {
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.95fr)] xl:items-start">
       <div className="space-y-4">
         <Card className="overflow-hidden">
-          <CardHeader className="border-b border-border/70 pb-4">
+          <CardHeader className="border-b border-border/70 px-5 pb-3 pt-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <CardTitle>Question workspace</CardTitle>
-                <div className="mt-1 text-sm text-muted-foreground">
+                <CardTitle className="text-xl">Question workspace</CardTitle>
+                <div className="mt-1 text-xs text-muted-foreground">
                   Filter the bank, preview audio, and edit metadata without leaving the page.
                 </div>
               </div>
-              <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-right text-xs text-muted-foreground">
-                <div>Visible questions: <span className="font-medium text-foreground">{items.length}</span></div>
-                <div>Selected: <span className="font-medium text-foreground">{selectedCount}</span></div>
+              <div className="flex items-center gap-2">
+                <span className={pillClass()}>{items.length} visible</span>
+                <span className={pillClass(selectedCount ? "accent" : "default")}>{selectedCount} selected</span>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4 pt-4">
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+          <CardContent className="space-y-3 px-5 pt-3 pb-4">
+            <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto]">
               <input
                 value={token}
                 onChange={(event) => setToken(event.target.value)}
@@ -872,14 +898,14 @@ export function QuestionMetadataDashboard() {
                 className={metadataInputClass()}
               />
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => loadQuestions()}>Load questions</Button>
-                <Button variant="secondary" onClick={clearToken}>
+                <Button size={metadataWorkspaceButtonSize()} onClick={() => loadQuestions()}>Load questions</Button>
+                <Button size={metadataWorkspaceButtonSize()} variant="secondary" onClick={clearToken}>
                   Clear token
                 </Button>
               </div>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
               <select
                 value={packId}
                 onChange={(event) => setPackId(event.target.value)}
@@ -961,6 +987,7 @@ export function QuestionMetadataDashboard() {
               />
 
               <Button
+                size={metadataWorkspaceButtonSize()}
                 variant="secondary"
                 onClick={() => {
                   setPackId("")
@@ -976,9 +1003,8 @@ export function QuestionMetadataDashboard() {
               </Button>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-              <span>Nothing writes to Supabase until you click Save, Bulk Apply, or Apply Suggested Values.</span>
-              <span>Power tool mode keeps the working controls up front and tucks bulk changes away until you need them.</span>
+            <div className="rounded-lg border border-border bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground">
+              Nothing writes to Supabase until you click Save, Bulk Apply, or Apply Suggested Values.
             </div>
 
             {listError ? (
@@ -993,7 +1019,7 @@ export function QuestionMetadataDashboard() {
           <button
             type="button"
             onClick={() => setBulkExpanded((current) => !current)}
-            className="flex w-full items-center justify-between gap-3 border-b border-border/70 px-6 py-4 text-left"
+            className="flex w-full items-center justify-between gap-3 border-b border-border/70 px-5 py-3 text-left"
           >
             <div>
               <div className="text-base font-semibold text-foreground">Bulk actions</div>
@@ -1010,7 +1036,7 @@ export function QuestionMetadataDashboard() {
           </button>
 
           {bulkExpanded ? (
-            <CardContent className="space-y-4 pt-4">
+            <CardContent className="space-y-3 pt-3">
               <div className="flex flex-wrap gap-2">
                 <Button variant="secondary" onClick={selectAllVisible} disabled={!items.length}>
                   Select all visible
@@ -1318,9 +1344,12 @@ export function QuestionMetadataDashboard() {
                   ) : null}
                 </div>
 
-                <div className="grid gap-2.5 md:grid-cols-2">
+                <div className="grid gap-2 md:grid-cols-2">
                   <label className={cx(metadataFieldLabelClass(), "md:col-span-1")}>
-                    <span className={metadataFieldNameClass()}>media_type</span>
+                    <div className={metadataFieldHeaderClass()}>
+                      <span className={metadataFieldNameClass()}>media_type</span>
+                      <MetadataHint label="media_type" hint="Format shown to player" />
+                    </div>
                     <select
                       value={editor.mediaType}
                       onChange={(event) => setEditor((current) => ({ ...current, mediaType: event.target.value }))}
@@ -1332,11 +1361,13 @@ export function QuestionMetadataDashboard() {
                         </option>
                       ))}
                     </select>
-                    <div className={metadataHintClass()}>Choose the format the player receives.</div>
                   </label>
 
                   <label className={cx(metadataFieldLabelClass(), "md:col-span-1")}>
-                    <span className={metadataFieldNameClass()}>prompt_target</span>
+                    <div className={metadataFieldHeaderClass()}>
+                      <span className={metadataFieldNameClass()}>prompt_target</span>
+                      <MetadataHint label="prompt_target" hint="What the player identifies" />
+                    </div>
                     <select
                       value={editor.promptTarget}
                       onChange={(event) => setEditor((current) => ({ ...current, promptTarget: event.target.value }))}
@@ -1348,11 +1379,13 @@ export function QuestionMetadataDashboard() {
                         </option>
                       ))}
                     </select>
-                    <div className={metadataHintClass()}>Choose what the player must identify or supply.</div>
                   </label>
 
                   <label className={cx(metadataFieldLabelClass(), "md:col-span-1")}>
-                    <span className={metadataFieldNameClass()}>clue_source</span>
+                    <div className={metadataFieldHeaderClass()}>
+                      <span className={metadataFieldNameClass()}>clue_source</span>
+                      <MetadataHint label="clue_source" hint="Type of clue given" />
+                    </div>
                     <select
                       value={editor.clueSource}
                       onChange={(event) => setEditor((current) => ({ ...current, clueSource: event.target.value }))}
@@ -1364,11 +1397,13 @@ export function QuestionMetadataDashboard() {
                         </option>
                       ))}
                     </select>
-                    <div className={metadataHintClass()}>Choose the kind of clue the player receives.</div>
                   </label>
 
                   <label className={cx(metadataFieldLabelClass(), "md:col-span-1")}>
-                    <span className={metadataFieldNameClass()}>primary_show_key</span>
+                    <div className={metadataFieldHeaderClass()}>
+                      <span className={metadataFieldNameClass()}>primary_show_key</span>
+                      <MetadataHint label="primary_show_key" hint="Main show for this question" />
+                    </div>
                     <select
                       value={editor.primaryShowKey}
                       onChange={(event) => setEditor((current) => ({ ...current, primaryShowKey: event.target.value }))}
@@ -1381,11 +1416,13 @@ export function QuestionMetadataDashboard() {
                         </option>
                       ))}
                     </select>
-                    <div className={metadataHintClass()}>Choose the main show this question belongs to.</div>
                   </label>
 
                   <label className={cx(metadataFieldLabelClass(), "md:col-span-1")}>
-                    <span className={metadataFieldNameClass()}>audio_clip_type</span>
+                    <div className={metadataFieldHeaderClass()}>
+                      <span className={metadataFieldNameClass()}>audio_clip_type</span>
+                      <MetadataHint label="audio_clip_type" hint="Intro, vocal, dialogue, or effects" />
+                    </div>
                     <select
                       value={editor.audioClipType}
                       onChange={(event) => setEditor((current) => ({ ...current, audioClipType: event.target.value }))}
@@ -1398,11 +1435,13 @@ export function QuestionMetadataDashboard() {
                         </option>
                       ))}
                     </select>
-                    <div className={metadataHintClass()}>Use this to distinguish intros, dialogue, vocals, instrumental sections, and effects.</div>
                   </label>
 
                   <label className={cx(metadataFieldLabelClass(), "md:col-span-1")}>
-                    <span className={metadataFieldNameClass()}>media_duration_ms</span>
+                    <div className={metadataFieldHeaderClass()}>
+                      <span className={metadataFieldNameClass()}>media_duration_ms</span>
+                      <MetadataHint label="media_duration_ms" hint="Quickfire audio must be 5000 ms or less" />
+                    </div>
                     <input
                       value={editor.mediaDurationMs}
                       onChange={(event) => setEditor((current) => ({ ...current, mediaDurationMs: event.target.value }))}
@@ -1410,11 +1449,13 @@ export function QuestionMetadataDashboard() {
                       placeholder="For example 4500"
                       className={metadataInputClass()}
                     />
-                    <div className={metadataHintClass()}>Required for Quickfire audio. Use milliseconds.</div>
                   </label>
 
                   <label className={cx(metadataFieldLabelClass(), "md:col-span-2")}>
-                    <span className={metadataFieldNameClass()}>metadata_review_state</span>
+                    <div className={metadataFieldHeaderClass()}>
+                      <span className={metadataFieldNameClass()}>metadata_review_state</span>
+                      <MetadataHint label="metadata_review_state" hint="Controls readiness and warnings" />
+                    </div>
                     <select
                       value={editor.metadataReviewState}
                       onChange={(event) =>
@@ -1434,11 +1475,11 @@ export function QuestionMetadataDashboard() {
                   </label>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" onClick={applySuggestedValues} disabled={!selectedSummary}>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button size="sm" variant="secondary" onClick={applySuggestedValues} disabled={!selectedSummary}>
                     Use suggested values
                   </Button>
-                  <Button onClick={saveMetadata} disabled={saveBusy}>
+                  <Button size="sm" onClick={saveMetadata} disabled={saveBusy}>
                     {saveBusy ? "Saving…" : "Save"}
                   </Button>
                 </div>
@@ -1545,7 +1586,7 @@ export function QuestionMetadataDashboard() {
           <button
             type="button"
             onClick={() => setGuideExpanded((current) => !current)}
-            className="flex w-full items-center justify-between gap-3 border-b border-border/70 px-6 py-4 text-left"
+            className="flex w-full items-center justify-between gap-3 border-b border-border/70 px-5 py-3 text-left"
           >
             <div>
               <div className="text-base font-semibold text-foreground">Field guide</div>
