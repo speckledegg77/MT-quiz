@@ -23,6 +23,7 @@ type MetadataSaved = {
   clueSource: string | null
   primaryShowKey: string | null
   metadataReviewState: string | null
+  mediaDurationMs: number | null
 }
 
 type MetadataSuggested = {
@@ -60,6 +61,7 @@ type QuestionSummaryItem = {
     clue_source: string | null
     primary_show_key: string | null
     metadata_review_state: string | null
+    media_duration_ms: number | null
     created_at: string
     updated_at: string
   }
@@ -107,6 +109,7 @@ type EditorState = {
   clueSource: string
   primaryShowKey: string
   metadataReviewState: string
+  mediaDurationMs: string
 }
 
 type BulkEditorState = {
@@ -176,6 +179,7 @@ const METADATA_GAP_OPTIONS = [
   { value: "missing_media_type", label: "Missing media_type" },
   { value: "missing_prompt_target", label: "Missing prompt_target" },
   { value: "missing_clue_source", label: "Missing clue_source" },
+  { value: "missing_audio_duration", label: "Missing media_duration_ms on audio" },
   { value: "missing_any_core_metadata", label: "Missing any core metadata" },
 ]
 
@@ -250,6 +254,24 @@ function trimToNull(value: string) {
   return cleaned.length ? cleaned : null
 }
 
+function normaliseDurationEditorValue(value: number | null | undefined) {
+  return value === null || value === undefined || !Number.isFinite(Number(value)) ? "" : String(Math.floor(Number(value)))
+}
+
+function parseDurationMs(value: string) {
+  const cleaned = value.trim()
+  if (!cleaned) return null
+  const parsed = Math.floor(Number(cleaned))
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
+}
+
+function formatDurationMs(value: number | null | undefined) {
+  const parsed = value === null || value === undefined ? null : Math.floor(Number(value))
+  if (!Number.isFinite(parsed) || parsed === null || parsed < 0) return "Blank"
+  const seconds = parsed / 1000
+  return `${parsed} ms (${seconds.toFixed(seconds % 1 === 0 ? 0 : 2)}s)`
+}
+
 function buildSummaryText(item: QuestionSummaryItem) {
   const parts = [
     item.metadata.saved.mediaType || item.metadata.suggested.mediaType || "media ?",
@@ -304,6 +326,7 @@ export function QuestionMetadataDashboard() {
     clueSource: "",
     primaryShowKey: "",
     metadataReviewState: "unreviewed",
+    mediaDurationMs: "",
   })
 
   const [bulkEditor, setBulkEditor] = useState<BulkEditorState>({
@@ -486,6 +509,7 @@ export function QuestionMetadataDashboard() {
         clueSource: normaliseEditorValue(nextItem.metadata.saved.clueSource),
         primaryShowKey: normaliseEditorValue(nextItem.metadata.saved.primaryShowKey),
         metadataReviewState: normaliseEditorValue(nextItem.metadata.saved.metadataReviewState || "unreviewed"),
+        mediaDurationMs: normaliseDurationEditorValue(nextItem.metadata.saved.mediaDurationMs),
       })
     } catch (error: any) {
       setDetailItem(null)
@@ -499,6 +523,7 @@ export function QuestionMetadataDashboard() {
     if (!detailItem) return
 
     setEditor((current) => ({
+      ...current,
       mediaType: detailItem.metadata.suggested.mediaType || current.mediaType,
       promptTarget: detailItem.metadata.suggested.promptTarget || current.promptTarget,
       clueSource: detailItem.metadata.suggested.clueSource || current.clueSource,
@@ -527,6 +552,7 @@ export function QuestionMetadataDashboard() {
           clueSource: trimToNull(editor.clueSource),
           primaryShowKey: trimToNull(editor.primaryShowKey),
           metadataReviewState: editor.metadataReviewState || "unreviewed",
+          mediaDurationMs: parseDurationMs(editor.mediaDurationMs),
         }),
       })
 
@@ -1198,6 +1224,20 @@ export function QuestionMetadataDashboard() {
                   </label>
 
                   <label className="grid gap-1">
+                    <span className="text-sm font-medium">media_duration_ms</span>
+                    <input
+                      value={editor.mediaDurationMs}
+                      onChange={(event) => setEditor((current) => ({ ...current, mediaDurationMs: event.target.value }))}
+                      inputMode="numeric"
+                      placeholder="For example 4500"
+                      className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
+                    />
+                    <div className="text-xs text-muted-foreground">
+                      Required for audio in Quickfire. Use milliseconds. Leave blank for non-audio questions.
+                    </div>
+                  </label>
+
+                  <label className="grid gap-1">
                     <span className="text-sm font-medium">metadata_review_state</span>
                     <select
                       value={editor.metadataReviewState}
@@ -1263,6 +1303,7 @@ export function QuestionMetadataDashboard() {
                     <div>clue_source: {selectedSummary.saved.clueSource || "Blank"}</div>
                     <div>primary_show_key: {selectedSummary.saved.primaryShowKey || "Blank"}</div>
                     <div>metadata_review_state: {selectedSummary.saved.metadataReviewState || "Blank"}</div>
+                    <div>media_duration_ms: {formatDurationMs(selectedSummary.saved.mediaDurationMs)}</div>
                   </div>
                 </div>
 
@@ -1367,6 +1408,16 @@ export function QuestionMetadataDashboard() {
               </div>
               <div className="mt-2 text-muted-foreground">
                 Example: a question about the overture from Follies should use the Follies show key.
+              </div>
+            </div>
+
+            <div className={fieldCardClass()}>
+              <div className="font-medium">media_duration_ms</div>
+              <div className="mt-1 text-muted-foreground">
+                Store audio length in milliseconds. Quickfire only allows audio clips at or under 5000 ms.
+              </div>
+              <div className="mt-2 text-muted-foreground">
+                Example: a 4.5 second clip should use <span className="font-medium text-foreground">4500</span>.
               </div>
             </div>
           </CardContent>
