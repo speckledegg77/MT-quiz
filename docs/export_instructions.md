@@ -1,0 +1,1 @@
+powershell -ExecutionPolicy Bypass -File .\scripts\export-chatgpt-source-zip.ps1
