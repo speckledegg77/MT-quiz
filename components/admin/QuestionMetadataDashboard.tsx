@@ -1213,23 +1213,25 @@ export function QuestionMetadataDashboard() {
                   const warningCount = item.metadata.warnings.length
                   const hasAudio = Boolean(item.question.audio_path)
                   const audioChipType = item.metadata.saved.audioClipType || item.question.audio_clip_type
+                  const packNames = item.packs.map((pack) => pack.display_name).join(", ") || "None"
+                  const summaryText = buildSummaryText(item)
 
                   return (
                     <div
                       key={item.question.id}
                       className={cx(
-                        "rounded-xl border px-3 py-3 transition-colors",
+                        "rounded-lg border px-2.5 py-2 transition-colors",
                         isSelected
                           ? "border-foreground/60 bg-muted shadow-sm"
                           : "border-border bg-card hover:border-foreground/20 hover:bg-muted/30"
                       )}
                     >
-                      <div className="flex items-start gap-3">
+                      <div className="flex items-start gap-2.5">
                         <input
                           type="checkbox"
                           checked={isTicked}
                           onChange={() => toggleSelectedQuestion(item.question.id)}
-                          className="mt-1 h-4 w-4 rounded border-border"
+                          className="mt-0.5 h-3.5 w-3.5 rounded border-border"
                         />
 
                         <button
@@ -1238,30 +1240,36 @@ export function QuestionMetadataDashboard() {
                             setSelectedQuestionId(item.question.id)
                             await loadQuestionDetail(item.question.id)
                           }}
-                          className="flex-1 text-left"
+                          className="min-w-0 flex-1 text-left"
                         >
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div className="space-y-1">
-                              <div className="font-medium text-foreground">{item.question.id}</div>
-                              <div className="text-sm leading-5 text-foreground">{item.question.text}</div>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+                                {item.question.id}
+                              </div>
+                              <div className="mt-0.5 text-[13px] leading-5 text-foreground">
+                                {item.question.text}
+                              </div>
                             </div>
-                            <div className="flex flex-wrap justify-end gap-1.5">
+
+                            <div className="flex shrink-0 flex-wrap justify-end gap-1">
                               <span className={pillClass()}>{item.question.round_type}</span>
                               <span className={pillClass()}>{item.question.answer_type}</span>
                               <span className={pillClass(reviewStateTone(reviewValue))}>{reviewValue}</span>
                               {hasAudio ? <span className={pillClass("accent")}>audio</span> : null}
                               {audioChipType ? <span className={pillClass("accent")}>{audioChipType}</span> : null}
-                              <span className={pillClass(warningCount ? "warning" : "default")}>
-                                {warningCount} warning{warningCount === 1 ? "" : "s"}
-                              </span>
+                              {warningCount ? (
+                                <span className={pillClass("warning")}>
+                                  {warningCount} warning{warningCount === 1 ? "" : "s"}
+                                </span>
+                              ) : null}
                             </div>
                           </div>
 
-                          <div className="mt-2 text-xs text-muted-foreground">
-                            Packs: {item.packs.map((pack) => pack.display_name).join(", ") || "None"}
+                          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                            <span className="truncate">Packs: {packNames}</span>
+                            <span className="truncate">{summaryText}</span>
                           </div>
-
-                          <div className="mt-1 text-xs text-muted-foreground">{buildSummaryText(item)}</div>
                         </button>
                       </div>
                     </div>
