@@ -1542,22 +1542,57 @@ export function QuestionMetadataDashboard() {
 
                   <div className={fieldCardClass()}>
                     <div className="text-sm font-medium">Suggested values</div>
-                    <div className="mt-2 space-y-2 text-sm">
-                      <div>
-                        <div className="font-medium">media_type: {selectedSummary.suggested.mediaType || "Blank"}</div>
-                        <div className="text-muted-foreground">{selectedSummary.reasons.mediaType || "No reason available."}</div>
+                    <div className="mt-2 grid gap-2">
+                      <div className="rounded-md border border-border bg-background/70 px-2.5 py-2">
+                        <div className={metadataFieldNameClass()}>media_type</div>
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <MetadataHint
+                            label="media_type suggested value"
+                            hint={selectedSummary.reasons.mediaType || "No reason available."}
+                          />
+                          <span className="text-sm font-medium text-foreground">
+                            {selectedSummary.suggested.mediaType || "Blank"}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-medium">prompt_target: {selectedSummary.suggested.promptTarget || "Blank"}</div>
-                        <div className="text-muted-foreground">{selectedSummary.reasons.promptTarget || "No reason available."}</div>
+
+                      <div className="rounded-md border border-border bg-background/70 px-2.5 py-2">
+                        <div className={metadataFieldNameClass()}>prompt_target</div>
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <MetadataHint
+                            label="prompt_target suggested value"
+                            hint={selectedSummary.reasons.promptTarget || "No reason available."}
+                          />
+                          <span className="text-sm font-medium text-foreground">
+                            {selectedSummary.suggested.promptTarget || "Blank"}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-medium">clue_source: {selectedSummary.suggested.clueSource || "Blank"}</div>
-                        <div className="text-muted-foreground">{selectedSummary.reasons.clueSource || "No reason available."}</div>
+
+                      <div className="rounded-md border border-border bg-background/70 px-2.5 py-2">
+                        <div className={metadataFieldNameClass()}>clue_source</div>
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <MetadataHint
+                            label="clue_source suggested value"
+                            hint={selectedSummary.reasons.clueSource || "No reason available."}
+                          />
+                          <span className="text-sm font-medium text-foreground">
+                            {selectedSummary.suggested.clueSource || "Blank"}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-medium">primary_show_key: {selectedSummary.suggested.primaryShowKey || "Blank"}</div>
-                        <div className="text-muted-foreground">{selectedSummary.reasons.primaryShowKey || "No reason available."}</div>
+
+                      <div className="rounded-md border border-border bg-background/70 px-2.5 py-2">
+                        <div className={metadataFieldNameClass()}>primary_show_key</div>
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <MetadataHint
+                            label="primary_show_key suggested value"
+                            hint={selectedSummary.reasons.primaryShowKey || "No reason available."}
+                          />
+                          <span className="text-sm font-medium text-foreground">
+                            {selectedSummary.suggested.primaryShowKey || "Blank"}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
