@@ -4,7 +4,8 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Current priority
 
-- [ ] Add host-side round feasibility checks so the host can see whether a round has enough eligible questions before starting a game.
+- [ ] Finish the Simple vs Advanced host creation split so first-time hosts can create a solid game quickly while the power tools stay available.
+- [x] Add host-side round feasibility checks so the host can see whether a round has enough eligible questions before starting a game.
 - [ ] Do a host, player, and display UX pass now that Quickfire works as a real round behaviour.
 - [ ] Keep consolidating the round-plan model so packs stay content sources and rounds stay gameplay definitions.
 
@@ -47,6 +48,7 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Recently completed
 
+- [x] Simple vs Advanced host creation split started, with Simple mode driven by ready round templates and Advanced kept as the power-tool path.
 - [x] Quickfire v1 as a real round behaviour.
 - [x] Quickfire fastest-correct bonus scoring.
 - [x] Quickfire round review with correct answers and player-by-player results.

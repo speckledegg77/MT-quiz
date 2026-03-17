@@ -304,3 +304,7 @@ Update this guide when:
 - a new form or list style becomes the preferred approach
 - a new helper-text or tooltip rule is agreed
 - a substantial UI pass changes the direction of a screen
+
+- host setup should open in a simple, low-friction mode by default
+- advanced host controls should stay hidden behind an explicit button or reveal
+- quick-start flows should use sensible recommended defaults and preview the resulting plan when possible

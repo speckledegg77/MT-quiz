@@ -88,6 +88,8 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Solo mode
 
 ### Lobby
+- Host setup now has a Simple path for quick game creation and an Advanced path for the full round builder.
+- Simple mode uses ready round templates to assemble a recommended game plan, while Advanced keeps the existing manual, quick-random, and legacy controls.
 - Host creates a room and can choose timing, rounds, audio mode, and round-plan setup.
 - Players join from phones.
 - In teams mode, players choose a team from the host-defined team list.

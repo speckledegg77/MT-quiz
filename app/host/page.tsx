@@ -41,6 +41,8 @@ type RoundFilter =
 type AudioMode = "display" | "phones" | "both"
 type GameMode = "teams" | "solo"
 type BuildMode = "manual_rounds" | "quick_random" | "legacy_pack_mode"
+type SetupMode = "simple" | "advanced"
+type SimplePresetId = "classic" | "balanced" | "quickfire_mix"
 type RoundBehaviourType = "standard" | "quickfire"
 type RoundSourceMode = "selected_packs" | "specific_packs" | "all_questions"
 type RoomState = any
@@ -145,6 +147,28 @@ const CLUE_SOURCE_OPTIONS = [
   { value: "prop_image", label: "prop_image" },
 ]
 
+const SIMPLE_PRESET_OPTIONS: Array<{
+  value: SimplePresetId
+  label: string
+  description: string
+}> = [
+  {
+    value: "classic",
+    label: "Classic quiz",
+    description: "Keeps the game in the standard question flow when possible.",
+  },
+  {
+    value: "balanced",
+    label: "Balanced mix",
+    description: "Mostly standard rounds, with a little Quickfire when ready templates support it.",
+  },
+  {
+    value: "quickfire_mix",
+    label: "Fast mix",
+    description: "Brings in more Quickfire rounds while keeping at least one standard round when possible.",
+  },
+]
+
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min
   return Math.min(max, Math.max(min, Math.floor(n)))
@@ -228,6 +252,12 @@ function serialiseManualRoundDraft(round: ManualRoundDraft, index: number) {
   }
 }
 
+function normaliseTemplateTiming(raw: unknown, fallback: number) {
+  const value = Math.floor(Number(raw ?? fallback))
+  if (!Number.isFinite(value) || value < 0) return fallback
+  return clampInt(value, 0, 120)
+}
+
 function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
   const mediaType = firstRuleValue(template.selection_rules, "mediaTypes")
   const promptTarget = firstRuleValue(template.selection_rules, "promptTargets")
@@ -250,6 +280,8 @@ function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
     name: String(template.name ?? "").trim() || defaultRoundName(index),
     questionCount: Math.max(1, Number(template.default_question_count ?? 5) || 5),
     behaviourType,
+    jokerEligible: behaviourType === "quickfire" ? false : Boolean(template.joker_eligible ?? true),
+    countsTowardsScore: Boolean(template.counts_towards_score ?? true),
     sourceMode,
     packIds: sourceMode === "specific_packs" ? defaultPackIds : [],
     selectionRules: {
@@ -259,6 +291,175 @@ function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
       primaryShowKeys: primaryShowKey ? [primaryShowKey] : [],
       audioClipTypes: audioClipType ? [audioClipType] : [],
     },
+    answerSeconds: normaliseTemplateTiming(
+      template.default_answer_seconds,
+      getDefaultAnswerSecondsForBehaviour(behaviourType)
+    ),
+    roundReviewSeconds: normaliseTemplateTiming(
+      template.default_round_review_seconds,
+      getDefaultRoundReviewSecondsForBehaviour(behaviourType)
+    ),
+  }
+}
+
+function getSimplePresetQuickfireTarget(preset: SimplePresetId, roundCount: number) {
+  if (preset === "classic") return 0
+  if (preset === "balanced") {
+    if (roundCount >= 5) return 2
+    if (roundCount >= 3) return 1
+    return 0
+  }
+  if (roundCount <= 1) return 0
+  return Math.min(roundCount - 1, Math.max(1, Math.floor(roundCount / 2)))
+}
+
+function sortTemplatesForSimplePlan(templates: RoundTemplateRow[]) {
+  return [...templates].sort((a, b) => {
+    const sortDiff = Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0)
+    if (sortDiff !== 0) return sortDiff
+    return String(a.name ?? "").localeCompare(String(b.name ?? ""))
+  })
+}
+
+function orderSimplePlanTemplates(params: {
+  preset: SimplePresetId
+  standardTemplates: RoundTemplateRow[]
+  quickfireTemplates: RoundTemplateRow[]
+}) {
+  const standardTemplates = [...params.standardTemplates]
+  const quickfireTemplates = [...params.quickfireTemplates]
+  const ordered: RoundTemplateRow[] = []
+
+  const pushStandard = () => {
+    const next = standardTemplates.shift()
+    if (next) ordered.push(next)
+  }
+
+  const pushQuickfire = () => {
+    const next = quickfireTemplates.shift()
+    if (next) ordered.push(next)
+  }
+
+  if (params.preset === "quickfire_mix") {
+    if (standardTemplates.length) pushStandard()
+    while (standardTemplates.length || quickfireTemplates.length) {
+      if (quickfireTemplates.length) pushQuickfire()
+      if (standardTemplates.length) pushStandard()
+    }
+    return ordered
+  }
+
+  if (params.preset === "balanced") {
+    while (standardTemplates.length || quickfireTemplates.length) {
+      if (standardTemplates.length) pushStandard()
+      if (standardTemplates.length) pushStandard()
+      if (quickfireTemplates.length) pushQuickfire()
+    }
+    return ordered
+  }
+
+  while (standardTemplates.length) pushStandard()
+  while (quickfireTemplates.length) pushQuickfire()
+  return ordered
+}
+
+function buildSimpleTemplatePlan(params: {
+  templates: RoundTemplateRow[]
+  feasibilityById: Map<string, FeasibilityRoundResult>
+  roundCount: number
+  preset: SimplePresetId
+}) {
+  const roundCount = clampInt(params.roundCount, 1, 20)
+  const feasibleTemplates = sortTemplatesForSimplePlan(params.templates).filter((template) => {
+    return params.feasibilityById.get(template.id)?.feasible
+  })
+
+  const standardTemplates = feasibleTemplates.filter((template) => template.behaviour_type !== "quickfire")
+  const quickfireTemplates = feasibleTemplates.filter((template) => template.behaviour_type === "quickfire")
+
+  if (feasibleTemplates.length === 0) {
+    return {
+      rounds: [],
+      notes: [],
+      error: "No ready round templates match the current pack choice.",
+      availableTemplateCount: 0,
+      availableStandardCount: 0,
+      availableQuickfireCount: 0,
+      standardCount: 0,
+      quickfireCount: 0,
+      jokerEligibleCount: 0,
+    }
+  }
+
+  if (feasibleTemplates.length < roundCount) {
+    return {
+      rounds: [],
+      notes: [],
+      error: `Only ${feasibleTemplates.length} ready template${feasibleTemplates.length === 1 ? " is" : "s are"} available for ${roundCount} rounds.`,
+      availableTemplateCount: feasibleTemplates.length,
+      availableStandardCount: standardTemplates.length,
+      availableQuickfireCount: quickfireTemplates.length,
+      standardCount: 0,
+      quickfireCount: 0,
+      jokerEligibleCount: 0,
+    }
+  }
+
+  const desiredQuickfireCount = getSimplePresetQuickfireTarget(params.preset, roundCount)
+  let quickfireCount = Math.min(desiredQuickfireCount, quickfireTemplates.length)
+  let standardCount = Math.min(roundCount - quickfireCount, standardTemplates.length)
+
+  if (standardCount + quickfireCount < roundCount) {
+    const missing = roundCount - (standardCount + quickfireCount)
+    quickfireCount += Math.min(missing, quickfireTemplates.length - quickfireCount)
+  }
+
+  if (standardCount + quickfireCount < roundCount) {
+    return {
+      rounds: [],
+      notes: [],
+      error: "The current ready templates cannot fill that game plan.",
+      availableTemplateCount: feasibleTemplates.length,
+      availableStandardCount: standardTemplates.length,
+      availableQuickfireCount: quickfireTemplates.length,
+      standardCount: 0,
+      quickfireCount: 0,
+      jokerEligibleCount: 0,
+    }
+  }
+
+  const desiredStandardCount = roundCount - desiredQuickfireCount
+  const notes: string[] = []
+
+  if (desiredQuickfireCount > 0 && quickfireCount === 0) {
+    notes.push("No ready Quickfire templates were found for this pack choice, so this game falls back to standard rounds.")
+  } else if (quickfireCount < desiredQuickfireCount) {
+    notes.push(`Only ${quickfireTemplates.length} ready Quickfire template${quickfireTemplates.length === 1 ? " was" : "s were"} available, so the game uses fewer Quickfire rounds than the preset prefers.`)
+  }
+
+  if (standardCount < desiredStandardCount) {
+    notes.push(`Only ${standardTemplates.length} ready standard template${standardTemplates.length === 1 ? " was" : "s were"} available, so extra Quickfire rounds were used to fill the plan.`)
+  }
+
+  const orderedTemplates = orderSimplePlanTemplates({
+    preset: params.preset,
+    standardTemplates: standardTemplates.slice(0, standardCount),
+    quickfireTemplates: quickfireTemplates.slice(0, quickfireCount),
+  }).slice(0, roundCount)
+
+  const rounds = orderedTemplates.map((template, index) => serialiseTemplateAsRound(template, index))
+  const jokerEligibleCount = rounds.filter((round) => round.jokerEligible).length
+
+  return {
+    rounds,
+    notes,
+    error: null,
+    availableTemplateCount: feasibleTemplates.length,
+    availableStandardCount: standardTemplates.length,
+    availableQuickfireCount: quickfireTemplates.length,
+    standardCount,
+    quickfireCount,
+    jokerEligibleCount,
   }
 }
 
@@ -312,6 +513,9 @@ export default function HostPage() {
   const [packsLoading, setPacksLoading] = useState(true)
   const [packsError, setPacksError] = useState<string | null>(null)
 
+  const [setupMode, setSetupMode] = useState<SetupMode>("simple")
+  const [advancedUnlocked, setAdvancedUnlocked] = useState(false)
+  const [simplePreset, setSimplePreset] = useState<SimplePresetId>("balanced")
   const [buildMode, setBuildMode] = useState<BuildMode>("manual_rounds")
   const [selectPacks, setSelectPacks] = useState(false)
   const [selectedPacks, setSelectedPacks] = useState<Record<string, boolean>>({})
@@ -352,6 +556,9 @@ export default function HostPage() {
   const [feasibilityError, setFeasibilityError] = useState<string | null>(null)
   const [manualFeasibility, setManualFeasibility] = useState<FeasibilitySetResult | null>(null)
   const [templateFeasibility, setTemplateFeasibility] = useState<FeasibilitySetResult | null>(null)
+  const [simpleFeasibilityBusy, setSimpleFeasibilityBusy] = useState(false)
+  const [simpleFeasibilityError, setSimpleFeasibilityError] = useState<string | null>(null)
+  const [simpleTemplateFeasibility, setSimpleTemplateFeasibility] = useState<FeasibilitySetResult | null>(null)
 
   const [roomCode, setRoomCode] = useState<string | null>(null)
   const [roomState, setRoomState] = useState<RoomState | null>(null)
@@ -690,6 +897,11 @@ export default function HostPage() {
     [templates, quickRandomTemplateIds]
   )
 
+  const simpleSelectedPackIds = useMemo(() => {
+    if (!selectPacks) return packs.map((pack) => pack.id)
+    return selectedPackIds()
+  }, [packs, selectPacks, selectedPacks])
+
   const manualRoundsPayload = useMemo(
     () => manualRounds.map((round, index) => serialiseManualRoundDraft(round, index)),
     [manualRounds]
@@ -698,6 +910,11 @@ export default function HostPage() {
   const templateRoundsPayload = useMemo(
     () => selectedQuickRandomTemplates.map((template, index) => serialiseTemplateAsRound(template, index)),
     [selectedQuickRandomTemplates]
+  )
+
+  const allTemplateRoundsPayload = useMemo(
+    () => templates.map((template, index) => serialiseTemplateAsRound(template, index)),
+    [templates]
   )
 
   const quickRandomTemplatesQuestionTotal = useMemo(() => {
@@ -731,6 +948,73 @@ export default function HostPage() {
   }, [packs, selectPacks, selectedPacks])
 
   useEffect(() => {
+    if (setupMode !== "simple") {
+      setSimpleFeasibilityBusy(false)
+      setSimpleFeasibilityError(null)
+      setSimpleTemplateFeasibility(null)
+      return
+    }
+
+    if (roomCode) return
+    if (packsLoading) return
+    if (!templates.length) {
+      setSimpleFeasibilityBusy(false)
+      setSimpleFeasibilityError(null)
+      setSimpleTemplateFeasibility(null)
+      return
+    }
+
+    let cancelled = false
+    const timer = window.setTimeout(async () => {
+      try {
+        setSimpleFeasibilityBusy(true)
+        setSimpleFeasibilityError(null)
+
+        const response = await fetch("/api/room/feasibility", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            selectedPackIds: simpleSelectedPackIds,
+            manualRounds: [],
+            templateRounds: allTemplateRoundsPayload,
+          }),
+        })
+
+        const json = (await response.json().catch(() => ({}))) as FeasibilityResponse
+        if (cancelled) return
+
+        if (!response.ok) {
+          setSimpleFeasibilityError(json.error ?? "Could not check ready templates.")
+          setSimpleTemplateFeasibility(null)
+          setSimpleFeasibilityBusy(false)
+          return
+        }
+
+        setSimpleTemplateFeasibility(json.templates ?? null)
+        setSimpleFeasibilityBusy(false)
+      } catch (error: any) {
+        if (cancelled) return
+        setSimpleFeasibilityError(error?.message ?? "Could not check ready templates.")
+        setSimpleTemplateFeasibility(null)
+        setSimpleFeasibilityBusy(false)
+      }
+    }, 350)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [allTemplateRoundsPayload, packsLoading, roomCode, setupMode, simpleSelectedPackIds, templates.length])
+
+  useEffect(() => {
+    if (setupMode !== "advanced") {
+      setFeasibilityBusy(false)
+      setFeasibilityError(null)
+      setManualFeasibility(null)
+      setTemplateFeasibility(null)
+      return
+    }
+
     if (roomCode) return
     if (packsLoading) return
 
@@ -796,6 +1080,7 @@ export default function HostPage() {
     roomCode,
     selectedPackIdsForManual,
     selectedPackIdsForQuickRandom,
+    setupMode,
     templateRoundsPayload,
   ])
 
@@ -806,6 +1091,21 @@ export default function HostPage() {
   const templateFeasibilityById = useMemo(() => {
     return new Map((templateFeasibility?.rounds ?? []).map((round) => [round.id, round]))
   }, [templateFeasibility])
+
+  const simpleTemplateFeasibilityById = useMemo(() => {
+    return new Map((simpleTemplateFeasibility?.rounds ?? []).map((round) => [round.id, round]))
+  }, [simpleTemplateFeasibility])
+
+  const simpleRoundCount = clampInt(parseIntOr(roundCountStr, 4), 1, 20)
+
+  const simpleTemplatePlan = useMemo(() => {
+    return buildSimpleTemplatePlan({
+      templates,
+      feasibilityById: simpleTemplateFeasibilityById,
+      roundCount: simpleRoundCount,
+      preset: simplePreset,
+    })
+  }, [simplePreset, simpleRoundCount, simpleTemplateFeasibilityById, templates])
 
   const createBlockReason = useMemo(() => {
     if (buildMode === "manual_rounds" && manualFeasibility && !manualFeasibility.summary.allFeasible) {
@@ -827,6 +1127,16 @@ export default function HostPage() {
     return null
   }, [buildMode, manualFeasibility, quickRandomUseTemplates, templateFeasibility])
 
+  const simpleCreateBlockReason = useMemo(() => {
+    if (simpleFeasibilityError) return simpleFeasibilityError
+    if (selectPacks && simpleSelectedPackIds.length === 0) {
+      return "Select at least one pack, or use all active packs."
+    }
+    return simpleTemplatePlan.error
+  }, [selectPacks, simpleFeasibilityError, simpleSelectedPackIds.length, simpleTemplatePlan.error])
+
+  const activeCreateBlockReason = setupMode === "simple" ? simpleCreateBlockReason : createBlockReason
+
   async function createRoom() {
     setCreating(true)
     setCreateError(null)
@@ -837,15 +1147,19 @@ export default function HostPage() {
     setForceCloseError(null)
 
     try {
-      if (createBlockReason) {
-        setCreateError(createBlockReason)
+      if (activeCreateBlockReason) {
+        setCreateError(activeCreateBlockReason)
         setCreating(false)
         return
       }
 
-      const roundReviewSeconds = clampInt(parseIntOr(roundReviewSecondsStr, 10), 0, 120)
+      const roundReviewSeconds = setupMode === "simple"
+        ? getDefaultRoundReviewSecondsForBehaviour("standard")
+        : clampInt(parseIntOr(roundReviewSecondsStr, 10), 0, 120)
       const countdownSeconds = roundReviewSeconds
-      const answerSeconds = untimedAnswers ? 0 : clampInt(parseIntOr(answerSecondsStr, 20), 5, 120)
+      const answerSeconds = setupMode === "simple"
+        ? getDefaultAnswerSecondsForBehaviour("standard")
+        : untimedAnswers ? 0 : clampInt(parseIntOr(answerSecondsStr, 20), 5, 120)
       const cleanTeamNames = teamNames.map((t) => t.trim()).filter(Boolean)
 
       if (gameMode === "teams") {
@@ -868,15 +1182,33 @@ export default function HostPage() {
       }
 
       let payload: any = {
-        buildMode,
+        buildMode: setupMode === "simple" ? "manual_rounds" : buildMode,
         gameMode,
         teamNames: gameMode === "teams" ? cleanTeamNames : [],
         countdownSeconds,
         answerSeconds,
-        audioMode,
+        audioMode: setupMode === "simple" ? "display" : audioMode,
       }
 
-      if (buildMode === "manual_rounds") {
+      if (setupMode === "simple") {
+        if (simpleFeasibilityBusy) {
+          setCreateError("Still checking which round templates are ready for this pack choice.")
+          setCreating(false)
+          return
+        }
+
+        if (simpleTemplatePlan.rounds.length === 0) {
+          setCreateError(simpleTemplatePlan.error ?? "Could not build a simple game plan.")
+          setCreating(false)
+          return
+        }
+
+        payload = {
+          ...payload,
+          selectedPacks: simpleSelectedPackIds,
+          manualRounds: simpleTemplatePlan.rounds,
+        }
+      } else if (buildMode === "manual_rounds") {
         if (manualRounds.length === 0) {
           setCreateError("Add at least one round.")
           setCreating(false)
@@ -1260,6 +1592,201 @@ export default function HostPage() {
                   ) : null}
                 </div>
 
+                <div className="rounded-2xl border border-border p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-foreground">Setup</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {setupMode === "simple"
+                          ? "Quick recommended game using ready round templates and sensible defaults."
+                          : "Full round builder with templates, metadata filters, timing overrides, and legacy options."}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant={setupMode === "simple" ? "primary" : "secondary"}
+                        size="sm"
+                        onClick={() => setSetupMode("simple")}
+                      >
+                        Simple
+                      </Button>
+                      <Button
+                        variant={setupMode === "advanced" ? "primary" : "secondary"}
+                        size="sm"
+                        onClick={() => {
+                          setAdvancedUnlocked(true)
+                          setSetupMode("advanced")
+                        }}
+                      >
+                        {advancedUnlocked ? "Advanced" : "Advanced setup"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {setupMode === "simple" ? (
+                  <>
+                    <div className="rounded-2xl border border-border p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-foreground">Simple game</div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            Choose a game style and round count. The app builds a real round plan from templates that are currently ready for your pack choice.
+                          </div>
+                        </div>
+                        <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+                          {simpleRoundCount} round{simpleRoundCount === 1 ? "" : "s"}
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <div className="text-sm font-medium text-foreground">Rounds</div>
+                          <select
+                            value={roundCountStr}
+                            onChange={(e) => setRoundCountStr(e.target.value)}
+                            className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
+                          >
+                            {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((count) => (
+                              <option key={count} value={String(count)}>
+                                {count}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="mt-1 text-xs text-muted-foreground">Four or five rounds tends to feel best for a normal game.</div>
+                        </div>
+
+                        <div>
+                          <div className="text-sm font-medium text-foreground">Game style</div>
+                          <div className="mt-1 grid gap-2">
+                            {SIMPLE_PRESET_OPTIONS.map((preset) => {
+                              const selected = simplePreset === preset.value
+                              return (
+                                <label
+                                  key={preset.value}
+                                  className={`rounded-xl border p-3 text-sm transition-colors ${selected ? "border-foreground bg-muted" : "border-border bg-card hover:bg-muted"}`}
+                                >
+                                  <div className="flex items-start gap-2">
+                                    <input
+                                      type="radio"
+                                      name="simple-preset"
+                                      checked={selected}
+                                      onChange={() => setSimplePreset(preset.value)}
+                                      className="mt-0.5"
+                                    />
+                                    <div>
+                                      <div className="font-medium text-foreground">{preset.label}</div>
+                                      <div className="mt-1 text-xs text-muted-foreground">{preset.description}</div>
+                                    </div>
+                                  </div>
+                                </label>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-border p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-foreground">Content</div>
+                          <div className="mt-1 text-xs text-muted-foreground">Use all active packs, or narrow the game to a smaller pack set.</div>
+                        </div>
+                        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <input
+                            type="checkbox"
+                            checked={selectPacks}
+                            onChange={(e) => setSelectPacks(e.target.checked)}
+                          />
+                          Choose packs
+                        </label>
+                      </div>
+
+                      {!selectPacks ? (
+                        <div className="mt-3 rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">
+                          Using all active packs.
+                        </div>
+                      ) : (
+                        <div className="mt-3 space-y-3">
+                          <div className="flex flex-wrap gap-2">
+                            <Button variant="secondary" size="sm" onClick={() => setAllSelected(true)} disabled={!packs.length}>Select all</Button>
+                            <Button variant="secondary" size="sm" onClick={() => setAllSelected(false)} disabled={!selectedPackCount}>Clear</Button>
+                            <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+                              {selectedPackCount} selected
+                            </div>
+                          </div>
+                          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                            {packs.map((pack) => (
+                              <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-muted">
+                                <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
+                                <span className="min-w-0 flex-1 truncate">{pack.display_name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-2xl border border-border p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-foreground">Recommended rounds</div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            Ready now: {simpleTemplatePlan.availableTemplateCount} template{simpleTemplatePlan.availableTemplateCount === 1 ? "" : "s"}, with {simpleTemplatePlan.availableStandardCount} standard and {simpleTemplatePlan.availableQuickfireCount} Quickfire.
+                          </div>
+                        </div>
+                        <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+                          {simpleTemplatePlan.jokerEligibleCount >= 2 ? "Joker ready" : "Joker hidden"}
+                        </div>
+                      </div>
+
+                      {simpleFeasibilityBusy ? (
+                        <div className="mt-3 rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">Checking ready templates...</div>
+                      ) : simpleFeasibilityError ? (
+                        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{simpleFeasibilityError}</div>
+                      ) : simpleTemplatePlan.rounds.length > 0 ? (
+                        <div className="mt-3 space-y-3">
+                          <div className="space-y-2">
+                            {simpleTemplatePlan.rounds.map((round, index) => (
+                              <div key={round.id} className="rounded-xl border border-border bg-card p-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="text-sm font-medium text-foreground">{index + 1}. {round.name}</span>
+                                  <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${roundBehaviourBadgeClass(round.behaviourType)}`}>
+                                    {roundBehaviourLabel(round.behaviourType)}
+                                  </span>
+                                  {round.jokerEligible ? (
+                                    <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">Joker eligible</span>
+                                  ) : null}
+                                </div>
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  {round.questionCount} question{round.questionCount === 1 ? "" : "s"}. {round.answerSeconds}s answer window, {round.roundReviewSeconds}s round review.
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {simpleTemplatePlan.notes.length ? (
+                            <div className="space-y-2">
+                              {simpleTemplatePlan.notes.map((note) => (
+                                <div key={note} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                                  {note}
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                          <div className="rounded-xl border border-border bg-card p-3 text-xs text-muted-foreground">
+                            Simple mode uses display audio, standard timing defaults, and only templates that are currently feasible for the chosen pack scope.
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                          {simpleTemplatePlan.error ?? "No simple plan is ready yet."}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
                 <div className="rounded-2xl border border-border p-3">
                   <div className="text-sm font-semibold text-foreground">Build mode</div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-3">
@@ -1771,23 +2298,37 @@ export default function HostPage() {
                   </div>
                 ) : null}
 
+                  </>
+                )}
+
                 {createError ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{createError}</div> : null}
-                {!createError && createBlockReason ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">{createBlockReason}</div> : null}
+                {!createError && activeCreateBlockReason ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">{activeCreateBlockReason}</div> : null}
               </CardContent>
 
               <CardFooter className="flex items-center justify-between gap-3">
                 <div className="text-sm text-muted-foreground">
-                  {buildMode === "manual_rounds"
-                    ? `${manualRounds.length} round${manualRounds.length === 1 ? "" : "s"} planned.`
-                    : buildMode === "quick_random" && quickRandomUseTemplates
-                      ? `${quickRandomTemplateIds.length} template${quickRandomTemplateIds.length === 1 ? "" : "s"} in the quick-random pool.`
+                  {setupMode === "simple"
+                    ? simpleFeasibilityBusy
+                      ? "Checking ready templates..."
                       : !selectPacks
-                        ? "Using all active packs."
-                        : selectedPackCount > 0
-                          ? `${selectedPackCount} pack${selectedPackCount === 1 ? "" : "s"} selected.`
-                          : "No packs selected yet."}
+                        ? `${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"} planned from ready templates using all active packs.`
+                        : `${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"} planned from ready templates across ${selectedPackCount} selected pack${selectedPackCount === 1 ? "" : "s"}.`
+                    : buildMode === "manual_rounds"
+                      ? `${manualRounds.length} round${manualRounds.length === 1 ? "" : "s"} planned.`
+                      : buildMode === "quick_random" && quickRandomUseTemplates
+                        ? `${quickRandomTemplateIds.length} template${quickRandomTemplateIds.length === 1 ? "" : "s"} in the quick-random pool.`
+                        : !selectPacks
+                          ? "Using all active packs."
+                          : selectedPackCount > 0
+                            ? `${selectedPackCount} pack${selectedPackCount === 1 ? "" : "s"} selected.`
+                            : "No packs selected yet."}
                 </div>
-                <Button onClick={createRoom} disabled={creating || packsLoading || Boolean(createBlockReason)}>{creating ? "Creating..." : packsLoading ? "Loading packs..." : "Create room"}</Button>
+                <Button
+                  onClick={createRoom}
+                  disabled={creating || packsLoading || (setupMode === "simple" ? simpleFeasibilityBusy || Boolean(activeCreateBlockReason) : Boolean(activeCreateBlockReason))}
+                >
+                  {creating ? "Creating..." : packsLoading ? "Loading packs..." : "Create room"}
+                </Button>
               </CardFooter>
             </Card>
           ) : (

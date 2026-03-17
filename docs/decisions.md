@@ -60,6 +60,9 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 
 ## UI and code conventions
 
+- Host setup should default to a Simple path for quick game creation, with Advanced setup hidden behind an explicit button.
+- Simple host setup is a UI layer only. It still builds a real `round_plan` under the hood, rather than creating a separate game engine.
+- Advanced setup keeps the full round builder, template tools, metadata filters, timing overrides, and legacy compatibility options.
 - The player and display pages should avoid repeated or cluttered labels where the same detail already appears elsewhere.
 - Shared theme surface tokens live in `app/globals.css` and should be used consistently.
 - Use the `JokerBadge` component instead of pasting the Joker symbol inline.
