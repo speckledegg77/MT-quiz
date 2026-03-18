@@ -1519,6 +1519,24 @@ export default function HostPage() {
     ? `${jokerEligibleCount} rounds are Joker eligible.`
     : "Joker will be hidden because fewer than two rounds are Joker eligible."
 
+  const simplePackScopeText = !selectPacks
+    ? "all active packs"
+    : selectedPackCount > 0
+      ? `${selectedPackCount} selected pack${selectedPackCount === 1 ? "" : "s"}`
+      : "no packs selected yet"
+
+  const simpleJokerSummary = simpleTemplatePlan.jokerEligibleCount >= 2
+    ? `Joker available in ${simpleTemplatePlan.jokerEligibleCount} round${simpleTemplatePlan.jokerEligibleCount === 1 ? "" : "s"}`
+    : "Joker hidden for this game"
+
+  const simpleTimingSummary = simpleTemplatePlan.quickfireCount > 0
+    ? "Standard rounds use 20 second answers and 30 second reviews. Quickfire uses 10 second answers and 45 second round reviews."
+    : "Standard rounds use 20 second answers and 30 second round reviews."
+
+  const simpleGameSummaryText = simpleTemplatePlan.rounds.length > 0
+    ? `This game will create ${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"}: ${simpleTemplatePlan.standardCount} Standard and ${simpleTemplatePlan.quickfireCount} Quickfire, using ${simplePackScopeText}, with display audio and sensible default timings.`
+    : "Simple mode will build a game from ready templates as soon as the current pack choice supports it."
+
   return (
     <PageShell width="full" contentClassName="max-w-6xl">
       <div className="mb-6 flex items-start justify-between gap-4">
@@ -1724,6 +1742,60 @@ export default function HostPage() {
                               </label>
                             ))}
                           </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-2xl border border-border p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-foreground">Game summary</div>
+                          <div className="mt-1 text-xs text-muted-foreground">This is what Simple mode will create from the current ready templates.</div>
+                        </div>
+                        <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+                          {simpleTemplatePlan.rounds.length > 0 ? "Ready to create" : "Needs changes"}
+                        </div>
+                      </div>
+
+                      {simpleFeasibilityBusy ? (
+                        <div className="mt-3 rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">Checking ready templates...</div>
+                      ) : simpleFeasibilityError ? (
+                        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{simpleFeasibilityError}</div>
+                      ) : simpleTemplatePlan.rounds.length > 0 ? (
+                        <div className="mt-3 space-y-3">
+                          <div className="rounded-xl border border-border bg-card p-3 text-sm text-foreground">{simpleGameSummaryText}</div>
+                          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                            <div className="rounded-xl border border-border bg-card p-3">
+                              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Round mix</div>
+                              <div className="mt-1 text-sm font-medium text-foreground">{simpleTemplatePlan.standardCount} Standard, {simpleTemplatePlan.quickfireCount} Quickfire</div>
+                            </div>
+                            <div className="rounded-xl border border-border bg-card p-3">
+                              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Joker</div>
+                              <div className="mt-1 text-sm font-medium text-foreground">{simpleJokerSummary}</div>
+                            </div>
+                            <div className="rounded-xl border border-border bg-card p-3">
+                              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Packs</div>
+                              <div className="mt-1 text-sm font-medium text-foreground">{!selectPacks ? "All active packs" : selectedPackCount > 0 ? `${selectedPackCount} selected` : "Choose pack"}</div>
+                            </div>
+                            <div className="rounded-xl border border-border bg-card p-3">
+                              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Audio</div>
+                              <div className="mt-1 text-sm font-medium text-foreground">Display audio</div>
+                            </div>
+                          </div>
+                          <div className="rounded-xl border border-border bg-card p-3 text-xs text-muted-foreground">{simpleTimingSummary}</div>
+                          {simpleTemplatePlan.notes.length ? (
+                            <div className="space-y-2">
+                              {simpleTemplatePlan.notes.map((note) => (
+                                <div key={note} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                                  {note}
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                          {simpleTemplatePlan.error ?? "No simple plan is ready yet."}
                         </div>
                       )}
                     </div>
