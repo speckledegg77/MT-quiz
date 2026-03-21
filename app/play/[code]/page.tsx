@@ -9,55 +9,16 @@ import { Input } from "@/components/ui/Input"
 import GameCompletedSummary from "@/components/GameCompletedSummary"
 import RoundSummaryCard from "@/components/RoundSummaryCard"
 import PageShell from "@/components/PageShell"
+import { getGameProgressLabel, getRoundBehaviourBadgeClass, getRoundBehaviourLabel, getRunBadgeLabel, getStagePillClass, getStageStatusText, isInfiniteFinalStage, isInfiniteModeFromState } from "@/lib/gameMode"
+import { deriveClientStageFromTimes, getAnswerWindowLabel, shouldSuppressQuestionBetweenRounds } from "@/lib/roundFlow"
 
 type RoomState = any
-
-function statusText(stage: string, isInfiniteFinalStage = false) {
-  if (stage === "countdown") return "Get ready"
-  if (stage === "open") return "Answer now"
-  if (stage === "wait") return "Waiting for answers"
-  if (stage === "reveal") return "Reveal"
-  if (stage === "round_summary") return isInfiniteFinalStage ? "End of game" : "End of round"
-  if (stage === "needs_advance") return "Next question"
-  return ""
-}
-
-function pillClass(stage: string) {
-  if (stage === "open") return "bg-emerald-600/20 text-emerald-200 border-emerald-500/40"
-  if (stage === "reveal") return "bg-indigo-600/20 text-indigo-200 border-indigo-500/40"
-  if (stage === "round_summary") return "bg-violet-600/20 text-violet-200 border-violet-500/40"
-  if (stage === "countdown") return "bg-amber-600/20 text-amber-200 border-amber-500/40"
-  if (stage === "wait") return "bg-slate-600/20 text-slate-200 border-slate-500/40"
-  return "bg-slate-600/20 text-slate-200 border-slate-500/40"
-}
-
-function deriveLocalStageFromTimes(serverNow: string | null | undefined, roomTimes: { closeAt?: string | null; revealAt?: string | null; nextAt?: string | null } | null | undefined, fallback: string) {
-  const nowMs = serverNow ? Date.parse(String(serverNow)) : Date.now()
-  const closeMs = roomTimes?.closeAt ? Date.parse(String(roomTimes.closeAt)) : Number.NaN
-  const revealMs = roomTimes?.revealAt ? Date.parse(String(roomTimes.revealAt)) : Number.NaN
-  const nextMs = roomTimes?.nextAt ? Date.parse(String(roomTimes.nextAt)) : Number.NaN
-
-  if (Number.isFinite(closeMs) && nowMs < closeMs) return "open"
-  if (Number.isFinite(revealMs) && nowMs < revealMs) return "wait"
-  if (Number.isFinite(nextMs) && nowMs < nextMs) return fallback === "needs_advance" ? "needs_advance" : "reveal"
-  return fallback
-}
 
 function formatDuration(totalSeconds: number) {
   const safe = Math.max(0, Math.floor(totalSeconds))
   const minutes = Math.floor(safe / 60)
   const seconds = safe % 60
   return `${minutes}:${String(seconds).padStart(2, "0")}`
-}
-
-function roundModeLabel(behaviourType: unknown) {
-  return String(behaviourType ?? "").trim().toLowerCase() === "quickfire" ? "Quickfire" : "Standard"
-}
-
-function roundModeBadgeClass(behaviourType: unknown) {
-  return String(behaviourType ?? "").trim().toLowerCase() === "quickfire"
-    ? "border-violet-500/40 bg-violet-600/10 text-violet-200"
-    : "border-emerald-500/40 bg-emerald-600/10 text-emerald-200"
 }
 
 export default function PlayerPage() {
@@ -360,7 +321,7 @@ export default function PlayerPage() {
       return {
         ...prev,
         serverNow: data?.serverNow ?? prev.serverNow,
-        stage: deriveLocalStageFromTimes(
+        stage: deriveClientStageFromTimes(
           data?.serverNow ?? prev?.serverNow,
           {
             closeAt: data?.roomTimes?.closeAt ?? prev?.times?.closeAt,
@@ -693,35 +654,34 @@ export default function PlayerPage() {
 
   if (!state) return null
 
-  const isInfiniteMode =
-    Boolean(state?.flow?.isInfiniteMode) ||
-    Boolean(state?.rounds?.current?.isInfinite) ||
-    String(state?.gameType ?? "").trim().toLowerCase() === "infinite" ||
-    String(state?.roomMode ?? "").trim().toLowerCase() === "infinite" ||
-    String(state?.mode ?? "").trim().toLowerCase() === "infinite"
+  const isInfiniteMode = isInfiniteModeFromState(state)
 
   const stage = String(state?.stage ?? "")
-  const isInfiniteFinalStage =
-    isInfiniteMode && stage === "round_summary" && Boolean(state?.flow?.isLastQuestionOverall)
-  const status = statusText(stage, isInfiniteFinalStage)
+  const showInfiniteFinalStage = isInfiniteFinalStage(stage, {
+    isInfiniteMode,
+    isLastQuestionOverall: Boolean(state?.flow?.isLastQuestionOverall),
+  })
+  const status = getStageStatusText(stage, showInfiniteFinalStage)
 
   const questionNumber = Number(state.questionIndex ?? 0) + 1
   const questionCount = Number(state.questionCount ?? 0)
-  const progressLabel = isInfiniteMode
-    ? questionCount > 0
-      ? `${questionNumber} asked of ${questionCount}`
-      : `${questionNumber} asked so far`
-    : null
+  const progressLabel = String(state?.progress?.label ?? "").trim() ||
+    getGameProgressLabel({
+      isInfiniteMode,
+      currentQuestionNumber: questionNumber,
+      totalQuestions: questionCount,
+      phase: state?.phase,
+    })
 
   const showLobby = state.phase === "lobby"
   const finished = state.phase === "finished"
 
-  const suppressStaleQuestionBetweenRounds =
-    !showLobby &&
-    !finished &&
-    stage !== "round_summary" &&
-    roundTransitionQuestionIndex !== null &&
-    Number(state?.questionIndex ?? -1) === roundTransitionQuestionIndex
+  const suppressStaleQuestionBetweenRounds = shouldSuppressQuestionBetweenRounds({
+    phase: state?.phase,
+    stage,
+    questionIndex: state?.questionIndex,
+    roundTransitionQuestionIndex,
+  })
 
   const showScoreTimerRow =
     !showLobby &&
@@ -731,14 +691,11 @@ export default function PlayerPage() {
 
   const showTimerCard = !showLobby && !finished && stage !== "round_summary" && Boolean(q)
 
-  let timerLabel = isUntimedAnswers
-    ? isQuickfireRound
-      ? "Quickfire window"
-      : "Answer window"
-    : isQuickfireRound
-      ? "Quickfire closes in"
-      : "Time remaining"
-  let timerValue = isUntimedAnswers ? "Waiting for host" : formatDuration(secondsRemaining)
+  let timerLabel = getAnswerWindowLabel({
+    isUntimedAnswers,
+    isQuickfire: isQuickfireRound,
+  })
+  let timerValue = isUntimedAnswers ? "No timer" : formatDuration(secondsRemaining)
 
   if (stage !== "open") {
     timerValue = isUntimedAnswers ? "Closed" : formatDuration(secondsRemaining)
@@ -774,20 +731,20 @@ export default function PlayerPage() {
 
         <div className="flex flex-col items-end gap-2">
           {status ? (
-            <span className={`rounded-full border px-3 py-1 text-xs ${pillClass(stage)}`}>{status}</span>
+            <span className={`rounded-full border px-3 py-1 text-xs ${getStagePillClass(stage)}`}>{status}</span>
           ) : null}
 
           {state.phase === "running" ? (
             <div className="flex flex-col items-end gap-2">
               {currentRound ? (
                 <span className={`rounded-full border px-3 py-1 text-xs ${isInfiniteMode ? "border-sky-500/40 bg-sky-600/10 text-sky-200" : "border-border bg-card text-muted-foreground"}`}>
-                  {isInfiniteMode ? "Infinite run" : `R${Number(currentRound.number ?? 0)}: ${String(currentRound.name ?? "")}`}
+                  {getRunBadgeLabel({ isInfiniteMode, currentRound })}
                 </span>
               ) : null}
 
               {!isInfiniteMode && currentRound ? (
-                <span className={`rounded-full border px-3 py-1 text-xs ${roundModeBadgeClass(currentRound.behaviourType)}`}>
-                  {roundModeLabel(currentRound.behaviourType)}
+                <span className={`rounded-full border px-3 py-1 text-xs ${getRoundBehaviourBadgeClass(currentRound.behaviourType)}`}>
+                  {getRoundBehaviourLabel(currentRound.behaviourType)}
                 </span>
               ) : null}
 
