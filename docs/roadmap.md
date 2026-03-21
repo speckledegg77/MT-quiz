@@ -78,3 +78,6 @@ This file tracks the live plan. Keep it short and practical.
 - [x] Host page layout tidy-up.
 - [x] Light and dark mode fixes, including phone behaviour.
 - [x] iPhone input zoom fix.
+
+
+- Round templates now use alphabetical ordering by name, and sort order is no longer used in template selection or admin editing.

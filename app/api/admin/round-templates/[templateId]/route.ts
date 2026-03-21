@@ -46,7 +46,6 @@ const updateRoundTemplateSchema = z
     defaultPackIds: z.array(z.string()).optional(),
     selectionRules: selectionRulesSchema,
     isActive: z.boolean().optional(),
-    sortOrder: z.coerce.number().int().optional(),
   })
   .refine(
     (value) =>
@@ -61,8 +60,7 @@ const updateRoundTemplateSchema = z
       value.sourceMode !== undefined ||
       value.defaultPackIds !== undefined ||
       value.selectionRules !== undefined ||
-      value.isActive !== undefined ||
-      value.sortOrder !== undefined,
+      value.isActive !== undefined,
     { message: "At least one field must be provided." }
   )
 
@@ -103,7 +101,6 @@ export async function PATCH(req: Request, context: RouteContext) {
   if (parsed.data.defaultPackIds !== undefined) update.default_pack_ids = cleanPackIds(parsed.data.defaultPackIds)
   if (parsed.data.selectionRules !== undefined) update.selection_rules = normaliseSelectionRules(parsed.data.selectionRules)
   if (parsed.data.isActive !== undefined) update.is_active = parsed.data.isActive
-  if (parsed.data.sortOrder !== undefined) update.sort_order = parsed.data.sortOrder
 
   const updateRes = await supabaseAdmin
     .from("round_templates")

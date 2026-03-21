@@ -58,7 +58,6 @@ type TemplateEditorState = {
   primaryShowKey: string
   audioClipType: string
   isActive: boolean
-  sortOrder: number
 }
 
 const BEHAVIOUR_TYPE_OPTIONS: Array<{ value: RoundTemplateBehaviourType; label: string }> = [
@@ -179,7 +178,6 @@ function createBlankEditor(): TemplateEditorState {
     primaryShowKey: "",
     audioClipType: "",
     isActive: true,
-    sortOrder: 0,
   }
 }
 
@@ -207,7 +205,6 @@ function editorFromTemplate(template: RoundTemplateRow): TemplateEditorState {
     primaryShowKey: firstRuleValue(template.selection_rules, "primaryShowKeys"),
     audioClipType: firstRuleValue(template.selection_rules, "audioClipTypes"),
     isActive: !!template.is_active,
-    sortOrder: Number(template.sort_order ?? 0),
   }
 }
 
@@ -395,7 +392,6 @@ export function RoundTemplatesDashboard() {
           defaultPackIds: createEditor.defaultPackIds,
           selectionRules: buildSelectionRulesFromEditor(createEditor),
           isActive: createEditor.isActive,
-          sortOrder: createEditor.sortOrder,
         }),
       })
 
@@ -456,7 +452,6 @@ export function RoundTemplatesDashboard() {
           defaultPackIds: editEditor.defaultPackIds,
           selectionRules: buildSelectionRulesFromEditor(editEditor),
           isActive: editEditor.isActive,
-          sortOrder: editEditor.sortOrder,
         }),
       })
 
@@ -814,22 +809,7 @@ function TemplateFields({
         </label>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className="grid gap-1">
-          <span className="text-sm font-medium">Sort order</span>
-          <input
-            type="number"
-            value={editor.sortOrder}
-            onChange={(event) =>
-              setEditor((current) => ({
-                ...current,
-                sortOrder: Number(event.target.value) || 0,
-              }))
-            }
-            className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
-          />
-        </label>
-
+      <div className="grid gap-3 md:grid-cols-1">
         <label className="grid gap-1">
           <span className="text-sm font-medium">Source mode</span>
           <select

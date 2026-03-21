@@ -39,7 +39,6 @@ const createRoundTemplateSchema = z.object({
   defaultPackIds: z.array(z.string()).optional(),
   selectionRules: selectionRulesSchema,
   isActive: z.boolean().optional(),
-  sortOrder: z.coerce.number().int().optional(),
 })
 
 export async function GET(req: Request) {
@@ -48,7 +47,6 @@ export async function GET(req: Request) {
   const templatesRes = await supabaseAdmin
     .from("round_templates")
     .select("*")
-    .order("sort_order", { ascending: true })
     .order("name", { ascending: true })
 
   if (templatesRes.error) {
@@ -92,7 +90,6 @@ export async function POST(req: Request) {
       default_pack_ids: cleanPackIds(parsed.data.defaultPackIds),
       selection_rules: normaliseSelectionRules(parsed.data.selectionRules),
       is_active: parsed.data.isActive ?? true,
-      sort_order: parsed.data.sortOrder ?? 0,
     })
     .select("*")
     .single()

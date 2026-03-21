@@ -323,3 +323,6 @@ Pack loading:
 - For UI and UX changes, prefer canonical Tailwind theme utilities over arbitrary value classes wherever a theme token already exists.
 
 - Round-flow cleanup has centralised stage/status labels, mode badges, and stale-question suppression into shared helpers in `lib/gameMode.ts` and `lib/roundFlow.ts`.
+
+
+- Round templates now use alphabetical ordering by name, and sort order is no longer used in template selection or admin editing.

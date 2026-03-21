@@ -331,11 +331,9 @@ function getSimplePresetQuickfireTarget(preset: SimplePresetId, roundCount: numb
 }
 
 function sortTemplatesForSimplePlan(templates: RoundTemplateRow[]) {
-  return [...templates].sort((a, b) => {
-    const sortDiff = Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0)
-    if (sortDiff !== 0) return sortDiff
-    return String(a.name ?? "").localeCompare(String(b.name ?? ""))
-  })
+  return [...templates].sort((a, b) =>
+    String(a.name ?? "").localeCompare(String(b.name ?? ""))
+  )
 }
 
 function orderSimplePlanTemplates(params: {
