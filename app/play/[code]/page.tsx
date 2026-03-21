@@ -795,6 +795,7 @@ export default function PlayerPage() {
                   {roundsPlan.map((round: any) => {
                     const selected = myJokerIndex === Number(round.index)
                     const jokerEligible = round?.jokerEligible !== false
+                    const showJokerBadges = !isInfiniteMode
 
                     return (
                       <div key={round.index} className="flex items-center justify-between gap-3">
@@ -814,13 +815,13 @@ export default function PlayerPage() {
                             </div>
                           ) : null}
 
-                          {!jokerEligible ? (
+                          {showJokerBadges && !jokerEligible ? (
                             <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
                               No Joker
                             </span>
                           ) : null}
 
-                          {selected ? (
+                          {showJokerBadges && selected ? (
                             <span className="rounded-full border border-emerald-500/40 bg-emerald-600/10 px-2 py-0.5 text-[10px] text-emerald-200">
                               Joker
                             </span>
@@ -833,7 +834,7 @@ export default function PlayerPage() {
               </div>
             ) : null}
 
-            {jokerEnabled && jokerEligibleCount >= 2 ? (
+            {!isInfiniteMode && jokerEnabled && jokerEligibleCount >= 2 ? (
               <div className="rounded-lg border border-border bg-muted px-3 py-3">
                 <div className="text-sm font-medium text-foreground">Pick your Joker round</div>
 
@@ -875,6 +876,7 @@ export default function PlayerPage() {
           finalResults={state?.finalResults}
           highlightPlayerId={playerId}
           highlightTeamName={myTeamRow?.label ?? teamName}
+          isInfiniteMode={isInfiniteMode}
         />
       ) : null}
 
@@ -887,6 +889,7 @@ export default function PlayerPage() {
           roundSummaryEndsAt={state?.times?.roundSummaryEndsAt ?? null}
           roundReview={state?.roundReview}
           isInfiniteMode={isInfiniteMode}
+          summaryQuestionCount={Number(state?.progress?.currentQuestionNumber ?? 0)}
         />
       ) : null}
 
@@ -1027,8 +1030,6 @@ export default function PlayerPage() {
 
                         if (selected && !submitted) cls += " bg-emerald-600/15 border-emerald-500/40"
                         if (submitted) cls += " opacity-80 cursor-not-allowed"
-                        if (inReveal && correctIndex === idx) cls += " bg-emerald-600/10 border-emerald-600/30"
-                        if (inReveal && submittedIndex === idx && correctIndex !== idx) cls += " bg-red-600/10 border-red-600/30"
 
                         return (
                           <button

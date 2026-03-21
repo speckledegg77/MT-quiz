@@ -38,6 +38,7 @@ type Props = {
   highlightPlayerId?: string | null
   highlightTeamName?: string | null
   title?: string
+  isInfiniteMode?: boolean
 }
 
 function formatScore(value: number) {
@@ -65,10 +66,12 @@ function PlayerCard({
   player,
   rounds,
   isHighlighted,
+  isInfiniteMode,
 }: {
   player: FinalPlayerResult
   rounds: Array<{ index: number; number: number; name: string }>
   isHighlighted: boolean
+  isInfiniteMode: boolean
 }) {
   return (
     <div
@@ -80,7 +83,7 @@ function PlayerCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="truncate text-xl font-semibold text-white">{player.name}</div>
-          <div className="mt-1 text-sm text-slate-300">Joker: {getJokerLabel(player.rounds)}</div>
+          {!isInfiniteMode ? <div className="mt-1 text-sm text-slate-300">Joker: {getJokerLabel(player.rounds)}</div> : null}
         </div>
 
         <div className="shrink-0 text-right">
@@ -92,7 +95,7 @@ function PlayerCard({
       <details className="mt-4 rounded-2xl border border-white/10 bg-slate-950/25 px-4 py-3">
         <summary className="cursor-pointer list-none text-base font-medium text-white">
           <div className="flex items-center justify-between gap-3">
-            <span>Round breakdown</span>
+            <span>{isInfiniteMode ? "Question run breakdown" : "Round breakdown"}</span>
             <span className="text-xs uppercase tracking-wide text-slate-400">Tap to open</span>
           </div>
         </summary>
@@ -114,7 +117,7 @@ function PlayerCard({
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2">
-                  {jokerUsed ? (
+                  {!isInfiniteMode && jokerUsed ? (
                     <span className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-400/10 px-2 py-0.5 text-xs font-medium text-amber-200">
                       <JokerBadge />
                       <span className="ml-1">Joker</span>
@@ -138,6 +141,7 @@ export default function GameCompletedSummary({
   highlightPlayerId,
   highlightTeamName,
   title = "Game completed",
+  isInfiniteMode = false,
 }: Props) {
   const rounds = Array.isArray(finalResults?.rounds) ? finalResults.rounds : []
   const players = Array.isArray(finalResults?.players) ? [...finalResults.players].sort(sortPlayers) : []
@@ -151,40 +155,45 @@ export default function GameCompletedSummary({
     return a.team.localeCompare(b.team)
   })
 
-  const winningTeams = gameMode === "teams" && teams.length > 0
-    ? teams.filter((team) => {
-        const top = teams[0]
-        const topScore = teamScoreMode === "average" ? top.averageScore : top.totalScore
-        const teamScore = teamScoreMode === "average" ? team.averageScore : team.totalScore
-        return teamScore === topScore
-      })
-    : []
+  const winningTeams =
+    gameMode === "teams" && teams.length > 0
+      ? teams.filter((team) => {
+          const top = teams[0]
+          const topScore = teamScoreMode === "average" ? top.averageScore : top.totalScore
+          const teamScore = teamScoreMode === "average" ? team.averageScore : team.totalScore
+          return teamScore === topScore
+        })
+      : []
 
-  const winningPlayers = gameMode === "solo" && players.length > 0
-    ? players.filter((player) => player.totalScore === players[0].totalScore)
-    : []
+  const winningPlayers =
+    gameMode === "solo" && players.length > 0
+      ? players.filter((player) => player.totalScore === players[0].totalScore)
+      : []
 
-  const winnerLabel = gameMode === "teams"
-    ? winningTeams.length > 1
-      ? "Joint winners"
-      : "Winning team"
-    : winningPlayers.length > 1
-      ? "Joint winners"
-      : "Winner"
+  const winnerLabel =
+    gameMode === "teams"
+      ? winningTeams.length > 1
+        ? "Joint winners"
+        : "Winning team"
+      : winningPlayers.length > 1
+        ? "Joint winners"
+        : "Winner"
 
-  const winnerNames = gameMode === "teams"
-    ? winningTeams.map((team) => team.team).join(", ")
-    : winningPlayers.map((player) => player.name).join(", ")
+  const winnerNames =
+    gameMode === "teams"
+      ? winningTeams.map((team) => team.team).join(", ")
+      : winningPlayers.map((player) => player.name).join(", ")
 
-  const winnerScore = gameMode === "teams"
-    ? winningTeams.length > 0
-      ? teamScoreMode === "average"
-        ? winningTeams[0].averageScore
-        : winningTeams[0].totalScore
-      : 0
-    : winningPlayers.length > 0
-      ? winningPlayers[0].totalScore
-      : 0
+  const winnerScore =
+    gameMode === "teams"
+      ? winningTeams.length > 0
+        ? teamScoreMode === "average"
+          ? winningTeams[0].averageScore
+          : winningTeams[0].totalScore
+        : 0
+      : winningPlayers.length > 0
+        ? winningPlayers[0].totalScore
+        : 0
 
   return (
     <Card className="rounded-[2rem] border-white/10 bg-slate-900/70 shadow-2xl backdrop-blur">
@@ -244,6 +253,7 @@ export default function GameCompletedSummary({
                         player={player}
                         rounds={rounds}
                         isHighlighted={player.id === highlightPlayerId}
+                        isInfiniteMode={isInfiniteMode}
                       />
                     ))}
                   </div>
@@ -259,6 +269,7 @@ export default function GameCompletedSummary({
                 player={player}
                 rounds={rounds}
                 isHighlighted={player.id === highlightPlayerId}
+                isInfiniteMode={isInfiniteMode}
               />
             ))}
           </div>

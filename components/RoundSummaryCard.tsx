@@ -68,6 +68,7 @@ type Props = {
   isLastQuestionOverall?: boolean
   roundSummaryEndsAt?: string | number | Date | null | undefined
   isInfiniteMode?: boolean
+  summaryQuestionCount?: number | null
 }
 
 function fmt(n: number) {
@@ -130,6 +131,7 @@ export default function RoundSummaryCard({
   isLastQuestionOverall = false,
   roundSummaryEndsAt,
   isInfiniteMode = false,
+  summaryQuestionCount = null,
 }: Props) {
   const endsAtMs = useMemo(() => parseEndsAt(roundSummaryEndsAt), [roundSummaryEndsAt])
   const [nowMs, setNowMs] = useState(() => Date.now())
@@ -164,6 +166,7 @@ export default function RoundSummaryCard({
   const isQuickfire = round?.behaviourType === "quickfire" || roundReview?.behaviourType === "quickfire"
   const quickfireQuestions = Array.isArray(roundReview?.questions) ? roundReview.questions : []
   const fastestAwardCount = quickfireQuestions.filter((question) => question.fastestCorrectPlayerName).length
+  const infiniteQuestionsAsked = Math.max(0, Math.floor(Number(summaryQuestionCount ?? 0) || 0))
 
   return (
     <Card>
@@ -212,21 +215,25 @@ export default function RoundSummaryCard({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-xl border border-border bg-card p-3">
-            <div className="text-xs text-muted-foreground">Correct</div>
+            <div className="text-xs text-muted-foreground">{isInfiniteMode ? "Questions asked" : "Correct"}</div>
             <div className="mt-1 text-lg font-semibold">
-              {fmt(Number(roundStats?.correct ?? 0))}/{fmt(Number(roundStats?.answered ?? 0))}
+              {isInfiniteMode
+                ? fmt(infiniteQuestionsAsked)
+                : `${fmt(Number(roundStats?.correct ?? 0))}/${fmt(Number(roundStats?.answered ?? 0))}`}
             </div>
           </div>
 
           <div className="rounded-xl border border-border bg-card p-3">
-            <div className="text-xs text-muted-foreground">{isQuickfire ? "Fastest bonuses" : "Joker usage"}</div>
+            <div className="text-xs text-muted-foreground">{isInfiniteMode ? "Correct answers" : isQuickfire ? "Fastest bonuses" : "Joker usage"}</div>
             <div className="mt-1 text-lg font-semibold">
-              {isQuickfire ? fmt(fastestAwardCount) : fmt(Number(roundStats?.jokerUsed ?? 0))}
+              {isInfiniteMode ? fmt(Number(roundStats?.correct ?? 0)) : isQuickfire ? fmt(fastestAwardCount) : fmt(Number(roundStats?.jokerUsed ?? 0))}
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
-              {isQuickfire
-                ? "One bonus point goes to the fastest correct player on each question."
-                : `Joker correct: ${fmt(Number(roundStats?.jokerCorrect ?? 0))}`}
+              {isInfiniteMode
+                ? "Unanswered questions do not count as correct."
+                : isQuickfire
+                  ? "One bonus point goes to the fastest correct player on each question."
+                  : `Joker correct: ${fmt(Number(roundStats?.jokerCorrect ?? 0))}`}
             </div>
           </div>
         </div>
@@ -275,7 +282,7 @@ export default function RoundSummaryCard({
                     <div>
                       <div className="text-sm font-semibold text-foreground">{team.team}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        {isQuickfire
+                        {isQuickfire || isInfiniteMode
                           ? `Correct ${fmt(Number(team.correct ?? 0))}/${fmt(Number(team.answered ?? 0))}`
                           : `Correct ${fmt(Number(team.correct ?? 0))}/${fmt(Number(team.answered ?? 0))} | Joker ${fmt(Number(team.jokerUsed ?? 0))}`}
                       </div>
@@ -298,7 +305,7 @@ export default function RoundSummaryCard({
                         >
                           <div className="flex min-w-0 items-center gap-2">
                             <div className="truncate text-sm text-foreground">{player.name}</div>
-                            {player.usedJokerInScope ? <JokerBadge /> : null}
+                            {!isInfiniteMode && player.usedJokerInScope ? <JokerBadge /> : null}
                           </div>
 
                           <div className="shrink-0 text-sm font-semibold tabular-nums">{fmt(Number(player.totalScore ?? 0))}</div>
@@ -322,7 +329,7 @@ export default function RoundSummaryCard({
                 >
                   <div className="flex min-w-0 items-center gap-2">
                     <div className="truncate text-sm text-foreground">{player.name}</div>
-                    {player.usedJokerInScope ? <JokerBadge /> : null}
+                    {!isInfiniteMode && player.usedJokerInScope ? <JokerBadge /> : null}
                   </div>
 
                   <div className="shrink-0 text-sm font-semibold tabular-nums">{fmt(Number(player.totalScore ?? 0))}</div>

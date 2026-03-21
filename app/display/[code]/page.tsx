@@ -281,6 +281,7 @@ export default function DisplayPage() {
           gameMode={String(state?.gameMode ?? "teams") === "solo" ? "solo" : "teams"}
           roundReview={state?.roundReview}
           isInfiniteMode={isInfiniteMode}
+          summaryQuestionCount={Number(state?.progress?.currentQuestionNumber ?? 0)}
         />
       ) : null}
 
@@ -395,6 +396,7 @@ export default function DisplayPage() {
           teamScoreMode={String(state?.teamScoreMode ?? "total") === "average" ? "average" : "total"}
           finalResults={state?.finalResults}
           title="Game completed"
+          isInfiniteMode={isInfiniteMode}
         />
       ) : null}
     </PageShell>

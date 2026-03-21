@@ -28,6 +28,7 @@ export default function HostJoinedTeamsPanel({ code }: { code: string }) {
   const [roundNames, setRoundNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showJokerPanel, setShowJokerPanel] = useState(false);
 
   useEffect(() => {
     if (!roomCode) return;
@@ -54,6 +55,7 @@ export default function HostJoinedTeamsPanel({ code }: { code: string }) {
 
         const names = Array.isArray(data?.rounds?.names) ? data.rounds.names : [];
         setRoundNames(names.map((x: any, i: number) => (String(x ?? "").trim() ? String(x) : `Round ${i + 1}`)));
+        setShowJokerPanel(Boolean(data?.rounds?.jokerEnabled) && !Boolean(data?.mode?.isInfinite));
 
         setError(null);
         setLoading(false);
@@ -116,6 +118,7 @@ export default function HostJoinedTeamsPanel({ code }: { code: string }) {
         </CardContent>
       </Card>
 
+{showJokerPanel ? (
       <Card>
         <CardHeader>
           <CardTitle>Joker picks</CardTitle>
@@ -159,6 +162,7 @@ export default function HostJoinedTeamsPanel({ code }: { code: string }) {
           )}
         </CardContent>
       </Card>
+      ) : null}
     </div>
   );
 }
