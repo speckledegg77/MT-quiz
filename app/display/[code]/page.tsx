@@ -9,9 +9,18 @@ import GameCompletedSummary from "@/components/GameCompletedSummary";
 import RoundSummaryCard from "@/components/RoundSummaryCard";
 import PageShell from "@/components/PageShell";
 import QRTile from "@/components/ui/QRTile";
-import { getGameProgressLabel, getRunBadgeLabel, getStageStatusText, isInfiniteFinalStage } from "@/lib/gameMode";
 
 type RoomState = any;
+
+function statusText(stage: string, isInfiniteFinalStage = false) {
+  if (stage === "countdown") return "Get ready";
+  if (stage === "open") return "Answer now";
+  if (stage === "wait") return "Waiting for answers";
+  if (stage === "reveal") return "Reveal";
+  if (stage === "round_summary") return isInfiniteFinalStage ? "End of game" : "End of round";
+  if (stage === "needs_advance") return "Next question";
+  return "";
+}
 
 function pillClass(stage: string) {
   if (stage === "open") return "bg-emerald-600/20 text-emerald-200 border-emerald-500/40";
@@ -166,12 +175,9 @@ export default function DisplayPage() {
   if (!state) return null;
 
   const stage = String(state.stage ?? "");
-  const isInfiniteMode = Boolean(state?.mode?.isInfinite) || Boolean(state?.flow?.isInfiniteMode);
-  const infiniteStageSummary = isInfiniteFinalStage(stage, {
-    isInfiniteMode,
-    isLastQuestionOverall: Boolean(state?.flow?.isLastQuestionOverall),
-  });
-  const status = getStageStatusText(stage, infiniteStageSummary);
+  const isInfiniteMode = Boolean(state?.mode?.isInfinite);
+  const isInfiniteFinalStage = isInfiniteMode && stage === "round_summary" && Boolean(state?.flow?.isLastQuestionOverall);
+  const status = statusText(stage, isInfiniteFinalStage);
   const q = state.question;
   const isAudioQ = q?.roundType === "audio";
   const isPictureQ = q?.roundType === "picture";
@@ -180,14 +186,9 @@ export default function DisplayPage() {
   const finished = state.phase === "finished";
   const currentRound = state?.rounds?.current ?? null;
   const isQuickfireRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "quickfire";
-  const questionNumber = Number(state?.progress?.currentQuestionNumber ?? state.questionIndex ?? 0) + (state?.progress?.currentQuestionNumber != null ? 0 : 1);
-  const questionCount = Number(state?.progress?.totalQuestions ?? state.questionCount ?? 0);
-  const progressLabel = getGameProgressLabel({
-    isInfiniteMode,
-    currentQuestionNumber: questionNumber,
-    totalQuestions: questionCount,
-    phase: String(state?.phase ?? ""),
-  });
+  const progressLabel = String(state?.progress?.label ?? "");
+  const questionNumber = Number(state.questionIndex ?? 0) + 1;
+  const questionCount = Number(state.questionCount ?? 0);
   const roundStats = state?.roundStats ?? null;
 
   const suppressStaleQuestionBetweenRounds =
@@ -225,7 +226,7 @@ export default function DisplayPage() {
 
           {state.phase === "running" && currentRound ? (
             <span className={`rounded-full border px-3 py-1 text-sm ${isInfiniteMode ? "border-sky-500/40 bg-sky-600/10 text-sky-200" : "border-border bg-card text-muted-foreground"}`}>
-              {getRunBadgeLabel({ isInfiniteMode, currentRound })}
+              {isInfiniteMode ? "Infinite run" : `R${Number(currentRound.number ?? 0)}: ${String(currentRound.name ?? "")}`}
             </span>
           ) : null}
 
@@ -237,7 +238,7 @@ export default function DisplayPage() {
 
           {state.phase === "running" ? (
             <span className="rounded-full border border-border bg-card px-3 py-1 text-sm text-muted-foreground">
-              {progressLabel}
+              {progressLabel || `Q${questionNumber} of ${questionCount}`}
             </span>
           ) : null}
         </div>
@@ -281,7 +282,6 @@ export default function DisplayPage() {
           gameMode={String(state?.gameMode ?? "teams") === "solo" ? "solo" : "teams"}
           roundReview={state?.roundReview}
           isInfiniteMode={isInfiniteMode}
-          summaryQuestionCount={Number(state?.progress?.currentQuestionNumber ?? 0)}
         />
       ) : null}
 
@@ -397,6 +397,7 @@ export default function DisplayPage() {
           finalResults={state?.finalResults}
           title="Game completed"
           isInfiniteMode={isInfiniteMode}
+          finalQuestionReview={state?.finalQuestionReview}
         />
       ) : null}
     </PageShell>

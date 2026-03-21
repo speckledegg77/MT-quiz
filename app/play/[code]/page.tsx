@@ -9,9 +9,18 @@ import { Input } from "@/components/ui/Input"
 import GameCompletedSummary from "@/components/GameCompletedSummary"
 import RoundSummaryCard from "@/components/RoundSummaryCard"
 import PageShell from "@/components/PageShell"
-import { getGameProgressLabel, getRunBadgeLabel, getStageStatusText, isInfiniteFinalStage, isInfiniteModeFromState } from "@/lib/gameMode"
 
 type RoomState = any
+
+function statusText(stage: string, isInfiniteFinalStage = false) {
+  if (stage === "countdown") return "Get ready"
+  if (stage === "open") return "Answer now"
+  if (stage === "wait") return "Waiting for answers"
+  if (stage === "reveal") return "Reveal"
+  if (stage === "round_summary") return isInfiniteFinalStage ? "End of game" : "End of round"
+  if (stage === "needs_advance") return "Next question"
+  return ""
+}
 
 function pillClass(stage: string) {
   if (stage === "open") return "bg-emerald-600/20 text-emerald-200 border-emerald-500/40"
@@ -20,6 +29,18 @@ function pillClass(stage: string) {
   if (stage === "countdown") return "bg-amber-600/20 text-amber-200 border-amber-500/40"
   if (stage === "wait") return "bg-slate-600/20 text-slate-200 border-slate-500/40"
   return "bg-slate-600/20 text-slate-200 border-slate-500/40"
+}
+
+function deriveLocalStageFromTimes(serverNow: string | null | undefined, roomTimes: { closeAt?: string | null; revealAt?: string | null; nextAt?: string | null } | null | undefined, fallback: string) {
+  const nowMs = serverNow ? Date.parse(String(serverNow)) : Date.now()
+  const closeMs = roomTimes?.closeAt ? Date.parse(String(roomTimes.closeAt)) : Number.NaN
+  const revealMs = roomTimes?.revealAt ? Date.parse(String(roomTimes.revealAt)) : Number.NaN
+  const nextMs = roomTimes?.nextAt ? Date.parse(String(roomTimes.nextAt)) : Number.NaN
+
+  if (Number.isFinite(closeMs) && nowMs < closeMs) return "open"
+  if (Number.isFinite(revealMs) && nowMs < revealMs) return "wait"
+  if (Number.isFinite(nextMs) && nowMs < nextMs) return fallback === "needs_advance" ? "needs_advance" : "reveal"
+  return fallback
 }
 
 function formatDuration(totalSeconds: number) {
@@ -189,7 +210,7 @@ export default function PlayerPage() {
     ? Number(state?.reveal?.answerIndex)
     : null
   const revealAnswerText = String(state?.reveal?.answerText ?? "").trim()
-  const inReveal = Boolean(state?.reveal)
+  const inReveal = String(state?.stage ?? "") === "reveal" && Boolean(state?.reveal)
 
   const canAnswer = useMemo(() => {
     if (state?.phase !== "running") return false
@@ -339,7 +360,15 @@ export default function PlayerPage() {
       return {
         ...prev,
         serverNow: data?.serverNow ?? prev.serverNow,
-        stage: data?.nextStage ?? "reveal",
+        stage: deriveLocalStageFromTimes(
+          data?.serverNow ?? prev?.serverNow,
+          {
+            closeAt: data?.roomTimes?.closeAt ?? prev?.times?.closeAt,
+            revealAt: data?.roomTimes?.revealAt ?? prev?.times?.revealAt,
+            nextAt: data?.roomTimes?.nextAt ?? prev?.times?.nextAt,
+          },
+          data?.nextStage ?? "reveal"
+        ),
         times: {
           ...prev.times,
           closeAt: data?.roomTimes?.closeAt ?? prev?.times?.closeAt,
@@ -664,23 +693,25 @@ export default function PlayerPage() {
 
   if (!state) return null
 
-  const isInfiniteMode = isInfiniteModeFromState(state)
+  const isInfiniteMode =
+    Boolean(state?.flow?.isInfiniteMode) ||
+    Boolean(state?.rounds?.current?.isInfinite) ||
+    String(state?.gameType ?? "").trim().toLowerCase() === "infinite" ||
+    String(state?.roomMode ?? "").trim().toLowerCase() === "infinite" ||
+    String(state?.mode ?? "").trim().toLowerCase() === "infinite"
 
   const stage = String(state?.stage ?? "")
-  const isInfiniteStageSummary = isInfiniteFinalStage(stage, {
-    isInfiniteMode,
-    isLastQuestionOverall: Boolean(state?.flow?.isLastQuestionOverall),
-  })
-  const status = getStageStatusText(stage, isInfiniteStageSummary)
+  const isInfiniteFinalStage =
+    isInfiniteMode && stage === "round_summary" && Boolean(state?.flow?.isLastQuestionOverall)
+  const status = statusText(stage, isInfiniteFinalStage)
 
-  const questionNumber = Number(state?.progress?.currentQuestionNumber ?? state.questionIndex ?? 0) + (state?.progress?.currentQuestionNumber != null ? 0 : 1)
-  const questionCount = Number(state?.progress?.totalQuestions ?? state.questionCount ?? 0)
-  const progressLabel = getGameProgressLabel({
-    isInfiniteMode,
-    currentQuestionNumber: questionNumber,
-    totalQuestions: questionCount,
-    phase: String(state?.phase ?? ""),
-  })
+  const questionNumber = Number(state.questionIndex ?? 0) + 1
+  const questionCount = Number(state.questionCount ?? 0)
+  const progressLabel = isInfiniteMode
+    ? questionCount > 0
+      ? `${questionNumber} asked of ${questionCount}`
+      : `${questionNumber} asked so far`
+    : null
 
   const showLobby = state.phase === "lobby"
   const finished = state.phase === "finished"
@@ -750,7 +781,7 @@ export default function PlayerPage() {
             <div className="flex flex-col items-end gap-2">
               {currentRound ? (
                 <span className={`rounded-full border px-3 py-1 text-xs ${isInfiniteMode ? "border-sky-500/40 bg-sky-600/10 text-sky-200" : "border-border bg-card text-muted-foreground"}`}>
-                  {getRunBadgeLabel({ isInfiniteMode, currentRound })}
+                  {isInfiniteMode ? "Infinite run" : `R${Number(currentRound.number ?? 0)}: ${String(currentRound.name ?? "")}`}
                 </span>
               ) : null}
 
@@ -761,7 +792,7 @@ export default function PlayerPage() {
               ) : null}
 
               <span className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
-                {progressLabel}
+                {progressLabel || `Q${questionNumber} of ${questionCount}`}
               </span>
             </div>
           ) : null}
@@ -795,7 +826,6 @@ export default function PlayerPage() {
                   {roundsPlan.map((round: any) => {
                     const selected = myJokerIndex === Number(round.index)
                     const jokerEligible = round?.jokerEligible !== false
-                    const showJokerBadges = !isInfiniteMode
 
                     return (
                       <div key={round.index} className="flex items-center justify-between gap-3">
@@ -815,13 +845,13 @@ export default function PlayerPage() {
                             </div>
                           ) : null}
 
-                          {showJokerBadges && !jokerEligible ? (
+                          {!jokerEligible ? (
                             <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
                               No Joker
                             </span>
                           ) : null}
 
-                          {showJokerBadges && selected ? (
+                          {selected ? (
                             <span className="rounded-full border border-emerald-500/40 bg-emerald-600/10 px-2 py-0.5 text-[10px] text-emerald-200">
                               Joker
                             </span>
@@ -834,7 +864,7 @@ export default function PlayerPage() {
               </div>
             ) : null}
 
-            {!isInfiniteMode && jokerEnabled && jokerEligibleCount >= 2 ? (
+            {jokerEnabled && jokerEligibleCount >= 2 ? (
               <div className="rounded-lg border border-border bg-muted px-3 py-3">
                 <div className="text-sm font-medium text-foreground">Pick your Joker round</div>
 
@@ -877,6 +907,7 @@ export default function PlayerPage() {
           highlightPlayerId={playerId}
           highlightTeamName={myTeamRow?.label ?? teamName}
           isInfiniteMode={isInfiniteMode}
+          finalQuestionReview={state?.finalQuestionReview}
         />
       ) : null}
 
@@ -889,7 +920,6 @@ export default function PlayerPage() {
           roundSummaryEndsAt={state?.times?.roundSummaryEndsAt ?? null}
           roundReview={state?.roundReview}
           isInfiniteMode={isInfiniteMode}
-          summaryQuestionCount={Number(state?.progress?.currentQuestionNumber ?? 0)}
         />
       ) : null}
 
@@ -1030,6 +1060,8 @@ export default function PlayerPage() {
 
                         if (selected && !submitted) cls += " bg-emerald-600/15 border-emerald-500/40"
                         if (submitted) cls += " opacity-80 cursor-not-allowed"
+                        if (inReveal && correctIndex === idx) cls += " bg-emerald-600/10 border-emerald-600/30"
+                        if (inReveal && submittedIndex === idx && correctIndex !== idx) cls += " bg-red-600/10 border-red-600/30"
 
                         return (
                           <button

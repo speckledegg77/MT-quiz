@@ -55,6 +55,15 @@ type FinalRoundResult = {
   jokerUsed: boolean
 }
 
+type FinalQuestionResult = {
+  questionId: string
+  number: number
+  text: string
+  correctAnswer: string
+  score: number
+  isCorrect: boolean
+}
+
 type FinalPlayerResult = {
   id: string
   name: string
@@ -62,6 +71,7 @@ type FinalPlayerResult = {
   totalScore: number
   jokerRoundIndex: number | null
   rounds: FinalRoundResult[]
+  questionRun?: FinalQuestionResult[]
 }
 
 type FinalTeamResult = {
@@ -70,6 +80,13 @@ type FinalTeamResult = {
   averageScore: number
   playerCount: number
   players: FinalPlayerResult[]
+}
+
+type FinalResults = {
+  isInfiniteMode: boolean
+  rounds: Array<{ index: number; number: number; name: string }>
+  players: FinalPlayerResult[]
+  teams: FinalTeamResult[]
 }
 
 type TeamScoreMode = "total" | "average"
@@ -302,12 +319,13 @@ function sortPlayers(a: FinalPlayerResult, b: FinalPlayerResult) {
   return a.name.localeCompare(b.name)
 }
 
-function buildFinalResults(
+async function buildFinalResults(
   players: any[],
   questionIds: string[],
   roundPlan: RoundPlanRow[],
-  answers: Array<{ player_id: string; question_id: string; score_delta: number | null }>
-) {
+  answers: Array<{ player_id: string; question_id: string; score_delta: number | null }>,
+  isInfiniteMode: boolean
+): Promise<FinalResults> {
   const answerMap = new Map<string, number>()
   for (const answer of answers) {
     answerMap.set(
@@ -315,6 +333,26 @@ function buildFinalResults(
       Number(answer.score_delta ?? 0)
     )
   }
+
+  const questionMetaList = await Promise.all(
+    questionIds.map(async (questionId, index) => {
+      const question = await getQuestionById(String(questionId ?? ""))
+      const correctAnswer = question
+        ? question.answerType === "mcq"
+          ? Number.isFinite(Number(question.answerIndex))
+            ? String(question.options[Number(question.answerIndex)] ?? "").trim()
+            : ""
+          : String(question.answerText ?? question.acceptedAnswers?.[0] ?? "").trim()
+        : ""
+
+      return {
+        questionId: String(questionId ?? ""),
+        number: index + 1,
+        text: question?.text?.trim() || `Question ${index + 1}`,
+        correctAnswer,
+      }
+    })
+  )
 
   const finalPlayers: FinalPlayerResult[] = players.map((player: any) => {
     const jokerRoundNumber = Number(player?.joker_round_index)
@@ -331,8 +369,18 @@ function buildFinalResults(
         number: round.number,
         name: round.name,
         score: 0,
-        jokerUsed: jokerRoundIndex === round.index,
+        jokerUsed: !isInfiniteMode && jokerRoundIndex === round.index,
       })),
+      questionRun: isInfiniteMode
+        ? questionMetaList.map((question) => ({
+            questionId: question.questionId,
+            number: question.number,
+            text: question.text,
+            correctAnswer: question.correctAnswer,
+            score: 0,
+            isCorrect: false,
+          }))
+        : undefined,
     }
   })
 
@@ -346,11 +394,19 @@ function buildFinalResults(
 
       if (answerMap.has(key)) {
         score = Number(answerMap.get(key) ?? 0)
-      } else if (player.jokerRoundIndex === round.index && round.jokerEligible !== false && round.countsTowardsScore !== false && !isQuickfireRound(round)) {
+      } else if (!isInfiniteMode && player.jokerRoundIndex === round.index && round.jokerEligible !== false && round.countsTowardsScore !== false && !isQuickfireRound(round)) {
         score = -1
       }
 
       player.rounds[round.index].score += score
+
+      if (isInfiniteMode && Array.isArray(player.questionRun)) {
+        const questionResult = player.questionRun[questionIndex]
+        if (questionResult) {
+          questionResult.score = score
+          questionResult.isCorrect = score > 0
+        }
+      }
     }
   }
 
@@ -389,6 +445,7 @@ function buildFinalResults(
   })
 
   return {
+    isInfiniteMode,
     rounds: roundPlan.map((round) => ({
       index: round.index,
       number: round.number,
@@ -604,7 +661,7 @@ export async function GET(req: Request) {
       .select("player_id, question_id, score_delta")
       .eq("room_id", room.id)
 
-    finalResults = buildFinalResults(players, questionIds.map(String), roundPlan, allAnswersRes.data ?? [])
+    finalResults = await buildFinalResults(players, questionIds.map(String), roundPlan, allAnswersRes.data ?? [], isInfiniteMode)
   }
 
   return NextResponse.json({

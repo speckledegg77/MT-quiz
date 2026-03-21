@@ -5,7 +5,6 @@ import Link from "next/link"
 import QRTile from "@/components/ui/QRTile"
 
 import { supabase } from "@/lib/supabaseClient"
-import { getRunBadgeLabel, getStageStatusText, isInfiniteFinalStage } from "@/lib/gameMode"
 import { randomTeamName } from "@/lib/teamNameSuggestions"
 import { firstRuleValue, type RoundTemplateRow } from "@/lib/roundTemplates"
 import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour } from "@/lib/roomRoundPlan"
@@ -41,7 +40,7 @@ type RoundFilter =
 
 type AudioMode = "display" | "phones" | "both"
 type GameMode = "teams" | "solo"
-type BuildMode = "manual_rounds" | "quick_random" | "legacy_pack_mode"
+type BuildMode = "manual_rounds" | "quick_random" | "legacy_pack_mode" | "infinite"
 type SetupMode = "simple" | "advanced"
 type SimpleGameType = "recommended" | "infinite"
 type SimplePresetId = "classic" | "balanced" | "quickfire_mix"
@@ -179,6 +178,12 @@ const SIMPLE_PRESET_OPTIONS: Array<{
     description: "Brings in more Quickfire rounds while keeping at least one standard round when possible.",
   },
 ]
+
+function audioModeLabel(mode: AudioMode) {
+  if (mode === "phones") return "phone"
+  if (mode === "both") return "TV and phone"
+  return "TV"
+}
 
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min
@@ -572,6 +577,7 @@ export default function HostPage() {
   const [simpleTemplateFeasibility, setSimpleTemplateFeasibility] = useState<FeasibilitySetResult | null>(null)
   const [simpleCandidateCount, setSimpleCandidateCount] = useState(0)
   const [simpleInfiniteQuestionLimitStr, setSimpleInfiniteQuestionLimitStr] = useState("")
+  const [advancedInfiniteQuestionLimitStr, setAdvancedInfiniteQuestionLimitStr] = useState("")
   const [showSimpleGameSummary, setShowSimpleGameSummary] = useState(false)
   const [showSimpleRecommendedRounds, setShowSimpleRecommendedRounds] = useState(false)
 
@@ -964,14 +970,6 @@ export default function HostPage() {
   }, [packs, selectPacks, selectedPacks])
 
   useEffect(() => {
-    if (setupMode !== "simple") {
-      setSimpleFeasibilityBusy(false)
-      setSimpleFeasibilityError(null)
-      setSimpleTemplateFeasibility(null)
-      setSimpleCandidateCount(0)
-      return
-    }
-
     if (roomCode) return
     if (packsLoading) return
 
@@ -1018,7 +1016,7 @@ export default function HostPage() {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [allTemplateRoundsPayload, packsLoading, roomCode, setupMode, simpleSelectedPackIds, templates.length])
+  }, [allTemplateRoundsPayload, packsLoading, roomCode, simpleSelectedPackIds, templates.length])
 
   useEffect(() => {
     if (setupMode !== "advanced") {
@@ -1126,6 +1124,20 @@ export default function HostPage() {
     return Math.min(simpleInfiniteQuestionLimit, simpleCandidateCount)
   }, [simpleCandidateCount, simpleInfiniteQuestionLimit])
 
+  const advancedInfiniteQuestionLimit = useMemo(() => {
+    const value = advancedInfiniteQuestionLimitStr.trim()
+    if (value === "") return null
+    const parsed = Math.floor(Number(value))
+    if (!Number.isFinite(parsed)) return Number.NaN
+    return clampInt(parsed, 0, 9999)
+  }, [advancedInfiniteQuestionLimitStr])
+
+  const advancedInfiniteResolvedQuestionCount = useMemo(() => {
+    if (advancedInfiniteQuestionLimit == null) return simpleCandidateCount
+    if (!Number.isFinite(advancedInfiniteQuestionLimit) || advancedInfiniteQuestionLimit <= 0) return 0
+    return Math.min(advancedInfiniteQuestionLimit, simpleCandidateCount)
+  }, [advancedInfiniteQuestionLimit, simpleCandidateCount])
+
   const simpleTemplatePlan = useMemo(() => {
     return buildSimpleTemplatePlan({
       templates,
@@ -1159,6 +1171,18 @@ export default function HostPage() {
   }, [simplePreset, simpleTemplateFeasibility])
 
   const createBlockReason = useMemo(() => {
+    if (buildMode === "infinite") {
+      if (simpleFeasibilityBusy) return "Still checking how many questions are available for this pack choice."
+      if (selectPacks && simpleSelectedPackIds.length === 0) return "Select at least one pack, or use all active packs."
+      if (advancedInfiniteQuestionLimit !== null) {
+        if (!Number.isFinite(advancedInfiniteQuestionLimit) || advancedInfiniteQuestionLimit < 1) {
+          return "Total questions must be blank, or at least 1."
+        }
+      }
+      if (simpleCandidateCount <= 0) return "No questions are available in the current pack choice."
+      return null
+    }
+
     if (buildMode === "manual_rounds" && manualFeasibility && !manualFeasibility.summary.allFeasible) {
       return manualFeasibility.summary.explanation.summary
     }
@@ -1173,7 +1197,7 @@ export default function HostPage() {
     }
 
     return null
-  }, [buildMode, manualFeasibility, quickRandomUseTemplates, templateFeasibility])
+  }, [advancedInfiniteQuestionLimit, buildMode, manualFeasibility, quickRandomUseTemplates, selectPacks, simpleCandidateCount, simpleFeasibilityBusy, simpleSelectedPackIds.length, templateFeasibility])
 
   const simpleCreateBlockReason = useMemo(() => {
     if (simpleFeasibilityError) return simpleFeasibilityError
@@ -1245,12 +1269,12 @@ export default function HostPage() {
       }
 
       let payload: any = {
-        buildMode: setupMode === "simple" ? "manual_rounds" : buildMode,
+        buildMode: setupMode === "simple" || buildMode === "infinite" ? "manual_rounds" : buildMode,
         gameMode,
         teamNames: gameMode === "teams" ? cleanTeamNames : [],
         countdownSeconds,
         answerSeconds,
-        audioMode: setupMode === "simple" ? "display" : audioMode,
+        audioMode,
       }
 
       if (setupMode === "simple") {
@@ -1309,6 +1333,46 @@ export default function HostPage() {
             selectedPacks: simpleSelectedPackIds,
             manualRounds: simpleTemplatePlan.rounds,
           }
+        }
+      } else if (buildMode === "infinite") {
+        const requestedCount = advancedInfiniteQuestionLimit == null ? simpleCandidateCount : advancedInfiniteQuestionLimit
+
+        if (selectPacks && simpleSelectedPackIds.length === 0) {
+          setCreateError("Select at least one pack, or use all active packs.")
+          setCreating(false)
+          return
+        }
+
+        if (simpleCandidateCount <= 0) {
+          setCreateError("No questions are available in the current pack choice.")
+          setCreating(false)
+          return
+        }
+
+        if (!Number.isFinite(requestedCount) || requestedCount < 1) {
+          setCreateError("Total questions must be blank, or at least 1.")
+          setCreating(false)
+          return
+        }
+
+        payload = {
+          ...payload,
+          selectedPacks: simpleSelectedPackIds,
+          manualRounds: [
+            {
+              id: "simple_infinite_round",
+              name: "Infinite",
+              questionCount: Math.min(requestedCount, simpleCandidateCount),
+              behaviourType: "standard",
+              jokerEligible: false,
+              countsTowardsScore: true,
+              sourceMode: "selected_packs",
+              packIds: [],
+              selectionRules: {},
+              answerSeconds: getDefaultAnswerSecondsForBehaviour("standard"),
+              roundReviewSeconds: getDefaultRoundReviewSecondsForBehaviour("standard"),
+            },
+          ],
         }
       } else if (buildMode === "manual_rounds") {
         if (manualRounds.length === 0) {
@@ -1591,14 +1655,15 @@ export default function HostPage() {
 
   const stagePill = useMemo(() => {
     if (roomPhase === "running") {
-      const label = getStageStatusText(
-        roomStage,
-        isInfiniteFinalStage(roomStage, {
-          isInfiniteMode: roomIsInfinite,
-          isLastQuestionOverall: Boolean(roomState?.flow?.isLastQuestionOverall),
-        })
-      )
-      return label || "Running"
+      if (roomStage === "countdown") return "Countdown"
+      if (roomStage === "open") return "Answering"
+      if (roomStage === "wait") return "Waiting"
+      if (roomStage === "reveal") return "Reveal"
+      if (roomStage === "round_summary") {
+        return roomIsInfinite && Boolean(roomState?.flow?.isLastQuestionOverall) ? "End of game" : "End of round"
+      }
+      if (roomStage === "needs_advance") return "Next question"
+      return "Running"
     }
     if (roomPhase === "finished") return "Finished"
     return "Lobby"
@@ -1650,11 +1715,7 @@ export default function HostPage() {
           ? "The infinite run is finished. Reset the room to play again with the same teams."
           : "The game is finished. Reset the room to play again with the same teams."
 
-  const roomModeSummary = roomIsInfinite
-    ? getRunBadgeLabel({ isInfiniteMode: true })
-    : String(roomState?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "quickfire"
-      ? "Quickfire round"
-      : "Standard round"
+  const roomModeSummary = roomIsInfinite ? "Infinite run" : String(roomState?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "quickfire" ? "Quickfire round" : "Standard round"
   const roomJokerSummary = roomIsInfinite
     ? "Joker hidden in Infinite mode."
     : roomJokerEnabled
@@ -1693,15 +1754,15 @@ export default function HostPage() {
     : "Standard rounds use 20 second answers and 30 second round reviews."
 
   const simpleGameSummaryText = simpleTemplatePlan.rounds.length > 0
-    ? `This game will create ${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"}: ${simpleTemplatePlan.standardCount} Standard and ${simpleTemplatePlan.quickfireCount} Quickfire, using ${simplePackScopeText}, with display audio and sensible default timings.`
+    ? `This game will create ${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"}: ${simpleTemplatePlan.standardCount} Standard and ${simpleTemplatePlan.quickfireCount} Quickfire, using ${simplePackScopeText}, with ${audioModeLabel(audioMode)} audio and sensible default timings.`
     : "Simple mode will build a game from ready templates as soon as the current pack choice supports it."
 
   const simpleInfiniteSummaryText = simpleCandidateCount > 0
     ? simpleInfiniteQuestionLimit == null
-      ? `This game will keep moving through every available question from ${simplePackScopeText}. Joker is hidden, there are no round breaks, and the game stops only when the pool runs out.`
+      ? `This game will keep moving through every available question from ${simplePackScopeText}. Joker is hidden, there are no round breaks, and audio plays on ${audioModeLabel(audioMode)}.`
       : simpleInfiniteQuestionLimit > simpleCandidateCount
-        ? `This game asked for ${simpleInfiniteQuestionLimit} questions, but only ${simpleCandidateCount} are available in ${simplePackScopeText}, so it will use them all in one continuous run with Joker hidden.`
-        : `This game will run as one continuous question stream for ${simpleInfiniteResolvedQuestionCount} question${simpleInfiniteResolvedQuestionCount === 1 ? "" : "s"} from ${simplePackScopeText}. Joker is hidden and there are no round breaks.`
+        ? `This game asked for ${simpleInfiniteQuestionLimit} questions, but only ${simpleCandidateCount} are available in ${simplePackScopeText}, so it will use them all in one continuous run with Joker hidden and ${audioModeLabel(audioMode)} audio.`
+        : `This game will run as one continuous question stream for ${simpleInfiniteResolvedQuestionCount} question${simpleInfiniteResolvedQuestionCount === 1 ? "" : "s"} from ${simplePackScopeText}. Joker is hidden, there are no round breaks, and audio plays on ${audioModeLabel(audioMode)}.`
     : "Infinite mode will use every available question from the chosen packs once the current pack choice contains at least one question."
 
   return (
@@ -1928,10 +1989,23 @@ export default function HostPage() {
                             <div className="mt-1 text-xs text-muted-foreground">Leave this blank to use the full pool from the chosen packs once each.</div>
                           </div>
                           <div className="rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">
-                            Infinite uses the normal question flow and display audio. It just removes round planning, so the game keeps moving until the chosen question limit is reached.
+                            Infinite uses the normal question flow. It just removes round planning, so the game keeps moving until the chosen question limit is reached. Choose where audio should play below.
                           </div>
                         </div>
                       )}
+                    </div>
+
+                    <div className="rounded-2xl border border-border p-3">
+                      <div className="text-sm font-semibold text-foreground">Audio</div>
+                      <div className="mt-1 text-xs text-muted-foreground">Choose where audio questions should play for this game.</div>
+                      <div className="mt-3 max-w-sm">
+                        <div className="text-sm font-medium text-foreground">Audio mode</div>
+                        <select value={audioMode} onChange={(e) => setAudioMode(e.target.value as AudioMode)} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                          <option value="display">TV display only</option>
+                          <option value="phones">Phones only</option>
+                          <option value="both">TV and phones</option>
+                        </select>
+                      </div>
                     </div>
 
                     <div className="rounded-2xl border border-border p-3">
@@ -2150,7 +2224,7 @@ export default function HostPage() {
                                   </div>
                                 ) : null}
                                 <div className="rounded-xl border border-border bg-card p-3 text-xs text-muted-foreground">
-                                  Simple mode uses display audio, standard timing defaults, and only templates that are currently feasible for the chosen pack scope.
+                                  Simple mode uses the audio setting you choose here, standard timing defaults, and only templates that are currently feasible for the chosen pack scope.
                                 </div>
                               </div>
                             ) : (
@@ -2173,6 +2247,7 @@ export default function HostPage() {
                       <select value={buildMode} onChange={(e) => setBuildMode(e.target.value as BuildMode)} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
                         <option value="manual_rounds">Manual rounds</option>
                         <option value="quick_random">Quick random</option>
+                        <option value="infinite">Infinite</option>
                         <option value="legacy_pack_mode">Legacy pack mode</option>
                       </select>
                     </div>
@@ -2181,10 +2256,44 @@ export default function HostPage() {
                         ? "Create each round directly. Packs stay as sources, and metadata decides eligibility."
                         : buildMode === "quick_random"
                           ? "Choose packs and either use saved round templates or let the app create a simple generic round plan for you."
-                          : "Use the older pack-based builder with optional per-pack counts while you transition."}
+                          : buildMode === "infinite"
+                            ? "Run one continuous stream of questions from the chosen packs, with no round setup."
+                            : "Use the older pack-based builder with optional per-pack counts while you transition."}
                     </div>
                   </div>
                 </div>
+
+                {buildMode === "infinite" ? (
+                  <div className="rounded-2xl border border-border p-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <div className="text-sm font-medium text-foreground">Total questions asked</div>
+                        <Input
+                          value={advancedInfiniteQuestionLimitStr}
+                          onChange={(e) => setAdvancedInfiniteQuestionLimitStr(e.target.value.replace(/[^0-9]/g, ""))}
+                          inputMode="numeric"
+                          placeholder="Blank = every available question"
+                        />
+                        <div className="mt-1 text-xs text-muted-foreground">Leave this blank to use the full pool from the chosen packs once each.</div>
+                      </div>
+                      <div className="rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">
+                        Infinite advanced mode still uses the same round-plan engine underneath. It creates one continuous standard run with Joker hidden and no manual round setup.
+                      </div>
+                    </div>
+                    <div className="mt-3 rounded-xl border border-border bg-card p-3 text-sm">
+                      {simpleFeasibilityBusy ? (
+                        <div className="text-muted-foreground">Checking how many questions are available...</div>
+                      ) : simpleCandidateCount > 0 ? (
+                        <div className="space-y-1">
+                          <div className="text-foreground">{advancedInfiniteQuestionLimit == null ? `${simpleCandidateCount} question${simpleCandidateCount === 1 ? "" : "s"} available for this run.` : `${advancedInfiniteResolvedQuestionCount} question${advancedInfiniteResolvedQuestionCount === 1 ? "" : "s"} will be used.`}</div>
+                          <div className="text-xs text-muted-foreground">Audio plays on {audioModeLabel(audioMode)}. Joker stays hidden in Infinite mode.</div>
+                        </div>
+                      ) : (
+                        <div className="text-amber-700 dark:text-amber-200">No questions are available in the current pack choice.</div>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
 
                 {buildMode === "manual_rounds" ? (
                   <div className="rounded-2xl border border-border p-3">
@@ -2651,9 +2760,9 @@ export default function HostPage() {
                       <div>
                         <div className="text-sm font-medium text-foreground">Audio mode</div>
                         <select value={audioMode} onChange={(e) => setAudioMode(e.target.value as AudioMode)} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                          <option value="display">Display only</option>
+                          <option value="display">TV display only</option>
                           <option value="phones">Phones only</option>
-                          <option value="both">Both</option>
+                          <option value="both">TV and phones</option>
                         </select>
                       </div>
                       <div className="flex items-end">
@@ -2706,9 +2815,15 @@ export default function HostPage() {
                         : !selectPacks
                           ? `${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"} planned from ready templates using all active packs.`
                           : `${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"} planned from ready templates across ${selectedPackCount} selected pack${selectedPackCount === 1 ? "" : "s"}.`
-                    : buildMode === "manual_rounds"
-                      ? `${manualRounds.length} round${manualRounds.length === 1 ? "" : "s"} planned.`
-                      : buildMode === "quick_random" && quickRandomUseTemplates
+                    : buildMode === "infinite"
+                      ? simpleFeasibilityBusy
+                        ? "Checking how many questions are available..."
+                        : advancedInfiniteQuestionLimit == null
+                          ? `Infinite run using every available question from ${!selectPacks ? "all active packs" : `${selectedPackCount} selected pack${selectedPackCount === 1 ? "" : "s"}`}.`
+                          : `Infinite run for ${advancedInfiniteResolvedQuestionCount} question${advancedInfiniteResolvedQuestionCount === 1 ? "" : "s"} from ${!selectPacks ? "all active packs" : `${selectedPackCount} selected pack${selectedPackCount === 1 ? "" : "s"}`}.`
+                      : buildMode === "manual_rounds"
+                        ? `${manualRounds.length} round${manualRounds.length === 1 ? "" : "s"} planned.`
+                        : buildMode === "quick_random" && quickRandomUseTemplates
                         ? `${quickRandomTemplateIds.length} template${quickRandomTemplateIds.length === 1 ? "" : "s"} in the quick-random pool.`
                         : !selectPacks
                           ? "Using all active packs."
