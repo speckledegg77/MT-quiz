@@ -1768,14 +1768,14 @@ export default function HostPage() {
                             Pick a game type first. Recommended builds rounds for you. Infinite keeps moving through one long stream of questions without round setup.
                           </div>
                         </div>
-                        <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+                        <div className="inline-flex items-center whitespace-nowrap rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1 text-sm font-medium text-sky-200">
                           {simpleGameType === "infinite"
                             ? simpleInfiniteQuestionLimit == null
                               ? simpleCandidateCount > 0
                                 ? `${simpleCandidateCount} available`
                                 : "Question pool"
                               : `${simpleInfiniteResolvedQuestionCount} questions`
-                            : `${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"}`}
+                            : `${simpleRoundCount} rounds`}
                         </div>
                       </div>
 
