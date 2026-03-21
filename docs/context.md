@@ -74,7 +74,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - `/join?code=XXXX` join a room
 - `/play/[code]` player phone screen
 - `/display/[code]` TV screen
-- `/admin/import` admin import and media upload tools
+- `/admin/import` admin import and media upload tools for question CSVs, Heads Up CSVs, and media
 - `/admin/questions` question metadata dashboard
 - `/admin/shows` shows manager
 - `/admin/round-templates` round templates manager
@@ -172,6 +172,12 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Question metadata dashboard exists.
 - Metadata fields include `media_type`, `prompt_target`, `clue_source`, `primary_show_key`, and `metadata_review_state`.
 - The dashboard includes warnings, suggestions, bulk apply, bulk apply suggested values, filters for missing metadata, and a sticky detail panel.
+
+### Import tools
+- The admin import page now supports validate-only and real import modes for the main question bank CSV.
+- The question CSV format now officially includes `media_duration_ms` and `audio_clip_type`.
+- Legacy `pack_sort_order` is still tolerated by the importer, but it is ignored.
+- A separate Heads Up CSV import now supports item import, automatic pack creation by name, and validate-only checks.
 
 ### Shows manager
 - Shows can be created and edited in the UI.

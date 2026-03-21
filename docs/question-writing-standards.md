@@ -170,13 +170,19 @@ Avoid using the same distractor too many times in a short stretch.
 
 ## CSV export and import rules
 
-We generate CSVs for import. CSV breaks easily when fields contain commas or when JSON gets treated as multiple columns. To prevent that, always follow these rules.
+We generate CSVs for import. CSV breaks easily when fields contain commas or quotes, so keep the format simple and consistent.
 
 ### Required column order
 
-Do not change this order:
+Use this exact order for the current question importer:
 
-`pack_id, pack_name, pack_round_type, pack_sort_order, question_id, question_round_type, answer_type, question_text, option_a, option_b, option_c, option_d, answer_index, answer_text, accepted_answers, explanation, audio_path, image_path`
+`pack_id, pack_name, pack_round_type, question_id, question_round_type, answer_type, question_text, option_a, option_b, option_c, option_d, answer_index, answer_text, accepted_answers, explanation, audio_path, image_path, media_duration_ms, audio_clip_type`
+
+### Legacy tolerance
+
+Older CSVs may still include `pack_sort_order` after `pack_round_type`.
+
+The importer still tolerates that legacy column, but it ignores it. Do not include it in new CSVs.
 
 ### Always quote these CSV fields
 
@@ -191,6 +197,8 @@ Wrap these fields in double quotes on every row:
 - `option_c`
 - `option_d`
 
+Also quote `audio_path` and `image_path` if they contain commas or unusual punctuation.
+
 ### Escaping rule
 
 If the content contains a double quote character, escape it by doubling it.
@@ -200,18 +208,44 @@ Example:
 
 ### `accepted_answers` format
 
-`accepted_answers` must be a valid JSON array string and must be quoted as a CSV cell.
+The current documented format is a pipe-separated list inside one CSV cell.
 
 Example:
-`"[""Diana Goodman"", ""Diana""]"`
+`"Diana Goodman|Diana"`
 
 Only add accepted answers when they are genuinely fair alternatives. Do not add loose variations that make marking inconsistent.
 
-### Column shift warning
+The importer still accepts a JSON array string for backward compatibility, but that is no longer the preferred format.
 
-Never insert an extra empty column after `answer_index`.
+### `media_duration_ms` format
 
-That shifts the remaining fields and causes commas inside `accepted_answers` to split the row.
+Use a whole number in milliseconds.
+
+Example:
+`5000`
+
+Leave it blank when there is no audio clip.
+
+### `audio_clip_type` values
+
+Use one of these values when the question uses audio:
+
+- `song_intro`
+- `song_clip`
+- `instrumental_section`
+- `vocal_section`
+- `dialogue_quote`
+- `character_voice`
+- `sound_effect`
+- `other`
+
+Leave it blank when the question does not use audio.
+
+### Validate before import
+
+Use the admin import page to run a validate-only pass before the real import.
+
+That will tell you how many packs and questions will be created or updated, and it will catch formatting problems before anything is written.
 
 ## Final checks before import
 

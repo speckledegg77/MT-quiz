@@ -84,7 +84,7 @@ export default function AdminHomePage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="text-sm text-muted-foreground">
-              Import questions from CSV and upload media in bulk.
+              Import question CSVs, import Heads Up CSVs, and upload media in bulk.
             </div>
             <Link href="/admin/import" className={linkButtonClass("secondary")}>
               Open Import

@@ -69,6 +69,14 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Quickfire and Standard rounds can use different default timings.
 - Hosts can still override timings per round.
 
+## Import rules
+
+- The main question CSV format now officially uses `pack_id, pack_name, pack_round_type, question_id, question_round_type, answer_type, question_text, option_a, option_b, option_c, option_d, answer_index, answer_text, accepted_answers, explanation, audio_path, image_path, media_duration_ms, audio_clip_type`.
+- Legacy `pack_sort_order` is still tolerated during question import, but it is ignored and should not appear in new CSVs.
+- The documented `accepted_answers` format is now pipe-separated text inside one CSV cell, not a JSON array string.
+- Question and Heads Up CSV imports should support validate-only runs before writing.
+- Heads Up CSV import should use one row per item, with pack membership supplied through pipe-separated `pack_names`.
+
 ## UI and code conventions
 
 - Host setup should default to a Simple path for quick game creation, with Advanced setup hidden behind an explicit button.

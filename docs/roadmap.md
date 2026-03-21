@@ -35,6 +35,7 @@ This file tracks the live plan. Keep it short and practical.
 ## Content building
 
 - [ ] Expand the question bank, especially for rounds that need larger eligible pools.
+- [ ] Add pack-side Heads Up curation tools so packs can add and remove large numbers of existing items quickly.
 - [ ] Add more images in Supabase Storage for picture rounds.
 - [ ] Add more audio clips in Supabase Storage once audio rules are clearer.
 - [ ] Keep pack naming, metadata, and show links consistent.
@@ -47,6 +48,7 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Recently completed
 
+- [x] Review and tidy the main question CSV import format, plus add Heads Up CSV import and validate-only checks.
 - [x] Heads Up v1 data model and admin workflow with separate items and pack management.
 - [x] Shared round-flow cleanup for stage labels, mode badges, and stale-question suppression across Host, Player, and Display.
 - [x] Simple vs Advanced host creation split started, with Simple mode driven by ready round templates and Advanced kept as the power-tool path.
