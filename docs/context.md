@@ -78,6 +78,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - `/admin/questions` question metadata dashboard
 - `/admin/shows` shows manager
 - `/admin/round-templates` round templates manager
+- `/admin/heads-up` Heads Up items and packs manager
 
 ---
 
@@ -97,6 +98,13 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - In teams mode, players choose a team from the host-defined team list.
 - Players choose a Joker round in the lobby.
 - TV display shows the join QR code before the game starts.
+
+### Heads Up content model
+- Heads Up content now lives outside the normal questions table.
+- `heads_up_items` stores playable answers such as shows, songs, characters, people, and phrases.
+- `heads_up_packs` stores themed decks.
+- `heads_up_pack_items` lets one item belong to several packs.
+- Person items can carry multiple roles such as performer, composer, and lyricist.
 
 ### Round-plan model
 - Packs are content sources.

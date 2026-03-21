@@ -66,6 +66,20 @@ export default function AdminHomePage() {
 
         <Card>
           <CardHeader>
+            <CardTitle>Heads Up</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="text-sm text-muted-foreground">
+              Create Heads Up items and themed packs without forcing them into the normal quiz question model.
+            </div>
+            <Link href="/admin/heads-up" className={linkButtonClass("secondary")}>
+              Open Heads Up
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Import</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">

@@ -10,7 +10,7 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Next feature candidates
 
-- [ ] Add a Heads Up-style round.
+- [ ] Add Heads Up gameplay round behaviour on top of the new separate content model.
 - [ ] Add Karaoke round format.
 - [ ] Review remote phone audio autoplay and decide whether the gain is worth the browser pain.
 - [ ] Allow optional late joins after the game has started.
@@ -47,6 +47,7 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Recently completed
 
+- [x] Heads Up v1 data model and admin workflow with separate items and pack management.
 - [x] Shared round-flow cleanup for stage labels, mode badges, and stale-question suppression across Host, Player, and Display.
 - [x] Simple vs Advanced host creation split started, with Simple mode driven by ready round templates and Advanced kept as the power-tool path.
 - [x] Quickfire v1 as a real round behaviour.

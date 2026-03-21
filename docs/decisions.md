@@ -50,6 +50,14 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Infinite simple games run as one continuous standard round under the hood, so they skip round setup without creating a separate game engine.
 - Infinite mode keeps Joker hidden, shows question progress as a continuous run, and gives the host an explicit End game control.
 
+## Heads Up content model
+
+- Heads Up content stays separate from the normal quiz questions table.
+- Heads Up uses `heads_up_items`, `heads_up_packs`, and `heads_up_pack_items`.
+- Heads Up packs are many-to-many, so one item can sit in several themed packs.
+- Heads Up item types include `person`, and person items can carry multiple `person_roles`.
+- The initial admin workflow manages pack membership from the item editor, while the pack editor remains focused on pack details and assigned-item review.
+
 ## Quickfire
 
 - Quickfire is a real round behaviour, not just a naming convention.
