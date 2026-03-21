@@ -9,12 +9,22 @@ type FinalRoundResult = {
   jokerUsed: boolean
 }
 
+type FinalQuestionResult = {
+  questionId: string
+  number: number
+  text: string
+  correctAnswer: string
+  score: number
+  isCorrect: boolean
+}
+
 type FinalPlayerResult = {
   id: string
   name: string
   team: string
   totalScore: number
   rounds: FinalRoundResult[]
+  questionRun?: FinalQuestionResult[]
 }
 
 type FinalTeamResult = {
@@ -26,6 +36,7 @@ type FinalTeamResult = {
 }
 
 type FinalResults = {
+  isInfiniteMode?: boolean
   rounds: Array<{ index: number; number: number; name: string }>
   players: FinalPlayerResult[]
   teams: FinalTeamResult[]
@@ -39,6 +50,7 @@ type Props = {
   highlightTeamName?: string | null
   title?: string
   isInfiniteMode?: boolean
+  finalQuestionReview?: any
 }
 
 function formatScore(value: number) {
@@ -73,6 +85,8 @@ function PlayerCard({
   isHighlighted: boolean
   isInfiniteMode: boolean
 }) {
+  const questionRun = Array.isArray(player.questionRun) ? player.questionRun : []
+
   return (
     <div
       className={[
@@ -83,7 +97,9 @@ function PlayerCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="truncate text-xl font-semibold text-white">{player.name}</div>
-          {!isInfiniteMode ? <div className="mt-1 text-sm text-slate-300">Joker: {getJokerLabel(player.rounds)}</div> : null}
+          {!isInfiniteMode ? (
+            <div className="mt-1 text-sm text-slate-300">Joker: {getJokerLabel(player.rounds)}</div>
+          ) : null}
         </div>
 
         <div className="shrink-0 text-right">
@@ -101,33 +117,70 @@ function PlayerCard({
         </summary>
 
         <div className="mt-4 space-y-2">
-          {rounds.map((round) => {
-            const playerRound = player.rounds.find((item) => item.index === round.index)
-            const score = playerRound?.score ?? 0
-            const jokerUsed = Boolean(playerRound?.jokerUsed)
+          {isInfiniteMode ? (
+            questionRun.length ? (
+              questionRun.map((question) => (
+                <div
+                  key={`${player.id}-${question.questionId}`}
+                  className="rounded-2xl border border-white/10 bg-slate-900/40 px-3 py-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-white">
+                        Q{question.number}. {question.text}
+                      </div>
+                    </div>
 
-            return (
-              <div
-                key={`${player.id}-${round.index}`}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-900/40 px-3 py-2"
-              >
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium text-white">{round.name}</div>
-                  <div className="text-xs text-slate-400">Round {round.number}</div>
-                </div>
-
-                <div className="flex shrink-0 items-center gap-2">
-                  {!isInfiniteMode && jokerUsed ? (
-                    <span className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-400/10 px-2 py-0.5 text-xs font-medium text-amber-200">
-                      <JokerBadge />
-                      <span className="ml-1">Joker</span>
+                    <span
+                      className={[
+                        "shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium",
+                        question.isCorrect
+                          ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-200"
+                          : "border-slate-500/40 bg-slate-500/10 text-slate-200",
+                      ].join(" ")}
+                    >
+                      {question.isCorrect ? `+${question.score}` : formatSignedScore(question.score)}
                     </span>
-                  ) : null}
-                  <span className="text-base font-semibold text-white">{formatSignedScore(score)}</span>
+                  </div>
+
+                  <div className="mt-2 text-xs uppercase tracking-wide text-slate-400">Answer</div>
+                  <div className="mt-1 whitespace-pre-wrap text-sm text-slate-200">
+                    {question.correctAnswer || "No answer recorded"}
+                  </div>
                 </div>
-              </div>
+              ))
+            ) : (
+              <div className="text-sm text-slate-400">No questions recorded.</div>
             )
-          })}
+          ) : (
+            rounds.map((round) => {
+              const playerRound = player.rounds.find((item) => item.index === round.index)
+              const score = playerRound?.score ?? 0
+              const jokerUsed = Boolean(playerRound?.jokerUsed)
+
+              return (
+                <div
+                  key={`${player.id}-${round.index}`}
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-900/40 px-3 py-2"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium text-white">{round.name}</div>
+                    <div className="text-xs text-slate-400">Round {round.number}</div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    {jokerUsed ? (
+                      <span className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-400/10 px-2 py-0.5 text-xs font-medium text-amber-200">
+                        <JokerBadge />
+                        <span className="ml-1">Joker</span>
+                      </span>
+                    ) : null}
+                    <span className="text-base font-semibold text-white">{formatSignedScore(score)}</span>
+                  </div>
+                </div>
+              )
+            })
+          )}
         </div>
       </details>
     </div>
@@ -141,11 +194,12 @@ export default function GameCompletedSummary({
   highlightPlayerId,
   highlightTeamName,
   title = "Game completed",
-  isInfiniteMode = false,
+  isInfiniteMode: isInfiniteModeProp,
 }: Props) {
   const rounds = Array.isArray(finalResults?.rounds) ? finalResults.rounds : []
   const players = Array.isArray(finalResults?.players) ? [...finalResults.players].sort(sortPlayers) : []
   const teams = Array.isArray(finalResults?.teams) ? [...finalResults.teams] : []
+  const isInfiniteMode = Boolean(isInfiniteModeProp ?? finalResults?.isInfiniteMode)
 
   teams.sort((a, b) => {
     const aScore = teamScoreMode === "average" ? a.averageScore : a.totalScore
