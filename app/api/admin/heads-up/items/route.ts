@@ -5,6 +5,7 @@ import { z } from "zod"
 
 import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/adminAuth"
 import {
+  buildHeadsUpNaturalKey,
   cleanHeadsUpDifficulty,
   cleanHeadsUpItemType,
   cleanHeadsUpPersonRoles,
@@ -75,6 +76,49 @@ async function loadHeadsUpItems() {
   return { items }
 }
 
+async function findDuplicateHeadsUpItem(params: {
+  answerText: string
+  itemType: string
+  primaryShowKey: string | null
+  excludeId?: string
+}) {
+  let query = supabaseAdmin
+    .from("heads_up_items")
+    .select("id, answer_text, item_type, primary_show_key")
+    .eq("item_type", cleanHeadsUpItemType(params.itemType))
+
+  if (params.primaryShowKey) {
+    query = query.eq("primary_show_key", params.primaryShowKey)
+  } else {
+    query = query.is("primary_show_key", null)
+  }
+
+  const result = await query
+
+  if (result.error) {
+    return { error: result.error.message, duplicateId: null as string | null }
+  }
+
+  const targetKey = buildHeadsUpNaturalKey({
+    answerText: params.answerText,
+    itemType: params.itemType,
+    primaryShowKey: params.primaryShowKey,
+  })
+
+  const match = (result.data ?? []).find((item) => {
+    if (params.excludeId && item.id === params.excludeId) return false
+    return (
+      buildHeadsUpNaturalKey({
+        answerText: item.answer_text,
+        itemType: item.item_type,
+        primaryShowKey: item.primary_show_key,
+      }) === targetKey
+    )
+  })
+
+  return { error: null as string | null, duplicateId: match?.id ?? null }
+}
+
 export async function GET(req: Request) {
   if (!isAuthorisedAdminRequest(req)) return unauthorisedAdminResponse()
 
@@ -107,8 +151,29 @@ export async function POST(req: Request) {
   }
 
   const itemType = cleanHeadsUpItemType(parsed.data.itemType)
+  const primaryShowKey = parsed.data.primaryShowKey?.trim() || null
   const personRoles = cleanHeadsUpPersonRoles(parsed.data.personRoles, itemType)
   const packIds = cleanPackIds(parsed.data.packIds)
+
+  const duplicateCheck = await findDuplicateHeadsUpItem({
+    answerText: parsed.data.answerText.trim(),
+    itemType,
+    primaryShowKey,
+  })
+
+  if (duplicateCheck.error) {
+    return NextResponse.json({ error: duplicateCheck.error }, { status: 500 })
+  }
+
+  if (duplicateCheck.duplicateId) {
+    return NextResponse.json(
+      {
+        error:
+          "A Heads Up item with the same answer text, item type, and primary show already exists.",
+      },
+      { status: 409 }
+    )
+  }
 
   const insertRes = await supabaseAdmin
     .from("heads_up_items")
@@ -117,7 +182,7 @@ export async function POST(req: Request) {
       item_type: itemType,
       person_roles: personRoles,
       difficulty: cleanHeadsUpDifficulty(parsed.data.difficulty),
-      primary_show_key: parsed.data.primaryShowKey?.trim() || null,
+      primary_show_key: primaryShowKey,
       notes: String(parsed.data.notes ?? "").trim(),
       is_active: parsed.data.isActive ?? true,
     })

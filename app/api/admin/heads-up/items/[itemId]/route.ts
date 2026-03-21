@@ -5,6 +5,7 @@ import { z } from "zod"
 
 import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/adminAuth"
 import {
+  buildHeadsUpNaturalKey,
   cleanHeadsUpDifficulty,
   cleanHeadsUpItemType,
   cleanHeadsUpPersonRoles,
@@ -48,6 +49,49 @@ function cleanPackIds(value: string[] | undefined) {
   return [...new Set((value ?? []).map((item) => item.trim()).filter(Boolean))]
 }
 
+async function findDuplicateHeadsUpItem(params: {
+  answerText: string
+  itemType: string
+  primaryShowKey: string | null
+  excludeId?: string
+}) {
+  let query = supabaseAdmin
+    .from("heads_up_items")
+    .select("id, answer_text, item_type, primary_show_key")
+    .eq("item_type", cleanHeadsUpItemType(params.itemType))
+
+  if (params.primaryShowKey) {
+    query = query.eq("primary_show_key", params.primaryShowKey)
+  } else {
+    query = query.is("primary_show_key", null)
+  }
+
+  const result = await query
+
+  if (result.error) {
+    return { error: result.error.message, duplicateId: null as string | null }
+  }
+
+  const targetKey = buildHeadsUpNaturalKey({
+    answerText: params.answerText,
+    itemType: params.itemType,
+    primaryShowKey: params.primaryShowKey,
+  })
+
+  const match = (result.data ?? []).find((item) => {
+    if (params.excludeId && item.id === params.excludeId) return false
+    return (
+      buildHeadsUpNaturalKey({
+        answerText: item.answer_text,
+        itemType: item.item_type,
+        primaryShowKey: item.primary_show_key,
+      }) === targetKey
+    )
+  })
+
+  return { error: null as string | null, duplicateId: match?.id ?? null }
+}
+
 export async function PATCH(req: Request, context: RouteContext) {
   if (!isAuthorisedAdminRequest(req)) return unauthorisedAdminResponse()
 
@@ -71,7 +115,7 @@ export async function PATCH(req: Request, context: RouteContext) {
 
   const existingRes = await supabaseAdmin
     .from("heads_up_items")
-    .select("id, item_type, person_roles")
+    .select("id, answer_text, item_type, person_roles, primary_show_key")
     .eq("id", itemId)
     .maybeSingle()
 
@@ -83,21 +127,47 @@ export async function PATCH(req: Request, context: RouteContext) {
     return NextResponse.json({ error: "Heads Up item not found." }, { status: 404 })
   }
 
+  const nextAnswerText = parsed.data.answerText?.trim() || existingRes.data.answer_text
   const nextItemType = cleanHeadsUpItemType(parsed.data.itemType ?? existingRes.data.item_type)
+  const nextPrimaryShowKey =
+    parsed.data.primaryShowKey !== undefined
+      ? parsed.data.primaryShowKey?.trim() || null
+      : existingRes.data.primary_show_key
   const nextPersonRoles = cleanHeadsUpPersonRoles(
     parsed.data.personRoles ?? (Array.isArray(existingRes.data.person_roles) ? existingRes.data.person_roles : undefined),
     nextItemType
   )
 
+  const duplicateCheck = await findDuplicateHeadsUpItem({
+    answerText: nextAnswerText,
+    itemType: nextItemType,
+    primaryShowKey: nextPrimaryShowKey,
+    excludeId: itemId,
+  })
+
+  if (duplicateCheck.error) {
+    return NextResponse.json({ error: duplicateCheck.error }, { status: 500 })
+  }
+
+  if (duplicateCheck.duplicateId) {
+    return NextResponse.json(
+      {
+        error:
+          "A Heads Up item with the same answer text, item type, and primary show already exists.",
+      },
+      { status: 409 }
+    )
+  }
+
   const update: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
   }
 
-  if (parsed.data.answerText !== undefined) update.answer_text = parsed.data.answerText.trim()
+  if (parsed.data.answerText !== undefined) update.answer_text = nextAnswerText
   if (parsed.data.itemType !== undefined) update.item_type = nextItemType
   if (parsed.data.personRoles !== undefined || parsed.data.itemType !== undefined) update.person_roles = nextPersonRoles
   if (parsed.data.difficulty !== undefined) update.difficulty = cleanHeadsUpDifficulty(parsed.data.difficulty)
-  if (parsed.data.primaryShowKey !== undefined) update.primary_show_key = parsed.data.primaryShowKey?.trim() || null
+  if (parsed.data.primaryShowKey !== undefined) update.primary_show_key = nextPrimaryShowKey
   if (parsed.data.notes !== undefined) update.notes = String(parsed.data.notes).trim()
   if (parsed.data.isActive !== undefined) update.is_active = parsed.data.isActive
 

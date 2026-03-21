@@ -1,16 +1,19 @@
 export const runtime = "nodejs"
 
 import { NextResponse } from "next/server"
+import { parse } from "csv-parse/sync"
 
 import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/adminAuth"
-import { parseBooleanLike, parseCsvRows, parsePipeList, readCsvText, uniqueStrings } from "@/lib/csvImport"
 import {
+  buildHeadsUpNaturalKey,
   cleanHeadsUpDifficulty,
   cleanHeadsUpItemType,
-  cleanHeadsUpPersonRoles,
   HEADS_UP_DIFFICULTY_VALUES,
   HEADS_UP_ITEM_TYPE_VALUES,
   HEADS_UP_PERSON_ROLE_VALUES,
+  type HeadsUpDifficulty,
+  type HeadsUpItemType,
+  type HeadsUpPersonRole,
 } from "@/lib/headsUp"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
@@ -26,164 +29,89 @@ type CsvRow = {
   pack_names?: string
 }
 
-type PreparedHeadsUpRow = {
+type ExistingItem = {
+  id: string
+  answer_text: string
+  item_type: string
+  primary_show_key: string | null
+}
+
+type PlannedOperation = {
   rowNumber: number
-  itemId: string | null
+  resolvedItemId: string | null
+  action: "create" | "update"
   answerText: string
-  itemType: (typeof HEADS_UP_ITEM_TYPE_VALUES)[number]
-  personRoles: (typeof HEADS_UP_PERSON_ROLE_VALUES)[number][] | null
-  difficulty: (typeof HEADS_UP_DIFFICULTY_VALUES)[number]
+  itemType: HeadsUpItemType
+  personRoles: HeadsUpPersonRole[] | null
+  difficulty: HeadsUpDifficulty
   primaryShowKey: string | null
   notes: string
   isActive: boolean
   packNames: string[]
+  naturalKey: string
 }
 
-function requiredString(raw: unknown, fieldName: string, rowNumber: number) {
-  const value = String(raw ?? "").trim()
-  if (!value) throw new Error(`Missing ${fieldName} on row ${rowNumber}`)
-  return value
+function parsePipeList(raw: string | undefined) {
+  return [...new Set(String(raw ?? "").split("|").map((item) => item.trim()).filter(Boolean))]
 }
 
-function cleanOptionalString(raw: unknown) {
-  const value = String(raw ?? "").trim()
-  return value || null
+function parseBoolean(raw: string | undefined) {
+  const value = String(raw ?? "").trim().toLowerCase()
+  if (!value) return true
+  if (["true", "1", "yes", "y"].includes(value)) return true
+  if (["false", "0", "no", "n"].includes(value)) return false
+  return null
 }
 
-function dedupeCaseInsensitive(values: string[]) {
-  const seen = new Set<string>()
-  const out: string[] = []
-  for (const value of values) {
-    const key = value.toLowerCase()
-    if (seen.has(key)) continue
-    seen.add(key)
-    out.push(value)
-  }
-  return out
+function lowerKey(value: string) {
+  return value.trim().toLowerCase()
 }
 
-
-function validateUuid(raw: string, fieldName: string, rowNumber: number) {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(raw)) {
-    throw new Error(`${fieldName} must be a valid UUID on row ${rowNumber}`)
-  }
-  return raw
+function formatRowError(rowNumber: number, message: string) {
+  return `Row ${rowNumber}: ${message}`
 }
 
-function prepareRows(rows: CsvRow[]) {
-  if (!rows.length) throw new Error("CSV has no rows")
+function buildExistingNaturalKeyMap(items: ExistingItem[]) {
+  const map = new Map<string, ExistingItem[]>()
 
-  const prepared: PreparedHeadsUpRow[] = []
-  const seenItemIds = new Set<string>()
-
-  rows.forEach((row, index) => {
-    const rowNumber = index + 2
-    const rawItemId = String(row.item_id ?? "").trim()
-    const itemId = rawItemId ? validateUuid(rawItemId, "item_id", rowNumber) : null
-    if (itemId) {
-      if (seenItemIds.has(itemId)) {
-        throw new Error(`item_id ${itemId} appears more than once. Use one CSV row per Heads Up item.`)
-      }
-      seenItemIds.add(itemId)
-    }
-
-    const answerText = requiredString(row.answer_text, "answer_text", rowNumber)
-    const rawItemType = requiredString(row.item_type, "item_type", rowNumber).toLowerCase()
-    if (!HEADS_UP_ITEM_TYPE_VALUES.includes(rawItemType as (typeof HEADS_UP_ITEM_TYPE_VALUES)[number])) {
-      throw new Error(`item_type is invalid on row ${rowNumber}`)
-    }
-    const itemType = cleanHeadsUpItemType(rawItemType)
-
-    const rawRoles = uniqueStrings(parsePipeList(row.person_roles))
-    const invalidRoles = rawRoles.filter(
-      (role) => !HEADS_UP_PERSON_ROLE_VALUES.includes(role as (typeof HEADS_UP_PERSON_ROLE_VALUES)[number])
-    )
-    if (invalidRoles.length) {
-      throw new Error(`person_roles contains invalid values on row ${rowNumber}: ${invalidRoles.join(", ")}`)
-    }
-
-    if (itemType !== "person" && rawRoles.length) {
-      throw new Error(`person_roles can only be used when item_type is person on row ${rowNumber}`)
-    }
-
-    const personRoles = cleanHeadsUpPersonRoles(rawRoles, itemType)
-    if (itemType === "person" && (!personRoles || !personRoles.length)) {
-      throw new Error(`person_roles is required when item_type is person on row ${rowNumber}`)
-    }
-
-    const rawDifficulty = String(row.difficulty ?? "").trim().toLowerCase()
-    if (rawDifficulty && !HEADS_UP_DIFFICULTY_VALUES.includes(rawDifficulty as (typeof HEADS_UP_DIFFICULTY_VALUES)[number])) {
-      throw new Error(`difficulty is invalid on row ${rowNumber}`)
-    }
-
-    prepared.push({
-      rowNumber,
-      itemId,
-      answerText,
-      itemType,
-      personRoles,
-      difficulty: cleanHeadsUpDifficulty(rawDifficulty || "medium"),
-      primaryShowKey: cleanOptionalString(row.primary_show_key),
-      notes: String(row.notes ?? "").trim(),
-      isActive: parseBooleanLike(row.is_active, true),
-      packNames: dedupeCaseInsensitive(uniqueStrings(parsePipeList(row.pack_names))),
+  for (const item of items) {
+    const key = buildHeadsUpNaturalKey({
+      answerText: item.answer_text,
+      itemType: item.item_type,
+      primaryShowKey: item.primary_show_key,
     })
-  })
-
-  return prepared
-}
-
-async function getShowKeysMap(showKeys: string[]) {
-  if (!showKeys.length) return new Set<string>()
-  const res = await supabaseAdmin.from("shows").select("show_key").in("show_key", showKeys)
-  if (res.error) throw new Error(res.error.message)
-  return new Set((res.data ?? []).map((row) => row.show_key))
-}
-
-async function getPacksByNameMap(packNames: string[]) {
-  const res = await supabaseAdmin.from("heads_up_packs").select("id, name")
-  if (res.error) throw new Error(res.error.message)
-
-  const byLowerName = new Map<string, { id: string; name: string }>()
-  for (const pack of res.data ?? []) {
-    byLowerName.set(String(pack.name).trim().toLowerCase(), {
-      id: String(pack.id),
-      name: String(pack.name),
-    })
+    const current = map.get(key) ?? []
+    current.push(item)
+    map.set(key, current)
   }
 
-  const missing = packNames.filter((name) => !byLowerName.has(name.toLowerCase()))
-  if (missing.length) {
-    const insertRes = await supabaseAdmin
-      .from("heads_up_packs")
-      .insert(missing.map((name) => ({ name, description: "", is_active: true })))
-      .select("id, name")
+  return map
+}
 
-    if (insertRes.error) throw new Error(insertRes.error.message)
+async function readCsvText(req: Request): Promise<string> {
+  const contentType = String(req.headers.get("content-type") ?? "").toLowerCase()
 
-    for (const pack of insertRes.data ?? []) {
-      byLowerName.set(String(pack.name).trim().toLowerCase(), {
-        id: String(pack.id),
-        name: String(pack.name),
-      })
+  if (contentType.includes("multipart/form-data")) {
+    const form = await req.formData()
+    const file = form.get("file")
+    if (!file || typeof (file as File).text !== "function") {
+      throw new Error("Missing file field in form data.")
     }
+    return await (file as File).text()
   }
 
-  return byLowerName
+  const text = await req.text()
+  if (!text || !text.trim()) throw new Error("Empty request body")
+  return text
 }
 
-async function getExistingItemIds(itemIds: string[]) {
-  if (!itemIds.length) return new Set<string>()
-  const res = await supabaseAdmin.from("heads_up_items").select("id").in("id", itemIds)
-  if (res.error) throw new Error(res.error.message)
-  return new Set((res.data ?? []).map((row) => row.id))
-}
+export async function GET(req: Request) {
+  if (!isAuthorisedAdminRequest(req)) return unauthorisedAdminResponse()
 
-export async function GET() {
   return NextResponse.json({
     ok: true,
     message:
-      "Admin Heads Up import route is live. POST raw CSV or multipart form-data field 'file'. Add ?validateOnly=true to preview the import without writing.",
+      "POST raw CSV or multipart form-data field 'file'. Header: x-admin-token. Optional header x-validate-only: true. Columns: item_id,answer_text,item_type,person_roles,difficulty,primary_show_key,notes,is_active,pack_names",
   })
 }
 
@@ -191,108 +119,381 @@ export async function POST(req: Request) {
   if (!isAuthorisedAdminRequest(req)) return unauthorisedAdminResponse()
 
   try {
-    const validateOnly = new URL(req.url).searchParams.get("validateOnly") === "true"
+    const validateOnly = String(req.headers.get("x-validate-only") ?? "").toLowerCase() === "true"
     const csvText = await readCsvText(req)
-    const rows = parseCsvRows<CsvRow>(csvText)
-    const preparedRows = prepareRows(rows)
 
-    const showKeys = uniqueStrings(preparedRows.map((row) => row.primaryShowKey))
-    const existingShowKeys = await getShowKeysMap(showKeys)
-    const missingShowKeys = showKeys.filter((key) => !existingShowKeys.has(key))
-    if (missingShowKeys.length) {
-      throw new Error(`Unknown primary_show_key value(s): ${missingShowKeys.join(", ")}`)
+    let rows: CsvRow[] = []
+    try {
+      rows = parse(csvText, {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+        bom: true,
+        relax_quotes: true,
+        relax_column_count: true,
+      }) as CsvRow[]
+    } catch (error: any) {
+      return NextResponse.json(
+        { error: "Could not parse CSV.", detail: String(error?.message ?? "") },
+        { status: 400 }
+      )
     }
 
-    const allPackNames = uniqueStrings(preparedRows.flatMap((row) => row.packNames))
-    const existingPackMapBeforeCreate = await (async () => {
-      const res = await supabaseAdmin.from("heads_up_packs").select("id, name")
-      if (res.error) throw new Error(res.error.message)
-      return new Map(
-        (res.data ?? []).map((pack) => [String(pack.name).trim().toLowerCase(), { id: String(pack.id), name: String(pack.name) }])
-      )
-    })()
-    const missingPackNames = allPackNames.filter((name) => !existingPackMapBeforeCreate.has(name.toLowerCase()))
+    if (!rows.length) {
+      return NextResponse.json({ error: "CSV has no rows." }, { status: 400 })
+    }
 
-    const existingItemIds = await getExistingItemIds(uniqueStrings(preparedRows.map((row) => row.itemId)))
+    const existingItemsRes = await supabaseAdmin
+      .from("heads_up_items")
+      .select("id, answer_text, item_type, primary_show_key")
+      .order("created_at", { ascending: true })
+
+    if (existingItemsRes.error) {
+      return NextResponse.json({ error: existingItemsRes.error.message }, { status: 500 })
+    }
+
+    const existingItems = (existingItemsRes.data ?? []) as ExistingItem[]
+    const existingItemsById = new Map(existingItems.map((item) => [item.id, item]))
+    const existingNaturalKeyMap = buildExistingNaturalKeyMap(existingItems)
+
+    const showKeys = [...new Set(rows.map((row) => String(row.primary_show_key ?? "").trim()).filter(Boolean))]
+    const showKeySet = new Set<string>()
+
+    if (showKeys.length) {
+      const showsRes = await supabaseAdmin
+        .from("shows")
+        .select("show_key")
+        .in("show_key", showKeys)
+
+      if (showsRes.error) {
+        return NextResponse.json({ error: showsRes.error.message }, { status: 500 })
+      }
+
+      for (const show of showsRes.data ?? []) {
+        showKeySet.add(String(show.show_key))
+      }
+    }
+
+    const packNamesByLower = new Map<string, string>()
+    for (const packName of rows.flatMap((row) => parsePipeList(row.pack_names))) {
+      const key = lowerKey(packName)
+      if (!packNamesByLower.has(key)) packNamesByLower.set(key, packName)
+    }
+    const packNamesInFile = [...packNamesByLower.values()]
+    const existingPackIdsByLowerName = new Map<string, string>()
+
+    if (packNamesInFile.length) {
+      const packsRes = await supabaseAdmin
+        .from("heads_up_packs")
+        .select("id, name")
+        .order("name", { ascending: true })
+
+      if (packsRes.error) {
+        return NextResponse.json({ error: packsRes.error.message }, { status: 500 })
+      }
+
+      for (const pack of packsRes.data ?? []) {
+        existingPackIdsByLowerName.set(lowerKey(String(pack.name)), String(pack.id))
+      }
+    }
+
+    const plannedOperations: PlannedOperation[] = []
+    const rowErrors: string[] = []
+    const csvNaturalKeys = new Map<string, string>()
+
+    for (let index = 0; index < rows.length; index += 1) {
+      const row = rows[index]
+      const rowNumber = index + 2
+
+      const itemId = String(row.item_id ?? "").trim()
+      const answerText = String(row.answer_text ?? "").trim()
+      const itemTypeRaw = String(row.item_type ?? "").trim().toLowerCase()
+      const itemType = cleanHeadsUpItemType(itemTypeRaw)
+      const personRolesRaw = parsePipeList(row.person_roles)
+      const difficultyRaw = String(row.difficulty ?? "").trim().toLowerCase()
+      const difficulty = cleanHeadsUpDifficulty(difficultyRaw)
+      const primaryShowKey = String(row.primary_show_key ?? "").trim() || null
+      const notes = String(row.notes ?? "").trim()
+      const isActive = parseBoolean(row.is_active)
+      const packNames = parsePipeList(row.pack_names)
+
+      if (!answerText) {
+        rowErrors.push(formatRowError(rowNumber, "answer_text is required."))
+        continue
+      }
+
+      if (!HEADS_UP_ITEM_TYPE_VALUES.includes(itemTypeRaw as HeadsUpItemType)) {
+        rowErrors.push(
+          formatRowError(
+            rowNumber,
+            `item_type must be one of: ${HEADS_UP_ITEM_TYPE_VALUES.join(", ")}.`
+          )
+        )
+        continue
+      }
+
+      if (!HEADS_UP_DIFFICULTY_VALUES.includes(difficultyRaw as HeadsUpDifficulty)) {
+        rowErrors.push(
+          formatRowError(
+            rowNumber,
+            `difficulty must be one of: ${HEADS_UP_DIFFICULTY_VALUES.join(", ")}.`
+          )
+        )
+        continue
+      }
+
+      if (isActive === null) {
+        rowErrors.push(formatRowError(rowNumber, "is_active must be true or false if provided."))
+        continue
+      }
+
+      if (primaryShowKey && !showKeySet.has(primaryShowKey)) {
+        rowErrors.push(formatRowError(rowNumber, `primary_show_key "${primaryShowKey}" does not exist.`))
+        continue
+      }
+
+      let personRoles: HeadsUpPersonRole[] | null = null
+
+      if (itemType === "person") {
+        if (!personRolesRaw.length) {
+          rowErrors.push(formatRowError(rowNumber, "person items must include at least one person_roles value."))
+          continue
+        }
+
+        const invalidRoles = personRolesRaw.filter(
+          (role) => !HEADS_UP_PERSON_ROLE_VALUES.includes(role as HeadsUpPersonRole)
+        )
+
+        if (invalidRoles.length) {
+          rowErrors.push(
+            formatRowError(
+              rowNumber,
+              `person_roles contains invalid values: ${invalidRoles.join(", ")}.`
+            )
+          )
+          continue
+        }
+
+        personRoles = personRolesRaw as HeadsUpPersonRole[]
+      } else if (personRolesRaw.length) {
+        rowErrors.push(formatRowError(rowNumber, "person_roles can only be used when item_type is person."))
+        continue
+      }
+
+      const naturalKey = buildHeadsUpNaturalKey({
+        answerText,
+        itemType,
+        primaryShowKey,
+      })
+
+      const existingMatches = existingNaturalKeyMap.get(naturalKey) ?? []
+
+      let resolvedItemId: string | null = null
+      let action: "create" | "update" = "create"
+
+      if (itemId) {
+        const existingItem = existingItemsById.get(itemId)
+
+        if (!existingItem) {
+          rowErrors.push(formatRowError(rowNumber, `item_id "${itemId}" does not exist.`))
+          continue
+        }
+
+        const conflictingMatch = existingMatches.find((item) => item.id !== itemId)
+        if (conflictingMatch) {
+          rowErrors.push(
+            formatRowError(
+              rowNumber,
+              "This row would duplicate another existing Heads Up item with the same answer text, item type, and primary show."
+            )
+          )
+          continue
+        }
+
+        resolvedItemId = itemId
+        action = "update"
+      } else if (existingMatches.length > 1) {
+        rowErrors.push(
+          formatRowError(
+            rowNumber,
+            "More than one existing Heads Up item already matches this answer text, item type, and primary show. Clean those duplicates first."
+          )
+        )
+        continue
+      } else if (existingMatches.length === 1) {
+        resolvedItemId = existingMatches[0].id
+        action = "update"
+      }
+
+      if (csvNaturalKeys.has(naturalKey)) {
+        rowErrors.push(
+          formatRowError(
+            rowNumber,
+            "This CSV contains another row with the same answer text, item type, and primary show."
+          )
+        )
+        continue
+      }
+
+      csvNaturalKeys.set(naturalKey, resolvedItemId ?? `new:${rowNumber}`)
+
+      plannedOperations.push({
+        rowNumber,
+        resolvedItemId,
+        action,
+        answerText,
+        itemType,
+        personRoles,
+        difficulty,
+        primaryShowKey,
+        notes,
+        isActive,
+        packNames,
+        naturalKey,
+      })
+    }
+
+    if (rowErrors.length) {
+      return NextResponse.json(
+        { error: "Heads Up CSV validation failed.", errors: rowErrors },
+        { status: 400 }
+      )
+    }
+
+    const missingPackNames = packNamesInFile.filter((packName) => !existingPackIdsByLowerName.has(lowerKey(packName)))
 
     if (validateOnly) {
       return NextResponse.json({
         ok: true,
         validateOnly: true,
+        rowsChecked: rows.length,
+        itemsCreate: plannedOperations.filter((operation) => operation.action === "create").length,
+        itemsUpdate: plannedOperations.filter((operation) => operation.action === "update").length,
         packsCreate: missingPackNames.length,
-        itemsCreate: preparedRows.filter((row) => !row.itemId || !existingItemIds.has(row.itemId)).length,
-        itemsUpdate: preparedRows.filter((row) => !!row.itemId && existingItemIds.has(row.itemId)).length,
-        packLinksReplace: preparedRows.length,
       })
     }
 
-    const packMap = await getPacksByNameMap(allPackNames)
+    const createdPackIdsByLowerName = new Map<string, string>()
 
-    let itemsCreate = 0
-    let itemsUpdate = 0
+    for (const packName of missingPackNames) {
+      const packInsertRes = await supabaseAdmin
+        .from("heads_up_packs")
+        .insert({
+          name: packName,
+          description: "",
+          is_active: true,
+        })
+        .select("id, name")
+        .single()
 
-    for (const row of preparedRows) {
-      const payload = {
-        answer_text: row.answerText,
-        item_type: row.itemType,
-        person_roles: row.personRoles,
-        difficulty: row.difficulty,
-        primary_show_key: row.primaryShowKey,
-        notes: row.notes,
-        is_active: row.isActive,
+      if (packInsertRes.error) {
+        return NextResponse.json({ error: packInsertRes.error.message }, { status: 500 })
       }
 
-      let finalItemId: string
+      createdPackIdsByLowerName.set(lowerKey(packName), String(packInsertRes.data.id))
+    }
 
-      if (row.itemId) {
-        if (existingItemIds.has(row.itemId)) itemsUpdate += 1
-        else itemsCreate += 1
+    let createdCount = 0
+    let updatedCount = 0
 
-        const writeRes = await supabaseAdmin
+    for (const operation of plannedOperations) {
+      let itemId = operation.resolvedItemId
+
+      if (operation.action === "create") {
+        const insertRes = await supabaseAdmin
           .from("heads_up_items")
-          .upsert({ id: row.itemId, ...payload }, { onConflict: "id" })
+          .insert({
+            answer_text: operation.answerText,
+            item_type: operation.itemType,
+            person_roles: operation.personRoles,
+            difficulty: operation.difficulty,
+            primary_show_key: operation.primaryShowKey,
+            notes: operation.notes,
+            is_active: operation.isActive,
+          })
           .select("id")
           .single()
 
-        if (writeRes.error) throw new Error(writeRes.error.message)
-        finalItemId = writeRes.data.id
+        if (insertRes.error) {
+          return NextResponse.json(
+            { error: `Row ${operation.rowNumber}: ${insertRes.error.message}` },
+            { status: 500 }
+          )
+        }
+
+        itemId = String(insertRes.data.id)
+        createdCount += 1
       } else {
-        itemsCreate += 1
-        const writeRes = await supabaseAdmin.from("heads_up_items").insert(payload).select("id").single()
-        if (writeRes.error) throw new Error(writeRes.error.message)
-        finalItemId = writeRes.data.id
+        const updateRes = await supabaseAdmin
+          .from("heads_up_items")
+          .update({
+            answer_text: operation.answerText,
+            item_type: operation.itemType,
+            person_roles: operation.personRoles,
+            difficulty: operation.difficulty,
+            primary_show_key: operation.primaryShowKey,
+            notes: operation.notes,
+            is_active: operation.isActive,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", itemId!)
+          .select("id")
+          .single()
+
+        if (updateRes.error) {
+          return NextResponse.json(
+            { error: `Row ${operation.rowNumber}: ${updateRes.error.message}` },
+            { status: 500 }
+          )
+        }
+
+        updatedCount += 1
       }
 
-      const deleteLinksRes = await supabaseAdmin.from("heads_up_pack_items").delete().eq("item_id", finalItemId)
-      if (deleteLinksRes.error) throw new Error(deleteLinksRes.error.message)
+      const deleteLinksRes = await supabaseAdmin.from("heads_up_pack_items").delete().eq("item_id", itemId!)
 
-      const packIds = row.packNames
-        .map((packName) => packMap.get(packName.toLowerCase())?.id)
+      if (deleteLinksRes.error) {
+        return NextResponse.json(
+          { error: `Row ${operation.rowNumber}: ${deleteLinksRes.error.message}` },
+          { status: 500 }
+        )
+      }
+
+      const packIds = operation.packNames
+        .map((packName) => existingPackIdsByLowerName.get(lowerKey(packName)) ?? createdPackIdsByLowerName.get(lowerKey(packName)) ?? null)
         .filter(Boolean) as string[]
 
       if (packIds.length) {
-        const insertLinksRes = await supabaseAdmin.from("heads_up_pack_items").insert(
-          packIds.map((packId) => ({
-            pack_id: packId,
-            item_id: finalItemId,
-          }))
-        )
-        if (insertLinksRes.error) throw new Error(insertLinksRes.error.message)
+        const insertLinksRes = await supabaseAdmin
+          .from("heads_up_pack_items")
+          .insert(
+            packIds.map((packId) => ({
+              pack_id: packId,
+              item_id: itemId!,
+            }))
+          )
+
+        if (insertLinksRes.error) {
+          return NextResponse.json(
+            { error: `Row ${operation.rowNumber}: ${insertLinksRes.error.message}` },
+            { status: 500 }
+          )
+        }
       }
     }
 
     return NextResponse.json({
       ok: true,
       validateOnly: false,
+      rowsChecked: rows.length,
+      itemsCreate: createdCount,
+      itemsUpdate: updatedCount,
       packsCreate: missingPackNames.length,
-      itemsCreate,
-      itemsUpdate,
-      packLinksReplace: preparedRows.length,
     })
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal error" },
-      { status: 400 }
+      { error: error?.message ?? "Internal error." },
+      { status: 500 }
     )
   }
 }

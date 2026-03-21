@@ -1,21 +1,12 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
-import { Input } from "@/components/ui/Input"
 
-const textareaClassName =
-  "min-h-[160px] w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-border"
-
-const resultClassName =
-  "min-h-[96px] whitespace-pre-wrap rounded-lg border border-border bg-muted px-3 py-3 text-xs text-foreground"
-
-const labelClassName = "text-sm font-medium text-foreground"
-const helperClassName = "text-xs text-muted-foreground"
-const fileSummaryClassName = "text-sm text-muted-foreground"
-
+type ImportTool = "" | "questions" | "headsUp" | "media"
 type MediaBucket = "audio" | "images"
 
 type AudioDurationRow = {
@@ -23,9 +14,15 @@ type AudioDurationRow = {
   durationMs: number | null
 }
 
+const inputClassName =
+  "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-foreground"
+const mutedBoxClassName =
+  "rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground"
+const resultClassName =
+  "min-h-28 rounded-lg border border-border bg-muted/30 p-3 text-sm whitespace-pre-wrap break-words"
+
 async function probeAudioDurationMs(file: File) {
   const objectUrl = URL.createObjectURL(file)
-
   try {
     const durationMs = await new Promise<number | null>((resolve) => {
       const audio = document.createElement("audio")
@@ -40,33 +37,36 @@ async function probeAudioDurationMs(file: File) {
       }
       audio.onerror = () => resolve(null)
     })
-
     return durationMs
   } finally {
     URL.revokeObjectURL(objectUrl)
   }
 }
 
-async function readSelectedCsv(file: File | null, text: string) {
-  if (file) return await file.text()
-  return text
+function buildAdminHeaders(token: string, validateOnly = false) {
+  return {
+    "x-admin-token": token.trim(),
+    ...(validateOnly ? { "x-validate-only": "true" } : {}),
+  }
 }
 
 export default function AdminImportPage() {
-  const questionFileInputRef = useRef<HTMLInputElement | null>(null)
+  const questionsFileInputRef = useRef<HTMLInputElement | null>(null)
   const headsUpFileInputRef = useRef<HTMLInputElement | null>(null)
   const mediaFileInputRef = useRef<HTMLInputElement | null>(null)
 
   const [token, setToken] = useState("")
   const cleanToken = token.trim()
 
-  const [questionCsvFile, setQuestionCsvFile] = useState<File | null>(null)
-  const [questionCsvText, setQuestionCsvText] = useState("")
-  const [questionBusy, setQuestionBusy] = useState(false)
-  const [questionResult, setQuestionResult] = useState("")
+  const [selectedTool, setSelectedTool] = useState<ImportTool>("")
 
-  const [headsUpCsvFile, setHeadsUpCsvFile] = useState<File | null>(null)
-  const [headsUpCsvText, setHeadsUpCsvText] = useState("")
+  const [questionsFile, setQuestionsFile] = useState<File | null>(null)
+  const [questionsText, setQuestionsText] = useState("")
+  const [questionsBusy, setQuestionsBusy] = useState(false)
+  const [questionsResult, setQuestionsResult] = useState("")
+
+  const [headsUpFile, setHeadsUpFile] = useState<File | null>(null)
+  const [headsUpText, setHeadsUpText] = useState("")
   const [headsUpBusy, setHeadsUpBusy] = useState(false)
   const [headsUpResult, setHeadsUpResult] = useState("")
 
@@ -104,89 +104,17 @@ export default function AdminImportPage() {
     }
   }
 
-  const canRunQuestionImport = useMemo(() => {
-    return cleanToken.length > 0 && (!!questionCsvFile || questionCsvText.trim().length > 0) && !questionBusy
-  }, [cleanToken, questionCsvFile, questionCsvText, questionBusy])
+  const canUploadQuestions = useMemo(() => {
+    return cleanToken.length > 0 && (!!questionsFile || questionsText.trim().length > 0) && !questionsBusy
+  }, [cleanToken, questionsFile, questionsText, questionsBusy])
 
-  const canRunHeadsUpImport = useMemo(() => {
-    return cleanToken.length > 0 && (!!headsUpCsvFile || headsUpCsvText.trim().length > 0) && !headsUpBusy
-  }, [cleanToken, headsUpCsvFile, headsUpCsvText, headsUpBusy])
+  const canUploadHeadsUp = useMemo(() => {
+    return cleanToken.length > 0 && (!!headsUpFile || headsUpText.trim().length > 0) && !headsUpBusy
+  }, [cleanToken, headsUpFile, headsUpText, headsUpBusy])
 
   const canUploadMedia = useMemo(() => {
     return cleanToken.length > 0 && mediaFiles.length > 0 && !mediaBusy
   }, [cleanToken, mediaFiles, mediaBusy])
-
-  async function runQuestionImport(validateOnly: boolean) {
-    setQuestionBusy(true)
-    setQuestionResult("")
-
-    try {
-      if (!cleanToken) {
-        setQuestionResult('{"error":"Missing admin token"}')
-        return
-      }
-
-      const textToSend = await readSelectedCsv(questionCsvFile, questionCsvText)
-      if (!textToSend.trim()) {
-        setQuestionResult('{"error":"No CSV content to upload"}')
-        return
-      }
-
-      persistToken()
-
-      const res = await fetch(`/api/admin/import-questions?validateOnly=${validateOnly ? "true" : "false"}`, {
-        method: "POST",
-        headers: {
-          "x-admin-token": cleanToken,
-          "Content-Type": "text/csv",
-        },
-        body: textToSend,
-      })
-
-      const body = await res.text()
-      setQuestionResult(body || `(no response body, status ${res.status})`)
-    } catch (error) {
-      setQuestionResult(error instanceof Error ? error.message : "Upload failed")
-    } finally {
-      setQuestionBusy(false)
-    }
-  }
-
-  async function runHeadsUpImport(validateOnly: boolean) {
-    setHeadsUpBusy(true)
-    setHeadsUpResult("")
-
-    try {
-      if (!cleanToken) {
-        setHeadsUpResult('{"error":"Missing admin token"}')
-        return
-      }
-
-      const textToSend = await readSelectedCsv(headsUpCsvFile, headsUpCsvText)
-      if (!textToSend.trim()) {
-        setHeadsUpResult('{"error":"No CSV content to upload"}')
-        return
-      }
-
-      persistToken()
-
-      const res = await fetch(`/api/admin/import-heads-up?validateOnly=${validateOnly ? "true" : "false"}`, {
-        method: "POST",
-        headers: {
-          "x-admin-token": cleanToken,
-          "Content-Type": "text/csv",
-        },
-        body: textToSend,
-      })
-
-      const body = await res.text()
-      setHeadsUpResult(body || `(no response body, status ${res.status})`)
-    } catch (error) {
-      setHeadsUpResult(error instanceof Error ? error.message : "Upload failed")
-    } finally {
-      setHeadsUpBusy(false)
-    }
-  }
 
   function clearMediaSelection() {
     setMediaFiles([])
@@ -213,6 +141,51 @@ export default function AdminImportPage() {
     setAudioDurations(durations)
   }
 
+  async function uploadCsv(options: {
+    endpoint: string
+    file: File | null
+    text: string
+    setBusy: (value: boolean) => void
+    setResult: (value: string) => void
+    validateOnly: boolean
+  }) {
+    options.setBusy(true)
+    options.setResult("")
+
+    try {
+      if (!cleanToken) {
+        options.setResult('{"error":"Missing admin token"}')
+        return
+      }
+
+      let textToSend = options.text
+      if (options.file) textToSend = await options.file.text()
+
+      if (!textToSend || !textToSend.trim()) {
+        options.setResult('{"error":"No CSV content to upload"}')
+        return
+      }
+
+      persistToken()
+
+      const res = await fetch(options.endpoint, {
+        method: "POST",
+        headers: {
+          ...buildAdminHeaders(cleanToken, options.validateOnly),
+          "Content-Type": "text/csv",
+        },
+        body: textToSend,
+      })
+
+      const body = await res.text()
+      options.setResult(body || `(no response body, status ${res.status})`)
+    } catch (error: any) {
+      options.setResult(error?.message ?? "Upload failed")
+    } finally {
+      options.setBusy(false)
+    }
+  }
+
   async function uploadMedia() {
     setMediaBusy(true)
     setMediaResult("")
@@ -223,7 +196,7 @@ export default function AdminImportPage() {
         return
       }
 
-      if (!mediaFiles.length) {
+      if (mediaFiles.length === 0) {
         setMediaResult('{"error":"No files selected"}')
         return
       }
@@ -235,13 +208,11 @@ export default function AdminImportPage() {
       if (mediaFolder.trim()) form.append("folder", mediaFolder.trim())
       form.append("upsert", mediaUpsert ? "true" : "false")
 
-      for (const file of mediaFiles) {
-        form.append("files", file)
-      }
+      for (const file of mediaFiles) form.append("files", file)
 
       const res = await fetch("/api/admin/upload-media", {
         method: "POST",
-        headers: { "x-admin-token": cleanToken },
+        headers: buildAdminHeaders(cleanToken),
         body: form,
       })
 
@@ -251,7 +222,7 @@ export default function AdminImportPage() {
         return
       }
 
-      let json: unknown = null
+      let json: any = null
       try {
         json = JSON.parse(text)
       } catch {
@@ -259,207 +230,331 @@ export default function AdminImportPage() {
         return
       }
 
-      const data = (json ?? {}) as {
-        ok?: boolean
-        bucket?: string
-        uploadedCount?: number
-        failedCount?: number
-        uploaded?: Array<{ filename?: string; path?: string }>
-        failed?: unknown
-      }
-
+      const uploaded = Array.isArray(json?.uploaded) ? json.uploaded : []
       const durationByFilename = new Map(audioDurations.map((item) => [item.filename, item.durationMs]))
+
       const friendly = {
-        ok: data.ok,
-        bucket: data.bucket,
-        uploadedCount: data.uploadedCount,
-        failedCount: data.failedCount,
-        uploaded: (data.uploaded ?? []).map((item) => ({
-          filename: item.filename,
-          path: item.path,
-          media_duration_ms: mediaBucket === "audio" ? durationByFilename.get(String(item.filename ?? "")) ?? null : null,
+        ok: json?.ok,
+        bucket: json?.bucket,
+        uploadedCount: json?.uploadedCount,
+        failedCount: json?.failedCount,
+        uploaded: uploaded.map((item: any) => ({
+          filename: item?.filename,
+          path: item?.path,
+          media_duration_ms:
+            mediaBucket === "audio" ? durationByFilename.get(String(item?.filename ?? "")) ?? null : null,
         })),
-        failed: data.failed,
+        failed: json?.failed,
       }
 
       setMediaResult(JSON.stringify(friendly, null, 2))
-    } catch (error) {
-      setMediaResult(error instanceof Error ? error.message : "Upload failed")
+    } catch (error: any) {
+      setMediaResult(error?.message ?? "Upload failed")
     } finally {
       setMediaBusy(false)
     }
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-6">
-        <div className="text-2xl font-semibold">Admin import and media tools</div>
-        <div className="text-sm text-muted-foreground">
-          Validate CSVs before import, keep the question import format in sync with the current app, and bulk upload media.
+    <main className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="text-2xl font-semibold">Admin Import</div>
+          <div className="text-sm text-muted-foreground">
+            Import question CSVs, Heads Up CSVs, or upload media in bulk.
+          </div>
         </div>
+
+        <Link href="/admin">
+          <Button variant="secondary">Back to Admin</Button>
+        </Link>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="grid gap-4">
+      <div className="grid gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Admin token</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <div className="flex flex-wrap gap-3">
+              <input
+                value={token}
+                onChange={(event) => setToken(event.target.value)}
+                placeholder="Paste ADMIN_TOKEN here"
+                autoComplete="off"
+                spellCheck={false}
+                className={`${inputClassName} flex-1 min-w-[280px]`}
+              />
+              <Button variant="secondary" onClick={clearToken}>
+                Clear token
+              </Button>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              The token is stored in this browser session only.
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Choose import tool</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <select
+              value={selectedTool}
+              onChange={(event) => setSelectedTool(event.target.value as ImportTool)}
+              className={inputClassName}
+            >
+              <option value="">Select a tool</option>
+              <option value="questions">Question CSV import</option>
+              <option value="headsUp">Heads Up CSV import</option>
+              <option value="media">Bulk media upload</option>
+            </select>
+
+            <div className="text-sm text-muted-foreground">
+              {selectedTool === "questions" &&
+                "Use this for normal quiz questions and pack links."}
+              {selectedTool === "headsUp" &&
+                "Use this for Heads Up items and pack assignment. Duplicate rows now update matching items instead of silently creating copies."}
+              {selectedTool === "media" &&
+                "Use this for bulk audio or image uploads to Supabase Storage."}
+              {!selectedTool && "Choose one tool to keep this page tidy and reduce mix-ups."}
+            </div>
+          </CardContent>
+        </Card>
+
+        {selectedTool === "questions" ? (
           <Card>
             <CardHeader>
               <CardTitle>Question CSV import</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className={helperClassName}>
-                Official format now includes <code>media_duration_ms</code> and <code>audio_clip_type</code>. Legacy <code>pack_sort_order</code> is still tolerated but ignored.
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <Button variant="secondary" onClick={() => questionFileInputRef.current?.click()}>
-                  Choose CSV file
-                </Button>
-                <div className={fileSummaryClassName}>
-                  {questionCsvFile
-                    ? `Selected: ${questionCsvFile.name} (${Math.round(questionCsvFile.size / 1024)} KB)`
-                    : "No file selected."}
-                </div>
-              </div>
-
-              <input
-                ref={questionFileInputRef}
-                type="file"
-                accept=".csv,text/csv"
-                onChange={(event) => setQuestionCsvFile(event.target.files?.[0] ?? null)}
-                className="sr-only"
-                tabIndex={-1}
-              />
-
+            <CardContent className="grid gap-4">
               <div className="grid gap-2">
-                <div className={labelClassName}>Or paste question CSV</div>
-                <textarea
-                  value={questionCsvText}
-                  onChange={(event) => setQuestionCsvText(event.target.value)}
-                  placeholder="Paste question CSV here"
-                  className={textareaClassName}
+                <div className="text-sm font-medium">Upload CSV file</div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button variant="secondary" onClick={() => questionsFileInputRef.current?.click()}>
+                    Choose CSV file
+                  </Button>
+                  <div className="text-sm text-muted-foreground">
+                    {questionsFile
+                      ? `Selected: ${questionsFile.name} (${Math.round(questionsFile.size / 1024)} KB)`
+                      : "No file selected."}
+                  </div>
+                </div>
+                <input
+                  ref={questionsFileInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(event) => setQuestionsFile(event.target.files?.[0] ?? null)}
+                  className="hidden"
                 />
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <Button disabled={!canRunQuestionImport} onClick={() => void runQuestionImport(true)}>
-                  {questionBusy ? "Working..." : "Validate question CSV"}
+              <div className="grid gap-2">
+                <div className="text-sm font-medium">Or paste CSV</div>
+                <textarea
+                  value={questionsText}
+                  onChange={(event) => setQuestionsText(event.target.value)}
+                  placeholder="Paste question CSV here"
+                  rows={10}
+                  className={inputClassName}
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  disabled={!canUploadQuestions}
+                  onClick={() =>
+                    void uploadCsv({
+                      endpoint: "/api/admin/import-questions",
+                      file: questionsFile,
+                      text: questionsText,
+                      setBusy: setQuestionsBusy,
+                      setResult: setQuestionsResult,
+                      validateOnly: true,
+                    })
+                  }
+                >
+                  {questionsBusy ? "Working..." : "Validate question CSV"}
                 </Button>
-                <Button variant="secondary" disabled={!canRunQuestionImport} onClick={() => void runQuestionImport(false)}>
-                  {questionBusy ? "Working..." : "Import questions"}
+                <Button
+                  variant="secondary"
+                  disabled={!canUploadQuestions}
+                  onClick={() =>
+                    void uploadCsv({
+                      endpoint: "/api/admin/import-questions",
+                      file: questionsFile,
+                      text: questionsText,
+                      setBusy: setQuestionsBusy,
+                      setResult: setQuestionsResult,
+                      validateOnly: false,
+                    })
+                  }
+                >
+                  {questionsBusy ? "Working..." : "Import questions"}
                 </Button>
               </div>
 
               <div className="grid gap-2">
-                <div className={labelClassName}>Question import result</div>
-                <pre className={resultClassName}>{questionResult || "No question CSV import run yet."}</pre>
+                <div className="text-sm font-medium">Question import result</div>
+                <pre className={resultClassName}>{questionsResult || "No question CSV upload yet."}</pre>
+              </div>
+
+              <div className="grid gap-2">
+                <div className="text-sm font-medium">Question CSV reminder</div>
+                <pre className={mutedBoxClassName}>
+                  {"pack_id,pack_name,pack_round_type,pack_sort_order,\nquestion_id,question_round_type,answer_type,question_text,\noption_a,option_b,option_c,option_d,answer_index,\nanswer_text,accepted_answers,explanation,audio_path,image_path,media_duration_ms,audio_clip_type"}
+                </pre>
               </div>
             </CardContent>
           </Card>
+        ) : null}
 
+        {selectedTool === "headsUp" ? (
           <Card>
             <CardHeader>
               <CardTitle>Heads Up CSV import</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className={helperClassName}>
-                One CSV row should describe one Heads Up item. The importer will create any missing Heads Up packs named in <code>pack_names</code> and replace the item’s pack membership with the names supplied in that row.
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <Button variant="secondary" onClick={() => headsUpFileInputRef.current?.click()}>
-                  Choose CSV file
-                </Button>
-                <div className={fileSummaryClassName}>
-                  {headsUpCsvFile
-                    ? `Selected: ${headsUpCsvFile.name} (${Math.round(headsUpCsvFile.size / 1024)} KB)`
-                    : "No file selected."}
-                </div>
-              </div>
-
-              <input
-                ref={headsUpFileInputRef}
-                type="file"
-                accept=".csv,text/csv"
-                onChange={(event) => setHeadsUpCsvFile(event.target.files?.[0] ?? null)}
-                className="sr-only"
-                tabIndex={-1}
-              />
-
+            <CardContent className="grid gap-4">
               <div className="grid gap-2">
-                <div className={labelClassName}>Or paste Heads Up CSV</div>
-                <textarea
-                  value={headsUpCsvText}
-                  onChange={(event) => setHeadsUpCsvText(event.target.value)}
-                  placeholder="Paste Heads Up CSV here"
-                  className={textareaClassName}
+                <div className="text-sm font-medium">Upload CSV file</div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button variant="secondary" onClick={() => headsUpFileInputRef.current?.click()}>
+                    Choose CSV file
+                  </Button>
+                  <div className="text-sm text-muted-foreground">
+                    {headsUpFile
+                      ? `Selected: ${headsUpFile.name} (${Math.round(headsUpFile.size / 1024)} KB)`
+                      : "No file selected."}
+                  </div>
+                </div>
+                <input
+                  ref={headsUpFileInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(event) => setHeadsUpFile(event.target.files?.[0] ?? null)}
+                  className="hidden"
                 />
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <Button disabled={!canRunHeadsUpImport} onClick={() => void runHeadsUpImport(true)}>
+              <div className="grid gap-2">
+                <div className="text-sm font-medium">Or paste CSV</div>
+                <textarea
+                  value={headsUpText}
+                  onChange={(event) => setHeadsUpText(event.target.value)}
+                  placeholder="Paste Heads Up CSV here"
+                  rows={10}
+                  className={inputClassName}
+                />
+              </div>
+
+              <div className={mutedBoxClassName}>
+                If <code>item_id</code> is blank, the importer now checks for an existing match using answer text,
+                item type, and primary show. A matching item updates instead of creating a duplicate.
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  disabled={!canUploadHeadsUp}
+                  onClick={() =>
+                    void uploadCsv({
+                      endpoint: "/api/admin/import-heads-up",
+                      file: headsUpFile,
+                      text: headsUpText,
+                      setBusy: setHeadsUpBusy,
+                      setResult: setHeadsUpResult,
+                      validateOnly: true,
+                    })
+                  }
+                >
                   {headsUpBusy ? "Working..." : "Validate Heads Up CSV"}
                 </Button>
-                <Button variant="secondary" disabled={!canRunHeadsUpImport} onClick={() => void runHeadsUpImport(false)}>
-                  {headsUpBusy ? "Working..." : "Import Heads Up items"}
+                <Button
+                  variant="secondary"
+                  disabled={!canUploadHeadsUp}
+                  onClick={() =>
+                    void uploadCsv({
+                      endpoint: "/api/admin/import-heads-up",
+                      file: headsUpFile,
+                      text: headsUpText,
+                      setBusy: setHeadsUpBusy,
+                      setResult: setHeadsUpResult,
+                      validateOnly: false,
+                    })
+                  }
+                >
+                  {headsUpBusy ? "Working..." : "Import Heads Up CSV"}
                 </Button>
               </div>
 
               <div className="grid gap-2">
-                <div className={labelClassName}>Heads Up import result</div>
-                <pre className={resultClassName}>{headsUpResult || "No Heads Up CSV import run yet."}</pre>
+                <div className="text-sm font-medium">Heads Up import result</div>
+                <pre className={resultClassName}>{headsUpResult || "No Heads Up CSV upload yet."}</pre>
+              </div>
+
+              <div className="grid gap-2">
+                <div className="text-sm font-medium">Heads Up CSV reminder</div>
+                <pre className={mutedBoxClassName}>
+                  {"item_id,answer_text,item_type,person_roles,difficulty,primary_show_key,notes,is_active,pack_names"}
+                </pre>
+              </div>
+
+              <div className="text-xs text-muted-foreground">
+                Use pipe-separated values for <code>person_roles</code> and <code>pack_names</code>.
               </div>
             </CardContent>
           </Card>
+        ) : null}
 
+        {selectedTool === "media" ? (
           <Card>
             <CardHeader>
               <CardTitle>Bulk media upload</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className={helperClassName}>
-                Upload audio or images to Supabase Storage, then copy the returned bucket-relative paths into your CSV. For audio, this tool also tries to detect <code>media_duration_ms</code> from the selected files.
+            <CardContent className="grid gap-4">
+              <div className="grid gap-2">
+                <div className="text-sm font-medium">Bucket</div>
+                <select
+                  value={mediaBucket}
+                  onChange={(event) => {
+                    const nextBucket = event.target.value === "images" ? "images" : "audio"
+                    setMediaBucket(nextBucket)
+                    setAudioDurations([])
+                  }}
+                  className={inputClassName}
+                >
+                  <option value="audio">audio</option>
+                  <option value="images">images</option>
+                </select>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="grid gap-2">
-                  <div className={labelClassName}>Bucket</div>
-                  <select
-                    value={mediaBucket}
-                    onChange={(event) => {
-                      const nextBucket = event.target.value === "images" ? "images" : "audio"
-                      setMediaBucket(nextBucket)
-                      setAudioDurations([])
-                    }}
-                    className="h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-border"
-                  >
-                    <option value="audio">audio</option>
-                    <option value="images">images</option>
-                  </select>
-                </div>
-
-                <div className="grid gap-2">
-                  <div className={labelClassName}>Folder (optional)</div>
-                  <Input
-                    value={mediaFolder}
-                    onChange={(event) => setMediaFolder(event.target.value)}
-                    placeholder="Example: 2026-03-21"
-                  />
-                </div>
+              <div className="grid gap-2">
+                <div className="text-sm font-medium">Folder</div>
+                <input
+                  value={mediaFolder}
+                  onChange={(event) => setMediaFolder(event.target.value)}
+                  placeholder="Optional. Example: 2026-03-21"
+                  className={inputClassName}
+                />
               </div>
 
-              <label className="flex items-center gap-2 text-sm text-foreground">
-                <input type="checkbox" checked={mediaUpsert} onChange={(event) => setMediaUpsert(event.target.checked)} />
-                <span>Overwrite files with the same name</span>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={mediaUpsert}
+                  onChange={(event) => setMediaUpsert(event.target.checked)}
+                />
+                Overwrite files with the same name
               </label>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-3">
                 <Button variant="secondary" onClick={() => mediaFileInputRef.current?.click()}>
                   Choose files
                 </Button>
                 <Button variant="secondary" onClick={clearMediaSelection}>
                   Clear selection
                 </Button>
-                <div className={fileSummaryClassName}>
+                <div className="text-sm text-muted-foreground">
                   {mediaFiles.length > 0 ? `${mediaFiles.length} file(s) selected` : "No files selected."}
                 </div>
               </div>
@@ -470,13 +565,12 @@ export default function AdminImportPage() {
                 multiple
                 accept={mediaBucket === "audio" ? "audio/*" : "image/*"}
                 onChange={(event) => void handleMediaFileChange(Array.from(event.target.files ?? []))}
-                className="sr-only"
-                tabIndex={-1}
+                className="hidden"
               />
 
               {mediaBucket === "audio" && audioDurations.length > 0 ? (
-                <div className="rounded-lg border border-border bg-muted px-3 py-3">
-                  <div className="mb-2 text-sm font-medium text-foreground">Detected audio durations</div>
+                <div className="grid gap-2 rounded-lg border border-border bg-muted/30 p-3">
+                  <div className="text-sm font-medium">Detected audio durations</div>
                   <div className="grid gap-1 text-sm text-muted-foreground">
                     {audioDurations.map((item) => (
                       <div key={item.filename}>
@@ -484,69 +578,25 @@ export default function AdminImportPage() {
                       </div>
                     ))}
                   </div>
+                  <div className="text-xs text-muted-foreground">
+                    Copy the returned <code>media_duration_ms</code> values into your question CSV where needed.
+                  </div>
                 </div>
               ) : null}
 
-              <div className="flex flex-wrap gap-2">
+              <div>
                 <Button disabled={!canUploadMedia} onClick={() => void uploadMedia()}>
                   {mediaBusy ? "Uploading..." : "Upload files"}
                 </Button>
               </div>
 
               <div className="grid gap-2">
-                <div className={labelClassName}>Media upload result</div>
-                <pre className={resultClassName}>{mediaResult || "No media upload run yet."}</pre>
+                <div className="text-sm font-medium">Media upload result</div>
+                <pre className={resultClassName}>{mediaResult || "No media upload yet."}</pre>
               </div>
             </CardContent>
           </Card>
-        </div>
-
-        <div className="grid gap-4 self-start">
-          <Card>
-            <CardHeader>
-              <CardTitle>Admin token</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Input
-                value={token}
-                onChange={(event) => setToken(event.target.value)}
-                placeholder="Paste ADMIN_TOKEN here"
-                autoComplete="off"
-                spellCheck={false}
-              />
-              <div className="flex gap-2">
-                <Button variant="secondary" onClick={clearToken}>
-                  Clear token
-                </Button>
-              </div>
-              <div className={helperClassName}>Stored in session storage for this browser tab only.</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Current CSV formats</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                <div className={labelClassName}>Question import column order</div>
-                <pre className={resultClassName}>pack_id,pack_name,pack_round_type,question_id,question_round_type,answer_type,question_text,option_a,option_b,option_c,option_d,answer_index,answer_text,accepted_answers,explanation,audio_path,image_path,media_duration_ms,audio_clip_type</pre>
-              </div>
-
-              <div className="grid gap-2">
-                <div className={labelClassName}>Heads Up import column order</div>
-                <pre className={resultClassName}>item_id,answer_text,item_type,person_roles,difficulty,primary_show_key,notes,is_active,pack_names</pre>
-              </div>
-
-              <div className="grid gap-2 text-sm text-muted-foreground">
-                <div>Question CSV guide: <code>docs/question-writing-standards.md</code></div>
-                <div>Heads Up CSV guide: <code>docs/heads-up-writing-standards.md</code></div>
-                <div>Question template: <code>docs/questions_csv/question-import-template.csv</code></div>
-                <div>Heads Up template: <code>docs/heads_up_csv/heads-up-import-template.csv</code></div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        ) : null}
       </div>
     </main>
   )

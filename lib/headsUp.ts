@@ -47,3 +47,22 @@ export function cleanHeadsUpPersonRoles(
 
   return roles.length ? roles : ["other"]
 }
+
+export function normaliseHeadsUpAnswerText(value: string | null | undefined) {
+  return String(value ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+}
+
+export function buildHeadsUpNaturalKey(params: {
+  answerText: string | null | undefined
+  itemType: string | null | undefined
+  primaryShowKey: string | null | undefined
+}) {
+  return [
+    cleanHeadsUpItemType(params.itemType),
+    String(params.primaryShowKey ?? "").trim().toLowerCase(),
+    normaliseHeadsUpAnswerText(params.answerText),
+  ].join("::")
+}
