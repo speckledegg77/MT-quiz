@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 
 import {
   getEffectiveRoomRoundPlan,
+  isInfiniteRoundPlan,
   isJokerEnabledForRoundPlan,
   materialiseRoundPlan,
 } from "../../../../lib/roomRoundPlan"
@@ -41,6 +42,13 @@ export async function POST(req: Request) {
 
   const effectivePlan = getEffectiveRoomRoundPlan(room)
   const roundPlan = materialiseRoundPlan(effectivePlan)
+
+  if (isInfiniteRoundPlan(effectivePlan)) {
+    return NextResponse.json(
+      { error: "Joker is not available in Infinite mode." },
+      { status: 400 }
+    )
+  }
 
   if (!isJokerEnabledForRoundPlan(roundPlan)) {
     return NextResponse.json(

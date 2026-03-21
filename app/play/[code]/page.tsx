@@ -9,18 +9,9 @@ import { Input } from "@/components/ui/Input"
 import GameCompletedSummary from "@/components/GameCompletedSummary"
 import RoundSummaryCard from "@/components/RoundSummaryCard"
 import PageShell from "@/components/PageShell"
+import { getGameProgressLabel, getRunBadgeLabel, getStageStatusText, isInfiniteFinalStage, isInfiniteModeFromState } from "@/lib/gameMode"
 
 type RoomState = any
-
-function statusText(stage: string, isInfiniteFinalStage = false) {
-  if (stage === "countdown") return "Get ready"
-  if (stage === "open") return "Answer now"
-  if (stage === "wait") return "Waiting for answers"
-  if (stage === "reveal") return "Reveal"
-  if (stage === "round_summary") return isInfiniteFinalStage ? "End of game" : "End of round"
-  if (stage === "needs_advance") return "Next question"
-  return ""
-}
 
 function pillClass(stage: string) {
   if (stage === "open") return "bg-emerald-600/20 text-emerald-200 border-emerald-500/40"
@@ -673,25 +664,23 @@ export default function PlayerPage() {
 
   if (!state) return null
 
-  const isInfiniteMode =
-    Boolean(state?.flow?.isInfiniteMode) ||
-    Boolean(state?.rounds?.current?.isInfinite) ||
-    String(state?.gameType ?? "").trim().toLowerCase() === "infinite" ||
-    String(state?.roomMode ?? "").trim().toLowerCase() === "infinite" ||
-    String(state?.mode ?? "").trim().toLowerCase() === "infinite"
+  const isInfiniteMode = isInfiniteModeFromState(state)
 
   const stage = String(state?.stage ?? "")
-  const isInfiniteFinalStage =
-    isInfiniteMode && stage === "round_summary" && Boolean(state?.flow?.isLastQuestionOverall)
-  const status = statusText(stage, isInfiniteFinalStage)
+  const isInfiniteStageSummary = isInfiniteFinalStage(stage, {
+    isInfiniteMode,
+    isLastQuestionOverall: Boolean(state?.flow?.isLastQuestionOverall),
+  })
+  const status = getStageStatusText(stage, isInfiniteStageSummary)
 
-  const questionNumber = Number(state.questionIndex ?? 0) + 1
-  const questionCount = Number(state.questionCount ?? 0)
-  const progressLabel = isInfiniteMode
-    ? questionCount > 0
-      ? `${questionNumber} asked of ${questionCount}`
-      : `${questionNumber} asked so far`
-    : null
+  const questionNumber = Number(state?.progress?.currentQuestionNumber ?? state.questionIndex ?? 0) + (state?.progress?.currentQuestionNumber != null ? 0 : 1)
+  const questionCount = Number(state?.progress?.totalQuestions ?? state.questionCount ?? 0)
+  const progressLabel = getGameProgressLabel({
+    isInfiniteMode,
+    currentQuestionNumber: questionNumber,
+    totalQuestions: questionCount,
+    phase: String(state?.phase ?? ""),
+  })
 
   const showLobby = state.phase === "lobby"
   const finished = state.phase === "finished"
@@ -761,7 +750,7 @@ export default function PlayerPage() {
             <div className="flex flex-col items-end gap-2">
               {currentRound ? (
                 <span className={`rounded-full border px-3 py-1 text-xs ${isInfiniteMode ? "border-sky-500/40 bg-sky-600/10 text-sky-200" : "border-border bg-card text-muted-foreground"}`}>
-                  {isInfiniteMode ? "Infinite run" : `R${Number(currentRound.number ?? 0)}: ${String(currentRound.name ?? "")}`}
+                  {getRunBadgeLabel({ isInfiniteMode, currentRound })}
                 </span>
               ) : null}
 
@@ -772,7 +761,7 @@ export default function PlayerPage() {
               ) : null}
 
               <span className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
-                {progressLabel || `Q${questionNumber} of ${questionCount}`}
+                {progressLabel}
               </span>
             </div>
           ) : null}
