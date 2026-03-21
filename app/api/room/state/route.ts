@@ -7,6 +7,7 @@ import {
   getEffectiveRoomRoundPlan,
   getLegacyFieldsFromRoundPlan,
   isJokerEnabledForRoundPlan,
+  isInfiniteRoundPlan,
   materialiseRoundPlan,
   type EffectiveRoundPlanItem,
 } from "@/lib/roomRoundPlan"
@@ -454,6 +455,13 @@ export async function GET(req: Request) {
   const configuredAnswerSeconds = getConfiguredAnswerSecondsForRound(room, currentRound)
   const isUntimedAnswers = configuredAnswerSeconds <= 0
   const questionNumberInRound = Math.max(1, safeQuestionIndex - currentRound.startIndex + 1)
+  const isInfiniteMode = isInfiniteRoundPlan(storedRoundPlan)
+  const currentQuestionNumber = room.phase === "lobby" ? 0 : questionCount > 0 ? Math.min(safeQuestionIndex + 1, questionCount) : 0
+  const progressLabel = isInfiniteMode
+    ? room.phase === "finished"
+      ? `${questionCount} asked`
+      : `${currentQuestionNumber} asked of ${questionCount}`
+    : `Q${currentQuestionNumber} of ${questionCount}`
 
   const isLastQuestionOverall = questionCount > 0 ? safeQuestionIndex >= questionCount - 1 : true
   const isLastQuestionInRound = safeQuestionIndex >= currentRound.endIndex
@@ -621,6 +629,14 @@ export async function GET(req: Request) {
             name: nextRound.name,
           }
         : null,
+    },
+    mode: {
+      isInfinite: isInfiniteMode,
+    },
+    progress: {
+      currentQuestionNumber,
+      totalQuestions: questionCount,
+      label: progressLabel,
     },
     settings: {
       untimedAnswers: isUntimedAnswers,

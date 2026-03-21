@@ -6,7 +6,6 @@ This file tracks the live plan. Keep it short and practical.
 
 - [ ] Finish the Simple vs Advanced host creation split so first-time hosts can create a solid game quickly while the power tools stay available.
 - [x] Add host-side round feasibility checks so the host can see whether a round has enough eligible questions before starting a game.
-- [ ] Do a host, player, and display UX pass now that Quickfire works as a real round behaviour.
 - [ ] Keep consolidating the round-plan model so packs stay content sources and rounds stay gameplay definitions.
 
 ## Next feature candidates
@@ -16,7 +15,6 @@ This file tracks the live plan. Keep it short and practical.
 - [ ] Review remote phone audio autoplay and decide whether the gain is worth the browser pain.
 - [ ] Allow optional late joins after the game has started.
 - [ ] Add a replay flow so the host can run another game with the same room setup more easily.
-- [ ] Decide whether Infinite mode needs its own end-of-run summary wording or can keep the standard single-round ending.
 
 ## Structural and content model work
 
@@ -58,6 +56,7 @@ This file tracks the live plan. Keep it short and practical.
 - [x] Tailwind canonical theme-class cleanup for token-based utilities.
 - [x] Simple mode can collapse Game Summary and Recommended Rounds for a cleaner first view.
 - [x] Infinite simple game type using one continuous question run from the chosen packs.
+- [x] Infinite mode polish, including clearer progress, Joker messaging, and an End game host control.
 - [x] Teams mode and solo mode.
 - [x] Unique team names with random musical-pun suggestions.
 - [x] Joker round choice in lobby.

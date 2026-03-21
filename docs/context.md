@@ -92,6 +92,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Simple mode uses ready round templates to assemble a recommended game plan, while Advanced keeps the existing manual, quick-random, and legacy controls.
 - Host creates a room and can choose timing, rounds, audio mode, and round-plan setup.
 - Simple setup now offers a recommended game path and an Infinite path. Infinite runs as one continuous stream of questions from the chosen packs.
+- Infinite mode now shows continuous-run progress, keeps Joker hidden, and gives the host an End game control while the run is live.
 - Players join from phones.
 - In teams mode, players choose a team from the host-defined team list.
 - Players choose a Joker round in the lobby.

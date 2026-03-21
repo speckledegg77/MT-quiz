@@ -12,12 +12,12 @@ import PageShell from "@/components/PageShell"
 
 type RoomState = any
 
-function statusText(stage: string) {
+function statusText(stage: string, isInfiniteFinalStage = false) {
   if (stage === "countdown") return "Get ready"
   if (stage === "open") return "Answer now"
   if (stage === "wait") return "Waiting for answers"
   if (stage === "reveal") return "Reveal"
-  if (stage === "round_summary") return "End of round"
+  if (stage === "round_summary") return isInfiniteFinalStage ? "End of game" : "End of round"
   if (stage === "needs_advance") return "Next question"
   return ""
 }
@@ -673,11 +673,25 @@ export default function PlayerPage() {
 
   if (!state) return null
 
+  const isInfiniteMode =
+    Boolean(state?.flow?.isInfiniteMode) ||
+    Boolean(state?.rounds?.current?.isInfinite) ||
+    String(state?.gameType ?? "").trim().toLowerCase() === "infinite" ||
+    String(state?.roomMode ?? "").trim().toLowerCase() === "infinite" ||
+    String(state?.mode ?? "").trim().toLowerCase() === "infinite"
+
   const stage = String(state?.stage ?? "")
-  const status = statusText(stage)
+  const isInfiniteFinalStage =
+    isInfiniteMode && stage === "round_summary" && Boolean(state?.flow?.isLastQuestionOverall)
+  const status = statusText(stage, isInfiniteFinalStage)
 
   const questionNumber = Number(state.questionIndex ?? 0) + 1
   const questionCount = Number(state.questionCount ?? 0)
+  const progressLabel = isInfiniteMode
+    ? questionCount > 0
+      ? `${questionNumber} asked of ${questionCount}`
+      : `${questionNumber} asked so far`
+    : null
 
   const showLobby = state.phase === "lobby"
   const finished = state.phase === "finished"
@@ -746,19 +760,19 @@ export default function PlayerPage() {
           {state.phase === "running" ? (
             <div className="flex flex-col items-end gap-2">
               {currentRound ? (
-                <span className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
-                  R{Number(currentRound.number ?? 0)}: {String(currentRound.name ?? "")}
+                <span className={`rounded-full border px-3 py-1 text-xs ${isInfiniteMode ? "border-sky-500/40 bg-sky-600/10 text-sky-200" : "border-border bg-card text-muted-foreground"}`}>
+                  {isInfiniteMode ? "Infinite run" : `R${Number(currentRound.number ?? 0)}: ${String(currentRound.name ?? "")}`}
                 </span>
               ) : null}
 
-              {currentRound ? (
+              {!isInfiniteMode && currentRound ? (
                 <span className={`rounded-full border px-3 py-1 text-xs ${roundModeBadgeClass(currentRound.behaviourType)}`}>
                   {roundModeLabel(currentRound.behaviourType)}
                 </span>
               ) : null}
 
               <span className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
-                Q{questionNumber} of {questionCount}
+                {progressLabel || `Q${questionNumber} of ${questionCount}`}
               </span>
             </div>
           ) : null}
@@ -883,6 +897,7 @@ export default function PlayerPage() {
           isLastQuestionOverall={Boolean(state?.flow?.isLastQuestionOverall)}
           roundSummaryEndsAt={state?.times?.roundSummaryEndsAt ?? null}
           roundReview={state?.roundReview}
+          isInfiniteMode={isInfiniteMode}
         />
       ) : null}
 

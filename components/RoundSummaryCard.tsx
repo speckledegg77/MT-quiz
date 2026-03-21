@@ -67,6 +67,7 @@ type Props = {
   gameMode?: "teams" | "solo"
   isLastQuestionOverall?: boolean
   roundSummaryEndsAt?: string | number | Date | null | undefined
+  isInfiniteMode?: boolean
 }
 
 function fmt(n: number) {
@@ -128,6 +129,7 @@ export default function RoundSummaryCard({
   gameMode = "teams",
   isLastQuestionOverall = false,
   roundSummaryEndsAt,
+  isInfiniteMode = false,
 }: Props) {
   const endsAtMs = useMemo(() => parseEndsAt(roundSummaryEndsAt), [roundSummaryEndsAt])
   const [nowMs, setNowMs] = useState(() => Date.now())
@@ -168,14 +170,22 @@ export default function RoundSummaryCard({
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">End of round</div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">{isInfiniteMode ? "End of game" : "End of round"}</div>
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <CardTitle>Round {Number(round?.number ?? 0)}</CardTitle>
-              <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${roundModeBadgeClass(isQuickfire)}`}>
-                {roundModeLabel(isQuickfire)}
+              <CardTitle>{isInfiniteMode ? "Infinite run" : `Round ${Number(round?.number ?? 0)}`}</CardTitle>
+              <span
+                className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+                  isInfiniteMode
+                    ? "border-sky-500/40 bg-sky-600/10 text-sky-200"
+                    : roundModeBadgeClass(isQuickfire)
+                }`}
+              >
+                {isInfiniteMode ? "Infinite" : roundModeLabel(isQuickfire)}
               </span>
             </div>
-            <div className="mt-1 text-sm text-muted-foreground">{String(round?.name ?? "Round summary")}</div>
+            <div className="mt-1 text-sm text-muted-foreground">
+              {isInfiniteMode ? "Continuous question run" : String(round?.name ?? "Round summary")}
+            </div>
           </div>
 
           {remainingSeconds !== null ? (

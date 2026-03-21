@@ -12,12 +12,12 @@ import QRTile from "@/components/ui/QRTile";
 
 type RoomState = any;
 
-function statusText(stage: string) {
+function statusText(stage: string, isInfiniteFinalStage = false) {
   if (stage === "countdown") return "Get ready";
   if (stage === "open") return "Answer now";
   if (stage === "wait") return "Waiting for answers";
   if (stage === "reveal") return "Reveal";
-  if (stage === "round_summary") return "End of round";
+  if (stage === "round_summary") return isInfiniteFinalStage ? "End of game" : "End of round";
   if (stage === "needs_advance") return "Next question";
   return "";
 }
@@ -175,7 +175,9 @@ export default function DisplayPage() {
   if (!state) return null;
 
   const stage = String(state.stage ?? "");
-  const status = statusText(stage);
+  const isInfiniteMode = Boolean(state?.mode?.isInfinite);
+  const isInfiniteFinalStage = isInfiniteMode && stage === "round_summary" && Boolean(state?.flow?.isLastQuestionOverall);
+  const status = statusText(stage, isInfiniteFinalStage);
   const q = state.question;
   const isAudioQ = q?.roundType === "audio";
   const isPictureQ = q?.roundType === "picture";
@@ -184,6 +186,7 @@ export default function DisplayPage() {
   const finished = state.phase === "finished";
   const currentRound = state?.rounds?.current ?? null;
   const isQuickfireRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "quickfire";
+  const progressLabel = String(state?.progress?.label ?? "");
   const questionNumber = Number(state.questionIndex ?? 0) + 1;
   const questionCount = Number(state.questionCount ?? 0);
   const roundStats = state?.roundStats ?? null;
@@ -222,12 +225,12 @@ export default function DisplayPage() {
           ) : null}
 
           {state.phase === "running" && currentRound ? (
-            <span className="rounded-full border border-border bg-card px-3 py-1 text-sm text-muted-foreground">
-              R{Number(currentRound.number ?? 0)}: {String(currentRound.name ?? "")}
+            <span className={`rounded-full border px-3 py-1 text-sm ${isInfiniteMode ? "border-sky-500/40 bg-sky-600/10 text-sky-200" : "border-border bg-card text-muted-foreground"}`}>
+              {isInfiniteMode ? "Infinite run" : `R${Number(currentRound.number ?? 0)}: ${String(currentRound.name ?? "")}`}
             </span>
           ) : null}
 
-          {state.phase === "running" && currentRound ? (
+          {state.phase === "running" && currentRound && !isInfiniteMode ? (
             <span className={`rounded-full border px-3 py-1 text-sm ${isQuickfireRound ? "border-violet-500/40 bg-violet-600/10 text-violet-200" : "border-emerald-500/40 bg-emerald-600/10 text-emerald-200"}`}>
               {isQuickfireRound ? "Quickfire" : "Standard"}
             </span>
@@ -235,7 +238,7 @@ export default function DisplayPage() {
 
           {state.phase === "running" ? (
             <span className="rounded-full border border-border bg-card px-3 py-1 text-sm text-muted-foreground">
-              Q{questionNumber} of {questionCount}
+              {progressLabel || `Q${questionNumber} of ${questionCount}`}
             </span>
           ) : null}
         </div>
@@ -278,6 +281,7 @@ export default function DisplayPage() {
           roundSummaryEndsAt={state?.times?.roundSummaryEndsAt ?? null}
           gameMode={String(state?.gameMode ?? "teams") === "solo" ? "solo" : "teams"}
           roundReview={state?.roundReview}
+          isInfiniteMode={isInfiniteMode}
         />
       ) : null}
 

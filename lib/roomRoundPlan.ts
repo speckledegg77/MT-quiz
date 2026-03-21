@@ -30,6 +30,8 @@ export type RoomRoundPlan = {
   rounds: RoundPlanItem[]
 }
 
+export const SIMPLE_INFINITE_ROUND_ID = "simple_infinite_round"
+
 export type EffectiveRoundPlanItem = RoundPlanItem & {
   index: number
   number: number
@@ -247,6 +249,15 @@ export function findRoundForQuestionIndex(questionIndex: number, rounds: Effecti
     if (qi >= round.startIndex && qi <= round.endIndex) return round
   }
   return rounds[0]
+}
+
+
+export function isInfiniteRound(round: Pick<RoundPlanItem, "id"> | Pick<EffectiveRoundPlanItem, "id"> | null | undefined) {
+  return String(round?.id ?? "").trim() === SIMPLE_INFINITE_ROUND_ID
+}
+
+export function isInfiniteRoundPlan(plan: RoomRoundPlan | null | undefined) {
+  return Boolean(plan && Array.isArray(plan.rounds) && plan.rounds.length === 1 && isInfiniteRound(plan.rounds[0]))
 }
 
 export function countJokerEligibleRounds(rounds: EffectiveRoundPlanItem[]) {
