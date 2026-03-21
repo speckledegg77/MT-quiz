@@ -589,6 +589,7 @@ export default function HostPage() {
 
   const [forcingClose, setForcingClose] = useState(false)
   const [forceCloseError, setForceCloseError] = useState<string | null>(null)
+  const [endingGame, setEndingGame] = useState(false)
 
   const [rehostCode, setRehostCode] = useState("")
   const [rehostBusy, setRehostBusy] = useState(false)
@@ -1545,6 +1546,31 @@ export default function HostPage() {
     }
   }
 
+  async function endGameNow() {
+    if (!roomCode) return
+    setEndingGame(true)
+    setForceCloseError(null)
+    try {
+      const res = await fetch("/api/room/end", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: roomCode }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setForceCloseError(data?.error ?? "Could not end game.")
+        return
+      }
+      if (data?.ended === false) {
+        setForceCloseError(data?.reason === "not_running" ? "The game is not currently running." : "Could not end game.")
+      }
+    } catch {
+      setForceCloseError("Could not end game.")
+    } finally {
+      setEndingGame(false)
+    }
+  }
+
   function clearRoom() {
     setRoomCode(null)
     setRoomState(null)
@@ -1557,25 +1583,33 @@ export default function HostPage() {
     setForceCloseError(null)
   }
 
+  const roomIsInfinite = Boolean(roomState?.mode?.isInfinite)
+  const roomProgressLabel = String(roomState?.progress?.label ?? "").trim()
+  const roomJokerEnabled = Boolean(roomState?.rounds?.jokerEnabled)
+  const roomJokerEligibleCount = Math.max(0, Number(roomState?.rounds?.jokerEligibleCount ?? 0) || 0)
+
   const stagePill = useMemo(() => {
     if (roomPhase === "running") {
       if (roomStage === "countdown") return "Countdown"
       if (roomStage === "open") return "Answering"
       if (roomStage === "wait") return "Waiting"
       if (roomStage === "reveal") return "Reveal"
-      if (roomStage === "round_summary") return "End of round"
+      if (roomStage === "round_summary") {
+        return roomIsInfinite && Boolean(roomState?.flow?.isLastQuestionOverall) ? "End of game" : "End of round"
+      }
       if (roomStage === "needs_advance") return "Next question"
       return "Running"
     }
     if (roomPhase === "finished") return "Finished"
     return "Lobby"
-  }, [roomPhase, roomStage])
+  }, [roomIsInfinite, roomPhase, roomStage, roomState?.flow?.isLastQuestionOverall])
 
   const hasRoom = Boolean(roomCode)
   const selectedPackCount = packs.filter((p) => selectedPacks[p.id]).length
   const canStart = hasRoom && roomPhase === "lobby" && !starting
   const canContinue =
     hasRoom && roomPhase === "running" && ["open", "round_summary", "needs_advance"].includes(roomStage) && !forcingClose
+  const canEndGame = hasRoom && roomPhase === "running" && roomIsInfinite && !endingGame
 
   const continueLabel =
     roomStage === "open"
@@ -1586,12 +1620,12 @@ export default function HostPage() {
         ? forcingClose
           ? "Moving on..."
           : Boolean(roomState?.flow?.isLastQuestionOverall)
-            ? "Finish now"
+            ? roomIsInfinite ? "Finish game" : "Finish now"
             : "Skip round review"
         : forcingClose
           ? "Moving on..."
           : Boolean(roomState?.flow?.isLastQuestionOverall)
-            ? "Finish now"
+            ? roomIsInfinite ? "Finish game" : "Finish now"
             : "Next question"
 
   const startLabel =
@@ -1605,10 +1639,23 @@ export default function HostPage() {
 
   const roomSummaryText =
     roomPhase === "lobby"
-      ? "Players can still join. When you are ready, start the game from the host controls."
+      ? roomIsInfinite
+        ? "Players can still join. When you are ready, start the infinite run from the host controls."
+        : "Players can still join. When you are ready, start the game from the host controls."
       : roomPhase === "running"
-        ? "Questions move on automatically between questions. End of round waits for the host or the round review timer."
-        : "The game is finished. Reset the room to play again with the same teams."
+        ? roomIsInfinite
+          ? "Infinite mode runs as one continuous stream of questions. End the game whenever you want, or let it finish when the question pool runs out."
+          : "Questions move on automatically between questions. End of round waits for the host or the round review timer."
+        : roomIsInfinite
+          ? "The infinite run is finished. Reset the room to play again with the same teams."
+          : "The game is finished. Reset the room to play again with the same teams."
+
+  const roomModeSummary = roomIsInfinite ? "Infinite run" : String(roomState?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "quickfire" ? "Quickfire round" : "Standard round"
+  const roomJokerSummary = roomIsInfinite
+    ? "Joker hidden in Infinite mode."
+    : roomJokerEnabled
+      ? `${roomJokerEligibleCount} Joker-eligible round${roomJokerEligibleCount === 1 ? "" : "s"}.`
+      : "Joker hidden because fewer than two rounds are Joker-eligible."
 
   const quickfireCount = useMemo(
     () => manualRounds.filter((round) => round.behaviourType === "quickfire").length,
@@ -1647,10 +1694,10 @@ export default function HostPage() {
 
   const simpleInfiniteSummaryText = simpleCandidateCount > 0
     ? simpleInfiniteQuestionLimit == null
-      ? `This game will keep moving through every available question from ${simplePackScopeText}. There are no round breaks, and the game stops only when the pool runs out.`
+      ? `This game will keep moving through every available question from ${simplePackScopeText}. Joker is hidden, there are no round breaks, and the game stops only when the pool runs out.`
       : simpleInfiniteQuestionLimit > simpleCandidateCount
-        ? `This game asked for ${simpleInfiniteQuestionLimit} questions, but only ${simpleCandidateCount} are available in ${simplePackScopeText}, so it will use them all in one continuous run.`
-        : `This game will run as one continuous question stream for ${simpleInfiniteResolvedQuestionCount} question${simpleInfiniteResolvedQuestionCount === 1 ? "" : "s"} from ${simplePackScopeText}. There are no round breaks.`
+        ? `This game asked for ${simpleInfiniteQuestionLimit} questions, but only ${simpleCandidateCount} are available in ${simplePackScopeText}, so it will use them all in one continuous run with Joker hidden.`
+        : `This game will run as one continuous question stream for ${simpleInfiniteResolvedQuestionCount} question${simpleInfiniteResolvedQuestionCount === 1 ? "" : "s"} from ${simplePackScopeText}. Joker is hidden and there are no round breaks.`
     : "Infinite mode will use every available question from the chosen packs once the current pack choice contains at least one question."
 
   return (
@@ -1768,7 +1815,7 @@ export default function HostPage() {
                             Pick a game type first. Recommended builds rounds for you. Infinite keeps moving through one long stream of questions without round setup.
                           </div>
                         </div>
-                        <div className="inline-flex items-center whitespace-nowrap rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1 text-sm font-medium text-sky-200">
+                        <div className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-sky-400/50 bg-gradient-to-r from-sky-500/20 to-cyan-500/20 px-3 py-1 text-sm font-semibold leading-none text-sky-100 shadow-sm shadow-sky-950/20">
                           {simpleGameType === "infinite"
                             ? simpleInfiniteQuestionLimit == null
                               ? simpleCandidateCount > 0
@@ -2690,17 +2737,28 @@ export default function HostPage() {
                 {resetError ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{resetError}</div> : null}
                 {resetOk ? <div className="whitespace-pre-line rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">{resetOk}</div> : null}
                 {forceCloseError ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{forceCloseError}</div> : null}
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   <div className="rounded-xl border border-border bg-card p-3"><div className="text-xs text-muted-foreground">Room code</div><div className="mt-1 text-2xl font-semibold tracking-widest text-foreground">{roomCode}</div></div>
                   <div className="rounded-xl border border-border bg-card p-3"><div className="text-xs text-muted-foreground">Current stage</div><div className="mt-1 text-lg font-semibold text-foreground">{stagePill}</div></div>
+                  <div className="rounded-xl border border-border bg-card p-3"><div className="text-xs text-muted-foreground">Mode</div><div className={`mt-1 inline-flex rounded-full border px-3 py-1 text-sm ${roomIsInfinite ? "border-sky-500/40 bg-sky-600/10 text-sky-200" : "border-border bg-card text-foreground"}`}>{roomModeSummary}</div></div>
+                  <div className="rounded-xl border border-border bg-card p-3"><div className="text-xs text-muted-foreground">Progress</div><div className="mt-1 text-lg font-semibold text-foreground">{roomProgressLabel || "Waiting to start"}</div><div className="mt-1 text-xs text-muted-foreground">{roomJokerSummary}</div></div>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <Button onClick={startGame} disabled={!canStart}>{startLabel}</Button>
                   <Button variant="secondary" onClick={resetRoom} disabled={resetting}>{resetting ? "Resetting..." : "Reset room"}</Button>
                 </div>
-                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
                   <Button variant="secondary" onClick={continueGame} disabled={!canContinue}>{continueLabel}</Button>
-                  <div className="flex items-center rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">Round review advances automatically after the set time. Use the button to move on sooner.</div>
+                  {roomIsInfinite ? (
+                    <Button variant="danger" onClick={endGameNow} disabled={!canEndGame}>
+                      {endingGame ? "Ending..." : "End game now"}
+                    </Button>
+                  ) : null}
+                  <div className="flex items-center rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
+                    {roomIsInfinite
+                      ? "Infinite mode has no Joker round. Use End game now to stop the run early, or let it finish when the question pool runs out."
+                      : "Round review advances automatically after the set time. Use the button to move on sooner."}
+                  </div>
                 </div>
                 <div className="flex justify-end"><Button variant="ghost" onClick={clearRoom}>Create another room</Button></div>
               </CardContent>
