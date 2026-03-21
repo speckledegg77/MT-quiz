@@ -72,3 +72,6 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - When a colour or token already exists in the Tailwind theme, use the canonical utility class instead of an arbitrary value form.
 - Examples: `text-foreground` instead of `text-[var(--foreground)]`, `text-muted-foreground` instead of `text-[var(--muted-foreground)]`, `bg-card` instead of `bg-[var(--card)]`, `bg-muted` instead of `bg-[var(--muted)]`, and `border-border` instead of `border-[var(--border)]`.
 - Only use arbitrary value classes when there is no suitable canonical theme utility, or when the value is a true one-off such as a custom calculation or unusual dimension.
+
+- Shared stage labels, run badges, and mode badges should come from common helpers so Host, Player, Display, and summaries stay in sync.
+- Shared round-flow helpers should decide derived client stage and whether stale questions stay hidden between rounds.

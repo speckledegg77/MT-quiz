@@ -15,7 +15,7 @@ import { getQuestionById } from "@/lib/questionBank"
 import { getGameProgressLabel, isInfiniteModeFromRound, isInfiniteModeFromRoundPlan } from "@/lib/gameMode"
 import { shuffleMcqForRoom } from "@/lib/mcqShuffle"
 import { applyQuickfireFastestBonus, buildQuickfireRoundReview } from "@/lib/quickfire"
-import { getConfiguredAnswerSecondsForRound, getEffectiveRoundReviewSecondsForRound, isQuickfireRound } from "@/lib/roundFlow"
+import { getConfiguredAnswerSecondsForRound, getEffectiveRoundReviewSecondsForRound, isQuickfireRound, stageFromTimes } from "@/lib/roundFlow"
 
 type TeamPlayerRow = {
   id: string
@@ -107,28 +107,6 @@ function buildRoundSummaryEndsAt(nextAt: string | null | undefined, roundReviewS
   if (reviewMs <= 0) return null
 
   return new Date(nextMs + reviewMs).toISOString()
-}
-
-function stageFromTimes(
-  phase: string,
-  nowMs: number,
-  openAt?: string,
-  closeAt?: string,
-  revealAt?: string,
-  nextAt?: string
-) {
-  if (phase !== "running") return phase
-
-  const open = openAt ? Date.parse(openAt) : 0
-  const close = closeAt ? Date.parse(closeAt) : 0
-  const reveal = revealAt ? Date.parse(revealAt) : 0
-  const next = nextAt ? Date.parse(nextAt) : 0
-
-  if (nowMs < open) return "countdown"
-  if (nowMs < close) return "open"
-  if (nowMs < reveal) return "wait"
-  if (nowMs < next) return "reveal"
-  return "needs_advance"
 }
 
 function emptyStats(): StatsBlock {
@@ -722,6 +700,7 @@ export async function GET(req: Request) {
         questionNumberInRound,
         answerSeconds: configuredAnswerSeconds,
         roundReviewSeconds,
+        isInfinite: isInfiniteModeFromRound(currentRound),
       },
     },
     times: {

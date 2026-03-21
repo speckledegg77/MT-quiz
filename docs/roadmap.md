@@ -28,7 +28,7 @@ This file tracks the live plan. Keep it short and practical.
 ## Quality of life
 
 - [x] Canonicalise Tailwind theme-token classes where useful so IntelliSense suggestions are reduced.
-- [ ] Do a shared cleanup pass on repeated timer and state-handling logic across Host, Player, and Display.
+- [x] Do a shared cleanup pass on repeated timer and state-handling logic across Host, Player, and Display.
 - [ ] Review whether any host controls still feel duplicated or unclear.
 - [ ] Tighten template and round-builder labels so Quickfire, Standard, and future round types feel clearly different.
 
@@ -47,6 +47,7 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Recently completed
 
+- [x] Shared round-flow cleanup for stage labels, mode badges, and stale-question suppression across Host, Player, and Display.
 - [x] Simple vs Advanced host creation split started, with Simple mode driven by ready round templates and Advanced kept as the power-tool path.
 - [x] Quickfire v1 as a real round behaviour.
 - [x] Quickfire fastest-correct bonus scoring.

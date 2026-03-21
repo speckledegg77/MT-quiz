@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabaseClient"
 import { randomTeamName } from "@/lib/teamNameSuggestions"
 import { firstRuleValue, type RoundTemplateRow } from "@/lib/roundTemplates"
 import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour } from "@/lib/roomRoundPlan"
+import { getRoomStagePillLabel, getRunModeSummaryLabel } from "@/lib/gameMode"
 
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card"
@@ -1654,19 +1655,12 @@ export default function HostPage() {
   const roomJokerEligibleCount = Math.max(0, Number(roomState?.rounds?.jokerEligibleCount ?? 0) || 0)
 
   const stagePill = useMemo(() => {
-    if (roomPhase === "running") {
-      if (roomStage === "countdown") return "Countdown"
-      if (roomStage === "open") return "Answering"
-      if (roomStage === "wait") return "Waiting"
-      if (roomStage === "reveal") return "Reveal"
-      if (roomStage === "round_summary") {
-        return roomIsInfinite && Boolean(roomState?.flow?.isLastQuestionOverall) ? "End of game" : "End of round"
-      }
-      if (roomStage === "needs_advance") return "Next question"
-      return "Running"
-    }
-    if (roomPhase === "finished") return "Finished"
-    return "Lobby"
+    return getRoomStagePillLabel({
+      phase: roomPhase,
+      stage: roomStage,
+      isInfiniteMode: roomIsInfinite,
+      isLastQuestionOverall: Boolean(roomState?.flow?.isLastQuestionOverall),
+    })
   }, [roomIsInfinite, roomPhase, roomStage, roomState?.flow?.isLastQuestionOverall])
 
   const hasRoom = Boolean(roomCode)
@@ -1715,7 +1709,10 @@ export default function HostPage() {
           ? "The infinite run is finished. Reset the room to play again with the same teams."
           : "The game is finished. Reset the room to play again with the same teams."
 
-  const roomModeSummary = roomIsInfinite ? "Infinite run" : String(roomState?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "quickfire" ? "Quickfire round" : "Standard round"
+  const roomModeSummary = getRunModeSummaryLabel({
+    isInfiniteMode: roomIsInfinite,
+    behaviourType: roomState?.rounds?.current?.behaviourType,
+  })
   const roomJokerSummary = roomIsInfinite
     ? "Joker hidden in Infinite mode."
     : roomJokerEnabled

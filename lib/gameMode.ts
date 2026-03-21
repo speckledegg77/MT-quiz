@@ -2,6 +2,10 @@ import { isInfiniteRound, isInfiniteRoundPlan, type EffectiveRoundPlanItem, type
 
 export type GameStage = "countdown" | "open" | "wait" | "reveal" | "round_summary" | "needs_advance" | string
 
+function normaliseBehaviourType(raw: unknown) {
+  return String(raw ?? "").trim().toLowerCase() === "quickfire" ? "quickfire" : "standard"
+}
+
 export function getStageStatusText(stage: GameStage, isInfiniteFinalStage = false) {
   if (stage === "countdown") return "Get ready"
   if (stage === "open") return "Answer now"
@@ -10,6 +14,36 @@ export function getStageStatusText(stage: GameStage, isInfiniteFinalStage = fals
   if (stage === "round_summary") return isInfiniteFinalStage ? "End of game" : "End of round"
   if (stage === "needs_advance") return "Next question"
   return ""
+}
+
+export function getStagePillClass(stage: GameStage) {
+  if (stage === "open") return "bg-emerald-600/20 text-emerald-200 border-emerald-500/40"
+  if (stage === "reveal") return "bg-indigo-600/20 text-indigo-200 border-indigo-500/40"
+  if (stage === "round_summary") return "bg-violet-600/20 text-violet-200 border-violet-500/40"
+  if (stage === "countdown") return "bg-amber-600/20 text-amber-200 border-amber-500/40"
+  if (stage === "wait") return "bg-slate-600/20 text-slate-200 border-slate-500/40"
+  return "bg-slate-600/20 text-slate-200 border-slate-500/40"
+}
+
+export function getRoomStagePillLabel(options: {
+  phase?: string | null | undefined
+  stage?: GameStage | null | undefined
+  isInfiniteMode?: boolean
+  isLastQuestionOverall?: boolean
+}) {
+  const phase = String(options.phase ?? "").trim().toLowerCase()
+  const stage = String(options.stage ?? "")
+
+  if (phase === "running") {
+    const text = getStageStatusText(stage, isInfiniteFinalStage(stage, {
+      isInfiniteMode: options.isInfiniteMode,
+      isLastQuestionOverall: options.isLastQuestionOverall,
+    }))
+    return text || "Running"
+  }
+
+  if (phase === "finished") return "Finished"
+  return "Lobby"
 }
 
 export function isInfiniteModeFromRoundPlan(plan: RoomRoundPlan | null | undefined) {
@@ -76,4 +110,21 @@ export function getRunBadgeLabel(options: {
   const number = Math.max(0, Math.floor(Number(options.currentRound?.number) || 0))
   const name = String(options.currentRound?.name ?? "").trim()
   return `R${number}: ${name}`
+}
+
+export function getRoundBehaviourLabel(behaviourType: unknown, options: { isInfiniteMode?: boolean } = {}) {
+  if (options.isInfiniteMode) return "Infinite"
+  return normaliseBehaviourType(behaviourType) === "quickfire" ? "Quickfire" : "Standard"
+}
+
+export function getRoundBehaviourBadgeClass(behaviourType: unknown, options: { isInfiniteMode?: boolean } = {}) {
+  if (options.isInfiniteMode) return "border-sky-500/40 bg-sky-600/10 text-sky-200"
+  return normaliseBehaviourType(behaviourType) === "quickfire"
+    ? "border-violet-500/40 bg-violet-600/10 text-violet-200"
+    : "border-emerald-500/40 bg-emerald-600/10 text-emerald-200"
+}
+
+export function getRunModeSummaryLabel(options: { isInfiniteMode?: boolean; behaviourType?: unknown }) {
+  if (options.isInfiniteMode) return "Infinite run"
+  return `${getRoundBehaviourLabel(options.behaviourType)} round`
 }

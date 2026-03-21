@@ -68,6 +68,72 @@ export function getRevealSecondsForRound(room: any, round: { behaviourType?: unk
   return cleanNonNegativeInt(room?.reveal_seconds, 0)
 }
 
+
+export type StageTimes = {
+  closeAt?: string | null
+  revealAt?: string | null
+  nextAt?: string | null
+}
+
+export function stageFromTimes(
+  phase: string,
+  nowMs: number,
+  openAt?: string | null,
+  closeAt?: string | null,
+  revealAt?: string | null,
+  nextAt?: string | null
+) {
+  if (phase !== "running") return phase
+
+  const open = openAt ? Date.parse(openAt) : 0
+  const close = closeAt ? Date.parse(closeAt) : 0
+  const reveal = revealAt ? Date.parse(revealAt) : 0
+  const next = nextAt ? Date.parse(nextAt) : 0
+
+  if (nowMs < open) return "countdown"
+  if (nowMs < close) return "open"
+  if (nowMs < reveal) return "wait"
+  if (nowMs < next) return "reveal"
+  return "needs_advance"
+}
+
+export function deriveClientStageFromTimes(serverNow: string | null | undefined, roomTimes: StageTimes | null | undefined, fallback: string) {
+  const nowMs = serverNow ? Date.parse(String(serverNow)) : Date.now()
+  const closeMs = roomTimes?.closeAt ? Date.parse(String(roomTimes.closeAt)) : Number.NaN
+  const revealMs = roomTimes?.revealAt ? Date.parse(String(roomTimes.revealAt)) : Number.NaN
+  const nextMs = roomTimes?.nextAt ? Date.parse(String(roomTimes.nextAt)) : Number.NaN
+
+  if (Number.isFinite(closeMs) && nowMs < closeMs) return "open"
+  if (Number.isFinite(revealMs) && nowMs < revealMs) return "wait"
+  if (Number.isFinite(nextMs) && nowMs < nextMs) return fallback === "needs_advance" ? "needs_advance" : "reveal"
+  return fallback
+}
+
+export function shouldSuppressQuestionBetweenRounds(params: {
+  phase?: unknown
+  stage?: unknown
+  questionIndex?: unknown
+  roundTransitionQuestionIndex?: number | null
+}) {
+  const phase = String(params.phase ?? "").trim().toLowerCase()
+  const stage = String(params.stage ?? "")
+  const transitionIndex = params.roundTransitionQuestionIndex
+
+  if (phase === "lobby" || phase === "finished") return false
+  if (stage === "round_summary") return false
+  if (transitionIndex === null || transitionIndex === undefined) return false
+
+  return Number(params.questionIndex ?? -1) === transitionIndex
+}
+
+export function getAnswerWindowLabel(params: { isUntimedAnswers: boolean; isQuickfire: boolean }) {
+  if (params.isUntimedAnswers) {
+    return params.isQuickfire ? "Quickfire window" : "Answer window"
+  }
+
+  return params.isQuickfire ? "Quickfire closes in" : "Time remaining"
+}
+
 export function buildQuestionTimesForRound(params: {
   now?: Date
   room: any

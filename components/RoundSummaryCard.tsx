@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 
 import JokerBadge from "@/components/JokerBadge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
+import { getRoundBehaviourBadgeClass, getRoundBehaviourLabel, getStageStatusText } from "@/lib/gameMode"
 
 type TeamPlayerRow = {
   id?: string
@@ -100,16 +101,6 @@ function parseEndsAt(value: Props["roundSummaryEndsAt"]) {
   return Number.isFinite(ms) ? ms : null
 }
 
-function roundModeLabel(isQuickfire: boolean) {
-  return isQuickfire ? "Quickfire" : "Standard"
-}
-
-function roundModeBadgeClass(isQuickfire: boolean) {
-  return isQuickfire
-    ? "border-violet-500/40 bg-violet-600/10 text-violet-200"
-    : "border-emerald-500/40 bg-emerald-600/10 text-emerald-200"
-}
-
 function formatCorrectNames(question: QuickfireReviewQuestion) {
   if (!Array.isArray(question.correctPlayerNames) || question.correctPlayerNames.length === 0) {
     return "no-one"
@@ -173,17 +164,15 @@ export default function RoundSummaryCard({
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">{isInfiniteMode ? "End of game" : "End of round"}</div>
+            <div className="text-xs uppercase tracking-wide text-muted-foreground">{getStageStatusText("round_summary", isInfiniteMode)}</div>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <CardTitle>{isInfiniteMode ? "Infinite run" : `Round ${Number(round?.number ?? 0)}`}</CardTitle>
               <span
                 className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${
-                  isInfiniteMode
-                    ? "border-sky-500/40 bg-sky-600/10 text-sky-200"
-                    : roundModeBadgeClass(isQuickfire)
+                  getRoundBehaviourBadgeClass(isQuickfire ? "quickfire" : "standard", { isInfiniteMode })
                 }`}
               >
-                {isInfiniteMode ? "Infinite" : roundModeLabel(isQuickfire)}
+                {getRoundBehaviourLabel(isQuickfire ? "quickfire" : "standard", { isInfiniteMode })}
               </span>
             </div>
             <div className="mt-1 text-sm text-muted-foreground">

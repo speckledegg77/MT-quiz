@@ -9,27 +9,10 @@ import GameCompletedSummary from "@/components/GameCompletedSummary";
 import RoundSummaryCard from "@/components/RoundSummaryCard";
 import PageShell from "@/components/PageShell";
 import QRTile from "@/components/ui/QRTile";
+import { getRoundBehaviourBadgeClass, getRoundBehaviourLabel, getRunBadgeLabel, getStagePillClass, getStageStatusText, isInfiniteFinalStage, isInfiniteModeFromState } from "@/lib/gameMode";
+import { shouldSuppressQuestionBetweenRounds } from "@/lib/roundFlow";
 
 type RoomState = any;
-
-function statusText(stage: string, isInfiniteFinalStage = false) {
-  if (stage === "countdown") return "Get ready";
-  if (stage === "open") return "Answer now";
-  if (stage === "wait") return "Waiting for answers";
-  if (stage === "reveal") return "Reveal";
-  if (stage === "round_summary") return isInfiniteFinalStage ? "End of game" : "End of round";
-  if (stage === "needs_advance") return "Next question";
-  return "";
-}
-
-function pillClass(stage: string) {
-  if (stage === "open") return "bg-emerald-600/20 text-emerald-200 border-emerald-500/40";
-  if (stage === "reveal") return "bg-indigo-600/20 text-indigo-200 border-indigo-500/40";
-  if (stage === "round_summary") return "bg-violet-600/20 text-violet-200 border-violet-500/40";
-  if (stage === "countdown") return "bg-amber-600/20 text-amber-200 border-amber-500/40";
-  if (stage === "wait") return "bg-slate-600/20 text-slate-200 border-slate-500/40";
-  return "bg-slate-600/20 text-slate-200 border-slate-500/40";
-}
 
 export default function DisplayPage() {
   const params = useParams<{ code?: string }>();
@@ -175,9 +158,12 @@ export default function DisplayPage() {
   if (!state) return null;
 
   const stage = String(state.stage ?? "");
-  const isInfiniteMode = Boolean(state?.mode?.isInfinite);
-  const isInfiniteFinalStage = isInfiniteMode && stage === "round_summary" && Boolean(state?.flow?.isLastQuestionOverall);
-  const status = statusText(stage, isInfiniteFinalStage);
+  const isInfiniteMode = isInfiniteModeFromState(state);
+  const showInfiniteFinalStage = isInfiniteFinalStage(stage, {
+    isInfiniteMode,
+    isLastQuestionOverall: Boolean(state?.flow?.isLastQuestionOverall),
+  });
+  const status = getStageStatusText(stage, showInfiniteFinalStage);
   const q = state.question;
   const isAudioQ = q?.roundType === "audio";
   const isPictureQ = q?.roundType === "picture";
@@ -191,12 +177,12 @@ export default function DisplayPage() {
   const questionCount = Number(state.questionCount ?? 0);
   const roundStats = state?.roundStats ?? null;
 
-  const suppressStaleQuestionBetweenRounds =
-    !showJoin &&
-    !finished &&
-    stage !== "round_summary" &&
-    roundTransitionQuestionIndex !== null &&
-    Number(state?.questionIndex ?? -1) === roundTransitionQuestionIndex;
+  const suppressStaleQuestionBetweenRounds = shouldSuppressQuestionBetweenRounds({
+    phase: state?.phase,
+    stage,
+    questionIndex: state?.questionIndex,
+    roundTransitionQuestionIndex,
+  });
 
   const correctIndex = Number.isFinite(Number(state?.reveal?.answerIndex))
     ? Number(state?.reveal?.answerIndex)
@@ -221,18 +207,18 @@ export default function DisplayPage() {
 
         <div className="flex flex-wrap items-center gap-2">
           {status ? (
-            <span className={`rounded-full border px-3 py-1 text-sm ${pillClass(stage)}`}>{status}</span>
+            <span className={`rounded-full border px-3 py-1 text-sm ${getStagePillClass(stage)}`}>{status}</span>
           ) : null}
 
           {state.phase === "running" && currentRound ? (
             <span className={`rounded-full border px-3 py-1 text-sm ${isInfiniteMode ? "border-sky-500/40 bg-sky-600/10 text-sky-200" : "border-border bg-card text-muted-foreground"}`}>
-              {isInfiniteMode ? "Infinite run" : `R${Number(currentRound.number ?? 0)}: ${String(currentRound.name ?? "")}`}
+              {getRunBadgeLabel({ isInfiniteMode, currentRound })}
             </span>
           ) : null}
 
           {state.phase === "running" && currentRound && !isInfiniteMode ? (
-            <span className={`rounded-full border px-3 py-1 text-sm ${isQuickfireRound ? "border-violet-500/40 bg-violet-600/10 text-violet-200" : "border-emerald-500/40 bg-emerald-600/10 text-emerald-200"}`}>
-              {isQuickfireRound ? "Quickfire" : "Standard"}
+            <span className={`rounded-full border px-3 py-1 text-sm ${getRoundBehaviourBadgeClass(currentRound.behaviourType)}`}>
+              {getRoundBehaviourLabel(currentRound.behaviourType)}
             </span>
           ) : null}
 
