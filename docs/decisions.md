@@ -11,6 +11,7 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Provide full replacement code for changed files.
 - Use shared UI components where they already exist.
 - Keep the app simple first and add round types one at a time.
+- Simple mode can offer more than one host-friendly game type, but it must still build the same underlying round-plan structure.
 
 ## Game structure and scoring
 
@@ -46,6 +47,7 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Room round plans are the actual rounds chosen for one game.
 - Even Quick Random should still build real rounds under the hood.
 - Legacy pack-based rooms stay supported through a compatibility layer while the round-plan model beds in.
+- Infinite simple games run as one continuous standard round under the hood, so they skip round setup without creating a separate game engine.
 
 ## Quickfire
 

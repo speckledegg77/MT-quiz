@@ -91,6 +91,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Host setup now has a Simple path for quick game creation and an Advanced path for the full round builder.
 - Simple mode uses ready round templates to assemble a recommended game plan, while Advanced keeps the existing manual, quick-random, and legacy controls.
 - Host creates a room and can choose timing, rounds, audio mode, and round-plan setup.
+- Simple setup now offers a recommended game path and an Infinite path. Infinite runs as one continuous stream of questions from the chosen packs.
 - Players join from phones.
 - In teams mode, players choose a team from the host-defined team list.
 - Players choose a Joker round in the lobby.
@@ -180,6 +181,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 ## Important UI and behaviour decisions now live
 
 - Host page uses a cleaner two-column layout.
+- In Simple mode, Game Summary and Recommended Rounds can stay collapsed until the host opens them.
 - Player page uses a shared page shell and a tighter mobile layout.
 - Mobile form controls stay at `16px` to avoid iPhone zoom.
 - Explicit light and dark theme switching works on phones.

@@ -42,6 +42,7 @@ type AudioMode = "display" | "phones" | "both"
 type GameMode = "teams" | "solo"
 type BuildMode = "manual_rounds" | "quick_random" | "legacy_pack_mode"
 type SetupMode = "simple" | "advanced"
+type SimpleGameType = "recommended" | "infinite"
 type SimplePresetId = "classic" | "balanced" | "quickfire_mix"
 type RoundBehaviourType = "standard" | "quickfire"
 type RoundSourceMode = "selected_packs" | "specific_packs" | "all_questions"
@@ -523,6 +524,7 @@ export default function HostPage() {
 
   const [setupMode, setSetupMode] = useState<SetupMode>("simple")
   const [advancedUnlocked, setAdvancedUnlocked] = useState(false)
+  const [simpleGameType, setSimpleGameType] = useState<SimpleGameType>("recommended")
   const [simplePreset, setSimplePreset] = useState<SimplePresetId>("balanced")
   const [buildMode, setBuildMode] = useState<BuildMode>("manual_rounds")
   const [selectPacks, setSelectPacks] = useState(false)
@@ -567,6 +569,10 @@ export default function HostPage() {
   const [simpleFeasibilityBusy, setSimpleFeasibilityBusy] = useState(false)
   const [simpleFeasibilityError, setSimpleFeasibilityError] = useState<string | null>(null)
   const [simpleTemplateFeasibility, setSimpleTemplateFeasibility] = useState<FeasibilitySetResult | null>(null)
+  const [simpleCandidateCount, setSimpleCandidateCount] = useState(0)
+  const [simpleInfiniteQuestionLimitStr, setSimpleInfiniteQuestionLimitStr] = useState("")
+  const [showSimpleGameSummary, setShowSimpleGameSummary] = useState(false)
+  const [showSimpleRecommendedRounds, setShowSimpleRecommendedRounds] = useState(false)
 
   const [roomCode, setRoomCode] = useState<string | null>(null)
   const [roomState, setRoomState] = useState<RoomState | null>(null)
@@ -960,17 +966,12 @@ export default function HostPage() {
       setSimpleFeasibilityBusy(false)
       setSimpleFeasibilityError(null)
       setSimpleTemplateFeasibility(null)
+      setSimpleCandidateCount(0)
       return
     }
 
     if (roomCode) return
     if (packsLoading) return
-    if (!templates.length) {
-      setSimpleFeasibilityBusy(false)
-      setSimpleFeasibilityError(null)
-      setSimpleTemplateFeasibility(null)
-      return
-    }
 
     let cancelled = false
     const timer = window.setTimeout(async () => {
@@ -992,18 +993,21 @@ export default function HostPage() {
         if (cancelled) return
 
         if (!response.ok) {
-          setSimpleFeasibilityError(json.error ?? "Could not check ready templates.")
+          setSimpleFeasibilityError(json.error ?? "Could not check the current question pool.")
           setSimpleTemplateFeasibility(null)
+          setSimpleCandidateCount(0)
           setSimpleFeasibilityBusy(false)
           return
         }
 
         setSimpleTemplateFeasibility(json.templates ?? null)
+        setSimpleCandidateCount(Math.max(0, Number(json.candidateCount ?? 0) || 0))
         setSimpleFeasibilityBusy(false)
       } catch (error: any) {
         if (cancelled) return
-        setSimpleFeasibilityError(error?.message ?? "Could not check ready templates.")
+        setSimpleFeasibilityError(error?.message ?? "Could not check the current question pool.")
         setSimpleTemplateFeasibility(null)
+        setSimpleCandidateCount(0)
         setSimpleFeasibilityBusy(false)
       }
     }, 350)
@@ -1106,6 +1110,20 @@ export default function HostPage() {
 
   const simpleRoundCount = clampInt(parseIntOr(roundCountStr, 4), 1, 20)
 
+  const simpleInfiniteQuestionLimit = useMemo(() => {
+    const value = simpleInfiniteQuestionLimitStr.trim()
+    if (value === "") return null
+    const parsed = Math.floor(Number(value))
+    if (!Number.isFinite(parsed)) return Number.NaN
+    return clampInt(parsed, 0, 9999)
+  }, [simpleInfiniteQuestionLimitStr])
+
+  const simpleInfiniteResolvedQuestionCount = useMemo(() => {
+    if (simpleInfiniteQuestionLimit == null) return simpleCandidateCount
+    if (!Number.isFinite(simpleInfiniteQuestionLimit) || simpleInfiniteQuestionLimit <= 0) return 0
+    return Math.min(simpleInfiniteQuestionLimit, simpleCandidateCount)
+  }, [simpleCandidateCount, simpleInfiniteQuestionLimit])
+
   const simpleTemplatePlan = useMemo(() => {
     return buildSimpleTemplatePlan({
       templates,
@@ -1160,8 +1178,23 @@ export default function HostPage() {
     if (selectPacks && simpleSelectedPackIds.length === 0) {
       return "Select at least one pack, or use all active packs."
     }
+
+    if (simpleGameType === "infinite") {
+      if (simpleInfiniteQuestionLimit !== null) {
+        if (!Number.isFinite(simpleInfiniteQuestionLimit) || simpleInfiniteQuestionLimit < 1) {
+          return "Total questions must be blank, or at least 1."
+        }
+      }
+
+      if (simpleCandidateCount <= 0) {
+        return "No questions are available in the current pack choice."
+      }
+
+      return null
+    }
+
     return simpleTemplatePlan.error
-  }, [selectPacks, simpleFeasibilityError, simpleSelectedPackIds.length, simpleTemplatePlan.error])
+  }, [selectPacks, simpleCandidateCount, simpleFeasibilityError, simpleGameType, simpleInfiniteQuestionLimit, simpleSelectedPackIds.length, simpleTemplatePlan.error])
 
   const activeCreateBlockReason = setupMode === "simple" ? simpleCreateBlockReason : createBlockReason
 
@@ -1220,21 +1253,60 @@ export default function HostPage() {
 
       if (setupMode === "simple") {
         if (simpleFeasibilityBusy) {
-          setCreateError("Still checking which round templates are ready for this pack choice.")
+          setCreateError(
+            simpleGameType === "infinite"
+              ? "Still checking how many questions are available for this pack choice."
+              : "Still checking which round templates are ready for this pack choice."
+          )
           setCreating(false)
           return
         }
 
-        if (simpleTemplatePlan.rounds.length === 0) {
-          setCreateError(simpleTemplatePlan.error ?? "Could not build a simple game plan.")
-          setCreating(false)
-          return
-        }
+        if (simpleGameType === "infinite") {
+          if (simpleCandidateCount <= 0) {
+            setCreateError("No questions are available in the current pack choice.")
+            setCreating(false)
+            return
+          }
 
-        payload = {
-          ...payload,
-          selectedPacks: simpleSelectedPackIds,
-          manualRounds: simpleTemplatePlan.rounds,
+          const requestedCount = simpleInfiniteQuestionLimit == null ? simpleCandidateCount : simpleInfiniteQuestionLimit
+          if (!Number.isFinite(requestedCount) || requestedCount < 1) {
+            setCreateError("Total questions must be blank, or at least 1.")
+            setCreating(false)
+            return
+          }
+
+          payload = {
+            ...payload,
+            selectedPacks: simpleSelectedPackIds,
+            manualRounds: [
+              {
+                id: "simple_infinite_round",
+                name: "Infinite",
+                questionCount: Math.min(requestedCount, simpleCandidateCount),
+                behaviourType: "standard",
+                jokerEligible: false,
+                countsTowardsScore: true,
+                sourceMode: "selected_packs",
+                packIds: [],
+                selectionRules: {},
+                answerSeconds: getDefaultAnswerSecondsForBehaviour("standard"),
+                roundReviewSeconds: getDefaultRoundReviewSecondsForBehaviour("standard"),
+              },
+            ],
+          }
+        } else {
+          if (simpleTemplatePlan.rounds.length === 0) {
+            setCreateError(simpleTemplatePlan.error ?? "Could not build a simple game plan.")
+            setCreating(false)
+            return
+          }
+
+          payload = {
+            ...payload,
+            selectedPacks: simpleSelectedPackIds,
+            manualRounds: simpleTemplatePlan.rounds,
+          }
         }
       } else if (buildMode === "manual_rounds") {
         if (manualRounds.length === 0) {
@@ -1553,6 +1625,14 @@ export default function HostPage() {
       ? `${selectedPackCount} selected pack${selectedPackCount === 1 ? "" : "s"}`
       : "no packs selected yet"
 
+  const simpleReadyLabel = simpleGameType === "infinite"
+    ? simpleCandidateCount > 0
+      ? "Ready to create"
+      : "Needs changes"
+    : simpleTemplatePlan.rounds.length > 0
+      ? "Ready to create"
+      : "Needs changes"
+
   const simpleJokerSummary = simpleTemplatePlan.jokerEligibleCount >= 2
     ? `Joker available in ${simpleTemplatePlan.jokerEligibleCount} round${simpleTemplatePlan.jokerEligibleCount === 1 ? "" : "s"}`
     : "Joker hidden for this game"
@@ -1564,6 +1644,14 @@ export default function HostPage() {
   const simpleGameSummaryText = simpleTemplatePlan.rounds.length > 0
     ? `This game will create ${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"}: ${simpleTemplatePlan.standardCount} Standard and ${simpleTemplatePlan.quickfireCount} Quickfire, using ${simplePackScopeText}, with display audio and sensible default timings.`
     : "Simple mode will build a game from ready templates as soon as the current pack choice supports it."
+
+  const simpleInfiniteSummaryText = simpleCandidateCount > 0
+    ? simpleInfiniteQuestionLimit == null
+      ? `This game will keep moving through every available question from ${simplePackScopeText}. There are no round breaks, and the game stops only when the pool runs out.`
+      : simpleInfiniteQuestionLimit > simpleCandidateCount
+        ? `This game asked for ${simpleInfiniteQuestionLimit} questions, but only ${simpleCandidateCount} are available in ${simplePackScopeText}, so it will use them all in one continuous run.`
+        : `This game will run as one continuous question stream for ${simpleInfiniteResolvedQuestionCount} question${simpleInfiniteResolvedQuestionCount === 1 ? "" : "s"} from ${simplePackScopeText}. There are no round breaks.`
+    : "Infinite mode will use every available question from the chosen packs once the current pack choice contains at least one question."
 
   return (
     <PageShell width="full" contentClassName="max-w-6xl">
@@ -1644,7 +1732,7 @@ export default function HostPage() {
                       <div className="text-sm font-semibold text-foreground">Setup</div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {setupMode === "simple"
-                          ? "Quick recommended game using ready round templates and sensible defaults."
+                          ? "Quick host flow for recommended games or one continuous Infinite run."
                           : "Full round builder with templates, metadata filters, timing overrides, and legacy options."}
                       </div>
                     </div>
@@ -1677,60 +1765,122 @@ export default function HostPage() {
                         <div>
                           <div className="text-sm font-semibold text-foreground">Simple game</div>
                           <div className="mt-1 text-xs text-muted-foreground">
-                            Choose a game style and round count. The app builds a real round plan from templates that are currently ready for your pack choice.
+                            Pick a game type first. Recommended builds rounds for you. Infinite keeps moving through one long stream of questions without round setup.
                           </div>
                         </div>
                         <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
-                          {simpleRoundCount} round{simpleRoundCount === 1 ? "" : "s"}
+                          {simpleGameType === "infinite"
+                            ? simpleInfiniteQuestionLimit == null
+                              ? simpleCandidateCount > 0
+                                ? `${simpleCandidateCount} available`
+                                : "Question pool"
+                              : `${simpleInfiniteResolvedQuestionCount} questions`
+                            : `${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"}`}
                         </div>
                       </div>
 
-                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                        <div>
-                          <div className="text-sm font-medium text-foreground">Rounds</div>
-                          <select
-                            value={roundCountStr}
-                            onChange={(e) => setRoundCountStr(e.target.value)}
-                            className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
-                          >
-                            {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((count) => (
-                              <option key={count} value={String(count)}>
-                                {count}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="mt-1 text-xs text-muted-foreground">Four or five rounds tends to feel best for a normal game.</div>
-                        </div>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <label
+                          className={`rounded-xl border p-3 text-sm transition-colors ${simpleGameType === "recommended" ? "border-foreground bg-muted" : "border-border bg-card hover:bg-muted"}`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <input
+                              type="radio"
+                              name="simple-game-type"
+                              checked={simpleGameType === "recommended"}
+                              onChange={() => setSimpleGameType("recommended")}
+                              className="mt-0.5"
+                            />
+                            <div>
+                              <div className="font-medium text-foreground">Recommended game</div>
+                              <div className="mt-1 text-xs text-muted-foreground">Use ready round templates and sensible defaults.</div>
+                            </div>
+                          </div>
+                        </label>
 
-                        <div>
-                          <div className="text-sm font-medium text-foreground">Game style</div>
-                          <div className="mt-1 grid gap-2">
-                            {SIMPLE_PRESET_OPTIONS.map((preset) => {
-                              const selected = simplePreset === preset.value
-                              return (
-                                <label
-                                  key={preset.value}
-                                  className={`rounded-xl border p-3 text-sm transition-colors ${selected ? "border-foreground bg-muted" : "border-border bg-card hover:bg-muted"}`}
-                                >
-                                  <div className="flex items-start gap-2">
-                                    <input
-                                      type="radio"
-                                      name="simple-preset"
-                                      checked={selected}
-                                      onChange={() => setSimplePreset(preset.value)}
-                                      className="mt-0.5"
-                                    />
-                                    <div>
-                                      <div className="font-medium text-foreground">{preset.label}</div>
-                                      <div className="mt-1 text-xs text-muted-foreground">{preset.description}</div>
+                        <label
+                          className={`rounded-xl border p-3 text-sm transition-colors ${simpleGameType === "infinite" ? "border-foreground bg-muted" : "border-border bg-card hover:bg-muted"}`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <input
+                              type="radio"
+                              name="simple-game-type"
+                              checked={simpleGameType === "infinite"}
+                              onChange={() => setSimpleGameType("infinite")}
+                              className="mt-0.5"
+                            />
+                            <div>
+                              <div className="font-medium text-foreground">Infinite</div>
+                              <div className="mt-1 text-xs text-muted-foreground">One continuous run of questions from the chosen packs, with no round setup.</div>
+                            </div>
+                          </div>
+                        </label>
+                      </div>
+
+                      {simpleGameType === "recommended" ? (
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <div className="text-sm font-medium text-foreground">Rounds</div>
+                            <select
+                              value={roundCountStr}
+                              onChange={(e) => setRoundCountStr(e.target.value)}
+                              className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
+                            >
+                              {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((count) => (
+                                <option key={count} value={String(count)}>
+                                  {count}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="mt-1 text-xs text-muted-foreground">Four or five rounds tends to feel best for a normal game.</div>
+                          </div>
+
+                          <div>
+                            <div className="text-sm font-medium text-foreground">Game style</div>
+                            <div className="mt-1 grid gap-2">
+                              {SIMPLE_PRESET_OPTIONS.map((preset) => {
+                                const selected = simplePreset === preset.value
+                                return (
+                                  <label
+                                    key={preset.value}
+                                    className={`rounded-xl border p-3 text-sm transition-colors ${selected ? "border-foreground bg-muted" : "border-border bg-card hover:bg-muted"}`}
+                                  >
+                                    <div className="flex items-start gap-2">
+                                      <input
+                                        type="radio"
+                                        name="simple-preset"
+                                        checked={selected}
+                                        onChange={() => setSimplePreset(preset.value)}
+                                        className="mt-0.5"
+                                      />
+                                      <div>
+                                        <div className="font-medium text-foreground">{preset.label}</div>
+                                        <div className="mt-1 text-xs text-muted-foreground">{preset.description}</div>
+                                      </div>
                                     </div>
-                                  </div>
-                                </label>
-                              )
-                            })}
+                                  </label>
+                                )
+                              })}
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <div className="text-sm font-medium text-foreground">Total questions asked</div>
+                            <Input
+                              value={simpleInfiniteQuestionLimitStr}
+                              onChange={(e) => setSimpleInfiniteQuestionLimitStr(e.target.value.replace(/[^0-9]/g, ""))}
+                              inputMode="numeric"
+                              placeholder="Blank = every available question"
+                            />
+                            <div className="mt-1 text-xs text-muted-foreground">Leave this blank to use the full pool from the chosen packs once each.</div>
+                          </div>
+                          <div className="rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">
+                            Infinite uses the normal question flow and display audio. It just removes round planning, so the game keeps moving until the chosen question limit is reached.
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="rounded-2xl border border-border p-3">
@@ -1774,132 +1924,193 @@ export default function HostPage() {
                       )}
                     </div>
 
-                    <div className="rounded-2xl border border-border p-3">
-                      <div className="flex items-start justify-between gap-3">
+                    <div className="rounded-2xl border border-border">
+                      <button
+                        type="button"
+                        className="flex w-full items-start justify-between gap-3 p-3 text-left"
+                        onClick={() => setShowSimpleGameSummary((prev) => !prev)}
+                      >
                         <div>
                           <div className="text-sm font-semibold text-foreground">Game summary</div>
-                          <div className="mt-1 text-xs text-muted-foreground">This is what Simple mode will create from the current ready templates.</div>
-                        </div>
-                        <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
-                          {simpleTemplatePlan.rounds.length > 0 ? "Ready to create" : "Needs changes"}
-                        </div>
-                      </div>
-
-                      {simpleFeasibilityBusy ? (
-                        <div className="mt-3 rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">Checking ready templates...</div>
-                      ) : simpleFeasibilityError ? (
-                        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{simpleFeasibilityError}</div>
-                      ) : simpleTemplatePlan.rounds.length > 0 ? (
-                        <div className="mt-3 space-y-3">
-                          <div className="rounded-xl border border-border bg-card p-3 text-sm text-foreground">{simpleGameSummaryText}</div>
-                          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                            <div className="rounded-xl border border-border bg-card p-3">
-                              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Round mix</div>
-                              <div className="mt-1 text-sm font-medium text-foreground">{simpleTemplatePlan.standardCount} Standard, {simpleTemplatePlan.quickfireCount} Quickfire</div>
-                            </div>
-                            <div className="rounded-xl border border-border bg-card p-3">
-                              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Joker</div>
-                              <div className="mt-1 text-sm font-medium text-foreground">{simpleJokerSummary}</div>
-                            </div>
-                            <div className="rounded-xl border border-border bg-card p-3">
-                              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Packs</div>
-                              <div className="mt-1 text-sm font-medium text-foreground">{!selectPacks ? "All active packs" : selectedPackCount > 0 ? `${selectedPackCount} selected` : "Choose pack"}</div>
-                            </div>
-                            <div className="rounded-xl border border-border bg-card p-3">
-                              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Audio</div>
-                              <div className="mt-1 text-sm font-medium text-foreground">Display audio</div>
-                            </div>
-                          </div>
-                          <div className="rounded-xl border border-border bg-card p-3 text-xs text-muted-foreground">{simpleTimingSummary}</div>
-                          {simpleTemplatePlan.notes.length ? (
-                            <div className="space-y-2">
-                              {simpleTemplatePlan.notes.map((note) => (
-                                <div key={note} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                                  {note}
-                                </div>
-                              ))}
-                            </div>
-                          ) : null}
-                          {simpleUnavailableTemplateExamples.length ? (
-                            <div className="space-y-2">
-                              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Templates not ready now</div>
-                              {simpleUnavailableTemplateExamples.map((template) => (
-                                <div key={template.id} className="rounded-xl border border-border bg-card p-3 text-sm">
-                                  <div className="font-medium text-foreground">{template.name}</div>
-                                  <div className={template.explanation.tone === "error" ? "mt-1 text-red-700 dark:text-red-200" : "mt-1 text-amber-700 dark:text-amber-200"}>
-                                    {template.explanation.summary}
-                                  </div>
-                                  {template.explanation.detail ? (
-                                    <div className="mt-1 text-xs text-muted-foreground">{template.explanation.detail}</div>
-                                  ) : null}
-                                </div>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : (
-                        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                          {simpleTemplatePlan.error ?? "No simple plan is ready yet."}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="rounded-2xl border border-border p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-semibold text-foreground">Recommended rounds</div>
                           <div className="mt-1 text-xs text-muted-foreground">
-                            Ready now: {simpleTemplatePlan.availableTemplateCount} template{simpleTemplatePlan.availableTemplateCount === 1 ? "" : "s"}, with {simpleTemplatePlan.availableStandardCount} standard and {simpleTemplatePlan.availableQuickfireCount} Quickfire.
+                            {simpleGameType === "infinite"
+                              ? "Open to preview the question pool and continuous-run behaviour."
+                              : "Open to preview the game that Simple mode will create."}
                           </div>
                         </div>
-                        <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
-                          {simpleTemplatePlan.jokerEligibleCount >= 2 ? "Joker ready" : "Joker hidden"}
+                        <div className="flex items-center gap-2">
+                          <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+                            {simpleReadyLabel}
+                          </div>
+                          <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+                            {showSimpleGameSummary ? "Hide" : "Show"}
+                          </div>
                         </div>
-                      </div>
+                      </button>
 
-                      {simpleFeasibilityBusy ? (
-                        <div className="mt-3 rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">Checking ready templates...</div>
-                      ) : simpleFeasibilityError ? (
-                        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{simpleFeasibilityError}</div>
-                      ) : simpleTemplatePlan.rounds.length > 0 ? (
-                        <div className="mt-3 space-y-3">
-                          <div className="space-y-2">
-                            {simpleTemplatePlan.rounds.map((round, index) => (
-                              <div key={round.id} className="rounded-xl border border-border bg-card p-3">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="text-sm font-medium text-foreground">{index + 1}. {round.name}</span>
-                                  <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${roundBehaviourBadgeClass(round.behaviourType)}`}>
-                                    {roundBehaviourLabel(round.behaviourType)}
-                                  </span>
-                                  {round.jokerEligible ? (
-                                    <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">Joker eligible</span>
-                                  ) : null}
+                      {showSimpleGameSummary ? (
+                        <div className="border-t border-border p-3">
+                          {simpleFeasibilityBusy ? (
+                            <div className="rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">
+                              {simpleGameType === "infinite" ? "Checking question pool..." : "Checking ready templates..."}
+                            </div>
+                          ) : simpleFeasibilityError ? (
+                            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{simpleFeasibilityError}</div>
+                          ) : simpleGameType === "infinite" ? (
+                            <div className="space-y-3">
+                              <div className="rounded-xl border border-border bg-card p-3 text-sm text-foreground">{simpleInfiniteSummaryText}</div>
+                              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                                <div className="rounded-xl border border-border bg-card p-3">
+                                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Question pool</div>
+                                  <div className="mt-1 text-sm font-medium text-foreground">{simpleCandidateCount} available</div>
                                 </div>
-                                <div className="mt-1 text-xs text-muted-foreground">
-                                  {round.questionCount} question{round.questionCount === 1 ? "" : "s"}. {round.answerSeconds}s answer window, {round.roundReviewSeconds}s round review.
+                                <div className="rounded-xl border border-border bg-card p-3">
+                                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Questions asked</div>
+                                  <div className="mt-1 text-sm font-medium text-foreground">
+                                    {simpleInfiniteQuestionLimit == null ? "All available" : simpleInfiniteResolvedQuestionCount}
+                                  </div>
+                                </div>
+                                <div className="rounded-xl border border-border bg-card p-3">
+                                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Packs</div>
+                                  <div className="mt-1 text-sm font-medium text-foreground">{!selectPacks ? "All active packs" : selectedPackCount > 0 ? `${selectedPackCount} selected` : "Choose pack"}</div>
+                                </div>
+                                <div className="rounded-xl border border-border bg-card p-3">
+                                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Audio</div>
+                                  <div className="mt-1 text-sm font-medium text-foreground">Display audio</div>
                                 </div>
                               </div>
-                            ))}
-                          </div>
-                          {simpleTemplatePlan.notes.length ? (
-                            <div className="space-y-2">
-                              {simpleTemplatePlan.notes.map((note) => (
-                                <div key={note} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                                  {note}
-                                </div>
-                              ))}
+                              <div className="rounded-xl border border-border bg-card p-3 text-xs text-muted-foreground">
+                                Standard timing stays in place, with 20 second answers, 30 second reveals, and a single end-of-game summary when the continuous run finishes.
+                              </div>
                             </div>
-                          ) : null}
-                          <div className="rounded-xl border border-border bg-card p-3 text-xs text-muted-foreground">
-                            Simple mode uses display audio, standard timing defaults, and only templates that are currently feasible for the chosen pack scope.
-                          </div>
+                          ) : simpleTemplatePlan.rounds.length > 0 ? (
+                            <div className="space-y-3">
+                              <div className="rounded-xl border border-border bg-card p-3 text-sm text-foreground">{simpleGameSummaryText}</div>
+                              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                                <div className="rounded-xl border border-border bg-card p-3">
+                                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Round mix</div>
+                                  <div className="mt-1 text-sm font-medium text-foreground">{simpleTemplatePlan.standardCount} Standard, {simpleTemplatePlan.quickfireCount} Quickfire</div>
+                                </div>
+                                <div className="rounded-xl border border-border bg-card p-3">
+                                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Joker</div>
+                                  <div className="mt-1 text-sm font-medium text-foreground">{simpleJokerSummary}</div>
+                                </div>
+                                <div className="rounded-xl border border-border bg-card p-3">
+                                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Packs</div>
+                                  <div className="mt-1 text-sm font-medium text-foreground">{!selectPacks ? "All active packs" : selectedPackCount > 0 ? `${selectedPackCount} selected` : "Choose pack"}</div>
+                                </div>
+                                <div className="rounded-xl border border-border bg-card p-3">
+                                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Audio</div>
+                                  <div className="mt-1 text-sm font-medium text-foreground">Display audio</div>
+                                </div>
+                              </div>
+                              <div className="rounded-xl border border-border bg-card p-3 text-xs text-muted-foreground">{simpleTimingSummary}</div>
+                              {simpleTemplatePlan.notes.length ? (
+                                <div className="space-y-2">
+                                  {simpleTemplatePlan.notes.map((note) => (
+                                    <div key={note} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                                      {note}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null}
+                              {simpleUnavailableTemplateExamples.length ? (
+                                <div className="space-y-2">
+                                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Templates not ready now</div>
+                                  {simpleUnavailableTemplateExamples.map((template) => (
+                                    <div key={template.id} className="rounded-xl border border-border bg-card p-3 text-sm">
+                                      <div className="font-medium text-foreground">{template.name}</div>
+                                      <div className={template.explanation.tone === "error" ? "mt-1 text-red-700 dark:text-red-200" : "mt-1 text-amber-700 dark:text-amber-200"}>
+                                        {template.explanation.summary}
+                                      </div>
+                                      {template.explanation.detail ? (
+                                        <div className="mt-1 text-xs text-muted-foreground">{template.explanation.detail}</div>
+                                      ) : null}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                              {simpleTemplatePlan.error ?? "No simple plan is ready yet."}
+                            </div>
+                          )}
                         </div>
-                      ) : (
-                        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                          {simpleTemplatePlan.error ?? "No simple plan is ready yet."}
-                        </div>
-                      )}
+                      ) : null}
                     </div>
+
+                    {simpleGameType === "recommended" ? (
+                      <div className="rounded-2xl border border-border">
+                        <button
+                          type="button"
+                          className="flex w-full items-start justify-between gap-3 p-3 text-left"
+                          onClick={() => setShowSimpleRecommendedRounds((prev) => !prev)}
+                        >
+                          <div>
+                            <div className="text-sm font-semibold text-foreground">Recommended rounds</div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              Ready now: {simpleTemplatePlan.availableTemplateCount} template{simpleTemplatePlan.availableTemplateCount === 1 ? "" : "s"}, with {simpleTemplatePlan.availableStandardCount} standard and {simpleTemplatePlan.availableQuickfireCount} Quickfire.
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+                              {simpleTemplatePlan.jokerEligibleCount >= 2 ? "Joker ready" : "Joker hidden"}
+                            </div>
+                            <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+                              {showSimpleRecommendedRounds ? "Hide" : "Show"}
+                            </div>
+                          </div>
+                        </button>
+
+                        {showSimpleRecommendedRounds ? (
+                          <div className="border-t border-border p-3">
+                            {simpleFeasibilityBusy ? (
+                              <div className="rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">Checking ready templates...</div>
+                            ) : simpleFeasibilityError ? (
+                              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{simpleFeasibilityError}</div>
+                            ) : simpleTemplatePlan.rounds.length > 0 ? (
+                              <div className="space-y-3">
+                                <div className="space-y-2">
+                                  {simpleTemplatePlan.rounds.map((round, index) => (
+                                    <div key={round.id} className="rounded-xl border border-border bg-card p-3">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <span className="text-sm font-medium text-foreground">{index + 1}. {round.name}</span>
+                                        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${roundBehaviourBadgeClass(round.behaviourType)}`}>
+                                          {roundBehaviourLabel(round.behaviourType)}
+                                        </span>
+                                        {round.jokerEligible ? (
+                                          <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">Joker eligible</span>
+                                        ) : null}
+                                      </div>
+                                      <div className="mt-1 text-xs text-muted-foreground">
+                                        {round.questionCount} question{round.questionCount === 1 ? "" : "s"}. {round.answerSeconds}s answer window, {round.roundReviewSeconds}s round review.
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                                {simpleTemplatePlan.notes.length ? (
+                                  <div className="space-y-2">
+                                    {simpleTemplatePlan.notes.map((note) => (
+                                      <div key={note} className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                                        {note}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null}
+                                <div className="rounded-xl border border-border bg-card p-3 text-xs text-muted-foreground">
+                                  Simple mode uses display audio, standard timing defaults, and only templates that are currently feasible for the chosen pack scope.
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                                {simpleTemplatePlan.error ?? "No simple plan is ready yet."}
+                              </div>
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </>
                 ) : (
                   <>
@@ -2434,10 +2645,16 @@ export default function HostPage() {
                 <div className="text-sm text-muted-foreground">
                   {setupMode === "simple"
                     ? simpleFeasibilityBusy
-                      ? "Checking ready templates..."
-                      : !selectPacks
-                        ? `${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"} planned from ready templates using all active packs.`
-                        : `${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"} planned from ready templates across ${selectedPackCount} selected pack${selectedPackCount === 1 ? "" : "s"}.`
+                      ? simpleGameType === "infinite"
+                        ? "Checking how many questions are available..."
+                        : "Checking ready templates..."
+                      : simpleGameType === "infinite"
+                        ? simpleInfiniteQuestionLimit == null
+                          ? `Continuous run using every available question from ${!selectPacks ? "all active packs" : `${selectedPackCount} selected pack${selectedPackCount === 1 ? "" : "s"}`}.`
+                          : `Continuous run for ${simpleInfiniteResolvedQuestionCount} question${simpleInfiniteResolvedQuestionCount === 1 ? "" : "s"} from ${!selectPacks ? "all active packs" : `${selectedPackCount} selected pack${selectedPackCount === 1 ? "" : "s"}`}.`
+                        : !selectPacks
+                          ? `${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"} planned from ready templates using all active packs.`
+                          : `${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"} planned from ready templates across ${selectedPackCount} selected pack${selectedPackCount === 1 ? "" : "s"}.`
                     : buildMode === "manual_rounds"
                       ? `${manualRounds.length} round${manualRounds.length === 1 ? "" : "s"} planned.`
                       : buildMode === "quick_random" && quickRandomUseTemplates
