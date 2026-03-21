@@ -1,5 +1,9 @@
 import { deriveMediaType, type QuestionCandidate } from "@/lib/manualRoundPlanBuilder"
-import { QUICKFIRE_AUDIO_MAX_DURATION_MS, getQuickfireIneligibilityReasons, normaliseMediaDurationMs } from "@/lib/quickfireEligibility"
+import {
+  QUICKFIRE_AUDIO_MAX_DURATION_MS,
+  getQuickfireIneligibilityReasons,
+  normaliseMediaDurationMs,
+} from "@/lib/quickfireEligibility"
 import type { RoundBehaviourType, RoundSelectionRules, RoundSourceMode } from "@/lib/roomRoundPlan"
 
 export type RoundFeasibilityInput = {
@@ -10,6 +14,15 @@ export type RoundFeasibilityInput = {
   sourceMode?: RoundSourceMode
   packIds?: string[]
   selectionRules?: RoundSelectionRules
+}
+
+export type FeasibilityTone = "ok" | "warning" | "error"
+
+export type FeasibilityExplanation = {
+  tone: FeasibilityTone
+  summary: string
+  detail: string | null
+  fallback: string | null
 }
 
 export type FeasibilityRoundResult = {
@@ -24,6 +37,7 @@ export type FeasibilityRoundResult = {
   behaviourType: RoundBehaviourType
   sourceMode: RoundSourceMode
   notes: string[]
+  explanation: FeasibilityExplanation
 }
 
 export type FeasibilitySummary = {
@@ -32,6 +46,7 @@ export type FeasibilitySummary = {
   assignedTotal: number
   shortfallTotal: number
   allFeasible: boolean
+  explanation: FeasibilityExplanation
 }
 
 export type FeasibilitySetResult = {
@@ -48,6 +63,8 @@ type InternalRoundEvaluation = {
   eligibleCandidateIds: string[]
   setupError: string | null
   notes: string[]
+  scopeDescription: string
+  filtersDescription: string | null
 }
 
 function cleanStringArray(raw: unknown) {
@@ -226,6 +243,188 @@ function buildAssignmentCounts(rounds: InternalRoundEvaluation[]) {
   return result
 }
 
+function humanise(value: string) {
+  return value.replace(/_/g, " ")
+}
+
+function pluralise(count: number, singular: string, plural?: string) {
+  return count === 1 ? singular : plural ?? `${singular}s`
+}
+
+function describeSourceScope(sourceMode: RoundSourceMode, sourcePackIds: string[]) {
+  if (sourceMode === "all_questions") return "all active packs"
+  if (sourceMode === "specific_packs") {
+    if (!sourcePackIds.length) return "the chosen specific packs"
+    return `${sourcePackIds.length} specific ${pluralise(sourcePackIds.length, "pack")}`
+  }
+  if (!sourcePackIds.length) return "the current selected packs"
+  return `${sourcePackIds.length} selected ${pluralise(sourcePackIds.length, "pack")}`
+}
+
+function describeSelectionFilters(rules: RoundSelectionRules) {
+  const filters: string[] = []
+
+  if (rules.mediaTypes?.length) {
+    filters.push(`media ${rules.mediaTypes.map((value) => humanise(value)).join(", ")}`)
+  }
+
+  if (rules.promptTargets?.length) {
+    filters.push(`prompt target ${rules.promptTargets.map((value) => humanise(value)).join(", ")}`)
+  }
+
+  if (rules.clueSources?.length) {
+    filters.push(`clue source ${rules.clueSources.map((value) => humanise(value)).join(", ")}`)
+  }
+
+  if (rules.primaryShowKeys?.length) {
+    filters.push(`show ${rules.primaryShowKeys.join(", ")}`)
+  }
+
+  if (rules.audioClipTypes?.length) {
+    filters.push(`audio clip type ${rules.audioClipTypes.map((value) => humanise(value)).join(", ")}`)
+  }
+
+  if (!filters.length) return null
+  return filters.join(", ")
+}
+
+function getQuickfirePoolHint() {
+  return `Quickfire uses MCQ questions only, and audio clips must have a saved duration of ${QUICKFIRE_AUDIO_MAX_DURATION_MS / 1000} seconds or less.`
+}
+
+function buildRoundExplanation(args: {
+  evaluation: InternalRoundEvaluation
+  eligibleCount: number
+  assignedCount: number
+}) {
+  const { evaluation, eligibleCount, assignedCount } = args
+  const requestedCount = evaluation.requestedCount
+  const scopeSentence = `Scope: ${evaluation.scopeDescription}.`
+  const filtersSentence = evaluation.filtersDescription
+    ? `Filters: ${evaluation.filtersDescription}.`
+    : "No extra metadata filters are active."
+  const quickfireSentence =
+    evaluation.behaviourType === "quickfire"
+      ? getQuickfirePoolHint()
+      : null
+
+  if (evaluation.setupError) {
+    return {
+      tone: "error",
+      summary: evaluation.setupError,
+      detail: [scopeSentence, evaluation.filtersDescription ? filtersSentence : null, quickfireSentence]
+        .filter(Boolean)
+        .join(" "),
+      fallback:
+        evaluation.sourceMode === "selected_packs"
+          ? "Select one or more packs, or switch this round to all active packs."
+          : evaluation.sourceMode === "specific_packs"
+            ? "Choose one or more specific packs for this round."
+            : "Review the current pack scope and try again.",
+    } satisfies FeasibilityExplanation
+  }
+
+  if (requestedCount <= 0) {
+    return {
+      tone: "error",
+      summary: "This round needs at least one question.",
+      detail: [scopeSentence, evaluation.filtersDescription ? filtersSentence : null].filter(Boolean).join(" "),
+      fallback: "Set a question count greater than 0.",
+    } satisfies FeasibilityExplanation
+  }
+
+  if (assignedCount >= requestedCount) {
+    return {
+      tone: "ok",
+      summary: `Ready now for ${requestedCount} ${pluralise(requestedCount, "question")}.`,
+      detail: [`${eligibleCount} eligible ${pluralise(eligibleCount, "question")} currently match this round.`, scopeSentence, filtersSentence]
+        .filter(Boolean)
+        .join(" "),
+      fallback: null,
+    } satisfies FeasibilityExplanation
+  }
+
+  if (eligibleCount === 0) {
+    return {
+      tone: "error",
+      summary: "No eligible questions match this round right now.",
+      detail: [scopeSentence, filtersSentence, quickfireSentence].filter(Boolean).join(" "),
+      fallback:
+        evaluation.behaviourType === "quickfire"
+          ? "Try more packs, relax the filters, or switch this round to Standard."
+          : "Try more packs, relax the filters, or lower the question count.",
+    } satisfies FeasibilityExplanation
+  }
+
+  if (eligibleCount < requestedCount) {
+    return {
+      tone: "warning",
+      summary: `Only ${eligibleCount} of ${requestedCount} ${pluralise(requestedCount, "question")} are available right now.`,
+      detail: [scopeSentence, filtersSentence, quickfireSentence].filter(Boolean).join(" "),
+      fallback:
+        evaluation.behaviourType === "quickfire"
+          ? "Lower the question count, widen the pack scope, relax the filters, or switch this round to Standard."
+          : "Lower the question count, widen the pack scope, or relax the filters.",
+    } satisfies FeasibilityExplanation
+  }
+
+  return {
+    tone: "warning",
+    summary: `Can only guarantee ${assignedCount} of ${requestedCount} ${pluralise(requestedCount, "question")} once the other rounds are taken into account.`,
+    detail: [
+      `${eligibleCount} eligible ${pluralise(eligibleCount, "question")} match this round, but some of them are also needed elsewhere in the current setup.`,
+      scopeSentence,
+      filtersSentence,
+    ]
+      .filter(Boolean)
+      .join(" "),
+    fallback: "Reduce overlap by changing packs or filters, or lower the question count.",
+  } satisfies FeasibilityExplanation
+}
+
+function buildSetExplanation(rounds: FeasibilityRoundResult[], summary: Omit<FeasibilitySummary, "explanation">) {
+  if (!rounds.length) {
+    return {
+      tone: "error",
+      summary: "No rounds are selected yet.",
+      detail: null,
+      fallback: "Add at least one round or template.",
+    } satisfies FeasibilityExplanation
+  }
+
+  const blockedRounds = rounds.filter((round) => round.explanation.tone === "error")
+  const warningRounds = rounds.filter((round) => round.explanation.tone === "warning")
+
+  if (summary.allFeasible) {
+    return {
+      tone: "ok",
+      summary: `All ${rounds.length} ${pluralise(rounds.length, "round")} are ready with the current settings.`,
+      detail: `The current setup can assign all ${summary.requestedTotal} requested ${pluralise(summary.requestedTotal, "question")}, with ${summary.unionEligibleQuestionCount} unique eligible questions across the set.`,
+      fallback: null,
+    } satisfies FeasibilityExplanation
+  }
+
+  const statusBits: string[] = []
+  if (blockedRounds.length) {
+    statusBits.push(`${blockedRounds.length} ${pluralise(blockedRounds.length, "round")} need changes before they can run`)
+  }
+  if (warningRounds.length) {
+    statusBits.push(`${warningRounds.length} ${pluralise(warningRounds.length, "round")} still overlap or fall short`)
+  }
+
+  return {
+    tone: blockedRounds.length > 0 ? "error" : "warning",
+    summary: `Current settings can only guarantee ${summary.assignedTotal} of ${summary.requestedTotal} requested ${pluralise(summary.requestedTotal, "question")}.`,
+    detail: [
+      statusBits.length ? `${statusBits.join(", ")}.` : null,
+      `There are ${summary.unionEligibleQuestionCount} unique eligible ${pluralise(summary.unionEligibleQuestionCount, "question")} across these rounds.`,
+    ]
+      .filter(Boolean)
+      .join(" "),
+    fallback: "Lower the counts, widen the pack scope, or relax the filters until every round is ready.",
+  } satisfies FeasibilityExplanation
+}
+
 export function buildQuestionCandidatesFromPackRows(rows: any[]) {
   const candidatesById = new Map<string, QuestionCandidate>()
 
@@ -286,8 +485,11 @@ export function evaluateRoundsFeasibility(params: {
       const notes: string[] = []
       let setupError: string | null = null
 
+      const scopeDescription = describeSourceScope(sourceMode, sourcePackIds)
+      const filtersDescription = describeSelectionFilters(rules)
+
       if (behaviourType === "quickfire") {
-        notes.push(`Quickfire allows MCQ questions only. Audio clips need media_duration_ms and must be ${QUICKFIRE_AUDIO_MAX_DURATION_MS / 1000} seconds or shorter.`)
+        notes.push(getQuickfirePoolHint())
       }
 
       if (sourceMode === "selected_packs" && sourcePackIds.length === 0) {
@@ -322,6 +524,8 @@ export function evaluateRoundsFeasibility(params: {
         eligibleCandidateIds: [...new Set(eligibleCandidateIds)],
         setupError,
         notes,
+        scopeDescription,
+        filtersDescription,
       }
     }
   )
@@ -332,6 +536,12 @@ export function evaluateRoundsFeasibility(params: {
     const eligibleCount = round.eligibleCandidateIds.length
     const assignedCount = round.setupError ? 0 : assignedCountByRoundId.get(round.id) ?? 0
     const shortfall = Math.max(0, round.requestedCount - assignedCount)
+    const explanation = buildRoundExplanation({
+      evaluation: round,
+      eligibleCount,
+      assignedCount,
+    })
+
     return {
       id: round.id,
       name: round.name,
@@ -344,6 +554,7 @@ export function evaluateRoundsFeasibility(params: {
       behaviourType: round.behaviourType,
       sourceMode: round.sourceMode,
       notes: round.notes,
+      explanation,
     }
   })
 
@@ -352,14 +563,19 @@ export function evaluateRoundsFeasibility(params: {
   const assignedTotal = rounds.reduce((sum, round) => sum + round.assignedCount, 0)
   const shortfallTotal = Math.max(0, requestedTotal - assignedTotal)
 
+  const summaryBase = {
+    requestedTotal,
+    unionEligibleQuestionCount,
+    assignedTotal,
+    shortfallTotal,
+    allFeasible: shortfallTotal === 0 && rounds.every((round) => !round.setupError),
+  }
+
   return {
     rounds,
     summary: {
-      requestedTotal,
-      unionEligibleQuestionCount,
-      assignedTotal,
-      shortfallTotal,
-      allFeasible: shortfallTotal === 0 && rounds.every((round) => !round.setupError),
+      ...summaryBase,
+      explanation: buildSetExplanation(rounds, summaryBase),
     },
   } satisfies FeasibilitySetResult
 }

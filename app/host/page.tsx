@@ -52,6 +52,13 @@ type RoundTemplatesResponse = {
   templates?: RoundTemplateRow[]
 }
 
+type FeasibilityExplanation = {
+  tone: "ok" | "warning" | "error"
+  summary: string
+  detail: string | null
+  fallback: string | null
+}
+
 type FeasibilityRoundResult = {
   id: string
   name: string
@@ -64,6 +71,7 @@ type FeasibilityRoundResult = {
   behaviourType: RoundBehaviourType
   sourceMode: RoundSourceMode
   notes: string[]
+  explanation: FeasibilityExplanation
 }
 
 type FeasibilitySetResult = {
@@ -74,6 +82,7 @@ type FeasibilitySetResult = {
     assignedTotal: number
     shortfallTotal: number
     allFeasible: boolean
+    explanation: FeasibilityExplanation
   }
 }
 
@@ -464,8 +473,7 @@ function buildSimpleTemplatePlan(params: {
 }
 
 function feasibilityTone(result: FeasibilityRoundResult) {
-  if (result.setupError || result.shortfall > 0) return "error"
-  return "ok"
+  return result.explanation?.tone ?? (result.setupError || result.shortfall > 0 ? "error" : "ok")
 }
 
 function roundBehaviourLabel(behaviourType: RoundBehaviourType) {
@@ -1107,20 +1115,40 @@ export default function HostPage() {
     })
   }, [simplePreset, simpleRoundCount, simpleTemplateFeasibilityById, templates])
 
+  const simpleUnavailableTemplateExamples = useMemo(() => {
+    const unavailable = (simpleTemplateFeasibility?.rounds ?? []).filter((round) => !round.feasible)
+    if (!unavailable.length) return [] as FeasibilityRoundResult[]
+
+    const preferredBehaviour =
+      simplePreset === "classic"
+        ? ["standard", "quickfire"]
+        : simplePreset === "quickfire_mix"
+          ? ["quickfire", "standard"]
+          : ["quickfire", "standard"]
+
+    return [...unavailable]
+      .sort((a, b) => {
+        const behaviourDiff = preferredBehaviour.indexOf(a.behaviourType) - preferredBehaviour.indexOf(b.behaviourType)
+        if (behaviourDiff !== 0) return behaviourDiff
+        if (a.explanation.tone !== b.explanation.tone) {
+          return a.explanation.tone === "error" ? -1 : 1
+        }
+        return a.name.localeCompare(b.name)
+      })
+      .slice(0, 3)
+  }, [simplePreset, simpleTemplateFeasibility])
+
   const createBlockReason = useMemo(() => {
     if (buildMode === "manual_rounds" && manualFeasibility && !manualFeasibility.summary.allFeasible) {
-      if (manualFeasibility.summary.shortfallTotal > 0) {
-        return `Current manual rounds can only assign ${manualFeasibility.summary.assignedTotal} of ${manualFeasibility.summary.requestedTotal} requested questions.`
-      }
-      return "Current manual rounds are not feasible yet."
+      return manualFeasibility.summary.explanation.summary
     }
 
     if (buildMode === "quick_random" && quickRandomUseTemplates && templateFeasibility) {
       const invalidTemplates = templateFeasibility.rounds.filter((round) => !round.feasible)
       if (invalidTemplates.length > 0) {
         return invalidTemplates.length === 1
-          ? `Template "${invalidTemplates[0]?.name ?? "Template"}" cannot currently fill its default question count.`
-          : `${invalidTemplates.length} selected templates cannot currently fill their default question counts.`
+          ? `${invalidTemplates[0]?.name ?? "Template"}: ${invalidTemplates[0]?.explanation.summary ?? "Not ready yet."}`
+          : templateFeasibility.summary.explanation.summary
       }
     }
 
@@ -1792,6 +1820,22 @@ export default function HostPage() {
                               ))}
                             </div>
                           ) : null}
+                          {simpleUnavailableTemplateExamples.length ? (
+                            <div className="space-y-2">
+                              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Templates not ready now</div>
+                              {simpleUnavailableTemplateExamples.map((template) => (
+                                <div key={template.id} className="rounded-xl border border-border bg-card p-3 text-sm">
+                                  <div className="font-medium text-foreground">{template.name}</div>
+                                  <div className={template.explanation.tone === "error" ? "mt-1 text-red-700 dark:text-red-200" : "mt-1 text-amber-700 dark:text-amber-200"}>
+                                    {template.explanation.summary}
+                                  </div>
+                                  {template.explanation.detail ? (
+                                    <div className="mt-1 text-xs text-muted-foreground">{template.explanation.detail}</div>
+                                  ) : null}
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
                         </div>
                       ) : (
                         <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
@@ -1952,15 +1996,16 @@ export default function HostPage() {
                         ) : feasibilityError ? (
                           <div className="text-red-700 dark:text-red-200">{feasibilityError}</div>
                         ) : manualFeasibility ? (
-                          <div className="space-y-1">
-                            <div className={manualFeasibility.summary.allFeasible ? "text-foreground" : "text-amber-700 dark:text-amber-200"}>
-                              {manualFeasibility.summary.allFeasible
-                                ? `Current rounds can assign all ${manualFeasibility.summary.requestedTotal} requested questions.`
-                                : `Current rounds can assign ${manualFeasibility.summary.assignedTotal} of ${manualFeasibility.summary.requestedTotal} requested questions.`}
+                          <div className="space-y-2">
+                            <div className={manualFeasibility.summary.explanation.tone === "ok" ? "text-foreground" : manualFeasibility.summary.explanation.tone === "warning" ? "text-amber-700 dark:text-amber-200" : "text-red-700 dark:text-red-200"}>
+                              {manualFeasibility.summary.explanation.summary}
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              Unique eligible questions across these rounds: {manualFeasibility.summary.unionEligibleQuestionCount}.
-                            </div>
+                            {manualFeasibility.summary.explanation.detail ? (
+                              <div className="text-xs text-muted-foreground">{manualFeasibility.summary.explanation.detail}</div>
+                            ) : null}
+                            {manualFeasibility.summary.explanation.fallback ? (
+                              <div className="text-xs text-muted-foreground">{manualFeasibility.summary.explanation.fallback}</div>
+                            ) : null}
                           </div>
                         ) : (
                           <div className="text-muted-foreground">Feasibility will appear once round settings are ready.</div>
@@ -2114,27 +2159,33 @@ export default function HostPage() {
                             const feasibility = manualFeasibilityById.get(round.id)
                             if (!feasibility) return null
                             const tone = feasibilityTone(feasibility)
+                            const toneClasses =
+                              tone === "error"
+                                ? {
+                                    container: "mt-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950",
+                                    text: "text-red-700 dark:text-red-200",
+                                  }
+                                : tone === "warning"
+                                  ? {
+                                      container: "mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950",
+                                      text: "text-amber-800 dark:text-amber-200",
+                                    }
+                                  : {
+                                      container: "mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm dark:border-emerald-900 dark:bg-emerald-950",
+                                      text: "text-emerald-800 dark:text-emerald-200",
+                                    }
                             return (
-                              <div
-                                className={
-                                  tone === "error"
-                                    ? "mt-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950"
-                                    : "mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm dark:border-emerald-900 dark:bg-emerald-950"
-                                }
-                              >
-                                <div className={tone === "error" ? "text-red-700 dark:text-red-200" : "text-emerald-800 dark:text-emerald-200"}>
-                                  {feasibility.setupError
-                                    ? feasibility.setupError
-                                    : feasibility.feasible
-                                      ? `Can assign ${feasibility.assignedCount} of ${feasibility.requestedCount} requested questions.`
-                                      : `Can assign ${feasibility.assignedCount} of ${feasibility.requestedCount} requested questions. Reduce the count or widen the filters.`}
-                                </div>
-                                <div className="mt-1 text-xs text-muted-foreground">
-                                  Eligible now: {feasibility.eligibleCount}. Assigned under current overlap: {feasibility.assignedCount}.
-                                </div>
-                                {feasibility.notes.length ? (
-                                  <div className="mt-1 text-xs text-muted-foreground">{feasibility.notes.join(" ")}</div>
+                              <div className={toneClasses.container}>
+                                <div className={toneClasses.text}>{feasibility.explanation.summary}</div>
+                                {feasibility.explanation.detail ? (
+                                  <div className="mt-1 text-xs text-muted-foreground">{feasibility.explanation.detail}</div>
                                 ) : null}
+                                {feasibility.explanation.fallback ? (
+                                  <div className="mt-1 text-xs text-muted-foreground">{feasibility.explanation.fallback}</div>
+                                ) : null}
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  Eligible now: {feasibility.eligibleCount}. Guaranteed under the current overlap: {feasibility.assignedCount}.
+                                </div>
                               </div>
                             )
                           })()}
@@ -2231,15 +2282,16 @@ export default function HostPage() {
                               ) : feasibilityError ? (
                                 <div className="text-red-700 dark:text-red-200">{feasibilityError}</div>
                               ) : templateFeasibility ? (
-                                <div className="space-y-1">
-                                  <div className={templateFeasibility.summary.allFeasible ? "text-foreground" : "text-amber-700 dark:text-amber-200"}>
-                                    {templateFeasibility.summary.allFeasible
-                                      ? "All selected templates can currently fill their default question counts."
-                                      : "One or more selected templates cannot currently fill their default question counts."}
+                                <div className="space-y-2">
+                                  <div className={templateFeasibility.summary.explanation.tone === "ok" ? "text-foreground" : templateFeasibility.summary.explanation.tone === "warning" ? "text-amber-700 dark:text-amber-200" : "text-red-700 dark:text-red-200"}>
+                                    {templateFeasibility.summary.explanation.summary}
                                   </div>
-                                  <div className="text-xs text-muted-foreground">
-                                    Unique eligible questions across selected templates: {templateFeasibility.summary.unionEligibleQuestionCount}.
-                                  </div>
+                                  {templateFeasibility.summary.explanation.detail ? (
+                                    <div className="text-xs text-muted-foreground">{templateFeasibility.summary.explanation.detail}</div>
+                                  ) : null}
+                                  {templateFeasibility.summary.explanation.fallback ? (
+                                    <div className="text-xs text-muted-foreground">{templateFeasibility.summary.explanation.fallback}</div>
+                                  ) : null}
                                 </div>
                               ) : (
                                 <div className="text-muted-foreground">Feasibility will appear once you choose templates.</div>
@@ -2265,16 +2317,17 @@ export default function HostPage() {
                                       <span className="min-w-0 flex-1">{template.name}</span>
                                       <span className="text-xs text-muted-foreground">{template.default_question_count}</span>
                                     </div>
-                                    {selected && feasibility ? (
+                                    {feasibility ? (
                                       <div className="mt-2 pl-6 text-xs">
-                                        <div className={tone === "error" ? "text-red-700 dark:text-red-200" : "text-emerald-700 dark:text-emerald-200"}>
-                                          {feasibility.setupError
-                                            ? feasibility.setupError
-                                            : feasibility.feasible
-                                              ? `Can fill ${feasibility.requestedCount} questions.`
-                                              : `Can fill ${feasibility.assignedCount} of ${feasibility.requestedCount} questions.`}
+                                        <div className={tone === "error" ? "text-red-700 dark:text-red-200" : tone === "warning" ? "text-amber-700 dark:text-amber-200" : "text-emerald-700 dark:text-emerald-200"}>
+                                          {feasibility.explanation.summary}
                                         </div>
-                                        <div className="mt-1 text-muted-foreground">Eligible now: {feasibility.eligibleCount}.</div>
+                                        {feasibility.explanation.detail ? (
+                                          <div className="mt-1 text-muted-foreground">{feasibility.explanation.detail}</div>
+                                        ) : null}
+                                        {selected && feasibility.explanation.fallback ? (
+                                          <div className="mt-1 text-muted-foreground">{feasibility.explanation.fallback}</div>
+                                        ) : null}
                                       </div>
                                     ) : null}
                                   </label>
