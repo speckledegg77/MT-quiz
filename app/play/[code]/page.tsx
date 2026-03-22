@@ -281,6 +281,10 @@ export default function PlayerPage() {
       : String(state?.stage ?? "") === "heads_up_ready" && Number.isFinite(headsUpTurnSeconds) && headsUpTurnSeconds > 0
         ? headsUpTurnSeconds
         : 0
+  const headsUpReviewAutoAdvanceAtMs = state?.headsUp?.reviewAutoAdvanceAt ? Date.parse(String(state.headsUp.reviewAutoAdvanceAt)) : Number.NaN
+  const headsUpReviewCountdownSeconds = Number.isFinite(headsUpReviewAutoAdvanceAtMs)
+    ? Math.max(0, Math.ceil((headsUpReviewAutoAdvanceAtMs - adjustedNowMs) / 1000))
+    : 0
 
   useEffect(() => {
     if (!playerId || !q?.id) return
@@ -754,6 +758,9 @@ export default function PlayerPage() {
     const isHeadsUpBehaviour = String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
     if (!code || !state || !isHeadsUpBehaviour || !isReviewStage) return
 
+    const reviewAtMs = state?.headsUp?.reviewAutoAdvanceAt ? Date.parse(String(state.headsUp.reviewAutoAdvanceAt)) : Number.NaN
+    const delayMs = Number.isFinite(reviewAtMs) ? Math.max(0, reviewAtMs - adjustedNowMs) : 4500
+
     const timeoutId = window.setTimeout(() => {
       fetch("/api/room/heads-up", {
         method: "POST",
@@ -762,10 +769,10 @@ export default function PlayerPage() {
       })
         .then(() => refreshState())
         .catch(() => {})
-    }, 4500)
+    }, delayMs)
 
     return () => window.clearTimeout(timeoutId)
-  }, [code, headsUpReviewSignature, refreshState, state?.headsUp?.currentTurnIndex, state?.stage, state?.rounds?.current?.behaviourType])
+  }, [adjustedNowMs, code, headsUpReviewSignature, refreshState, state?.headsUp?.currentTurnIndex, state?.headsUp?.reviewAutoAdvanceAt, state?.stage, state?.rounds?.current?.behaviourType])
 
   if (!code) {
     return (
@@ -1218,7 +1225,7 @@ export default function PlayerPage() {
                       {isHeadsUpReadyStage
                         ? "Start the timer from this phone when you are ready to begin guessing."
                         : isHeadsUpReviewStage
-                          ? "The turn is ending. The next guesser will be prepared automatically in a moment unless the host corrects something."
+                          ? "The turn is ending. The next player will be prepared automatically after the countdown below unless the host corrects something."
                           : headsUpSubmittingAction === "correct"
                             ? "Saving that correct answer now."
                             : headsUpSubmittingAction === "pass"
@@ -1231,7 +1238,7 @@ export default function PlayerPage() {
                     {isHeadsUpReadyStage
                       ? `Waiting for ${String(headsUp?.activeGuesserName ?? "the guesser")} to start the turn.`
                       : isHeadsUpReviewStage
-                        ? "The turn has ended. The next player will be prepared automatically in a moment unless the host makes a correction."
+                        ? "The turn has ended. Watch the countdown below for the next player unless the host makes a correction."
                         : "Give clues without saying any part of the answer on the card."}
                   </div>
                 ) : (
@@ -1239,11 +1246,28 @@ export default function PlayerPage() {
                     {isHeadsUpReadyStage
                       ? `Waiting for ${String(headsUp?.activeGuesserName ?? "the active player")} to start the turn.`
                       : isHeadsUpReviewStage
-                        ? "The turn has ended. The next player will be prepared automatically in a moment unless the host makes a correction."
+                        ? "The turn has ended. Watch the countdown below for the next player unless the host makes a correction."
                         : "Waiting for the active player to finish. You will get a live clue view when it is your turn to help."}
                   </div>
                 )
-              ) : isTextQ ? (
+              ) : null}
+
+              {isHeadsUpRound && isHeadsUpReviewStage ? (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-4 py-3 text-sm">
+                  <div className="font-medium text-foreground">
+                    {headsUp?.willAdvanceToNextTurn
+                      ? `Next player: ${String(headsUp?.nextGuesserName ?? "The next player")}${headsUp?.nextTeamName ? ` · Team ${String(headsUp.nextTeamName)}` : ""}`
+                      : "Ending Heads Up round"}
+                  </div>
+                  <div className="mt-1 text-muted-foreground">
+                    {headsUp?.willAdvanceToNextTurn
+                      ? `Moving on in ${headsUpReviewCountdownSeconds}s unless the host corrects the turn or skips ahead.`
+                      : `Finishing the round in ${headsUpReviewCountdownSeconds}s unless the host skips ahead.`}
+                  </div>
+                </div>
+              ) : null}
+
+              {isTextQ ? (
                 <div className="grid gap-2">
                   <Input
                     value={typedValue}

@@ -1825,8 +1825,16 @@ export default function HostPage() {
           : "The game is finished. Reset the room to play again with the same teams."
 
 
+  const headsUpReviewAutoAdvanceAtMs = roomHeadsUp?.reviewAutoAdvanceAt ? Date.parse(String(roomHeadsUp.reviewAutoAdvanceAt)) : Number.NaN
+  const headsUpReviewCountdownSeconds = Number.isFinite(headsUpReviewAutoAdvanceAtMs)
+    ? Math.max(0, Math.ceil((headsUpReviewAutoAdvanceAtMs - Date.now()) / 1000))
+    : 0
+
   useEffect(() => {
     if (!roomCode || !roomIsHeadsUp || roomStage !== "heads_up_review" || forcingClose) return
+
+    const reviewAtMs = roomHeadsUp?.reviewAutoAdvanceAt ? Date.parse(String(roomHeadsUp.reviewAutoAdvanceAt)) : Number.NaN
+    const delayMs = Number.isFinite(reviewAtMs) ? Math.max(0, reviewAtMs - Date.now()) : 4500
 
     const timeoutId = window.setTimeout(() => {
       fetch("/api/room/heads-up", {
@@ -1834,10 +1842,10 @@ export default function HostPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: roomCode, action: "host_confirm_turn" }),
       }).catch(() => {})
-    }, 4500)
+    }, delayMs)
 
     return () => window.clearTimeout(timeoutId)
-  }, [forcingClose, headsUpReviewSignature, roomCode, roomHeadsUp?.currentTurnIndex, roomIsHeadsUp, roomStage])
+  }, [forcingClose, headsUpReviewSignature, roomCode, roomHeadsUp?.currentTurnIndex, roomHeadsUp?.reviewAutoAdvanceAt, roomIsHeadsUp, roomStage])
 
   const roomModeSummary = getRunModeSummaryLabel({
     isInfiniteMode: roomIsInfinite,
@@ -3058,12 +3066,14 @@ export default function HostPage() {
                         {forcingClose && roomStage === "heads_up_live" ? "Ending..." : "End turn"}
                       </Button>
                       <Button onClick={() => sendHeadsUpAction("host_confirm_turn")} disabled={!headsUpHostButtons?.canConfirmTurn}>
-                        {forcingClose && roomStage === "heads_up_review" ? "Confirming..." : roomState?.flow?.isLastQuestionOverall ? "Confirm and finish round" : "Confirm turn"}
+                        {forcingClose && roomStage === "heads_up_review" ? "Moving..." : roomState?.flow?.isLastQuestionOverall ? "Finish round now" : "Move to next player now"}
                       </Button>
                     </div>
                     {roomStage === "heads_up_review" ? (
                       <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-3 py-2 text-sm text-amber-100">
-                        The next turn will prepare automatically after a short pause unless you correct something here first.
+                        {roomHeadsUp?.willAdvanceToNextTurn
+                          ? `Moving to ${String(roomHeadsUp?.nextGuesserName ?? "the next player")}${roomHeadsUp?.nextTeamName ? ` from Team ${String(roomHeadsUp.nextTeamName)}` : ""} in ${headsUpReviewCountdownSeconds}s unless you move on sooner or correct the turn log first.`
+                          : `Finishing the Heads Up round in ${headsUpReviewCountdownSeconds}s unless you move on sooner or correct the turn log first.`}
                       </div>
                     ) : null}
                     <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">

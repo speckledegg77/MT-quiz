@@ -16,7 +16,7 @@ import { getGameProgressLabel, isInfiniteModeFromRound, isInfiniteModeFromRoundP
 import { shuffleMcqForRoom } from "@/lib/mcqShuffle"
 import { applyQuickfireFastestBonus, buildQuickfireRoundReview } from "@/lib/quickfire"
 import { getConfiguredAnswerSecondsForRound, getEffectiveRoundReviewSecondsForRound, isHeadsUpRound, isQuickfireRound, stageFromTimes } from "@/lib/roundFlow"
-import { deriveHeadsUpStage, getHeadsUpRole, getHeadsUpTvDisplayMode, getHeadsUpTurnSeconds, normaliseHeadsUpRoomState } from "@/lib/headsUpGameplay"
+import { deriveHeadsUpStage, getHeadsUpReadyTurnMeta, getHeadsUpRole, getHeadsUpTvDisplayMode, getHeadsUpTurnSeconds, normaliseHeadsUpRoomState } from "@/lib/headsUpGameplay"
 
 type TeamPlayerRow = {
   id: string
@@ -697,6 +697,25 @@ export async function GET(req: Request) {
     const activeGuesser = players.find((player: any) => String(player?.id ?? "") === String(headsUpState.activeGuesserId ?? "")) ?? null
     const activeGuesserName = String(activeGuesser?.name ?? "").trim() || null
     const activeTeamName = headsUpState.activeTeamName || (activeGuesser ? String(activeGuesser?.team_name ?? "").trim() || null : null)
+    const nextReadyTurn = getHeadsUpReadyTurnMeta({
+      turnOrderPlayerIds: headsUpState.turnOrderPlayerIds,
+      currentTurnIndex: Math.max(0, Number(headsUpState.currentTurnIndex ?? 0) || 0) + 1,
+      players,
+    })
+    const nextGuesser = players.find((player: any) => String(player?.id ?? "") === String(nextReadyTurn.activeGuesserId ?? "")) ?? null
+    const nextGuesserName = String(nextGuesser?.name ?? "").trim() || null
+    const nextTeamName = nextReadyTurn.activeTeamName || (nextGuesser ? String(nextGuesser?.team_name ?? "").trim() || null : null)
+    const headsUpLastActionQuestionId = headsUpState.currentTurnActions[headsUpState.currentTurnActions.length - 1]?.questionId ?? null
+    const headsUpLastActionQuestionIndex = headsUpLastActionQuestionId
+      ? currentRound.questionIds.map(String).findIndex((value) => value === String(headsUpLastActionQuestionId)) + currentRound.startIndex
+      : -1
+    const willAdvanceToNextTurn =
+      stage === "heads_up_review" &&
+      Math.max(0, Number(headsUpState.currentTurnIndex ?? 0) || 0) + 1 < headsUpState.turnOrderPlayerIds.length &&
+      headsUpLastActionQuestionIndex < currentRound.endIndex
+    const headsUpReviewAutoAdvanceAt = stage === "heads_up_review"
+      ? new Date((room.close_at ? Date.parse(String(room.close_at)) : now.getTime()) + 4500).toISOString()
+      : null
     const turnOrder = headsUpState.turnOrderPlayerIds
       .map((playerId) => players.find((player: any) => String(player?.id ?? "") === String(playerId ?? "")))
       .filter(Boolean)
@@ -745,6 +764,11 @@ export async function GET(req: Request) {
           }),
         }
       }),
+      reviewAutoAdvanceAt: headsUpReviewAutoAdvanceAt,
+      willAdvanceToNextTurn,
+      nextGuesserId: nextReadyTurn.activeGuesserId,
+      nextGuesserName,
+      nextTeamName,
     }
   }
 

@@ -192,6 +192,10 @@ export default function DisplayPage() {
     : stage === "heads_up_ready" && Number.isFinite(headsUpTurnSeconds) && headsUpTurnSeconds > 0
       ? headsUpTurnSeconds
       : 0;
+  const headsUpReviewAutoAdvanceAtMs = state?.headsUp?.reviewAutoAdvanceAt ? Date.parse(String(state.headsUp.reviewAutoAdvanceAt)) : Number.NaN;
+  const headsUpReviewCountdownSeconds = Number.isFinite(headsUpReviewAutoAdvanceAtMs)
+    ? Math.max(0, Math.ceil((headsUpReviewAutoAdvanceAtMs - Date.now()) / 1000))
+    : 0;
 
   const suppressStaleQuestionBetweenRounds = shouldSuppressQuestionBetweenRounds({
     phase: state?.phase,
@@ -372,6 +376,20 @@ export default function DisplayPage() {
                         </div>
                       </div>
                     )}
+                    {stage === "heads_up_review" ? (
+                      <div className="mt-6 rounded-2xl border border-amber-500/30 bg-amber-600/10 px-4 py-4 text-center text-sm">
+                        <div className="font-medium text-foreground">
+                          {headsUp?.willAdvanceToNextTurn
+                            ? `Next player: ${String(headsUp?.nextGuesserName ?? "The next player")}${headsUp?.nextTeamName ? ` · Team ${String(headsUp.nextTeamName)}` : ""}`
+                            : "Ending Heads Up round"}
+                        </div>
+                        <div className="mt-1 text-muted-foreground">
+                          {headsUp?.willAdvanceToNextTurn
+                            ? `Moving on in ${headsUpReviewCountdownSeconds}s unless the host pauses to correct the turn.`
+                            : `Finishing the round in ${headsUpReviewCountdownSeconds}s.`}
+                        </div>
+                      </div>
+                    ) : null}
                     {stage === "heads_up_review" && Array.isArray(headsUp?.currentTurnActions) && headsUp.currentTurnActions.length ? (
                       <div className="mt-6 grid gap-2">
                         {headsUp.currentTurnActions.map((item: any) => (
