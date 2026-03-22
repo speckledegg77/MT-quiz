@@ -264,10 +264,22 @@ export async function POST(req: Request) {
       actions: currentState.currentTurnActions,
     }
 
+    const roomQuestionIds = Array.isArray(room.question_ids) ? room.question_ids.map(String) : questionIds
+    const actionedQuestionIds = new Set(currentState.currentTurnActions.map((item) => String(item.questionId ?? "")).filter(Boolean))
+    const currentVisibleQuestionId = currentQuestionId
+    const currentVisibleQuestionIndex = currentVisibleQuestionId ? findQuestionIndex(roomQuestionIds, currentVisibleQuestionId) : -1
+    const shouldConsumeVisibleCard =
+      Boolean(currentVisibleQuestionId) &&
+      currentVisibleQuestionIndex >= currentRound.startIndex &&
+      currentVisibleQuestionIndex <= currentRound.endIndex &&
+      !actionedQuestionIds.has(String(currentVisibleQuestionId))
+
+    const nextQuestionIndex = shouldConsumeVisibleCard
+      ? Math.min(currentVisibleQuestionIndex + 1, currentRound.endIndex + 1)
+      : currentIndex
+
     const nextTurnIndex = currentState.currentTurnIndex + 1
-    const lastActionQuestionId = currentState.currentTurnActions[currentState.currentTurnActions.length - 1]?.questionId ?? null
-    const lastActionQuestionIndex = lastActionQuestionId ? findQuestionIndex(Array.isArray(room.question_ids) ? room.question_ids.map(String) : questionIds, lastActionQuestionId) : -1
-    const roundComplete = nextTurnIndex >= currentState.turnOrderPlayerIds.length || lastActionQuestionIndex >= currentRound.endIndex
+    const roundComplete = nextTurnIndex >= currentState.turnOrderPlayerIds.length || nextQuestionIndex > currentRound.endIndex
     const nextReadyTurn = roundComplete
       ? { activeGuesserId: null, activeTeamName: null }
       : getHeadsUpReadyTurnMeta({
@@ -290,6 +302,7 @@ export async function POST(req: Request) {
     const updateRes = await supabaseAdmin
       .from("rooms")
       .update({
+        question_index: roundComplete ? currentIndex : nextQuestionIndex,
         open_at: null,
         close_at: null,
         reveal_at: null,

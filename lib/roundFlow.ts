@@ -136,7 +136,7 @@ export function shouldSuppressQuestionBetweenRounds(params: {
 
 export function getAnswerWindowLabel(params: { isUntimedAnswers: boolean; isQuickfire: boolean; isHeadsUp?: boolean }) {
   if (params.isHeadsUp) {
-    return params.isUntimedAnswers ? "Card stays live" : "Card changes in"
+    return "Timer"
   }
 
   if (params.isUntimedAnswers) {
