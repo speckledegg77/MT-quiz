@@ -71,7 +71,7 @@ function sortPlayers(a: FinalPlayerResult, b: FinalPlayerResult) {
 
 function getJokerLabel(rounds: FinalRoundResult[]) {
   const jokerRound = rounds.find((round) => round.jokerUsed)
-  return jokerRound ? `R${jokerRound.number}` : "None"
+  return jokerRound ? `R${jokerRound.number}` : null
 }
 
 function PlayerCard({
@@ -86,6 +86,7 @@ function PlayerCard({
   isInfiniteMode: boolean
 }) {
   const questionRun = Array.isArray(player.questionRun) ? player.questionRun : []
+  const jokerLabel = getJokerLabel(player.rounds)
 
   return (
     <div
@@ -97,8 +98,8 @@ function PlayerCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="truncate text-xl font-semibold text-white">{player.name}</div>
-          {!isInfiniteMode ? (
-            <div className="mt-1 text-sm text-slate-300">Joker: {getJokerLabel(player.rounds)}</div>
+          {!isInfiniteMode && jokerLabel ? (
+            <div className="mt-1 text-sm text-slate-300">Joker: {jokerLabel}</div>
           ) : null}
         </div>
 
