@@ -11,6 +11,7 @@ import RoundSummaryCard from "@/components/RoundSummaryCard"
 import PageShell from "@/components/PageShell"
 import { getGameProgressLabel, getRoundBehaviourBadgeClass, getRoundBehaviourLabel, getRunBadgeLabel, getStagePillClass, getStageStatusText, isInfiniteFinalStage, isInfiniteModeFromState } from "@/lib/gameMode"
 import { deriveClientStageFromTimes, getAnswerWindowLabel, shouldSuppressQuestionBetweenRounds } from "@/lib/roundFlow"
+import { getHeadsUpRole } from "@/lib/headsUpGameplay"
 
 type RoomState = any
 
@@ -175,10 +176,11 @@ export default function PlayerPage() {
   const currentRound = state?.rounds?.current ?? null
   const isQuickfireRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "quickfire"
   const isHeadsUpRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
+  const headsUp = state?.headsUp ?? null
 
   const canAnswer = useMemo(() => {
     if (state?.phase !== "running") return false
-    if (state?.stage !== "open") return false
+    if (!(state?.stage === "open" || state?.stage === "heads_up_live")) return false
     if (!q?.id) return false
 
     if (isHeadsUpRound || answerType === "none") return false
@@ -194,6 +196,17 @@ export default function PlayerPage() {
     if (!playerId) return null
     return players.find((p: any) => p.id === playerId) ?? null
   }, [players, playerId])
+
+  const headsUpRole = useMemo(() => {
+    if (!isHeadsUpRound) return "spectator" as const
+    return getHeadsUpRole({
+      playerId,
+      playerTeamName: String(myPlayer?.team_name ?? teamName ?? "").trim() || null,
+      activeGuesserId: String(headsUp?.activeGuesserId ?? "").trim() || null,
+      activeTeamName: String(headsUp?.activeTeamName ?? "").trim() || null,
+      gameMode,
+    })
+  }, [gameMode, headsUp?.activeGuesserId, headsUp?.activeTeamName, isHeadsUpRound, myPlayer?.team_name, playerId, teamName])
 
   const myJokerIndex = useMemo(() => {
     const value = Number(myPlayer?.joker_round_index)
@@ -240,10 +253,13 @@ export default function PlayerPage() {
   const displayCloseAtMs = displayCloseAtRaw ? Date.parse(String(displayCloseAtRaw)) : null
   const adjustedNowMs = liveNowMs + serverOffsetMs
 
+  const headsUpTurnSeconds = Number(state?.headsUp?.turnSeconds ?? 0)
   const secondsRemaining =
     displayCloseAtMs && Number.isFinite(displayCloseAtMs)
       ? Math.max(0, Math.ceil((displayCloseAtMs - adjustedNowMs) / 1000))
-      : 0
+      : String(state?.stage ?? "") === "heads_up_ready" && Number.isFinite(headsUpTurnSeconds) && headsUpTurnSeconds > 0
+        ? headsUpTurnSeconds
+        : 0
 
   useEffect(() => {
     if (!playerId || !q?.id) return
@@ -464,6 +480,26 @@ export default function PlayerPage() {
     }
   }
 
+  async function submitHeadsUpAction(action: "guesser_correct" | "guesser_pass") {
+    if (!playerId || !isHeadsUpRound) return
+    setAnswerError(null)
+    try {
+      const res = await fetch("/api/room/heads-up", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, playerId, action }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setAnswerError(String(data?.error ?? "Could not update Heads Up."))
+        return
+      }
+      void refreshState()
+    } catch {
+      setAnswerError("Could not update Heads Up.")
+    }
+  }
+
   async function pickJoker(roundIndex: number) {
     if (!playerId) return
     if (state?.phase !== "lobby") return
@@ -607,7 +643,7 @@ export default function PlayerPage() {
   useEffect(() => {
     const shouldKeepPlaying =
       state?.phase === "running" &&
-      state?.stage === "open" &&
+      (state?.stage === "open" || state?.stage === "heads_up_live") &&
       shouldPlayOnPhone &&
       audioEnabled &&
       isAudioQ &&
@@ -659,6 +695,10 @@ export default function PlayerPage() {
   const isInfiniteMode = isInfiniteModeFromState(state)
 
   const stage = String(state?.stage ?? "")
+  const isHeadsUpReadyStage = stage === "heads_up_ready"
+  const isHeadsUpLiveStage = stage === "heads_up_live"
+  const isHeadsUpReviewStage = stage === "heads_up_review"
+  const isLiveAnswerStage = stage === "open" || isHeadsUpLiveStage
   const showInfiniteFinalStage = isInfiniteFinalStage(stage, {
     isInfiniteMode,
     isLastQuestionOverall: Boolean(state?.flow?.isLastQuestionOverall),
@@ -700,7 +740,7 @@ export default function PlayerPage() {
   })
   let timerValue = isUntimedAnswers ? "No timer" : formatDuration(secondsRemaining)
 
-  if (stage !== "open") {
+  if (!isLiveAnswerStage) {
     timerValue = isUntimedAnswers ? "Closed" : formatDuration(secondsRemaining)
   }
 
@@ -954,14 +994,38 @@ export default function PlayerPage() {
 
               {isHeadsUpRound ? (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-3 py-3 text-sm">
-                  <div className="font-medium text-foreground">Heads Up round</div>
+                  <div className="font-medium text-foreground">Heads Up</div>
                   <div className="mt-1 text-muted-foreground">
-                    No phone answers are needed in Heads Up v1. Follow the host and display for the live card flow.
+                    {headsUpRole === "guesser"
+                      ? "You are the guesser. Use Correct and Pass while your team or the rest of the room gives clues."
+                      : headsUpRole === "clue_giver"
+                        ? "You can see the live clue. Do not say the answer itself, only give clues."
+                        : "Wait for the active team or player to finish their turn."}
                   </div>
                 </div>
               ) : null}
 
-              <div className="text-base font-semibold leading-tight">{q.text}</div>
+              {isHeadsUpRound ? (
+                headsUpRole === "clue_giver" ? (
+                  <div className="rounded-2xl border border-amber-500/30 bg-amber-600/10 px-4 py-6 text-center">
+                    <div className="text-xs uppercase tracking-[0.2em] text-amber-200">Live clue</div>
+                    <div className="mt-3 text-2xl font-semibold leading-tight text-foreground sm:text-3xl">{q.text}</div>
+                  </div>
+                ) : headsUpRole === "guesser" ? (
+                  <div className="rounded-2xl border border-border bg-muted px-4 py-5 text-center">
+                    <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Guess without seeing the card</div>
+                    <div className="mt-2 text-lg font-semibold text-foreground">Listen to the clues and tap the result.</div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-border bg-muted px-4 py-5 text-center">
+                    <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Waiting</div>
+                    <div className="mt-2 text-lg font-semibold text-foreground">This turn belongs to {String(headsUp?.activeGuesserName ?? "another player")}.
+                    </div>
+                  </div>
+                )
+              ) : (
+                <div className="text-base font-semibold leading-tight">{q.text}</div>
+              )}
 
               {isAudioQ && shouldPlayOnPhone ? (
                 <div className="rounded-xl border border-border bg-muted p-3">
@@ -1003,9 +1067,46 @@ export default function PlayerPage() {
               ) : null}
 
               {isHeadsUpRound ? (
-                <div className="rounded-xl border border-border bg-muted px-3 py-3 text-sm text-muted-foreground">
-                  Heads Up cards run without phone answers in v1. Watch the timer and wait for the next card or the end-of-round review.
-                </div>
+                headsUpRole === "guesser" ? (
+                  <div className="grid gap-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button
+                        variant="secondary"
+                        onClick={() => submitHeadsUpAction("guesser_pass")}
+                        disabled={!isHeadsUpLiveStage}
+                        className="min-h-20 text-lg"
+                      >
+                        Pass
+                      </Button>
+                      <Button
+                        onClick={() => submitHeadsUpAction("guesser_correct")}
+                        disabled={!isHeadsUpLiveStage}
+                        className="min-h-20 text-lg"
+                      >
+                        Correct
+                      </Button>
+                    </div>
+                    <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm text-muted-foreground">
+                      {isHeadsUpReadyStage
+                        ? "Wait for the host to start your turn."
+                        : isHeadsUpReviewStage
+                          ? "The host is reviewing that turn now."
+                          : "Keep facing away from the clue and use the buttons as each guess lands."}
+                    </div>
+                  </div>
+                ) : headsUpRole === "clue_giver" ? (
+                  <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm text-muted-foreground">
+                    {isHeadsUpReadyStage
+                      ? "Wait for the host to start the turn."
+                      : isHeadsUpReviewStage
+                        ? "The turn has ended. Wait for the host to confirm it."
+                        : "Give clues without saying any part of the answer on the card."}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm text-muted-foreground">
+                    Waiting for the active player to finish. You will get a live clue view when it is your turn to help.
+                  </div>
+                )
               ) : isTextQ ? (
                 <div className="grid gap-2">
                   <Input

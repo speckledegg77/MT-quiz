@@ -14,6 +14,13 @@ import { shouldSuppressQuestionBetweenRounds } from "@/lib/roundFlow";
 
 type RoomState = any;
 
+function formatDuration(totalSeconds: number) {
+  const safe = Math.max(0, Math.floor(totalSeconds))
+  const minutes = Math.floor(safe / 60)
+  const seconds = safe % 60
+  return `${minutes}:${String(seconds).padStart(2, "0")}`
+}
+
 export default function DisplayPage() {
   const params = useParams<{ code?: string }>();
   const code = String(params?.code ?? "").toUpperCase();
@@ -177,6 +184,14 @@ export default function DisplayPage() {
   const questionNumber = Number(state.questionIndex ?? 0) + 1;
   const questionCount = Number(state.questionCount ?? 0);
   const roundStats = state?.roundStats ?? null;
+  const headsUp = state?.headsUp ?? null;
+  const closeAtMs = state?.times?.closeAt ? Date.parse(String(state.times.closeAt)) : Number.NaN;
+  const headsUpTurnSeconds = Number(state?.headsUp?.turnSeconds ?? 0);
+  const secondsRemaining = Number.isFinite(closeAtMs)
+    ? Math.max(0, Math.ceil((closeAtMs - Date.now()) / 1000))
+    : stage === "heads_up_ready" && Number.isFinite(headsUpTurnSeconds) && headsUpTurnSeconds > 0
+      ? headsUpTurnSeconds
+      : 0;
 
   const suppressStaleQuestionBetweenRounds = shouldSuppressQuestionBetweenRounds({
     phase: state?.phase,
@@ -318,14 +333,64 @@ export default function DisplayPage() {
 
                 {isHeadsUpRound ? (
                   <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-4 py-3 text-sm">
-                    <div className="font-medium text-foreground">Heads Up card</div>
+                    <div className="font-medium text-foreground">Heads Up turn</div>
                     <div className="mt-1 text-muted-foreground">
-                      This round uses live card prompts only. There are no phone answers or reveal screens in v1.
+                      {headsUp?.tvDisplayMode === "show_clue"
+                        ? "The TV is showing the live clue for the active team or the room."
+                        : "The TV is hidden to the clue while the turn is live."}
                     </div>
                   </div>
                 ) : null}
 
-                <div className="text-xl font-semibold">{q.text}</div>
+                {isHeadsUpRound ? (
+                  <div className="rounded-2xl border border-border bg-card px-5 py-6">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Active player</div>
+                        <div className="mt-1 text-2xl font-semibold text-foreground">{headsUp?.activeGuesserName || "Waiting to start"}</div>
+                        {headsUp?.activeTeamName ? <div className="mt-1 text-sm text-muted-foreground">Team {headsUp.activeTeamName}</div> : null}
+                      </div>
+                      <div className="rounded-2xl border border-amber-500/40 bg-amber-600/10 px-4 py-3 text-right">
+                        <div className="text-xs uppercase tracking-[0.2em] text-amber-200">Timer</div>
+                        <div className="mt-1 text-3xl font-semibold tabular-nums text-foreground">{formatDuration(secondsRemaining)}</div>
+                      </div>
+                    </div>
+                    {stage === "heads_up_live" && headsUp?.tvDisplayMode === "show_clue" ? (
+                      <div className="mt-6 rounded-3xl border border-amber-500/30 bg-amber-600/10 px-6 py-10 text-center">
+                        <div className="text-xs uppercase tracking-[0.24em] text-amber-200">Live clue</div>
+                        <div className="mt-4 text-4xl font-semibold leading-tight text-foreground">{q.text}</div>
+                      </div>
+                    ) : (
+                      <div className="mt-6 rounded-3xl border border-border bg-muted px-6 py-10 text-center">
+                        <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">{stage === "heads_up_review" ? "Turn review" : "Timer only"}</div>
+                        <div className="mt-4 text-2xl font-semibold leading-tight text-foreground">
+                          {stage === "heads_up_ready"
+                            ? "Start the turn when the guesser is ready"
+                            : stage === "heads_up_review"
+                              ? "The host is reviewing this turn"
+                              : "Keep the clue hidden from the guesser"}
+                        </div>
+                      </div>
+                    )}
+                    {stage === "heads_up_review" && Array.isArray(headsUp?.currentTurnActions) && headsUp.currentTurnActions.length ? (
+                      <div className="mt-6 grid gap-2">
+                        {headsUp.currentTurnActions.map((item: any) => (
+                          <div key={item.questionId} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-base text-foreground">{item.questionText}</div>
+                              <div className="text-xs text-muted-foreground">{[item.itemType, item.difficulty].filter(Boolean).join(" · ") || "Heads Up card"}</div>
+                            </div>
+                            <span className={`rounded-full border px-3 py-1 text-sm ${item.action === "correct" ? "border-emerald-500/40 bg-emerald-600/10 text-emerald-200" : "border-slate-500/40 bg-slate-600/10 text-slate-200"}`}>
+                              {item.action === "correct" ? "Correct" : "Pass"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="text-xl font-semibold">{q.text}</div>
+                )}
 
                 {isAudioQ && audioMode === "phones" ? (
                   <div className="text-sm text-muted-foreground">Audio plays on phones for this game.</div>
@@ -375,9 +440,7 @@ export default function DisplayPage() {
                   </div>
                 ) : null}
 
-                {isHeadsUpRound ? (
-                  <div className="text-sm text-muted-foreground">Run the clueing in the room, then let the timer move to the next card.</div>
-                ) : isTextQ ? (
+                {isHeadsUpRound ? null : isTextQ ? (
                   <div className="text-sm text-muted-foreground">Players type their answer on their phones.</div>
                 ) : null}
 

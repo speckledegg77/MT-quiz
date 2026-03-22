@@ -11,6 +11,8 @@ export type RoundSelectionRules = {
   headsUpDifficulties?: string[]
 }
 
+export type HeadsUpTvDisplayMode = "show_clue" | "timer_only"
+
 export type RoundPlanItem = {
   id: string
   name: string
@@ -23,6 +25,7 @@ export type RoundPlanItem = {
   selectionRules: RoundSelectionRules
   answerSeconds?: number
   roundReviewSeconds?: number
+  headsUpTvDisplayMode?: HeadsUpTvDisplayMode
   questionIds: string[]
 }
 
@@ -43,7 +46,7 @@ export type EffectiveRoundPlanItem = RoundPlanItem & {
 
 export function getDefaultAnswerSecondsForBehaviour(behaviourType: RoundBehaviourType) {
   if (behaviourType === "quickfire") return 10
-  if (behaviourType === "heads_up") return 45
+  if (behaviourType === "heads_up") return 60
   return 20
 }
 
@@ -111,6 +114,10 @@ function normaliseSourceMode(raw: unknown): RoundSourceMode {
   return "selected_packs"
 }
 
+function normaliseHeadsUpTvDisplayMode(raw: unknown): HeadsUpTvDisplayMode {
+  return String(raw ?? "").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only"
+}
+
 function normaliseBehaviourType(raw: unknown): RoundBehaviourType {
   const value = String(raw ?? "").trim().toLowerCase()
   if (value === "quickfire") return "quickfire"
@@ -164,6 +171,7 @@ export function buildLegacyRoomRoundPlan(
       selectionRules: {},
       answerSeconds: getDefaultAnswerSecondsForBehaviour("standard"),
       roundReviewSeconds: getDefaultRoundReviewSecondsForBehaviour("standard"),
+      headsUpTvDisplayMode: undefined,
       questionIds: slice,
     })
 
@@ -201,6 +209,7 @@ function normaliseStoredRoundPlan(raw: unknown): RoomRoundPlan | null {
         selectionRules: normaliseSelectionRules(round.selectionRules),
         answerSeconds: cleanOptionalNonNegativeInt(round.answerSeconds),
         roundReviewSeconds: cleanOptionalNonNegativeInt(round.roundReviewSeconds),
+        headsUpTvDisplayMode: behaviourType === "heads_up" ? normaliseHeadsUpTvDisplayMode(round.headsUpTvDisplayMode) : undefined,
         questionIds,
       }
     })

@@ -10,7 +10,7 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Next feature candidates
 
-- [x] Add Heads Up gameplay round behaviour on top of the new separate content model, as a manual-round v1 slice.
+- [x] Add Heads Up gameplay round behaviour on top of the new separate content model, then move it to a turn-based v2 flow with role-based player views.
 - [ ] Add Karaoke round format.
 - [ ] Review remote phone audio autoplay and decide whether the gain is worth the browser pain.
 - [ ] Allow optional late joins after the game has started.
@@ -22,7 +22,6 @@ This file tracks the live plan. Keep it short and practical.
 - [ ] Revisit question tagging so questions can be selected into suitable round types more flexibly.
 - [ ] Decide the minimum tagging model needed for round selection, for example: round type, media type, show, difficulty, era, performer, character.
 - [ ] Keep tagging simple enough that question writing and import do not become painful.
-- [ ] Decide how Heads Up-style rounds would use existing question and answer data.
 - [ ] Review whether Quickfire-safe content should stay limited to MCQ and picture until audio duration is handled properly.
 
 ## Quality of life
@@ -36,6 +35,8 @@ This file tracks the live plan. Keep it short and practical.
 
 - [ ] Expand the question bank, especially for rounds that need larger eligible pools.
 - [ ] Add pack-side Heads Up curation tools so packs can add and remove large numbers of existing items quickly.
+- [ ] Polish Heads Up turn review and correction flow after live playtesting.
+- [ ] Decide whether Heads Up should support host-selected team order and turn order overrides.
 - [ ] Add more images in Supabase Storage for picture rounds.
 - [ ] Add more audio clips in Supabase Storage once audio rules are clearer.
 - [ ] Keep pack naming, metadata, and show links consistent.
@@ -50,6 +51,7 @@ This file tracks the live plan. Keep it short and practical.
 
 - [x] Review and tidy the main question CSV import format, plus add Heads Up CSV import and validate-only checks.
 - [x] Heads Up v1 data model and admin workflow with separate items and pack management.
+- [x] Heads Up v2 turn-based gameplay with role-based player views, TV clue toggle, and 60s or 90s turn options.
 - [x] Shared round-flow cleanup for stage labels, mode badges, and stale-question suppression across Host, Player, and Display.
 - [x] Simple vs Advanced host creation split started, with Simple mode driven by ready round templates and Advanced kept as the power-tool path.
 - [x] Quickfire v1 as a real round behaviour.

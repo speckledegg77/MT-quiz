@@ -105,8 +105,12 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - `heads_up_packs` stores themed decks.
 - `heads_up_pack_items` lets one item belong to several packs.
 - Person items can carry multiple roles such as performer, composer, and lyricist.
-- Heads Up v1 gameplay currently appears as a manual round behaviour, using one Heads Up pack per round.
-- Heads Up v1 does not use phone answers or automatic scoring.
+- Heads Up gameplay appears as a manual round behaviour, using one Heads Up pack per round.
+- Heads Up turns now use role-based phone views. The guesser sees only the timer plus Correct and Pass. Clue-givers see the clue card plus timer.
+- In teams mode, only the active team gets the live clue view. In solo mode, all non-active players become clue-givers.
+- Heads Up rounds now support a TV display setting to either show the live clue or hide it behind a timer-only view.
+- Heads Up rounds now support 60 second and 90 second turn lengths, with 60 seconds as the default.
+- Heads Up scoring is now driven by the active guesser on their phone, with host undo and review before the turn is confirmed.
 
 ### Round-plan model
 - Packs are content sources.
@@ -179,7 +183,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - The admin import page now supports validate-only and real import modes for the main question bank CSV.
 - The question CSV format now officially includes `media_duration_ms` and `audio_clip_type`.
 - Legacy `pack_sort_order` is still tolerated by the importer, but it is ignored.
-- A separate Heads Up CSV import now supports item import, automatic pack creation by name, and validate-only checks.
+- A separate Heads Up CSV import now supports item import, automatic pack creation by name, validate-only checks, and natural-key dedupe against existing Heads Up items.
 
 ### Shows manager
 - Shows can be created and edited in the UI.

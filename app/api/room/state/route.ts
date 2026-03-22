@@ -16,6 +16,7 @@ import { getGameProgressLabel, isInfiniteModeFromRound, isInfiniteModeFromRoundP
 import { shuffleMcqForRoom } from "@/lib/mcqShuffle"
 import { applyQuickfireFastestBonus, buildQuickfireRoundReview } from "@/lib/quickfire"
 import { getConfiguredAnswerSecondsForRound, getEffectiveRoundReviewSecondsForRound, isHeadsUpRound, isQuickfireRound, stageFromTimes } from "@/lib/roundFlow"
+import { deriveHeadsUpStage, getHeadsUpRole, getHeadsUpTvDisplayMode, getHeadsUpTurnSeconds, normaliseHeadsUpRoomState } from "@/lib/headsUpGameplay"
 
 type TeamPlayerRow = {
   id: string
@@ -508,8 +509,23 @@ export async function GET(req: Request) {
   const roundReviewSeconds = getEffectiveRoundReviewSecondsForRound(room, currentRound)
   const roundSummaryEndsAt = buildRoundSummaryEndsAt(room.next_at, roundReviewSeconds)
 
+  const headsUpState = isHeadsUpRound(currentRound)
+    ? normaliseHeadsUpRoomState(room?.heads_up_state, currentRound.index)
+    : null
+  const derivedHeadsUpStage = isHeadsUpRound(currentRound)
+    ? deriveHeadsUpStage({
+        roomPhase: room.phase,
+        round: currentRound,
+        rawState: room?.heads_up_state,
+        nowMs: now.getTime(),
+        closeAt: room.close_at,
+      })
+    : null
+
   let stage = baseStage
-  if (room.phase === "running" && baseStage === "needs_advance" && isLastQuestionInRound) {
+  if (derivedHeadsUpStage) {
+    stage = derivedHeadsUpStage
+  } else if (room.phase === "running" && baseStage === "needs_advance" && isLastQuestionInRound) {
     if (roundSummaryEndsAt && now.getTime() < Date.parse(roundSummaryEndsAt)) {
       stage = "round_summary"
     } else {
@@ -634,15 +650,26 @@ export async function GET(req: Request) {
       }),
     }
   } else if (stage === "round_summary" && isHeadsUpRound(currentRound)) {
-    const items = await Promise.all(
-      currentRound.questionIds.map(async (questionId: string, index: number) => {
-        const question = await getQuestionById(String(questionId ?? ""))
+    const actionQuestionIds = [
+      ...new Set((headsUpState?.completedTurns ?? []).flatMap((turn) => (turn.actions ?? []).map((action) => String(action.questionId ?? "").trim()).filter(Boolean))),
+    ]
+
+    const questionMap = new Map<string, Awaited<ReturnType<typeof getQuestionById>>>()
+    for (const questionId of actionQuestionIds) {
+      questionMap.set(questionId, await getQuestionById(questionId))
+    }
+
+    const items = (headsUpState?.completedTurns ?? []).flatMap((turn) =>
+      (turn.actions ?? []).map((action, index) => {
+        const question = questionMap.get(String(action.questionId ?? "").trim())
         return {
-          questionId: String(questionId ?? ""),
+          questionId: String(action.questionId ?? ""),
           questionNumberInRound: index + 1,
           questionText: question?.text?.trim() || `Card ${index + 1}`,
           itemType: String(question?.meta?.itemType ?? "").trim() || null,
           difficulty: String(question?.meta?.difficulty ?? "").trim() || null,
+          outcome: action.action,
+          playerId: turn.activeGuesserId,
         }
       })
     )
@@ -650,6 +677,74 @@ export async function GET(req: Request) {
     roundReview = {
       behaviourType: currentRound.behaviourType,
       items,
+    }
+  }
+
+  let headsUp: any = null
+  if (isHeadsUpRound(currentRound) && headsUpState) {
+    const actionQuestionIds = [
+      ...new Set([
+        ...(headsUpState.currentTurnActions ?? []).map((action) => String(action.questionId ?? "").trim()).filter(Boolean),
+        ...(headsUpState.completedTurns ?? []).flatMap((turn) => (turn.actions ?? []).map((action) => String(action.questionId ?? "").trim()).filter(Boolean)),
+      ]),
+    ]
+
+    const questionMap = new Map<string, Awaited<ReturnType<typeof getQuestionById>>>()
+    for (const questionId of actionQuestionIds) {
+      if (!questionMap.has(questionId)) questionMap.set(questionId, await getQuestionById(questionId))
+    }
+
+    const activeGuesser = players.find((player: any) => String(player?.id ?? "") === String(headsUpState.activeGuesserId ?? "")) ?? null
+    const activeGuesserName = String(activeGuesser?.name ?? "").trim() || null
+    const activeTeamName = headsUpState.activeTeamName || (activeGuesser ? String(activeGuesser?.team_name ?? "").trim() || null : null)
+    const turnOrder = headsUpState.turnOrderPlayerIds
+      .map((playerId) => players.find((player: any) => String(player?.id ?? "") === String(playerId ?? "")))
+      .filter(Boolean)
+      .map((player: any) => ({
+        id: String(player?.id ?? ""),
+        name: String(player?.name ?? "").trim() || "Player",
+        teamName: String(player?.team_name ?? "").trim() || null,
+      }))
+
+    headsUp = {
+      stage,
+      turnSeconds: getHeadsUpTurnSeconds(currentRound),
+      tvDisplayMode: getHeadsUpTvDisplayMode(currentRound),
+      activeGuesserId: headsUpState.activeGuesserId,
+      activeGuesserName,
+      activeTeamName,
+      currentTurnIndex: headsUpState.currentTurnIndex,
+      totalTurns: headsUpState.turnOrderPlayerIds.length,
+      turnOrder,
+      currentTurnActions: (headsUpState.currentTurnActions ?? []).map((action) => {
+        const question = questionMap.get(String(action.questionId ?? "").trim())
+        return {
+          questionId: String(action.questionId ?? ""),
+          action: action.action,
+          at: action.at,
+          questionText: question?.text?.trim() || "",
+          itemType: String(question?.meta?.itemType ?? "").trim() || null,
+          difficulty: String(question?.meta?.difficulty ?? "").trim() || null,
+        }
+      }),
+      completedTurns: (headsUpState.completedTurns ?? []).map((turn) => {
+        const guesser = players.find((player: any) => String(player?.id ?? "") === String(turn.activeGuesserId ?? "")) ?? null
+        return {
+          ...turn,
+          activeGuesserName: String(guesser?.name ?? "").trim() || "Player",
+          actions: (turn.actions ?? []).map((action) => {
+            const question = questionMap.get(String(action.questionId ?? "").trim())
+            return {
+              questionId: String(action.questionId ?? ""),
+              action: action.action,
+              at: action.at,
+              questionText: question?.text?.trim() || "",
+              itemType: String(question?.meta?.itemType ?? "").trim() || null,
+              difficulty: String(question?.meta?.difficulty ?? "").trim() || null,
+            }
+          }),
+        }
+      }),
     }
   }
 
@@ -733,6 +828,7 @@ export async function GET(req: Request) {
     },
     question: questionPublic,
     reveal: revealData,
+    headsUp,
     questionStats,
     roundStats,
     roundReview,

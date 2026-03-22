@@ -119,6 +119,8 @@ type ManualRoundDraft = {
   primaryShowKey: string
   audioClipType: string
   headsUpDifficulty: "" | "easy" | "medium" | "hard"
+  headsUpTvDisplayMode: "show_clue" | "timer_only"
+  headsUpTurnSeconds: 60 | 90
   useTimingOverride: boolean
   answerSecondsStr: string
   roundReviewSecondsStr: string
@@ -154,6 +156,16 @@ const AUDIO_CLIP_TYPE_OPTIONS = [
   { value: "other", label: "other" },
 ]
 
+
+const HEADS_UP_TV_DISPLAY_OPTIONS = [
+  { value: "timer_only", label: "Timer only on TV" },
+  { value: "show_clue", label: "Show clue on TV" },
+]
+
+const HEADS_UP_TURN_OPTIONS = [
+  { value: 60, label: "60 seconds" },
+  { value: 90, label: "90 seconds" },
+]
 
 const HEADS_UP_DIFFICULTY_OPTIONS = [
   { value: "", label: "Any difficulty" },
@@ -243,6 +255,8 @@ function normaliseManualRoundDraft(draft: ManualRoundDraft): ManualRoundDraft {
     promptTarget: behaviourType === "heads_up" ? "" : draft.promptTarget,
     clueSource: behaviourType === "heads_up" ? "" : draft.clueSource,
     audioClipType: behaviourType === "heads_up" ? "" : draft.audioClipType,
+    headsUpTvDisplayMode: behaviourType === "heads_up" ? draft.headsUpTvDisplayMode : "timer_only",
+    headsUpTurnSeconds: behaviourType === "heads_up" ? draft.headsUpTurnSeconds : 60,
   }
 }
 
@@ -262,6 +276,8 @@ function makeManualRound(index: number): ManualRoundDraft {
     primaryShowKey: "",
     audioClipType: "",
     headsUpDifficulty: "",
+    headsUpTvDisplayMode: "timer_only",
+    headsUpTurnSeconds: 60,
     useTimingOverride: false,
     answerSecondsStr: "",
     roundReviewSecondsStr: "",
@@ -290,8 +306,9 @@ function serialiseManualRoundDraft(round: ManualRoundDraft, index: number) {
     sourceMode: round.sourceMode,
     packIds: round.packIds,
     selectionRules: buildSelectionRulesFromDraft(round),
-    answerSeconds: getManualRoundAnswerSeconds(round),
-    roundReviewSeconds: getManualRoundReviewSeconds(round),
+    answerSeconds: round.behaviourType === "heads_up" ? round.headsUpTurnSeconds : getManualRoundAnswerSeconds(round),
+    roundReviewSeconds: round.behaviourType === "heads_up" ? getManualRoundReviewSeconds(round) : getManualRoundReviewSeconds(round),
+    headsUpTvDisplayMode: round.behaviourType === "heads_up" ? round.headsUpTvDisplayMode : undefined,
   }
 }
 
@@ -524,15 +541,21 @@ function roundBehaviourSummary(behaviourType: RoundBehaviourType) {
   if (behaviourType === "quickfire") {
     return "Fast answers, no Joker, no reveal after each question, and the fastest correct player gets a bonus point. Quickfire audio is allowed only when the clip is 5 seconds or shorter."
   }
+  if (behaviourType === "heads_up") {
+    return "Timed turn-based clueing. The guesser scores one point for each correct card, and the host can review mistakes before the turn is locked."
+  }
 
   return "Classic question flow with the normal reveal after each question. Joker can be enabled if you want it."
 }
 
 function roundBehaviourTimingText(behaviourType: RoundBehaviourType) {
-  return `${getDefaultAnswerSecondsForBehaviour(behaviourType)}s answer window, ${getDefaultRoundReviewSecondsForBehaviour(behaviourType)}s round review`
+  return behaviourType === "heads_up"
+    ? "60s or 90s turn, plus round review"
+    : `${getDefaultAnswerSecondsForBehaviour(behaviourType)}s answer window, ${getDefaultRoundReviewSecondsForBehaviour(behaviourType)}s round review`
 }
 
 function getManualRoundAnswerSeconds(round: ManualRoundDraft) {
+  if (round.behaviourType === "heads_up") return round.headsUpTurnSeconds
   if (!round.useTimingOverride) return getDefaultAnswerSecondsForBehaviour(round.behaviourType)
   return clampInt(parseIntOr(round.answerSecondsStr, getDefaultAnswerSecondsForBehaviour(round.behaviourType)), 0, 120)
 }
@@ -545,7 +568,9 @@ function getManualRoundReviewSeconds(round: ManualRoundDraft) {
 function getManualRoundTimingSummary(round: ManualRoundDraft) {
   const answerSeconds = getManualRoundAnswerSeconds(round)
   const roundReviewSeconds = getManualRoundReviewSeconds(round)
-  return `${answerSeconds}s answer window, ${roundReviewSeconds}s round review`
+  return round.behaviourType === "heads_up"
+    ? `${answerSeconds}s turn, ${roundReviewSeconds}s round review`
+    : `${answerSeconds}s answer window, ${roundReviewSeconds}s round review`
 }
 
 export default function HostPage() {
@@ -937,6 +962,8 @@ export default function HostPage() {
         primaryShowKey,
         audioClipType,
         headsUpDifficulty: "",
+        headsUpTvDisplayMode: "timer_only",
+        headsUpTurnSeconds: 60,
         useTimingOverride: false,
         answerSecondsStr: "",
         roundReviewSecondsStr: "",
@@ -1646,6 +1673,27 @@ export default function HostPage() {
     }
   }
 
+  async function sendHeadsUpAction(action: string, extra: Record<string, unknown> = {}) {
+    if (!roomCode) return
+    setForcingClose(true)
+    setForceCloseError(null)
+    try {
+      const res = await fetch("/api/room/heads-up", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: roomCode, action, ...extra }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setForceCloseError(String(data?.error ?? "Could not update Heads Up."))
+      }
+    } catch {
+      setForceCloseError("Could not update Heads Up.")
+    } finally {
+      setForcingClose(false)
+    }
+  }
+
   async function endGameNow() {
     if (!roomCode) return
     setEndingGame(true)
@@ -1687,6 +1735,8 @@ export default function HostPage() {
   const roomProgressLabel = String(roomState?.progress?.label ?? "").trim()
   const roomJokerEnabled = Boolean(roomState?.rounds?.jokerEnabled)
   const roomJokerEligibleCount = Math.max(0, Number(roomState?.rounds?.jokerEligibleCount ?? 0) || 0)
+  const roomHeadsUp = roomState?.headsUp ?? null
+  const roomIsHeadsUp = String(roomState?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
 
   const stagePill = useMemo(() => {
     return getRoomStagePillLabel({
@@ -1701,8 +1751,21 @@ export default function HostPage() {
   const selectedPackCount = packs.filter((p) => selectedPacks[p.id]).length
   const canStart = hasRoom && roomPhase === "lobby" && !starting
   const canContinue =
-    hasRoom && roomPhase === "running" && ["open", "round_summary", "needs_advance"].includes(roomStage) && !forcingClose
+    hasRoom &&
+    roomPhase === "running" &&
+    !roomIsHeadsUp &&
+    ["open", "round_summary", "needs_advance"].includes(roomStage) &&
+    !forcingClose
   const canEndGame = hasRoom && roomPhase === "running" && roomIsInfinite && !endingGame
+
+  const headsUpHostButtons = roomIsHeadsUp
+    ? {
+        canStartTurn: roomStage === "heads_up_ready" && !forcingClose,
+        canEndTurn: roomStage === "heads_up_live" && !forcingClose,
+        canUndo: roomStage === "heads_up_live" && Array.isArray(roomHeadsUp?.currentTurnActions) && roomHeadsUp.currentTurnActions.length > 0 && !forcingClose,
+        canConfirmTurn: roomStage === "heads_up_review" && !forcingClose,
+      }
+    : null
 
   const continueLabel =
     roomStage === "open"
@@ -1731,7 +1794,15 @@ export default function HostPage() {
         : "Game finished"
 
   const roomSummaryText =
-    roomPhase === "lobby"
+    roomIsHeadsUp && roomPhase === "running"
+      ? roomStage === "heads_up_ready"
+        ? "Start the next turn when the active guesser is ready."
+        : roomStage === "heads_up_live"
+          ? "The turn is live. The active guesser controls Correct and Pass from their phone."
+          : roomStage === "heads_up_review"
+            ? "Review the turn log, correct any mistakes, then confirm the turn."
+            : "The Heads Up round is finished. Move on when you are ready."
+      : roomPhase === "lobby"
       ? roomIsInfinite
         ? "Players can still join. When you are ready, start the infinite run from the host controls."
         : "Players can still join. When you are ready, start the game from the host controls."
@@ -2240,7 +2311,7 @@ export default function HostPage() {
                                         ) : null}
                                       </div>
                                       <div className="mt-1 text-xs text-muted-foreground">
-                                        {round.questionCount} {round.behaviourType === "heads_up" ? `card${round.questionCount === 1 ? "" : "s"}` : `question${round.questionCount === 1 ? "" : "s"}`}. {round.answerSeconds}s answer window, {round.roundReviewSeconds}s round review.
+                                        {round.questionCount} {round.behaviourType === "heads_up" ? `card${round.questionCount === 1 ? "" : "s"}` : `question${round.questionCount === 1 ? "" : "s"}`}. {round.answerSeconds}s {round.behaviourType === "heads_up" ? "turn" : "answer window"}, {round.roundReviewSeconds}s round review.
                                       </div>
                                     </div>
                                   ))}
@@ -2476,7 +2547,7 @@ export default function HostPage() {
                             </div>
                           </div>
 
-                          {round.behaviourType === "quickfire" || round.behaviourType === "heads_up" ? (
+                          {round.behaviourType === "quickfire" ? (
                             <div className="mt-3 rounded-2xl border border-border bg-background p-3">
                               <div className="flex flex-wrap items-center justify-between gap-3">
                                 <div>
@@ -2545,6 +2616,18 @@ export default function HostPage() {
                                 <div className="text-sm font-medium text-foreground">difficulty</div>
                                 <select value={round.headsUpDifficulty} onChange={(e) => updateManualRound(round.id, { headsUpDifficulty: e.target.value as ManualRoundDraft["headsUpDifficulty"] })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
                                   {HEADS_UP_DIFFICULTY_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-foreground">Turn length</div>
+                                <select value={String(round.headsUpTurnSeconds)} onChange={(e) => updateManualRound(round.id, { headsUpTurnSeconds: e.target.value === "90" ? 90 : 60 })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  {HEADS_UP_TURN_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-foreground">TV display</div>
+                                <select value={round.headsUpTvDisplayMode} onChange={(e) => updateManualRound(round.id, { headsUpTvDisplayMode: e.target.value as ManualRoundDraft["headsUpTvDisplayMode"] })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  {HEADS_UP_TV_DISPLAY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                                 </select>
                               </div>
                               <div>
@@ -2630,7 +2713,7 @@ export default function HostPage() {
                             )
                           })()}
 
-                          {round.behaviourType === "quickfire" || round.behaviourType === "heads_up" ? (
+                          {round.behaviourType === "quickfire" ? (
                             <div className="mt-3 rounded-xl border border-violet-500/30 bg-violet-600/10 px-3 py-2 text-xs text-muted-foreground">
                               Quickfire question pool: MCQ only. Audio is allowed when media_duration_ms is set and the clip is 5 seconds or shorter. Audio and typed answers are excluded automatically.
                             </div>
@@ -2937,19 +3020,81 @@ export default function HostPage() {
                   <Button onClick={startGame} disabled={!canStart}>{startLabel}</Button>
                   <Button variant="secondary" onClick={resetRoom} disabled={resetting}>{resetting ? "Resetting..." : "Reset room"}</Button>
                 </div>
-                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
-                  <Button variant="secondary" onClick={continueGame} disabled={!canContinue}>{continueLabel}</Button>
-                  {roomIsInfinite ? (
-                    <Button variant="danger" onClick={endGameNow} disabled={!canEndGame}>
-                      {endingGame ? "Ending..." : "End game now"}
-                    </Button>
-                  ) : null}
-                  <div className="flex items-center rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
-                    {roomIsInfinite
-                      ? "Infinite mode has no Joker round. Use End game now to stop the run early, or let it finish when the question pool runs out."
-                      : "Round review advances automatically after the set time. Use the button to move on sooner."}
+                {roomIsHeadsUp ? (
+                  <div className="space-y-3">
+                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                      <Button variant="secondary" onClick={() => sendHeadsUpAction("host_start_turn")} disabled={!headsUpHostButtons?.canStartTurn}>
+                        {forcingClose && roomStage === "heads_up_ready" ? "Starting..." : "Start turn"}
+                      </Button>
+                      <Button variant="secondary" onClick={() => sendHeadsUpAction("host_undo")} disabled={!headsUpHostButtons?.canUndo}>
+                        {forcingClose && roomStage === "heads_up_live" ? "Working..." : "Undo last action"}
+                      </Button>
+                      <Button variant="secondary" onClick={() => sendHeadsUpAction("host_end_turn")} disabled={!headsUpHostButtons?.canEndTurn}>
+                        {forcingClose && roomStage === "heads_up_live" ? "Ending..." : "End turn"}
+                      </Button>
+                      <Button onClick={() => sendHeadsUpAction("host_confirm_turn")} disabled={!headsUpHostButtons?.canConfirmTurn}>
+                        {forcingClose && roomStage === "heads_up_review" ? "Confirming..." : roomState?.flow?.isLastQuestionOverall ? "Confirm and finish round" : "Confirm turn"}
+                      </Button>
+                    </div>
+                    <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                      <div className="rounded-xl border border-border bg-card p-3">
+                        <div className="text-xs text-muted-foreground">Active turn</div>
+                        <div className="mt-1 text-lg font-semibold text-foreground">{roomHeadsUp?.activeGuesserName || "Waiting to start"}</div>
+                        <div className="mt-1 text-sm text-muted-foreground">
+                          {roomHeadsUp?.activeTeamName ? `Team ${roomHeadsUp.activeTeamName}` : roomState?.gameMode === "solo" ? "Solo mode" : "No active team"}
+                        </div>
+                        <div className="mt-2 text-xs text-muted-foreground">
+                          Turn {Math.max(1, Number(roomHeadsUp?.currentTurnIndex ?? 0) + 1)} of {Math.max(0, Number(roomHeadsUp?.totalTurns ?? 0))}. TV: {roomHeadsUp?.tvDisplayMode === "show_clue" ? "show clue" : "timer only"}.
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-border bg-card p-3">
+                        <div className="text-xs text-muted-foreground">Current turn log</div>
+                        {Array.isArray(roomHeadsUp?.currentTurnActions) && roomHeadsUp.currentTurnActions.length ? (
+                          <div className="mt-2 space-y-2">
+                            {roomHeadsUp.currentTurnActions.map((item: any) => (
+                              <div key={item.questionId} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                                <div className="min-w-0 flex-1">
+                                  <div className="truncate text-foreground">{item.questionText}</div>
+                                  <div className="text-xs text-muted-foreground">{[item.itemType, item.difficulty].filter(Boolean).join(" · ") || "Heads Up card"}</div>
+                                </div>
+                                {roomStage === "heads_up_review" ? (
+                                  <select
+                                    value={item.action}
+                                    onChange={(e) => sendHeadsUpAction("host_review_set_action", { questionId: item.questionId, reviewAction: e.target.value })}
+                                    className="rounded-lg border border-border bg-card px-2 py-1 text-xs"
+                                  >
+                                    <option value="correct">Correct</option>
+                                    <option value="pass">Pass</option>
+                                  </select>
+                                ) : (
+                                  <span className={`rounded-full border px-2 py-0.5 text-xs ${item.action === "correct" ? "border-emerald-500/40 bg-emerald-600/10 text-emerald-200" : "border-slate-500/40 bg-slate-600/10 text-slate-200"}`}>
+                                    {item.action === "correct" ? "Correct" : "Pass"}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="mt-2 text-sm text-muted-foreground">No cards logged yet for this turn.</div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                    <Button variant="secondary" onClick={continueGame} disabled={!canContinue}>{continueLabel}</Button>
+                    {roomIsInfinite ? (
+                      <Button variant="danger" onClick={endGameNow} disabled={!canEndGame}>
+                        {endingGame ? "Ending..." : "End game now"}
+                      </Button>
+                    ) : null}
+                    <div className="flex items-center rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
+                      {roomIsInfinite
+                        ? "Infinite mode has no Joker round. Use End game now to stop the run early, or let it finish when the question pool runs out."
+                        : "Round review advances automatically after the set time. Use the button to move on sooner."}
+                    </div>
+                  </div>
+                )}
                 <div className="flex justify-end"><Button variant="ghost" onClick={clearRoom}>Create another room</Button></div>
               </CardContent>
             </Card>

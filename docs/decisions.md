@@ -68,7 +68,14 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Heads Up items can belong to more than one Heads Up pack. Pack membership should stay many-to-many.
 - People-based Heads Up items should use `person_roles` as a multi-select field rather than one fixed role.
 - One logical Heads Up item is unique by normalised `answer_text`, `item_type`, and `primary_show_key`.
-- Heads Up v1 gameplay starts as a manual-round option only, using one Heads Up pack per round, with no phone answers and no automatic scoring.
+- Heads Up gameplay starts as a manual-round option only, using one Heads Up pack per round.
+- Heads Up uses role-based live views. The guesser sees only the timer plus Correct and Pass. Clue-givers see the live clue plus timer.
+- In team mode, turns alternate by team, then rotate to the next player within that team. In solo mode, turns rotate through all players globally.
+- In team mode, only the active team gets the live clue view on phones. The other team sees a waiting screen.
+- In solo mode, all non-active players become clue-givers for the active guesser.
+- Heads Up rounds support a round-level TV display toggle: show clue on TV or timer only. The default is timer only.
+- Heads Up rounds support 60 second and 90 second turn lengths, with 60 seconds as the default.
+- Heads Up scoring is recorded by the active guesser on their phone, with host undo and end-of-turn review before the turn is confirmed.
 
 ## UI and code conventions
 

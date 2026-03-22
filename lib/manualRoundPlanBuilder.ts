@@ -22,6 +22,7 @@ export type ManualRoundDraftInput = {
   selectionRules?: RoundSelectionRules
   answerSeconds?: number
   roundReviewSeconds?: number
+  headsUpTvDisplayMode?: "show_clue" | "timer_only"
 }
 
 export type QuestionCandidate = {
@@ -238,6 +239,7 @@ export function buildManualRoomRoundPlan(params: {
       selectionRules,
       answerSeconds,
       roundReviewSeconds,
+      headsUpTvDisplayMode: behaviourType === "heads_up" ? (String((roundRaw as any).headsUpTvDisplayMode ?? "timer_only").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only") : undefined,
       questionIds: chosen.map((candidate) => candidate.id),
     })
   }

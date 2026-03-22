@@ -31,7 +31,7 @@ export async function POST(req: Request) {
 
   const endRes = await supabaseAdmin
     .from("rooms")
-    .update({ phase: "finished" })
+    .update({ phase: "finished", heads_up_state: {} })
     .eq("id", room.id)
     .eq("phase", "running")
     .select("id")
