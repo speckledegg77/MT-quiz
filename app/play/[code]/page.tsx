@@ -854,7 +854,7 @@ export default function PlayerPage() {
     if (!code || !state || !isHeadsUpBehaviour || !isReviewStage) return
 
     const reviewAtMs = state?.headsUp?.reviewAutoAdvanceAt ? Date.parse(String(state.headsUp.reviewAutoAdvanceAt)) : Number.NaN
-    const delayMs = Number.isFinite(reviewAtMs) ? Math.max(0, reviewAtMs - adjustedNowMs) : 4500
+    const delayMs = Number.isFinite(reviewAtMs) ? Math.max(0, reviewAtMs - adjustedNowMs) : 10000
 
     const timeoutId = window.setTimeout(() => {
       fetch("/api/room/heads-up", {
@@ -1049,7 +1049,9 @@ export default function PlayerPage() {
                             {Number(round.number)}. {String(round.name)}
                           </div>
                           {String(round?.behaviourType ?? "").trim().toLowerCase() === "quickfire" ? (
-                            <div className="mt-1 text-[11px] text-muted-foreground">Quickfire, fastest correct +1, no Joker</div>
+                            <div className="mt-1 text-[11px] text-muted-foreground">Quickfire, fastest correct +1</div>
+                          ) : String(round?.behaviourType ?? "").trim().toLowerCase() === "heads_up" ? (
+                            <div className="mt-1 text-[11px] text-muted-foreground">Heads Up, turn-based clue round</div>
                           ) : null}
                         </div>
 
@@ -1060,7 +1062,7 @@ export default function PlayerPage() {
                             </div>
                           ) : null}
 
-                          {!jokerEligible ? (
+                          {!jokerEligible && String(round?.behaviourType ?? "").trim().toLowerCase() !== "heads_up" ? (
                             <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
                               No Joker
                             </span>
@@ -1137,7 +1139,7 @@ export default function PlayerPage() {
                   </div>
                   <div className="mt-1 text-muted-foreground">
                     {headsUpRoundCompleteReason === "card_pool_exhausted"
-                      ? "Wait for the host to continue to the next round. Future Heads Up rounds need a larger card pool if you want more players to take a turn."
+                      ? "Wait for the host to continue to the next round. Future Heads Up rounds need more active cards in the selected pack if you want more players to take a turn."
                       : "Wait for the host to continue when they are ready."}
                   </div>
                 </div>

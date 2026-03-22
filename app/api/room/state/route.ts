@@ -16,7 +16,7 @@ import { getGameProgressLabel, isInfiniteModeFromRound, isInfiniteModeFromRoundP
 import { shuffleMcqForRoom } from "@/lib/mcqShuffle"
 import { applyQuickfireFastestBonus, buildQuickfireRoundReview } from "@/lib/quickfire"
 import { getConfiguredAnswerSecondsForRound, getEffectiveRoundReviewSecondsForRound, isHeadsUpRound, isQuickfireRound, stageFromTimes } from "@/lib/roundFlow"
-import { deriveHeadsUpStage, getHeadsUpReadyTurnMeta, getHeadsUpRole, getHeadsUpTvDisplayMode, getHeadsUpTurnSeconds, normaliseHeadsUpRoomState } from "@/lib/headsUpGameplay"
+import { HEADS_UP_REVIEW_AUTO_ADVANCE_MS, deriveHeadsUpStage, getHeadsUpReadyTurnMeta, getHeadsUpRole, getHeadsUpTvDisplayMode, getHeadsUpTurnSeconds, normaliseHeadsUpRoomState } from "@/lib/headsUpGameplay"
 
 type TeamPlayerRow = {
   id: string
@@ -659,13 +659,15 @@ export async function GET(req: Request) {
       questionMap.set(questionId, await getQuestionById(questionId))
     }
 
+    let runningCardNumber = 0
     const items = (headsUpState?.completedTurns ?? []).flatMap((turn) =>
-      (turn.actions ?? []).map((action, index) => {
+      (turn.actions ?? []).map((action) => {
+        runningCardNumber += 1
         const question = questionMap.get(String(action.questionId ?? "").trim())
         return {
           questionId: String(action.questionId ?? ""),
-          questionNumberInRound: index + 1,
-          questionText: question?.text?.trim() || `Card ${index + 1}`,
+          questionNumberInRound: runningCardNumber,
+          questionText: question?.text?.trim() || `Card ${runningCardNumber}`,
           itemType: String(question?.meta?.itemType ?? "").trim() || null,
           difficulty: String(question?.meta?.difficulty ?? "").trim() || null,
           outcome: action.action,
@@ -674,9 +676,34 @@ export async function GET(req: Request) {
       })
     )
 
+    const playersByTurn = (headsUpState?.completedTurns ?? []).map((turn) => {
+      const guesser = players.find((player: any) => String(player?.id ?? "") === String(turn.activeGuesserId ?? "")) ?? null
+      const cards = (turn.actions ?? []).map((action, index) => {
+        const question = questionMap.get(String(action.questionId ?? "").trim())
+        return {
+          questionId: String(action.questionId ?? ""),
+          questionNumberInTurn: index + 1,
+          questionText: question?.text?.trim() || `Card ${index + 1}`,
+          itemType: String(question?.meta?.itemType ?? "").trim() || null,
+          difficulty: String(question?.meta?.difficulty ?? "").trim() || null,
+          outcome: String(action.action ?? "pass").trim().toLowerCase() === "correct" ? "correct" : "pass",
+        }
+      })
+
+      return {
+        playerId: String(turn.activeGuesserId ?? ""),
+        playerName: String(guesser?.name ?? "").trim() || "Player",
+        teamName: String(turn.activeTeamName ?? guesser?.team_name ?? "").trim() || null,
+        correctCount: cards.filter((card) => card.outcome === "correct").length,
+        passCount: cards.filter((card) => card.outcome === "pass").length,
+        cards,
+      }
+    })
+
     roundReview = {
       behaviourType: currentRound.behaviourType,
       items,
+      players: playersByTurn,
     }
   }
 
@@ -714,7 +741,7 @@ export async function GET(req: Request) {
       Math.max(0, Number(headsUpState.currentTurnIndex ?? 0) || 0) + 1 < headsUpState.turnOrderPlayerIds.length &&
       headsUpLastActionQuestionIndex < currentRound.endIndex
     const headsUpReviewAutoAdvanceAt = stage === "heads_up_review"
-      ? new Date((room.close_at ? Date.parse(String(room.close_at)) : now.getTime()) + 4500).toISOString()
+      ? new Date((room.close_at ? Date.parse(String(room.close_at)) : now.getTime()) + HEADS_UP_REVIEW_AUTO_ADVANCE_MS).toISOString()
       : null
     const turnOrder = headsUpState.turnOrderPlayerIds
       .map((playerId) => players.find((player: any) => String(player?.id ?? "") === String(playerId ?? "")))

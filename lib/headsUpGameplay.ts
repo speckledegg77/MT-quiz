@@ -4,6 +4,8 @@ export type HeadsUpTvDisplayMode = "show_clue" | "timer_only"
 export type HeadsUpTurnStatus = "ready" | "live" | "review" | "round_summary"
 export type HeadsUpActionKind = "correct" | "pass"
 
+export const HEADS_UP_REVIEW_AUTO_ADVANCE_MS = 10000
+
 export type HeadsUpTurnAction = {
   questionId: string
   action: HeadsUpActionKind

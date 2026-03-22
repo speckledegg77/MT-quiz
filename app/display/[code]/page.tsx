@@ -402,7 +402,7 @@ export default function DisplayPage() {
                   </div>
                   <div className="mt-2 text-sm text-muted-foreground">
                     {String(state?.headsUp?.roundCompleteReason ?? "") === "card_pool_exhausted"
-                      ? "The host will need to continue to the next round. Use a larger card pool next time if you want more turns."
+                      ? "The host will need to continue to the next round. Add more active cards to the selected pack next time if you want more turns."
                       : "Waiting for the host to continue."}
                   </div>
                 </div>

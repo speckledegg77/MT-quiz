@@ -44,6 +44,17 @@ type HeadsUpReviewItem = {
   questionText: string
   itemType?: string | null
   difficulty?: string | null
+  outcome?: "correct" | "pass"
+  playerId?: string
+}
+
+type HeadsUpReviewPlayer = {
+  playerId: string
+  playerName: string
+  teamName?: string | null
+  correctCount: number
+  passCount: number
+  cards: HeadsUpReviewItem[]
 }
 
 type Props = {
@@ -71,6 +82,7 @@ type Props = {
         behaviourType?: "standard" | "quickfire" | "heads_up"
         questions?: QuickfireReviewQuestion[]
         items?: HeadsUpReviewItem[]
+        players?: HeadsUpReviewPlayer[]
       }
     | null
     | undefined
@@ -167,6 +179,7 @@ export default function RoundSummaryCard({
   const isHeadsUp = round?.behaviourType === "heads_up" || roundReview?.behaviourType === "heads_up"
   const quickfireQuestions = Array.isArray(roundReview?.questions) ? roundReview.questions : []
   const headsUpItems = Array.isArray(roundReview?.items) ? roundReview.items : []
+  const headsUpPlayers = Array.isArray(roundReview?.players) ? roundReview.players : []
   const fastestAwardCount = quickfireQuestions.filter((question) => question.fastestCorrectPlayerName).length
   const infiniteQuestionsAsked = Math.max(0, Math.floor(Number(summaryQuestionCount ?? 0) || 0))
 
@@ -284,7 +297,51 @@ export default function RoundSummaryCard({
           </div>
         ) : null}
 
-        {isHeadsUp && headsUpItems.length ? (
+        {isHeadsUp && headsUpPlayers.length ? (
+          <div className="space-y-3">
+            <div className="text-sm font-medium text-foreground">By player</div>
+
+            <div className="space-y-3">
+              {headsUpPlayers.map((player) => (
+                <details key={player.playerId} className="rounded-xl border border-border bg-card px-4 py-3">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-foreground">{player.playerName}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {[player.teamName ? `Team ${player.teamName}` : null, `${fmt(Number(player.correctCount ?? 0))} correct`, `${fmt(Number(player.passCount ?? 0))} passed`]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                      {player.cards.length} card{player.cards.length === 1 ? "" : "s"}
+                    </span>
+                  </summary>
+
+                  <div className="mt-3 space-y-2">
+                    {player.cards.map((item, index) => (
+                      <div key={`${player.playerId}-${item.questionId}-${index}`} className="rounded-lg border border-border bg-muted px-3 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-foreground">
+                              Card {index + 1}. {item.questionText}
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {[item.itemType, item.difficulty].filter(Boolean).join(" · ") || "Heads Up item"}
+                            </div>
+                          </div>
+                          <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] ${item.outcome === "correct" ? "border-emerald-500/40 bg-emerald-600/10 text-emerald-200" : "border-slate-500/40 bg-slate-600/10 text-slate-200"}`}>
+                            {item.outcome === "correct" ? "Correct" : "Passed"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
+        ) : isHeadsUp && headsUpItems.length ? (
           <div className="space-y-3">
             <div className="text-sm font-medium text-foreground">Cards used</div>
 
@@ -318,7 +375,7 @@ export default function RoundSummaryCard({
                           ? "Live card round. No phone answers or automatic scoring in v1."
                           : isQuickfire || isInfiniteMode
                             ? `Correct ${fmt(Number(team.correct ?? 0))}/${fmt(Number(team.answered ?? 0))}`
-                            : `Correct ${fmt(Number(team.correct ?? 0))}/${fmt(Number(team.answered ?? 0))} | Joker ${fmt(Number(team.jokerUsed ?? 0))}`}
+                            : `Correct ${fmt(Number(team.correct ?? 0))}/${fmt(Number(team.answered ?? 0))}`}
                       </div>
                     </div>
 
@@ -339,7 +396,7 @@ export default function RoundSummaryCard({
                         >
                           <div className="flex min-w-0 items-center gap-2">
                             <div className="truncate text-sm text-foreground">{player.name}</div>
-                            {!isInfiniteMode && player.usedJokerInScope ? <JokerBadge /> : null}
+                            {!isInfiniteMode && !isHeadsUp && player.usedJokerInScope ? <JokerBadge /> : null}
                           </div>
 
                           <div className="shrink-0 text-sm font-semibold tabular-nums">{fmt(Number(player.totalScore ?? 0))}</div>
@@ -363,7 +420,7 @@ export default function RoundSummaryCard({
                 >
                   <div className="flex min-w-0 items-center gap-2">
                     <div className="truncate text-sm text-foreground">{player.name}</div>
-                    {!isInfiniteMode && player.usedJokerInScope ? <JokerBadge /> : null}
+                    {!isInfiniteMode && !isHeadsUp && player.usedJokerInScope ? <JokerBadge /> : null}
                   </div>
 
                   <div className="shrink-0 text-sm font-semibold tabular-nums">{fmt(Number(player.totalScore ?? 0))}</div>

@@ -15,6 +15,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/Input"
 import HostJoinedTeamsPanel from "@/components/HostJoinedTeamsPanel"
 import PageShell from "@/components/PageShell"
+import RoundSummaryCard from "@/components/RoundSummaryCard"
 
 type PackRow = {
   id: string
@@ -1816,7 +1817,7 @@ export default function HostPage() {
         : roomStage === "heads_up_live"
           ? "The turn is live. The active guesser controls Correct and Pass from their phone."
           : roomStage === "heads_up_review"
-            ? "Review the turn log, correct any mistakes if needed, then confirm it. The round will continue automatically after a short pause."
+            ? "Review the turn log, correct any mistakes if needed, then confirm it. The round will continue automatically after a longer review pause unless you move on sooner."
             : headsUpRoundCompleteReason === "card_pool_exhausted"
               ? "This Heads Up round has run out of active cards before every player has taken a turn. Continue to the next round, then add more cards to this pack if you want longer Heads Up rounds."
               : "The Heads Up round is finished. Continue when you are ready."
@@ -1842,7 +1843,7 @@ export default function HostPage() {
     if (!roomCode || !roomIsHeadsUp || roomStage !== "heads_up_review" || forcingClose) return
 
     const reviewAtMs = roomHeadsUp?.reviewAutoAdvanceAt ? Date.parse(String(roomHeadsUp.reviewAutoAdvanceAt)) : Number.NaN
-    const delayMs = Number.isFinite(reviewAtMs) ? Math.max(0, reviewAtMs - Date.now()) : 4500
+    const delayMs = Number.isFinite(reviewAtMs) ? Math.max(0, reviewAtMs - Date.now()) : 10000
 
     const timeoutId = window.setTimeout(() => {
       fetch("/api/room/heads-up", {
@@ -1859,11 +1860,13 @@ export default function HostPage() {
     isInfiniteMode: roomIsInfinite,
     behaviourType: roomState?.rounds?.current?.behaviourType,
   })
-  const roomJokerSummary = roomIsInfinite
-    ? "Joker hidden in Infinite mode."
-    : roomJokerEnabled
-      ? `${roomJokerEligibleCount} Joker-eligible round${roomJokerEligibleCount === 1 ? "" : "s"}.`
-      : "Joker hidden because fewer than two rounds are Joker-eligible."
+  const roomJokerSummary = roomIsHeadsUp
+    ? "Turn-based clue round."
+    : roomIsInfinite
+      ? "Joker hidden in Infinite mode."
+      : roomJokerEnabled
+        ? `${roomJokerEligibleCount} Joker-eligible round${roomJokerEligibleCount === 1 ? "" : "s"}.`
+        : "Joker hidden because fewer than two rounds are Joker-eligible."
 
   const quickfireCount = useMemo(
     () => manualRounds.filter((round) => round.behaviourType === "quickfire").length,
@@ -2788,6 +2791,17 @@ export default function HostPage() {
                         </div>
                       ))}
                     </div>
+                    {roomStage === "round_summary" ? (
+                      <RoundSummaryCard
+                        round={roomState?.rounds?.current}
+                        roundStats={roomState?.roundStats}
+                        roundReview={roomState?.roundReview}
+                        gameMode={roomState?.gameMode === "solo" ? "solo" : "teams"}
+                        isLastQuestionOverall={Boolean(roomState?.flow?.isLastQuestionOverall)}
+                        roundSummaryEndsAt={roomState?.times?.roundSummaryEndsAt ?? null}
+                        isInfiniteMode={roomIsInfinite}
+                      />
+                    ) : null}
                   </div>
                 ) : (
                   <>
@@ -3080,20 +3094,20 @@ export default function HostPage() {
                         {forcingClose && roomStage === "heads_up_live" ? "Ending..." : "End turn"}
                       </Button>
                       <Button onClick={() => sendHeadsUpAction("host_confirm_turn")} disabled={!headsUpHostButtons?.canConfirmTurn}>
-                        {forcingClose && roomStage === "heads_up_review" ? "Moving..." : roomState?.flow?.isLastQuestionOverall ? "Finish round now" : "Move to next player now"}
+                        {forcingClose && roomStage === "heads_up_review" ? "Moving..." : roomStage === "heads_up_review" ? "Move on now" : roomState?.flow?.isLastQuestionOverall ? "Finish round now" : "Move to next player now"}
                       </Button>
                     </div>
                     {roomStage === "heads_up_review" ? (
                       <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-3 py-2 text-sm text-amber-100">
                         {roomHeadsUp?.willAdvanceToNextTurn
-                          ? `Moving to ${String(roomHeadsUp?.nextGuesserName ?? "the next player")}${roomHeadsUp?.nextTeamName ? ` from Team ${String(roomHeadsUp.nextTeamName)}` : ""} in ${headsUpReviewCountdownSeconds}s unless you move on sooner or correct the turn log first.`
-                          : `Finishing the Heads Up round in ${headsUpReviewCountdownSeconds}s unless you move on sooner or correct the turn log first.`}
+                          ? `Moving to ${String(roomHeadsUp?.nextGuesserName ?? "the next player")}${roomHeadsUp?.nextTeamName ? ` from Team ${String(roomHeadsUp.nextTeamName)}` : ""} in ${headsUpReviewCountdownSeconds}s unless you move on now or correct the turn log first.`
+                          : `Finishing the Heads Up round in ${headsUpReviewCountdownSeconds}s unless you move on now or correct the turn log first.`}
                       </div>
                     ) : null}
                     {roomStage === "round_summary" ? (
                       <div className={`rounded-xl border px-3 py-2 text-sm ${headsUpRoundCompleteReason === "card_pool_exhausted" ? "border-amber-500/30 bg-amber-600/10 text-amber-100" : "border-border bg-card text-muted-foreground"}`}>
                         {headsUpRoundCompleteReason === "card_pool_exhausted"
-                          ? `This Heads Up round used all ${Math.max(0, Number(roomHeadsUp?.cardPoolSize ?? 0))} active cards in its selected pack before another player turn could begin. Continue to the next round, or add more cards to that pack for a longer Heads Up round.`
+                          ? `This Heads Up round used all ${Math.max(0, Number(roomHeadsUp?.cardPoolSize ?? 0))} active cards in its selected pack before another player turn could begin. Continue to the next round, or add more active cards to that pack for a longer Heads Up round.`
                           : "This Heads Up round is complete. Continue when you are ready."}
                       </div>
                     ) : null}
