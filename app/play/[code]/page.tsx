@@ -62,6 +62,8 @@ export default function PlayerPage() {
   const autoSubmitAttemptKeyRef = useRef<string | null>(null)
   const headsUpFeedbackTimeoutRef = useRef<number | null>(null)
   const feedbackAudioContextRef = useRef<AudioContext | null>(null)
+  const lastHeadsUpCountdownSecondRef = useRef<number | null>(null)
+  const lastHeadsUpCountdownStageRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!code) return
@@ -543,6 +545,52 @@ export default function PlayerPage() {
     }
   }
 
+  async function ensureHeadsUpAudioReady() {
+    try {
+      const anyWindow = window as typeof window & { webkitAudioContext?: typeof AudioContext }
+      const Ctx = anyWindow.AudioContext || anyWindow.webkitAudioContext
+      if (!Ctx) return null
+      const ctx = feedbackAudioContextRef.current ?? new Ctx()
+      feedbackAudioContextRef.current = ctx
+      await ctx.resume()
+      return ctx
+    } catch {
+      return null
+    }
+  }
+
+  async function playHeadsUpTimerCue(kind: "tick" | "end") {
+    try {
+      const ctx = await ensureHeadsUpAudioReady()
+      if (!ctx) return
+
+      const pulse = (frequency: number, start: number, duration: number, type: OscillatorType, volume: number) => {
+        const oscillator = ctx.createOscillator()
+        const gain = ctx.createGain()
+        oscillator.type = type
+        oscillator.frequency.setValueAtTime(frequency, start)
+        gain.gain.setValueAtTime(0.0001, start)
+        gain.gain.exponentialRampToValueAtTime(volume, start + 0.01)
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
+        oscillator.connect(gain)
+        gain.connect(ctx.destination)
+        oscillator.start(start)
+        oscillator.stop(start + duration + 0.02)
+      }
+
+      const start = ctx.currentTime + 0.01
+      if (kind === "tick") {
+        pulse(1320, start, 0.07, "square", 0.045)
+      } else {
+        pulse(784, start, 0.09, "triangle", 0.06)
+        pulse(622, start + 0.1, 0.12, "triangle", 0.055)
+        pulse(440, start + 0.24, 0.24, "sawtooth", 0.07)
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   function showHeadsUpFeedback(kind: "correct" | "pass") {
     if (headsUpFeedbackTimeoutRef.current !== null) {
       window.clearTimeout(headsUpFeedbackTimeoutRef.current)
@@ -739,6 +787,18 @@ export default function PlayerPage() {
   }, [state?.phase, state?.stage, q?.id, q?.audioUrl, shouldPlayOnPhone, audioEnabled, isAudioQ])
 
   useEffect(() => {
+    const resumeAudio = () => {
+      void ensureHeadsUpAudioReady()
+    }
+    window.addEventListener("pointerdown", resumeAudio)
+    window.addEventListener("keydown", resumeAudio)
+    return () => {
+      window.removeEventListener("pointerdown", resumeAudio)
+      window.removeEventListener("keydown", resumeAudio)
+    }
+  }, [])
+
+  useEffect(() => {
     return () => {
       stopClip()
       if (headsUpFeedbackTimeoutRef.current !== null) {
@@ -752,6 +812,40 @@ export default function PlayerPage() {
       feedbackAudioContextRef.current = null
     }
   }, [])
+
+
+  useEffect(() => {
+    const shouldPlayCountdownCue =
+      String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "heads_up" &&
+      String(state?.stage ?? "") === "heads_up_live" &&
+      (headsUpRole === "guesser" || headsUpRole === "clue_giver")
+
+    if (!shouldPlayCountdownCue) {
+      lastHeadsUpCountdownSecondRef.current = null
+      lastHeadsUpCountdownStageRef.current = String(state?.stage ?? "")
+      return
+    }
+
+    if (!Number.isFinite(secondsRemaining)) return
+
+    const currentSecond = Math.max(0, Math.floor(secondsRemaining))
+    const previousSecond = lastHeadsUpCountdownSecondRef.current
+    const previousStage = lastHeadsUpCountdownStageRef.current
+    lastHeadsUpCountdownSecondRef.current = currentSecond
+    lastHeadsUpCountdownStageRef.current = String(state?.stage ?? "")
+
+    if (previousStage !== "heads_up_live") return
+    if (previousSecond === currentSecond) return
+
+    if (currentSecond > 0 && currentSecond <= 5) {
+      void playHeadsUpTimerCue("tick")
+      return
+    }
+
+    if (currentSecond === 0 && previousSecond !== 0) {
+      void playHeadsUpTimerCue("end")
+    }
+  }, [headsUpRole, secondsRemaining, state?.rounds?.current?.behaviourType, state?.stage])
 
 
   useEffect(() => {
@@ -1286,7 +1380,8 @@ export default function PlayerPage() {
                 </div>
               ) : null}
 
-              {isTextQ ? (
+              {!isHeadsUpRound ? (
+                isTextQ ? (
                 <div className="grid gap-2">
                   <Input
                     value={typedValue}
@@ -1356,7 +1451,8 @@ export default function PlayerPage() {
                     </div>
                   ) : null}
                 </div>
-              )}
+              )
+              ) : null}
 
               {inReveal && correctAnswerText ? (
                 <div className="rounded-xl border border-emerald-600/30 bg-emerald-600/10 p-3">

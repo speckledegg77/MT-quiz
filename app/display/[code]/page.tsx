@@ -31,6 +31,9 @@ export default function DisplayPage() {
   const [roundTransitionQuestionIndex, setRoundTransitionQuestionIndex] = useState<number | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const feedbackAudioContextRef = useRef<AudioContext | null>(null);
+  const lastHeadsUpCountdownSecondRef = useRef<number | null>(null);
+  const lastHeadsUpCountdownStageRef = useRef<string | null>(null);
 
   async function unlockAudio() {
     setAudioEnabled(true);
@@ -58,6 +61,53 @@ export default function DisplayPage() {
       el.src = q.audioUrl;
       el.load();
       await el.play();
+    } catch {
+      // ignore
+    }
+  }
+
+
+  async function ensureHeadsUpAudioReady() {
+    try {
+      const anyWindow = window as typeof window & { webkitAudioContext?: typeof AudioContext };
+      const Ctx = anyWindow.AudioContext || anyWindow.webkitAudioContext;
+      if (!Ctx) return null;
+      const ctx = feedbackAudioContextRef.current ?? new Ctx();
+      feedbackAudioContextRef.current = ctx;
+      await ctx.resume();
+      return ctx;
+    } catch {
+      return null;
+    }
+  }
+
+  async function playHeadsUpTimerCue(kind: "tick" | "end") {
+    try {
+      const ctx = await ensureHeadsUpAudioReady();
+      if (!ctx) return;
+
+      const pulse = (frequency: number, start: number, duration: number, type: OscillatorType, volume: number) => {
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(frequency, start);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(volume, start + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+        oscillator.start(start);
+        oscillator.stop(start + duration + 0.02);
+      };
+
+      const start = ctx.currentTime + 0.01;
+      if (kind === "tick") {
+        pulse(1320, start, 0.07, "square", 0.045);
+      } else {
+        pulse(784, start, 0.09, "triangle", 0.06);
+        pulse(622, start + 0.1, 0.12, "triangle", 0.055);
+        pulse(440, start + 0.24, 0.24, "sawtooth", 0.07);
+      }
     } catch {
       // ignore
     }
@@ -158,6 +208,67 @@ export default function DisplayPage() {
   useEffect(() => {
     return () => {
       stopClip();
+    };
+  }, []);
+
+  useEffect(() => {
+    const resumeAudio = () => {
+      void ensureHeadsUpAudioReady();
+    };
+    window.addEventListener("pointerdown", resumeAudio);
+    window.addEventListener("keydown", resumeAudio);
+    return () => {
+      window.removeEventListener("pointerdown", resumeAudio);
+      window.removeEventListener("keydown", resumeAudio);
+    };
+  }, []);
+
+  useEffect(() => {
+    const currentStage = String(state?.stage ?? "");
+    const shouldPlayCountdownCue =
+      String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "heads_up" &&
+      currentStage === "heads_up_live";
+
+    if (!shouldPlayCountdownCue) {
+      lastHeadsUpCountdownSecondRef.current = null;
+      lastHeadsUpCountdownStageRef.current = currentStage;
+      return;
+    }
+
+    const closeAtMs = state?.times?.closeAt ? Date.parse(String(state.times.closeAt)) : Number.NaN;
+    const currentSecondsRemaining = Number.isFinite(closeAtMs)
+      ? Math.max(0, Math.ceil((closeAtMs - Date.now()) / 1000))
+      : 0;
+
+    if (!Number.isFinite(currentSecondsRemaining)) return;
+
+    const currentSecond = Math.max(0, Math.floor(currentSecondsRemaining));
+    const previousSecond = lastHeadsUpCountdownSecondRef.current;
+    const previousStage = lastHeadsUpCountdownStageRef.current;
+    lastHeadsUpCountdownSecondRef.current = currentSecond;
+    lastHeadsUpCountdownStageRef.current = currentStage;
+
+    if (previousStage !== "heads_up_live") return;
+    if (previousSecond === currentSecond) return;
+
+    if (currentSecond > 0 && currentSecond <= 5) {
+      void playHeadsUpTimerCue("tick");
+      return;
+    }
+
+    if (currentSecond === 0 && previousSecond !== 0) {
+      void playHeadsUpTimerCue("end");
+    }
+  }, [state]);
+
+  useEffect(() => {
+    return () => {
+      try {
+        feedbackAudioContextRef.current?.close();
+      } catch {
+        // ignore
+      }
+      feedbackAudioContextRef.current = null;
     };
   }, []);
 
