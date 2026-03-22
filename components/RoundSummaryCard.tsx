@@ -38,13 +38,21 @@ type QuickfireReviewQuestion = {
   fastestCorrectPlayerName: string | null
 }
 
+type HeadsUpReviewItem = {
+  questionId: string
+  questionNumberInRound: number
+  questionText: string
+  itemType?: string | null
+  difficulty?: string | null
+}
+
 type Props = {
   round:
     | {
         index: number
         number: number
         name: string
-        behaviourType?: "standard" | "quickfire"
+        behaviourType?: "standard" | "quickfire" | "heads_up"
       }
     | null
     | undefined
@@ -60,8 +68,9 @@ type Props = {
     | undefined
   roundReview?:
     | {
-        behaviourType?: "standard" | "quickfire"
+        behaviourType?: "standard" | "quickfire" | "heads_up"
         questions?: QuickfireReviewQuestion[]
+        items?: HeadsUpReviewItem[]
       }
     | null
     | undefined
@@ -155,7 +164,9 @@ export default function RoundSummaryCard({
 
   const teamRows = Array.isArray(roundStats?.byTeam) ? roundStats.byTeam : []
   const isQuickfire = round?.behaviourType === "quickfire" || roundReview?.behaviourType === "quickfire"
+  const isHeadsUp = round?.behaviourType === "heads_up" || roundReview?.behaviourType === "heads_up"
   const quickfireQuestions = Array.isArray(roundReview?.questions) ? roundReview.questions : []
+  const headsUpItems = Array.isArray(roundReview?.items) ? roundReview.items : []
   const fastestAwardCount = quickfireQuestions.filter((question) => question.fastestCorrectPlayerName).length
   const infiniteQuestionsAsked = Math.max(0, Math.floor(Number(summaryQuestionCount ?? 0) || 0))
 
@@ -169,10 +180,10 @@ export default function RoundSummaryCard({
               <CardTitle>{isInfiniteMode ? "Infinite run" : `Round ${Number(round?.number ?? 0)}`}</CardTitle>
               <span
                 className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${
-                  getRoundBehaviourBadgeClass(isQuickfire ? "quickfire" : "standard", { isInfiniteMode })
+                  getRoundBehaviourBadgeClass(isQuickfire ? "quickfire" : isHeadsUp ? "heads_up" : "standard", { isInfiniteMode })
                 }`}
               >
-                {getRoundBehaviourLabel(isQuickfire ? "quickfire" : "standard", { isInfiniteMode })}
+                {getRoundBehaviourLabel(isQuickfire ? "quickfire" : isHeadsUp ? "heads_up" : "standard", { isInfiniteMode })}
               </span>
             </div>
             <div className="mt-1 text-sm text-muted-foreground">
@@ -204,25 +215,38 @@ export default function RoundSummaryCard({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-xl border border-border bg-card p-3">
-            <div className="text-xs text-muted-foreground">{isInfiniteMode ? "Questions asked" : "Correct"}</div>
+            <div className="text-xs text-muted-foreground">
+              {isInfiniteMode ? "Questions asked" : isHeadsUp ? "Phone answers" : "Correct"}
+            </div>
             <div className="mt-1 text-lg font-semibold">
               {isInfiniteMode
                 ? fmt(infiniteQuestionsAsked)
-                : `${fmt(Number(roundStats?.correct ?? 0))}/${fmt(Number(roundStats?.answered ?? 0))}`}
+                : isHeadsUp
+                  ? "Not used"
+                  : `${fmt(Number(roundStats?.correct ?? 0))}/${fmt(Number(roundStats?.answered ?? 0))}`}
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              {isInfiniteMode
+                ? "Total cards shown in this run."
+                : isHeadsUp
+                  ? "Heads Up v1 runs through live clueing instead of phone answers."
+                  : "Correct answers out of answers received this round."}
             </div>
           </div>
 
           <div className="rounded-xl border border-border bg-card p-3">
-            <div className="text-xs text-muted-foreground">{isInfiniteMode ? "Correct answers" : isQuickfire ? "Fastest bonuses" : "Joker usage"}</div>
+            <div className="text-xs text-muted-foreground">{isInfiniteMode ? "Correct answers" : isQuickfire ? "Fastest bonuses" : isHeadsUp ? "Cards used" : "Joker usage"}</div>
             <div className="mt-1 text-lg font-semibold">
-              {isInfiniteMode ? fmt(Number(roundStats?.correct ?? 0)) : isQuickfire ? fmt(fastestAwardCount) : fmt(Number(roundStats?.jokerUsed ?? 0))}
+              {isInfiniteMode ? fmt(Number(roundStats?.correct ?? 0)) : isQuickfire ? fmt(fastestAwardCount) : isHeadsUp ? fmt(headsUpItems.length || Number(summaryQuestionCount ?? 0)) : fmt(Number(roundStats?.jokerUsed ?? 0))}
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
               {isInfiniteMode
                 ? "Unanswered questions do not count as correct."
                 : isQuickfire
                   ? "One bonus point goes to the fastest correct player on each question."
-                  : `Joker correct: ${fmt(Number(roundStats?.jokerCorrect ?? 0))}`}
+                  : isHeadsUp
+                    ? "Heads Up v1 does not use phone answers or automatic scoring."
+                    : `Joker correct: ${fmt(Number(roundStats?.jokerCorrect ?? 0))}`}
             </div>
           </div>
         </div>
@@ -260,6 +284,25 @@ export default function RoundSummaryCard({
           </div>
         ) : null}
 
+        {isHeadsUp && headsUpItems.length ? (
+          <div className="space-y-3">
+            <div className="text-sm font-medium text-foreground">Cards used</div>
+
+            <div className="space-y-2">
+              {headsUpItems.map((item) => (
+                <div key={item.questionId} className="rounded-xl border border-border bg-card px-4 py-3">
+                  <div className="text-sm font-medium text-foreground">
+                    Card {item.questionNumberInRound}. {item.questionText}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {[item.itemType, item.difficulty].filter(Boolean).join(" · ") || "Heads Up item"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         {gameMode === "teams" ? (
           teamRows.length ? (
             <div className="space-y-3">
@@ -271,9 +314,11 @@ export default function RoundSummaryCard({
                     <div>
                       <div className="text-sm font-semibold text-foreground">{team.team}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        {isQuickfire || isInfiniteMode
-                          ? `Correct ${fmt(Number(team.correct ?? 0))}/${fmt(Number(team.answered ?? 0))}`
-                          : `Correct ${fmt(Number(team.correct ?? 0))}/${fmt(Number(team.answered ?? 0))} | Joker ${fmt(Number(team.jokerUsed ?? 0))}`}
+                        {isHeadsUp
+                          ? "Live card round. No phone answers or automatic scoring in v1."
+                          : isQuickfire || isInfiniteMode
+                            ? `Correct ${fmt(Number(team.correct ?? 0))}/${fmt(Number(team.answered ?? 0))}`
+                            : `Correct ${fmt(Number(team.correct ?? 0))}/${fmt(Number(team.answered ?? 0))} | Joker ${fmt(Number(team.jokerUsed ?? 0))}`}
                       </div>
                     </div>
 

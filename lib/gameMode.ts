@@ -3,7 +3,10 @@ import { isInfiniteRound, isInfiniteRoundPlan, type EffectiveRoundPlanItem, type
 export type GameStage = "countdown" | "open" | "wait" | "reveal" | "round_summary" | "needs_advance" | string
 
 function normaliseBehaviourType(raw: unknown) {
-  return String(raw ?? "").trim().toLowerCase() === "quickfire" ? "quickfire" : "standard"
+  const value = String(raw ?? "").trim().toLowerCase()
+  if (value === "quickfire") return "quickfire"
+  if (value === "heads_up") return "heads_up"
+  return "standard"
 }
 
 export function getStageStatusText(stage: GameStage, isInfiniteFinalStage = false) {
@@ -74,14 +77,8 @@ export function getInfiniteProgressLabel(currentQuestionNumber: number, totalQue
   const current = Math.max(0, Math.floor(Number(currentQuestionNumber) || 0))
   const total = Math.max(0, Math.floor(Number(totalQuestions) || 0))
 
-  if (phase === "finished") {
-    return `${current} asked`
-  }
-
-  if (total > 0) {
-    return `${current} asked of ${total}`
-  }
-
+  if (phase === "finished") return `${current} asked`
+  if (total > 0) return `${current} asked of ${total}`
   return `${current} asked so far`
 }
 
@@ -114,14 +111,18 @@ export function getRunBadgeLabel(options: {
 
 export function getRoundBehaviourLabel(behaviourType: unknown, options: { isInfiniteMode?: boolean } = {}) {
   if (options.isInfiniteMode) return "Infinite"
-  return normaliseBehaviourType(behaviourType) === "quickfire" ? "Quickfire" : "Standard"
+  const value = normaliseBehaviourType(behaviourType)
+  if (value === "quickfire") return "Quickfire"
+  if (value === "heads_up") return "Heads Up"
+  return "Standard"
 }
 
 export function getRoundBehaviourBadgeClass(behaviourType: unknown, options: { isInfiniteMode?: boolean } = {}) {
   if (options.isInfiniteMode) return "border-sky-500/40 bg-sky-600/10 text-sky-200"
-  return normaliseBehaviourType(behaviourType) === "quickfire"
-    ? "border-violet-500/40 bg-violet-600/10 text-violet-200"
-    : "border-emerald-500/40 bg-emerald-600/10 text-emerald-200"
+  const value = normaliseBehaviourType(behaviourType)
+  if (value === "quickfire") return "border-violet-500/40 bg-violet-600/10 text-violet-200"
+  if (value === "heads_up") return "border-amber-500/40 bg-amber-600/10 text-amber-200"
+  return "border-emerald-500/40 bg-emerald-600/10 text-emerald-200"
 }
 
 export function getRunModeSummaryLabel(options: { isInfiniteMode?: boolean; behaviourType?: unknown }) {

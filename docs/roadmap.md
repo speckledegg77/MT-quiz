@@ -10,7 +10,7 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Next feature candidates
 
-- [ ] Add Heads Up gameplay round behaviour on top of the new separate content model.
+- [x] Add Heads Up gameplay round behaviour on top of the new separate content model, as a manual-round v1 slice.
 - [ ] Add Karaoke round format.
 - [ ] Review remote phone audio autoplay and decide whether the gain is worth the browser pain.
 - [ ] Allow optional late joins after the game has started.

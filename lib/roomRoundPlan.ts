@@ -1,5 +1,5 @@
 export type RoomBuildMode = "legacy_pack_mode" | "manual_rounds" | "auto_rounds" | "quick_random"
-export type RoundBehaviourType = "standard" | "quickfire"
+export type RoundBehaviourType = "standard" | "quickfire" | "heads_up"
 export type RoundSourceMode = "selected_packs" | "specific_packs" | "all_questions"
 
 export type RoundSelectionRules = {
@@ -8,6 +8,7 @@ export type RoundSelectionRules = {
   clueSources?: string[]
   primaryShowKeys?: string[]
   audioClipTypes?: string[]
+  headsUpDifficulties?: string[]
 }
 
 export type RoundPlanItem = {
@@ -41,13 +42,16 @@ export type EffectiveRoundPlanItem = RoundPlanItem & {
 }
 
 export function getDefaultAnswerSecondsForBehaviour(behaviourType: RoundBehaviourType) {
-  return behaviourType === "quickfire" ? 10 : 20
+  if (behaviourType === "quickfire") return 10
+  if (behaviourType === "heads_up") return 45
+  return 20
 }
 
 export function getDefaultRoundReviewSecondsForBehaviour(behaviourType: RoundBehaviourType) {
-  return behaviourType === "quickfire" ? 45 : 30
+  if (behaviourType === "quickfire") return 45
+  if (behaviourType === "heads_up") return 20
+  return 30
 }
-
 
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min
@@ -63,7 +67,6 @@ function cleanOptionalNonNegativeInt(raw: unknown) {
   if (!Number.isFinite(value) || value < 0) return undefined
   return clampInt(value, 0, 120)
 }
-
 
 function normaliseRoundCount(raw: unknown, questionCount: number) {
   const qc = Math.max(1, Math.floor(Number(questionCount ?? 0)) || 1)
@@ -111,6 +114,7 @@ function normaliseSourceMode(raw: unknown): RoundSourceMode {
 function normaliseBehaviourType(raw: unknown): RoundBehaviourType {
   const value = String(raw ?? "").trim().toLowerCase()
   if (value === "quickfire") return "quickfire"
+  if (value === "heads_up") return "heads_up"
   return "standard"
 }
 
@@ -122,6 +126,7 @@ function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
     audioClipTypes: cleanStringArray(value.audioClipTypes),
+    headsUpDifficulties: cleanStringArray(value.headsUpDifficulties),
   }
 }
 
@@ -182,14 +187,15 @@ function normaliseStoredRoundPlan(raw: unknown): RoomRoundPlan | null {
     .map((roundRaw, index) => {
       const round = roundRaw && typeof roundRaw === "object" ? (roundRaw as Record<string, unknown>) : {}
       const questionIds = cleanQuestionIds(round.questionIds)
+      const behaviourType = normaliseBehaviourType(round.behaviourType)
 
       return {
         id: String(round.id ?? `round_${index + 1}`).trim() || `round_${index + 1}`,
         name: String(round.name ?? "").trim() || defaultRoundName(index),
-        behaviourType: normaliseBehaviourType(round.behaviourType),
+        behaviourType,
         questionCount: Math.max(0, Math.floor(Number(round.questionCount ?? questionIds.length ?? 0)) || questionIds.length),
-        jokerEligible: Boolean(round.jokerEligible ?? true),
-        countsTowardsScore: Boolean(round.countsTowardsScore ?? true),
+        jokerEligible: behaviourType === "heads_up" ? false : Boolean(round.jokerEligible ?? true),
+        countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(round.countsTowardsScore ?? true),
         sourceMode: normaliseSourceMode(round.sourceMode),
         packIds: cleanStringArray(round.packIds),
         selectionRules: normaliseSelectionRules(round.selectionRules),
@@ -239,39 +245,35 @@ export function materialiseRoundPlan(plan: RoomRoundPlan): EffectiveRoundPlanIte
   })
 }
 
-export function flattenRoundPlanQuestionIds(plan: RoomRoundPlan) {
-  return plan.rounds.flatMap((round) => round.questionIds)
+export function findRoundForQuestionIndex(questionIndex: number, roundPlan: EffectiveRoundPlanItem[]) {
+  const safeIndex = Math.max(0, Math.floor(Number(questionIndex ?? 0)) || 0)
+  const matched = roundPlan.find((round) => safeIndex >= round.startIndex && safeIndex <= round.endIndex)
+  return matched ?? roundPlan[roundPlan.length - 1]
 }
 
-export function findRoundForQuestionIndex(questionIndex: number, rounds: EffectiveRoundPlanItem[]) {
-  const qi = Math.max(0, Math.floor(Number(questionIndex ?? 0)) || 0)
-  for (const round of rounds) {
-    if (qi >= round.startIndex && qi <= round.endIndex) return round
+export function countJokerEligibleRounds(roundPlan: EffectiveRoundPlanItem[] | RoundPlanItem[]) {
+  return (roundPlan ?? []).filter((round) => round.jokerEligible !== false && round.countsTowardsScore !== false).length
+}
+
+export function isJokerEnabledForRoundPlan(plan: EffectiveRoundPlanItem[] | RoomRoundPlan | null | undefined) {
+  const rounds = Array.isArray(plan) ? plan : plan?.rounds ?? []
+  return countJokerEligibleRounds(rounds as any) > 0
+}
+
+export function getLegacyFieldsFromRoundPlan(plan: RoomRoundPlan) {
+  const roundPlan = materialiseRoundPlan(plan)
+  const question_ids = roundPlan.flatMap((round) => round.questionIds)
+  return {
+    question_ids,
+    round_count: roundPlan.length,
+    round_names: roundPlan.map((round) => round.name),
   }
-  return rounds[0]
 }
 
-
-export function isInfiniteRound(round: Pick<RoundPlanItem, "id"> | Pick<EffectiveRoundPlanItem, "id"> | null | undefined) {
+export function isInfiniteRound(round: Pick<RoundPlanItem, "id"> | null | undefined) {
   return String(round?.id ?? "").trim() === SIMPLE_INFINITE_ROUND_ID
 }
 
 export function isInfiniteRoundPlan(plan: RoomRoundPlan | null | undefined) {
   return Boolean(plan && Array.isArray(plan.rounds) && plan.rounds.length === 1 && isInfiniteRound(plan.rounds[0]))
-}
-
-export function countJokerEligibleRounds(rounds: EffectiveRoundPlanItem[]) {
-  return rounds.filter((round) => round.jokerEligible).length
-}
-
-export function isJokerEnabledForRoundPlan(rounds: EffectiveRoundPlanItem[]) {
-  return countJokerEligibleRounds(rounds) >= 2
-}
-
-export function getLegacyFieldsFromRoundPlan(plan: RoomRoundPlan) {
-  return {
-    round_count: plan.rounds.length,
-    round_names: plan.rounds.map((round) => round.name),
-    question_ids: flattenRoundPlanQuestionIds(plan),
-  }
 }

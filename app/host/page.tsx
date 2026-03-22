@@ -24,6 +24,13 @@ type PackRow = {
   is_active: boolean | null
 }
 
+type HeadsUpPackRow = {
+  id: string
+  name: string
+  description: string
+  is_active: boolean | null
+}
+
 type ShowRow = {
   show_key: string
   display_name: string
@@ -45,7 +52,7 @@ type BuildMode = "manual_rounds" | "quick_random" | "legacy_pack_mode" | "infini
 type SetupMode = "simple" | "advanced"
 type SimpleGameType = "recommended" | "infinite"
 type SimplePresetId = "classic" | "balanced" | "quickfire_mix"
-type RoundBehaviourType = "standard" | "quickfire"
+type RoundBehaviourType = "standard" | "quickfire" | "heads_up"
 type RoundSourceMode = "selected_packs" | "specific_packs" | "all_questions"
 type RoomState = any
 
@@ -111,6 +118,7 @@ type ManualRoundDraft = {
   clueSource: string
   primaryShowKey: string
   audioClipType: string
+  headsUpDifficulty: "" | "easy" | "medium" | "hard"
   useTimingOverride: boolean
   answerSecondsStr: string
   roundReviewSecondsStr: string
@@ -131,6 +139,7 @@ const PROMPT_TARGET_OPTIONS = [
 const ROUND_BEHAVIOUR_OPTIONS: Array<{ value: RoundBehaviourType; label: string }> = [
   { value: "standard", label: "Standard" },
   { value: "quickfire", label: "Quickfire" },
+  { value: "heads_up", label: "Heads Up" },
 ]
 
 const AUDIO_CLIP_TYPE_OPTIONS = [
@@ -143,6 +152,14 @@ const AUDIO_CLIP_TYPE_OPTIONS = [
   { value: "character_voice", label: "character_voice" },
   { value: "sound_effect", label: "sound_effect" },
   { value: "other", label: "other" },
+]
+
+
+const HEADS_UP_DIFFICULTY_OPTIONS = [
+  { value: "", label: "Any difficulty" },
+  { value: "easy", label: "easy" },
+  { value: "medium", label: "medium" },
+  { value: "hard", label: "hard" },
 ]
 
 const CLUE_SOURCE_OPTIONS = [
@@ -214,11 +231,18 @@ function makeRoundId() {
 }
 
 function normaliseManualRoundDraft(draft: ManualRoundDraft): ManualRoundDraft {
-  const behaviourType = draft.behaviourType === "quickfire" ? "quickfire" : "standard"
+  const behaviourType: RoundBehaviourType =
+    draft.behaviourType === "quickfire" ? "quickfire" : draft.behaviourType === "heads_up" ? "heads_up" : "standard"
   return {
     ...draft,
     behaviourType,
-    jokerEligible: behaviourType === "quickfire" ? false : draft.jokerEligible,
+    jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : draft.jokerEligible,
+    countsTowardsScore: behaviourType === "heads_up" ? false : draft.countsTowardsScore,
+    sourceMode: behaviourType === "heads_up" ? "specific_packs" : draft.sourceMode,
+    mediaType: behaviourType === "heads_up" ? "" : draft.mediaType,
+    promptTarget: behaviourType === "heads_up" ? "" : draft.promptTarget,
+    clueSource: behaviourType === "heads_up" ? "" : draft.clueSource,
+    audioClipType: behaviourType === "heads_up" ? "" : draft.audioClipType,
   }
 }
 
@@ -237,6 +261,7 @@ function makeManualRound(index: number): ManualRoundDraft {
     clueSource: "",
     primaryShowKey: "",
     audioClipType: "",
+    headsUpDifficulty: "",
     useTimingOverride: false,
     answerSecondsStr: "",
     roundReviewSecondsStr: "",
@@ -250,6 +275,7 @@ function buildSelectionRulesFromDraft(round: ManualRoundDraft) {
     clueSources: round.clueSource ? [round.clueSource] : [],
     primaryShowKeys: round.primaryShowKey ? [round.primaryShowKey] : [],
     audioClipTypes: round.audioClipType ? [round.audioClipType] : [],
+    headsUpDifficulties: round.behaviourType === "heads_up" && round.headsUpDifficulty ? [round.headsUpDifficulty] : [],
   }
 }
 
@@ -259,8 +285,8 @@ function serialiseManualRoundDraft(round: ManualRoundDraft, index: number) {
     name: round.name.trim() || defaultRoundName(index),
     questionCount: clampInt(parseIntOr(round.questionCountStr, 0), 1, 200),
     behaviourType: round.behaviourType,
-    jokerEligible: round.behaviourType === "quickfire" ? false : round.jokerEligible,
-    countsTowardsScore: round.countsTowardsScore,
+    jokerEligible: round.behaviourType === "quickfire" || round.behaviourType === "heads_up" ? false : round.jokerEligible,
+    countsTowardsScore: round.behaviourType === "heads_up" ? false : round.countsTowardsScore,
     sourceMode: round.sourceMode,
     packIds: round.packIds,
     selectionRules: buildSelectionRulesFromDraft(round),
@@ -284,7 +310,7 @@ function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
   const defaultPackIds = Array.isArray(template.default_pack_ids)
     ? template.default_pack_ids.map((value) => String(value ?? "").trim()).filter(Boolean)
     : []
-  const behaviourType: RoundBehaviourType = String(template.behaviour_type ?? "standard") === "quickfire" ? "quickfire" : "standard"
+  const behaviourType: RoundBehaviourType = String(template.behaviour_type ?? "standard") === "quickfire" ? "quickfire" : String(template.behaviour_type ?? "standard") === "heads_up" ? "heads_up" : "standard"
   const sourceMode: RoundSourceMode =
     String(template.source_mode ?? "selected_packs") === "specific_packs"
       ? "specific_packs"
@@ -297,8 +323,8 @@ function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
     name: String(template.name ?? "").trim() || defaultRoundName(index),
     questionCount: Math.max(1, Number(template.default_question_count ?? 5) || 5),
     behaviourType,
-    jokerEligible: behaviourType === "quickfire" ? false : Boolean(template.joker_eligible ?? true),
-    countsTowardsScore: Boolean(template.counts_towards_score ?? true),
+    jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : Boolean(template.joker_eligible ?? true),
+    countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(template.counts_towards_score ?? true),
     sourceMode,
     packIds: sourceMode === "specific_packs" ? defaultPackIds : [],
     selectionRules: {
@@ -483,13 +509,15 @@ function feasibilityTone(result: FeasibilityRoundResult) {
 }
 
 function roundBehaviourLabel(behaviourType: RoundBehaviourType) {
-  return behaviourType === "quickfire" ? "Quickfire" : "Standard"
+  return behaviourType === "quickfire" ? "Quickfire" : behaviourType === "heads_up" ? "Heads Up" : "Standard"
 }
 
 function roundBehaviourBadgeClass(behaviourType: RoundBehaviourType) {
   return behaviourType === "quickfire"
     ? "border-violet-500/40 bg-violet-600/10 text-violet-200"
-    : "border-emerald-500/40 bg-emerald-600/10 text-emerald-200"
+    : behaviourType === "heads_up"
+      ? "border-amber-500/40 bg-amber-600/10 text-amber-200"
+      : "border-emerald-500/40 bg-emerald-600/10 text-emerald-200"
 }
 
 function roundBehaviourSummary(behaviourType: RoundBehaviourType) {
@@ -522,6 +550,7 @@ function getManualRoundTimingSummary(round: ManualRoundDraft) {
 
 export default function HostPage() {
   const [packs, setPacks] = useState<PackRow[]>([])
+  const [headsUpPacks, setHeadsUpPacks] = useState<HeadsUpPackRow[]>([])
   const [shows, setShows] = useState<ShowRow[]>([])
   const [templates, setTemplates] = useState<RoundTemplateRow[]>([])
   const [packsLoading, setPacksLoading] = useState(true)
@@ -637,12 +666,16 @@ export default function HostPage() {
       setPacksLoading(true)
       setPacksError(null)
 
-      const [packsRes, showsRes, templatesRes] = await Promise.all([
+      const [packsRes, headsUpPacksRes, showsRes, templatesRes] = await Promise.all([
         supabase
           .from("packs")
           .select("id, display_name, round_type, sort_order, is_active")
           .eq("is_active", true)
           .order("sort_order", { ascending: true }),
+        fetch("/api/heads-up/packs", { cache: "no-store" }).then(async (res) => {
+          const json = (await res.json().catch(() => ({}))) as { packs?: HeadsUpPackRow[] }
+          return res.ok ? (json.packs ?? []) : []
+        }).catch(() => [] as HeadsUpPackRow[]),
         supabase.from("shows").select("show_key, display_name, is_active").eq("is_active", true).order("display_name"),
         fetch("/api/round-templates", { cache: "no-store" }).then(async (res) => {
           const json = (await res.json().catch(() => ({}))) as RoundTemplatesResponse
@@ -663,12 +696,14 @@ export default function HostPage() {
         setPacksError(showsRes.error.message)
         setShows([])
         setPacks((packsRes.data ?? []) as PackRow[])
+        setHeadsUpPacks(headsUpPacksRes)
         setTemplates(templatesRes)
         setPacksLoading(false)
         return
       }
 
       setPacks((packsRes.data ?? []) as PackRow[])
+      setHeadsUpPacks(headsUpPacksRes)
       setShows((showsRes.data ?? []) as ShowRow[])
       setTemplates(templatesRes)
       setPacksLoading(false)
@@ -874,7 +909,7 @@ export default function HostPage() {
       : []
 
     const sourceMode = String(template.source_mode ?? "selected_packs") as RoundSourceMode
-    const behaviourType = String(template.behaviour_type ?? "standard") === "quickfire" ? "quickfire" : "standard"
+    const behaviourType: RoundBehaviourType = String(template.behaviour_type ?? "standard") === "quickfire" ? "quickfire" : String(template.behaviour_type ?? "standard") === "heads_up" ? "heads_up" : "standard"
 
     if (sourceMode === "selected_packs" && defaultPackIds.length) {
       setSelectedPacks((prev) => {
@@ -892,8 +927,8 @@ export default function HostPage() {
         name: String(template.name ?? "").trim() || defaultRoundName(prev.length),
         questionCountStr: String(Math.max(1, Number(template.default_question_count ?? 5))),
         behaviourType,
-        jokerEligible: Boolean(template.joker_eligible ?? true),
-        countsTowardsScore: Boolean(template.counts_towards_score ?? true),
+        jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : Boolean(template.joker_eligible ?? true),
+        countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(template.counts_towards_score ?? true),
         sourceMode,
         packIds: sourceMode === "specific_packs" ? defaultPackIds : [],
         mediaType: mediaType === "text" || mediaType === "audio" || mediaType === "image" ? mediaType : "",
@@ -901,6 +936,7 @@ export default function HostPage() {
         clueSource,
         primaryShowKey,
         audioClipType,
+        headsUpDifficulty: "",
         useTimingOverride: false,
         answerSecondsStr: "",
         roundReviewSecondsStr: "",
@@ -2204,7 +2240,7 @@ export default function HostPage() {
                                         ) : null}
                                       </div>
                                       <div className="mt-1 text-xs text-muted-foreground">
-                                        {round.questionCount} question{round.questionCount === 1 ? "" : "s"}. {round.answerSeconds}s answer window, {round.roundReviewSeconds}s round review.
+                                        {round.questionCount} {round.behaviourType === "heads_up" ? `card${round.questionCount === 1 ? "" : "s"}` : `question${round.questionCount === 1 ? "" : "s"}`}. {round.answerSeconds}s answer window, {round.roundReviewSeconds}s round review.
                                       </div>
                                     </div>
                                   ))}
@@ -2401,7 +2437,7 @@ export default function HostPage() {
                               <Input value={round.name} onChange={(e) => updateManualRound(round.id, { name: e.target.value })} placeholder={defaultRoundName(index)} />
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-foreground">Questions</div>
+                              <div className="text-sm font-medium text-foreground">{round.behaviourType === "heads_up" ? "Cards" : "Questions"}</div>
                               <Input value={round.questionCountStr} onChange={(e) => updateManualRound(round.id, { questionCountStr: e.target.value })} inputMode="numeric" />
                             </div>
                             <div>
@@ -2413,31 +2449,40 @@ export default function HostPage() {
                             </div>
                             <div>
                               <div className="text-sm font-medium text-foreground">Source mode</div>
-                              <select value={round.sourceMode} onChange={(e) => updateManualRound(round.id, { sourceMode: e.target.value as RoundSourceMode })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                <option value="selected_packs">Selected packs</option>
-                                <option value="specific_packs">Specific packs</option>
-                                <option value="all_questions">All questions</option>
-                              </select>
+                              {round.behaviourType === "heads_up" ? (
+                                <>
+                                  <div className="mt-1 w-full rounded-xl border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
+                                    Specific Heads Up pack
+                                  </div>
+                                  <div className="mt-1 text-xs text-muted-foreground">Heads Up v1 uses one themed Heads Up pack per round.</div>
+                                </>
+                              ) : (
+                                <select value={round.sourceMode} onChange={(e) => updateManualRound(round.id, { sourceMode: e.target.value as RoundSourceMode })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  <option value="selected_packs">Selected packs</option>
+                                  <option value="specific_packs">Specific packs</option>
+                                  <option value="all_questions">All questions</option>
+                                </select>
+                              )}
                             </div>
                             <div className="space-y-2 pt-6">
                               <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <input type="checkbox" checked={round.jokerEligible} onChange={(e) => updateManualRound(round.id, { jokerEligible: e.target.checked })} disabled={round.behaviourType === "quickfire"} />
+                                <input type="checkbox" checked={round.jokerEligible} onChange={(e) => updateManualRound(round.id, { jokerEligible: e.target.checked })} disabled={round.behaviourType === "quickfire" || round.behaviourType === "heads_up"} />
                                 Joker eligible
                               </label>
                               <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <input type="checkbox" checked={round.countsTowardsScore} onChange={(e) => updateManualRound(round.id, { countsTowardsScore: e.target.checked })} />
+                                <input type="checkbox" checked={round.countsTowardsScore} onChange={(e) => updateManualRound(round.id, { countsTowardsScore: e.target.checked })} disabled={round.behaviourType === "heads_up"} />
                                 Counts towards score
                               </label>
                             </div>
                           </div>
 
-                          {round.behaviourType === "quickfire" ? (
+                          {round.behaviourType === "quickfire" || round.behaviourType === "heads_up" ? (
                             <div className="mt-3 rounded-2xl border border-border bg-background p-3">
                               <div className="flex flex-wrap items-center justify-between gap-3">
                                 <div>
-                                  <div className="text-sm font-medium text-foreground">Quickfire timing override</div>
+                                  <div className="text-sm font-medium text-foreground">Round timing override</div>
                                   <div className="mt-1 text-xs text-muted-foreground">
-                                    Default Quickfire timings are {roundBehaviourTimingText("quickfire")}. Turn this on if your group needs a slower or faster pace.
+                                    Default {roundBehaviourLabel(round.behaviourType)} timings are {roundBehaviourTimingText(round.behaviourType)}. Turn this on if your group needs a slower or faster pace.
                                   </div>
                                 </div>
                                 <label className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -2483,43 +2528,72 @@ export default function HostPage() {
                             </div>
                           ) : null}
 
-                          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                            <div>
-                              <div className="text-sm font-medium text-foreground">media_type</div>
-                              <select value={round.mediaType} onChange={(e) => updateManualRound(round.id, { mediaType: e.target.value as ManualRoundDraft["mediaType"] })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                <option value="">Any media</option>
-                                <option value="text">text</option>
-                                <option value="audio">audio</option>
-                                <option value="image">image</option>
-                              </select>
+                          {round.behaviourType === "heads_up" ? (
+                            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                              <div>
+                                <div className="text-sm font-medium text-foreground">Heads Up pack</div>
+                                <select
+                                  value={round.packIds[0] ?? ""}
+                                  onChange={(e) => updateManualRound(round.id, { packIds: e.target.value ? [e.target.value] : [] })}
+                                  className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
+                                >
+                                  <option value="">Choose one pack</option>
+                                  {headsUpPacks.map((pack) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-foreground">difficulty</div>
+                                <select value={round.headsUpDifficulty} onChange={(e) => updateManualRound(round.id, { headsUpDifficulty: e.target.value as ManualRoundDraft["headsUpDifficulty"] })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  {HEADS_UP_DIFFICULTY_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-foreground">primary_show_key</div>
+                                <select value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  <option value="">Any show</option>
+                                  {shows.map((show) => <option key={show.show_key} value={show.show_key}>{show.display_name}</option>)}
+                                </select>
+                              </div>
                             </div>
-                            <div>
-                              <div className="text-sm font-medium text-foreground">prompt_target</div>
-                              <select value={round.promptTarget} onChange={(e) => updateManualRound(round.id, { promptTarget: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                {PROMPT_TARGET_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
-                              </select>
-                            </div>
-                            <div>
-                              <div className="text-sm font-medium text-foreground">clue_source</div>
-                              <select value={round.clueSource} onChange={(e) => updateManualRound(round.id, { clueSource: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                {CLUE_SOURCE_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
-                              </select>
-                            </div>
-                            <div>
-                              <div className="text-sm font-medium text-foreground">primary_show_key</div>
-                              <select value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                <option value="">Any show</option>
-                                {shows.map((show) => <option key={show.show_key} value={show.show_key}>{show.display_name}</option>)}
-                              </select>
-                            </div>
+                          ) : (
+                            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                              <div>
+                                <div className="text-sm font-medium text-foreground">media_type</div>
+                                <select value={round.mediaType} onChange={(e) => updateManualRound(round.id, { mediaType: e.target.value as ManualRoundDraft["mediaType"] })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  <option value="">Any media</option>
+                                  <option value="text">text</option>
+                                  <option value="audio">audio</option>
+                                  <option value="image">image</option>
+                                </select>
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-foreground">prompt_target</div>
+                                <select value={round.promptTarget} onChange={(e) => updateManualRound(round.id, { promptTarget: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  {PROMPT_TARGET_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-foreground">clue_source</div>
+                                <select value={round.clueSource} onChange={(e) => updateManualRound(round.id, { clueSource: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  {CLUE_SOURCE_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-foreground">primary_show_key</div>
+                                <select value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  <option value="">Any show</option>
+                                  {shows.map((show) => <option key={show.show_key} value={show.show_key}>{show.display_name}</option>)}
+                                </select>
+                              </div>
 
-                            <div>
-                              <div className="text-sm font-medium text-foreground">audio_clip_type</div>
-                              <select value={round.audioClipType} onChange={(e) => updateManualRound(round.id, { audioClipType: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" disabled={round.mediaType !== "audio"}>
-                                {AUDIO_CLIP_TYPE_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
-                              </select>
+                              <div>
+                                <div className="text-sm font-medium text-foreground">audio_clip_type</div>
+                                <select value={round.audioClipType} onChange={(e) => updateManualRound(round.id, { audioClipType: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" disabled={round.mediaType !== "audio"}>
+                                  {AUDIO_CLIP_TYPE_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
+                                </select>
+                              </div>
                             </div>
-                          </div>
+                          )}
 
                           {(() => {
                             const feasibility = manualFeasibilityById.get(round.id)
@@ -2556,13 +2630,15 @@ export default function HostPage() {
                             )
                           })()}
 
-                          {round.behaviourType === "quickfire" ? (
+                          {round.behaviourType === "quickfire" || round.behaviourType === "heads_up" ? (
                             <div className="mt-3 rounded-xl border border-violet-500/30 bg-violet-600/10 px-3 py-2 text-xs text-muted-foreground">
                               Quickfire question pool: MCQ only. Audio is allowed when media_duration_ms is set and the clip is 5 seconds or shorter. Audio and typed answers are excluded automatically.
                             </div>
                           ) : null}
 
-                          {round.sourceMode === "selected_packs" ? (
+                          {round.behaviourType === "heads_up" ? (
+                            <div className="mt-3 text-xs text-muted-foreground">Heads Up rounds ignore the main question pack panel and use the Heads Up pack chosen above.</div>
+                          ) : round.sourceMode === "selected_packs" ? (
                             <div className="mt-3 text-xs text-muted-foreground">This round uses the packs selected in the pack panel on the right.</div>
                           ) : round.sourceMode === "all_questions" ? (
                             <div className="mt-3 text-xs text-muted-foreground">This round can draw from any question linked to an active pack.</div>

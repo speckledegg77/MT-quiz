@@ -172,6 +172,7 @@ export default function DisplayPage() {
   const finished = state.phase === "finished";
   const currentRound = state?.rounds?.current ?? null;
   const isQuickfireRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "quickfire";
+  const isHeadsUpRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "heads_up";
   const progressLabel = String(state?.progress?.label ?? "");
   const questionNumber = Number(state.questionIndex ?? 0) + 1;
   const questionCount = Number(state.questionCount ?? 0);
@@ -285,10 +286,15 @@ export default function DisplayPage() {
             <Card>
               <CardHeader>
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <CardTitle>Question</CardTitle>
+                  <CardTitle>{isHeadsUpRound ? "Card" : "Question"}</CardTitle>
                   {isQuickfireRound ? (
                     <span className="rounded-full border border-violet-500/40 bg-violet-600/10 px-3 py-1 text-sm text-violet-200">
                       Quickfire
+                    </span>
+                  ) : null}
+                  {isHeadsUpRound ? (
+                    <span className="rounded-full border border-amber-500/40 bg-amber-600/10 px-3 py-1 text-sm text-amber-200">
+                      Heads Up
                     </span>
                   ) : null}
                 </div>
@@ -306,6 +312,15 @@ export default function DisplayPage() {
                     <div className="mt-1 text-muted-foreground">
                       No reveal appears after each question. The round review at the end shows the answer, who got it
                       right, and who was fastest.
+                    </div>
+                  </div>
+                ) : null}
+
+                {isHeadsUpRound ? (
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-4 py-3 text-sm">
+                    <div className="font-medium text-foreground">Heads Up card</div>
+                    <div className="mt-1 text-muted-foreground">
+                      This round uses live card prompts only. There are no phone answers or reveal screens in v1.
                     </div>
                   </div>
                 ) : null}
@@ -360,7 +375,9 @@ export default function DisplayPage() {
                   </div>
                 ) : null}
 
-                {isTextQ ? (
+                {isHeadsUpRound ? (
+                  <div className="text-sm text-muted-foreground">Run the clueing in the room, then let the timer move to the next card.</div>
+                ) : isTextQ ? (
                   <div className="text-sm text-muted-foreground">Players type their answer on their phones.</div>
                 ) : null}
 

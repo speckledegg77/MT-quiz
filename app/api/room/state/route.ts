@@ -15,7 +15,7 @@ import { getQuestionById } from "@/lib/questionBank"
 import { getGameProgressLabel, isInfiniteModeFromRound, isInfiniteModeFromRoundPlan } from "@/lib/gameMode"
 import { shuffleMcqForRoom } from "@/lib/mcqShuffle"
 import { applyQuickfireFastestBonus, buildQuickfireRoundReview } from "@/lib/quickfire"
-import { getConfiguredAnswerSecondsForRound, getEffectiveRoundReviewSecondsForRound, isQuickfireRound, stageFromTimes } from "@/lib/roundFlow"
+import { getConfiguredAnswerSecondsForRound, getEffectiveRoundReviewSecondsForRound, isHeadsUpRound, isQuickfireRound, stageFromTimes } from "@/lib/roundFlow"
 
 type TeamPlayerRow = {
   id: string
@@ -320,7 +320,9 @@ async function buildFinalResults(
           ? Number.isFinite(Number(question.answerIndex))
             ? String(question.options[Number(question.answerIndex)] ?? "").trim()
             : ""
-          : String(question.answerText ?? question.acceptedAnswers?.[0] ?? "").trim()
+          : question.answerType === "none"
+            ? String(question.text ?? "").trim()
+            : String(question.answerText ?? question.acceptedAnswers?.[0] ?? "").trim()
         : ""
 
       return {
@@ -564,9 +566,10 @@ export async function GET(req: Request) {
         options,
         audioUrl: question.audioPath ? `/api/audio?path=${encodeURIComponent(question.audioPath)}` : null,
         imageUrl: question.imagePath ? `/api/image?path=${encodeURIComponent(question.imagePath)}` : null,
+        meta: question.meta ?? null,
       }
 
-      if (stage === "reveal") {
+      if (stage === "reveal" && !isHeadsUpRound(currentRound)) {
         revealData = {
           answerType: question.answerType,
           answerIndex: question.answerType === "mcq" ? revealAnswerIndex : null,
@@ -629,6 +632,24 @@ export async function GET(req: Request) {
           name: String(player?.name ?? "").trim() || "Player",
         })),
       }),
+    }
+  } else if (stage === "round_summary" && isHeadsUpRound(currentRound)) {
+    const items = await Promise.all(
+      currentRound.questionIds.map(async (questionId: string, index: number) => {
+        const question = await getQuestionById(String(questionId ?? ""))
+        return {
+          questionId: String(questionId ?? ""),
+          questionNumberInRound: index + 1,
+          questionText: question?.text?.trim() || `Card ${index + 1}`,
+          itemType: String(question?.meta?.itemType ?? "").trim() || null,
+          difficulty: String(question?.meta?.difficulty ?? "").trim() || null,
+        }
+      })
+    )
+
+    roundReview = {
+      behaviourType: currentRound.behaviourType,
+      items,
     }
   }
 

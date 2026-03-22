@@ -18,6 +18,7 @@ export const HEADS_UP_PERSON_ROLE_VALUES = [
 ] as const
 
 export const HEADS_UP_DIFFICULTY_VALUES = ["easy", "medium", "hard"] as const
+export const HEADS_UP_SYNTHETIC_ID_PREFIX = "heads_up_item:"
 
 export type HeadsUpItemType = (typeof HEADS_UP_ITEM_TYPE_VALUES)[number]
 export type HeadsUpPersonRole = (typeof HEADS_UP_PERSON_ROLE_VALUES)[number]
@@ -65,4 +66,20 @@ export function buildHeadsUpNaturalKey(params: {
     String(params.primaryShowKey ?? "").trim().toLowerCase(),
     normaliseHeadsUpAnswerText(params.answerText),
   ].join("::")
+}
+
+export function buildHeadsUpSyntheticQuestionId(itemId: string | null | undefined) {
+  const safeItemId = String(itemId ?? "").trim()
+  return safeItemId ? `${HEADS_UP_SYNTHETIC_ID_PREFIX}${safeItemId}` : ""
+}
+
+export function parseHeadsUpSyntheticQuestionId(questionId: string | null | undefined) {
+  const value = String(questionId ?? "").trim()
+  if (!value.startsWith(HEADS_UP_SYNTHETIC_ID_PREFIX)) return null
+  const itemId = value.slice(HEADS_UP_SYNTHETIC_ID_PREFIX.length).trim()
+  return itemId || null
+}
+
+export function isHeadsUpSyntheticQuestionId(questionId: string | null | undefined) {
+  return Boolean(parseHeadsUpSyntheticQuestionId(questionId))
 }

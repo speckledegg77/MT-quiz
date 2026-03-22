@@ -172,15 +172,19 @@ export default function PlayerPage() {
     : null
   const revealAnswerText = String(state?.reveal?.answerText ?? "").trim()
   const inReveal = String(state?.stage ?? "") === "reveal" && Boolean(state?.reveal)
+  const currentRound = state?.rounds?.current ?? null
+  const isQuickfireRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "quickfire"
+  const isHeadsUpRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
 
   const canAnswer = useMemo(() => {
     if (state?.phase !== "running") return false
     if (state?.stage !== "open") return false
     if (!q?.id) return false
 
+    if (isHeadsUpRound || answerType === "none") return false
     if (answerType === "text") return !typedSubmitted
     return submittedIndex === null && !mcqSubmitting
-  }, [state?.phase, state?.stage, q?.id, answerType, typedSubmitted, submittedIndex, mcqSubmitting])
+  }, [state?.phase, state?.stage, q?.id, answerType, typedSubmitted, submittedIndex, mcqSubmitting, isHeadsUpRound])
 
   const players = useMemo(() => {
     return Array.isArray(state?.players) ? state.players : []
@@ -228,8 +232,6 @@ export default function PlayerPage() {
     return jokerEligibleCount >= 2
   }, [state?.rounds?.jokerEnabled, jokerEligibleCount])
 
-  const currentRound = state?.rounds?.current ?? null
-  const isQuickfireRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "quickfire"
   const isUntimedAnswers = Boolean(state?.settings?.untimedAnswers)
 
   const actualCloseAtMs = state?.times?.closeAt ? Date.parse(String(state.times.closeAt)) : null
@@ -694,6 +696,7 @@ export default function PlayerPage() {
   let timerLabel = getAnswerWindowLabel({
     isUntimedAnswers,
     isQuickfire: isQuickfireRound,
+    isHeadsUp: isHeadsUpRound,
   })
   let timerValue = isUntimedAnswers ? "No timer" : formatDuration(secondsRemaining)
 
@@ -706,7 +709,9 @@ export default function PlayerPage() {
       ? correctIndex !== null && Array.isArray(q?.options)
         ? String(q.options[correctIndex] ?? "")
         : revealAnswerText
-      : revealAnswerText
+      : answerType === "none"
+        ? String(q?.text ?? "")
+        : revealAnswerText
 
   return (
     <PageShell width="narrow">
@@ -923,9 +928,9 @@ export default function PlayerPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between gap-3">
-                <CardTitle>Question</CardTitle>
+                <CardTitle>{isHeadsUpRound ? "Card" : "Question"}</CardTitle>
                 <div className="text-sm text-muted-foreground">
-                  {q.roundType === "audio" ? "Audio" : q.roundType === "picture" ? "Picture" : "General"}
+                  {q.roundType === "audio" ? "Audio" : q.roundType === "picture" ? "Picture" : q.roundType === "heads_up" ? "Heads Up" : "General"}
                 </div>
               </div>
             </CardHeader>
@@ -943,6 +948,15 @@ export default function PlayerPage() {
                   <div className="mt-1 text-muted-foreground">
                     Answer fast. There is no reveal after this question. The end-of-round review will show the answer,
                     who got it right, and who was fastest.
+                  </div>
+                </div>
+              ) : null}
+
+              {isHeadsUpRound ? (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-3 py-3 text-sm">
+                  <div className="font-medium text-foreground">Heads Up round</div>
+                  <div className="mt-1 text-muted-foreground">
+                    No phone answers are needed in Heads Up v1. Follow the host and display for the live card flow.
                   </div>
                 </div>
               ) : null}
@@ -988,7 +1002,11 @@ export default function PlayerPage() {
                 </div>
               ) : null}
 
-              {isTextQ ? (
+              {isHeadsUpRound ? (
+                <div className="rounded-xl border border-border bg-muted px-3 py-3 text-sm text-muted-foreground">
+                  Heads Up cards run without phone answers in v1. Watch the timer and wait for the next card or the end-of-round review.
+                </div>
+              ) : isTextQ ? (
                 <div className="grid gap-2">
                   <Input
                     value={typedValue}

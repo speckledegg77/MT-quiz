@@ -68,6 +68,7 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Heads Up items can belong to more than one Heads Up pack. Pack membership should stay many-to-many.
 - People-based Heads Up items should use `person_roles` as a multi-select field rather than one fixed role.
 - One logical Heads Up item is unique by normalised `answer_text`, `item_type`, and `primary_show_key`.
+- Heads Up v1 gameplay starts as a manual-round option only, using one Heads Up pack per round, with no phone answers and no automatic scoring.
 
 ## UI and code conventions
 

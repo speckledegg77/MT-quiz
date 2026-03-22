@@ -26,6 +26,7 @@ import {
   type ManualRoundDraftInput,
   type QuestionCandidate,
 } from "../../../../lib/manualRoundPlanBuilder"
+import { buildHeadsUpSyntheticQuestionId, cleanHeadsUpDifficulty } from "../../../../lib/headsUp"
 import { normaliseMediaDurationMs } from "../../../../lib/quickfireEligibility"
 
 type LegacyRoundRequest = { packId: string; count: number }
@@ -115,6 +116,7 @@ function cleanSelectionRules(raw: unknown): RoundSelectionRules {
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
     audioClipTypes: cleanStringArray(value.audioClipTypes),
+    headsUpDifficulties: cleanStringArray(value.headsUpDifficulties),
   }
 }
 
@@ -128,6 +130,7 @@ function cleanSourceMode(raw: unknown): RoundSourceMode {
 function cleanBehaviourType(raw: unknown): RoundBehaviourType {
   const value = String(raw ?? "").trim().toLowerCase()
   if (value === "quickfire") return "quickfire"
+  if (value === "heads_up") return "heads_up"
   return "standard"
 }
 
@@ -184,8 +187,8 @@ function mapTemplateToManualRound(template: any, index: number): ManualRoundDraf
     name: String(template?.name ?? "").trim() || `Round ${index + 1}`,
     questionCount: Math.max(1, cleanNumber(template?.default_question_count, 5)),
     behaviourType,
-    jokerEligible: behaviourType === "quickfire" ? false : cleanBoolean(template?.joker_eligible, true),
-    countsTowardsScore: cleanBoolean(template?.counts_towards_score, true),
+    jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : cleanBoolean(template?.joker_eligible, true),
+    countsTowardsScore: behaviourType === "heads_up" ? false : cleanBoolean(template?.counts_towards_score, true),
     sourceMode: cleanSourceMode(template?.source_mode),
     packIds: cleanSourceMode(template?.source_mode) === "specific_packs" ? defaultPackIds : [],
     selectionRules: cleanSelectionRules(template?.selection_rules),
@@ -196,11 +199,14 @@ function mapTemplateToManualRound(template: any, index: number): ManualRoundDraf
   }
 }
 
-async function loadQuestionPoolForManualRounds(params: {
+async function loadCandidatePoolForManualRounds(params: {
   selectedPackIds: string[]
   manualRounds: ManualRoundDraftInput[]
 }) {
-  const needsAllQuestions = params.manualRounds.some((round) => round.sourceMode === "all_questions")
+  const questionRounds = params.manualRounds.filter((round) => round.behaviourType !== "heads_up")
+  const headsUpRounds = params.manualRounds.filter((round) => round.behaviourType === "heads_up")
+
+  const needsAllQuestions = questionRounds.some((round) => round.sourceMode === "all_questions")
   let allActivePackIds: string[] = []
 
   if (needsAllQuestions) {
@@ -209,60 +215,98 @@ async function loadQuestionPoolForManualRounds(params: {
     allActivePackIds = cleanStringArray((packsRes.data ?? []).map((row: any) => row.id))
   }
 
-  const specificPackIds = params.manualRounds.flatMap((round) => cleanStringArray(round.packIds))
-  const scopePackIds = [...new Set([...params.selectedPackIds, ...specificPackIds, ...allActivePackIds])]
+  const specificQuestionPackIds = questionRounds.flatMap((round) => cleanStringArray(round.packIds))
+  const scopeQuestionPackIds = [...new Set([...params.selectedPackIds, ...specificQuestionPackIds, ...allActivePackIds])]
+  const specificHeadsUpPackIds = [...new Set(headsUpRounds.flatMap((round) => cleanStringArray(round.packIds)))]
 
-  if (scopePackIds.length === 0) {
+  if (scopeQuestionPackIds.length === 0 && specificHeadsUpPackIds.length === 0) {
     throw new Error("Manual rounds need selected packs, specific packs, or all active packs.")
   }
 
-  const linksRes = await supabaseAdmin
-    .from("pack_questions")
-    .select(
-      "pack_id, question_id, questions(round_type, answer_type, media_type, prompt_target, clue_source, primary_show_key, media_duration_ms, audio_clip_type)"
-    )
-    .in("pack_id", scopePackIds)
-
-  if (linksRes.error) throw new Error(linksRes.error.message)
-
   const candidatesById = new Map<string, QuestionCandidate>()
 
-  for (const row of (linksRes.data ?? []) as any[]) {
-    const packId = String(row.pack_id ?? "").trim()
-    const questionId = String(row.question_id ?? "").trim()
-    if (!packId || !questionId) continue
+  if (scopeQuestionPackIds.length > 0) {
+    const linksRes = await supabaseAdmin
+      .from("pack_questions")
+      .select(
+        "pack_id, question_id, questions(round_type, answer_type, media_type, prompt_target, clue_source, primary_show_key, media_duration_ms, audio_clip_type)"
+      )
+      .in("pack_id", scopeQuestionPackIds)
 
-    const question = row.questions ?? {}
-    const legacyRoundType: "general" | "audio" | "picture" =
-      question.round_type === "audio" ? "audio" : question.round_type === "picture" ? "picture" : "general"
+    if (linksRes.error) throw new Error(linksRes.error.message)
 
-    const existing = candidatesById.get(questionId)
-    if (existing) {
-      if (!existing.packIds.includes(packId)) existing.packIds.push(packId)
-      continue
-    }
+    for (const row of (linksRes.data ?? []) as any[]) {
+      const packId = String(row.pack_id ?? "").trim()
+      const questionId = String(row.question_id ?? "").trim()
+      if (!packId || !questionId) continue
 
-    candidatesById.set(questionId, {
-      id: questionId,
-      legacyRoundType,
-      answerType: question.answer_type === "text" ? "text" : "mcq",
-      mediaType: deriveMediaType({
-        mediaType: question.media_type ?? null,
+      const question = row.questions ?? {}
+      const legacyRoundType: "general" | "audio" | "picture" =
+        question.round_type === "audio" ? "audio" : question.round_type === "picture" ? "picture" : "general"
+
+      const existing = candidatesById.get(questionId)
+      if (existing) {
+        if (!existing.packIds.includes(packId)) existing.packIds.push(packId)
+        continue
+      }
+
+      candidatesById.set(questionId, {
+        id: questionId,
+        kind: "question",
         legacyRoundType,
-      }),
-      promptTarget: question.prompt_target ? String(question.prompt_target) : null,
-      clueSource: question.clue_source ? String(question.clue_source) : null,
-      primaryShowKey: question.primary_show_key ? String(question.primary_show_key) : null,
-      mediaDurationMs: normaliseMediaDurationMs(question.media_duration_ms),
-      audioClipType: question.audio_clip_type ? String(question.audio_clip_type) : null,
-      packIds: [packId],
-    })
+        answerType: question.answer_type === "text" ? "text" : "mcq",
+        mediaType: deriveMediaType({ mediaType: question.media_type ?? null, legacyRoundType }),
+        promptTarget: question.prompt_target ? String(question.prompt_target) : null,
+        clueSource: question.clue_source ? String(question.clue_source) : null,
+        primaryShowKey: question.primary_show_key ? String(question.primary_show_key) : null,
+        mediaDurationMs: normaliseMediaDurationMs(question.media_duration_ms),
+        audioClipType: question.audio_clip_type ? String(question.audio_clip_type) : null,
+        packIds: [packId],
+      })
+    }
+  }
+
+  if (specificHeadsUpPackIds.length > 0) {
+    const headsUpLinksRes = await supabaseAdmin
+      .from("heads_up_pack_items")
+      .select("pack_id, item_id, heads_up_items(id, difficulty, primary_show_key, is_active)")
+      .in("pack_id", specificHeadsUpPackIds)
+
+    if (headsUpLinksRes.error) throw new Error(headsUpLinksRes.error.message)
+
+    for (const row of (headsUpLinksRes.data ?? []) as any[]) {
+      const packId = String(row.pack_id ?? "").trim()
+      const itemId = String(row.item_id ?? "").trim()
+      const itemRaw = Array.isArray(row.heads_up_items) ? row.heads_up_items[0] : row.heads_up_items
+      if (!packId || !itemId || !itemRaw || itemRaw.is_active === false) continue
+
+      const syntheticId = buildHeadsUpSyntheticQuestionId(itemId)
+      const existing = candidatesById.get(syntheticId)
+      if (existing) {
+        if (!existing.packIds.includes(packId)) existing.packIds.push(packId)
+        continue
+      }
+
+      candidatesById.set(syntheticId, {
+        id: syntheticId,
+        kind: "heads_up",
+        legacyRoundType: "general",
+        answerType: "text",
+        mediaType: "text",
+        promptTarget: null,
+        clueSource: null,
+        primaryShowKey: itemRaw.primary_show_key ? String(itemRaw.primary_show_key) : null,
+        mediaDurationMs: null,
+        audioClipType: null,
+        packIds: [packId],
+        headsUpDifficulty: cleanHeadsUpDifficulty(String(itemRaw.difficulty ?? "medium")),
+      })
+    }
   }
 
   return {
     allActivePackIds,
     candidates: [...candidatesById.values()],
-    scopePackIds,
   }
 }
 
@@ -331,7 +375,7 @@ export async function POST(req: Request) {
   try {
     if (buildMode === "manual_rounds") {
       const manualRounds = cleanManualRounds(body.manualRounds)
-      const { allActivePackIds, candidates } = await loadQuestionPoolForManualRounds({
+      const { allActivePackIds, candidates } = await loadCandidatePoolForManualRounds({
         selectedPackIds: selectedPacks,
         manualRounds,
       })
@@ -386,7 +430,7 @@ export async function POST(req: Request) {
         const chosenTemplates = shuffledTemplates.slice(0, roundCount)
         const quickRandomRounds = chosenTemplates.map((template, index) => mapTemplateToManualRound(template, index))
 
-        const { allActivePackIds, candidates } = await loadQuestionPoolForManualRounds({
+        const { allActivePackIds, candidates } = await loadCandidatePoolForManualRounds({
           selectedPackIds: packIds,
           manualRounds: quickRandomRounds,
         })

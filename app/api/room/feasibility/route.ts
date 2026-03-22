@@ -7,7 +7,9 @@ import {
   evaluateRoundsFeasibility,
   type RoundFeasibilityInput,
 } from "@/lib/roundFeasibility"
+import type { QuestionCandidate } from "@/lib/manualRoundPlanBuilder"
 import type { RoundSelectionRules } from "@/lib/roomRoundPlan"
+import { buildHeadsUpSyntheticQuestionId, cleanHeadsUpDifficulty } from "@/lib/headsUp"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 function cleanStringArray(raw: unknown) {
@@ -29,6 +31,7 @@ function cleanSelectionRules(raw: unknown): RoundSelectionRules {
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
     audioClipTypes: cleanStringArray(value.audioClipTypes),
+    headsUpDifficulties: cleanStringArray(value.headsUpDifficulties),
   }
 }
 
@@ -36,12 +39,12 @@ function cleanRounds(raw: unknown): RoundFeasibilityInput[] {
   if (!Array.isArray(raw)) return []
   return raw.map((value, index) => {
     const item = value && typeof value === "object" ? (value as Record<string, unknown>) : {}
+    const behaviourRaw = String(item.behaviourType ?? "standard").trim().toLowerCase()
     return {
       id: String(item.id ?? `round_${index + 1}`).trim() || `round_${index + 1}`,
       name: String(item.name ?? "").trim(),
       questionCount: Math.max(0, Math.floor(Number(item.questionCount ?? 0)) || 0),
-      behaviourType:
-        String(item.behaviourType ?? "standard").trim().toLowerCase() === "quickfire" ? "quickfire" : "standard",
+      behaviourType: behaviourRaw === "quickfire" ? "quickfire" : behaviourRaw === "heads_up" ? "heads_up" : "standard",
       sourceMode:
         String(item.sourceMode ?? "selected_packs").trim().toLowerCase() === "specific_packs"
           ? "specific_packs"
@@ -54,6 +57,36 @@ function cleanRounds(raw: unknown): RoundFeasibilityInput[] {
   })
 }
 
+function buildHeadsUpCandidatesFromPackRows(rows: Array<Record<string, unknown>>): QuestionCandidate[] {
+  const candidatesById = new Map<string, QuestionCandidate>()
+  for (const row of rows) {
+    const packId = String(row?.pack_id ?? "").trim()
+    const itemId = String(row?.item_id ?? "").trim()
+    if (!packId || !itemId) continue
+    const item = (row?.heads_up_items ?? {}) as Record<string, unknown>
+    const existing = candidatesById.get(itemId)
+    if (existing) {
+      if (!existing.packIds.includes(packId)) existing.packIds.push(packId)
+      continue
+    }
+    candidatesById.set(itemId, {
+      id: buildHeadsUpSyntheticQuestionId(itemId),
+      kind: "heads_up",
+      legacyRoundType: "general",
+      answerType: "text",
+      mediaType: "text",
+      promptTarget: null,
+      clueSource: null,
+      primaryShowKey: item.primary_show_key ? String(item.primary_show_key) : null,
+      mediaDurationMs: null,
+      audioClipType: null,
+      packIds: [packId],
+      headsUpDifficulty: cleanHeadsUpDifficulty(String(item.difficulty ?? "medium")),
+    })
+  }
+  return [...candidatesById.values()]
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}))
@@ -63,59 +96,70 @@ export async function POST(req: Request) {
     const templateRounds = cleanRounds(body.templateRounds)
     const allRounds = [...manualRounds, ...templateRounds]
 
-    const needsAllQuestions = allRounds.some((round) => round.sourceMode === "all_questions")
+    const questionRounds = allRounds.filter((round) => round.behaviourType !== "heads_up")
+    const headsUpRounds = allRounds.filter((round) => round.behaviourType === "heads_up")
+
+    const needsAllQuestions = questionRounds.some((round) => round.sourceMode === "all_questions")
     let allActivePackIds: string[] = []
 
     if (needsAllQuestions) {
       const packsRes = await supabaseAdmin.from("packs").select("id").eq("is_active", true)
-      if (packsRes.error) {
-        return NextResponse.json({ error: packsRes.error.message }, { status: 500 })
-      }
+      if (packsRes.error) return NextResponse.json({ error: packsRes.error.message }, { status: 500 })
       allActivePackIds = cleanStringArray((packsRes.data ?? []).map((row: { id?: string | null }) => row.id))
     }
 
-    const specificPackIds = [...new Set(allRounds.flatMap((round) => cleanStringArray(round.packIds)))]
-    const scopePackIds = [...new Set([...selectedPackIds, ...specificPackIds, ...allActivePackIds])]
+    const specificQuestionPackIds = [...new Set(questionRounds.flatMap((round) => cleanStringArray(round.packIds)))]
+    const scopeQuestionPackIds = [...new Set([...selectedPackIds, ...specificQuestionPackIds, ...allActivePackIds])]
 
-    let candidates = [] as ReturnType<typeof buildQuestionCandidatesFromPackRows>
+    const specificHeadsUpPackIds = [...new Set(headsUpRounds.flatMap((round) => cleanStringArray(round.packIds)))]
 
-    if (scopePackIds.length > 0) {
+    let candidates: QuestionCandidate[] = []
+
+    if (scopeQuestionPackIds.length > 0) {
       const linksRes = await supabaseAdmin
         .from("pack_questions")
         .select(
           "pack_id, question_id, questions(round_type, answer_type, media_type, prompt_target, clue_source, primary_show_key, media_duration_ms, audio_clip_type)"
         )
-        .in("pack_id", scopePackIds)
+        .in("pack_id", scopeQuestionPackIds)
 
-      if (linksRes.error) {
-        return NextResponse.json({ error: linksRes.error.message }, { status: 500 })
-      }
+      if (linksRes.error) return NextResponse.json({ error: linksRes.error.message }, { status: 500 })
+      candidates = candidates.concat(buildQuestionCandidatesFromPackRows((linksRes.data ?? []) as Array<Record<string, unknown>>))
+    }
 
-      candidates = buildQuestionCandidatesFromPackRows((linksRes.data ?? []) as Array<Record<string, unknown>>)
+    if (specificHeadsUpPackIds.length > 0) {
+      const headsUpLinksRes = await supabaseAdmin
+        .from("heads_up_pack_items")
+        .select("pack_id, item_id, heads_up_items(id, difficulty, primary_show_key, is_active)")
+        .in("pack_id", specificHeadsUpPackIds)
+
+      if (headsUpLinksRes.error) return NextResponse.json({ error: headsUpLinksRes.error.message }, { status: 500 })
+
+      const activeRows = ((headsUpLinksRes.data ?? []) as Array<Record<string, unknown>>).filter((row) => {
+        const item = row?.heads_up_items
+        const value = Array.isArray(item) ? item[0] : item
+        return Boolean(value && (value as Record<string, unknown>).is_active !== false)
+      }).map((row) => {
+        const item = row?.heads_up_items
+        const value = Array.isArray(item) ? item[0] : item
+        return { ...row, heads_up_items: value } as Record<string, unknown>
+      })
+
+      candidates = candidates.concat(buildHeadsUpCandidatesFromPackRows(activeRows))
     }
 
     const manual = manualRounds.length
-      ? evaluateRoundsFeasibility({
-          roundsInput: manualRounds,
-          selectedPackIds,
-          allPackIds: allActivePackIds,
-          candidates,
-        })
+      ? evaluateRoundsFeasibility({ roundsInput: manualRounds, selectedPackIds, allPackIds: allActivePackIds, candidates })
       : null
 
     const templates = templateRounds.length
-      ? evaluateRoundsFeasibility({
-          roundsInput: templateRounds,
-          selectedPackIds,
-          allPackIds: allActivePackIds,
-          candidates,
-        })
+      ? evaluateRoundsFeasibility({ roundsInput: templateRounds, selectedPackIds, allPackIds: allActivePackIds, candidates })
       : null
 
     return NextResponse.json({
       ok: true,
       candidateCount: candidates.length,
-      scopePackCount: scopePackIds.length,
+      scopePackCount: scopeQuestionPackIds.length + specificHeadsUpPackIds.length,
       manual,
       templates,
     })

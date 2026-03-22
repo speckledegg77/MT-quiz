@@ -6,7 +6,7 @@ import { getQuestionById } from "../../../../lib/questionBank"
 import { shuffleMcqForRoom } from "../../../../lib/mcqShuffle"
 import { findRoundForQuestionIndex, getEffectiveRoomRoundPlan, materialiseRoundPlan } from "../../../../lib/roomRoundPlan"
 import { applyQuickfireFastestBonus } from "../../../../lib/quickfire"
-import { buildPostCloseTimes, getScoreDeltaForRound, isJokerActiveForRound, isQuickfireRound } from "../../../../lib/roundFlow"
+import { buildPostCloseTimes, getScoreDeltaForRound, isHeadsUpRound, isJokerActiveForRound, isQuickfireRound } from "../../../../lib/roundFlow"
 
 function addSeconds(date: Date, seconds: number) {
   return new Date(date.getTime() + seconds * 1000)
@@ -262,6 +262,9 @@ export async function POST(req: Request) {
 
   const effectiveRoundPlan = materialiseRoundPlan(getEffectiveRoomRoundPlan(room))
   const currentRound = findRoundForQuestionIndex(Number(room.question_index ?? 0), effectiveRoundPlan)
+  if (isHeadsUpRound(currentRound) || q.answerType === "none") {
+    return NextResponse.json({ accepted: false, reason: "heads_up_round" })
+  }
   const roundIdx = currentRound.index
   const jokerActive = isJokerActiveForRound({
     playerJokerRoundIndex: playerRes.data.joker_round_index,

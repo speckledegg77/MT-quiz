@@ -1,4 +1,12 @@
-import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour, type RoomRoundPlan, type RoundBehaviourType, type RoundPlanItem, type RoundSelectionRules, type RoundSourceMode } from "@/lib/roomRoundPlan"
+import {
+  getDefaultAnswerSecondsForBehaviour,
+  getDefaultRoundReviewSecondsForBehaviour,
+  type RoomRoundPlan,
+  type RoundBehaviourType,
+  type RoundPlanItem,
+  type RoundSelectionRules,
+  type RoundSourceMode,
+} from "@/lib/roomRoundPlan"
 import { isQuickfireBehaviour } from "@/lib/roundFlow"
 import { isQuickfireEligibleItem, normaliseMediaDurationMs } from "@/lib/quickfireEligibility"
 
@@ -18,6 +26,7 @@ export type ManualRoundDraftInput = {
 
 export type QuestionCandidate = {
   id: string
+  kind: "question" | "heads_up"
   legacyRoundType: "general" | "audio" | "picture"
   answerType: "mcq" | "text"
   mediaType: "text" | "audio" | "image"
@@ -27,6 +36,7 @@ export type QuestionCandidate = {
   mediaDurationMs: number | null
   audioClipType: string | null
   packIds: string[]
+  headsUpDifficulty?: string | null
 }
 
 function shuffleInPlace<T>(items: T[]) {
@@ -57,6 +67,7 @@ function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
     audioClipTypes: cleanStringArray(value.audioClipTypes),
+    headsUpDifficulties: cleanStringArray(value.headsUpDifficulties),
   }
 }
 
@@ -67,8 +78,9 @@ function normaliseSourceMode(raw: unknown): RoundSourceMode {
   return "selected_packs"
 }
 
-
 function normaliseBehaviourType(raw: unknown): RoundBehaviourType {
+  const value = String(raw ?? "").trim().toLowerCase()
+  if (value === "heads_up") return "heads_up"
   return isQuickfireBehaviour(raw) ? "quickfire" : "standard"
 }
 
@@ -88,7 +100,6 @@ function normaliseOptionalNonNegativeInt(raw: unknown, fallback: number) {
   return Math.min(120, value)
 }
 
-
 function cleanPackIds(raw: unknown) {
   return [...new Set(cleanStringArray(raw))]
 }
@@ -104,11 +115,18 @@ function getSourcePackIds(args: {
   return args.selectedPackIds
 }
 
-function candidateMatchesRules(candidate: QuestionCandidate, rules: RoundSelectionRules) {
+function candidateMatchesRules(candidate: QuestionCandidate, rules: RoundSelectionRules, behaviourType: RoundBehaviourType) {
+  if (rules.primaryShowKeys?.length && !rules.primaryShowKeys.includes(candidate.primaryShowKey ?? "")) return false
+
+  if (behaviourType === "heads_up") {
+    if (rules.headsUpDifficulties?.length && !rules.headsUpDifficulties.includes(candidate.headsUpDifficulty ?? "")) return false
+    return candidate.kind === "heads_up"
+  }
+
+  if (candidate.kind !== "question") return false
   if (rules.mediaTypes?.length && !rules.mediaTypes.includes(candidate.mediaType)) return false
   if (rules.promptTargets?.length && !rules.promptTargets.includes(candidate.promptTarget ?? "")) return false
   if (rules.clueSources?.length && !rules.clueSources.includes(candidate.clueSource ?? "")) return false
-  if (rules.primaryShowKeys?.length && !rules.primaryShowKeys.includes(candidate.primaryShowKey ?? "")) return false
   if (rules.audioClipTypes?.length && !rules.audioClipTypes.includes(candidate.audioClipType ?? "")) return false
   return true
 }
@@ -170,6 +188,10 @@ export function buildManualRoomRoundPlan(params: {
       throw new Error(`Round "${name}" needs at least one specific pack.`)
     }
 
+    if (behaviourType === "heads_up" && sourceMode !== "specific_packs") {
+      throw new Error(`Round "${name}" must use a specific Heads Up pack.`)
+    }
+
     const selectionRules = normaliseSelectionRules(roundRaw.selectionRules)
     const answerSeconds = normaliseOptionalNonNegativeInt(
       roundRaw.answerSeconds,
@@ -187,13 +209,15 @@ export function buildManualRoomRoundPlan(params: {
         if (!inScope) return false
       }
       if (behaviourType === "quickfire" && !isQuickfireEligibleItem(candidate)) return false
-
-      return candidateMatchesRules(candidate, selectionRules)
+      if (behaviourType === "quickfire" && candidate.kind !== "question") return false
+      if (behaviourType === "standard" && candidate.kind !== "question") return false
+      if (behaviourType === "heads_up" && candidate.kind !== "heads_up") return false
+      return candidateMatchesRules(candidate, selectionRules, behaviourType)
     })
 
     if (available.length < questionCount) {
       throw new Error(
-        `Round "${name}" needs ${questionCount} question${questionCount === 1 ? "" : "s"}, but only ${available.length} match.`
+        `Round "${name}" needs ${questionCount} item${questionCount === 1 ? "" : "s"}, but only ${available.length} match.`
       )
     }
 
@@ -207,8 +231,8 @@ export function buildManualRoomRoundPlan(params: {
       name,
       behaviourType,
       questionCount,
-      jokerEligible: behaviourType === "quickfire" ? false : Boolean(roundRaw.jokerEligible ?? true),
-      countsTowardsScore: Boolean(roundRaw.countsTowardsScore ?? true),
+      jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : Boolean(roundRaw.jokerEligible ?? true),
+      countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(roundRaw.countsTowardsScore ?? true),
       sourceMode,
       packIds: sourceMode === "specific_packs" ? sourcePackIds : [],
       selectionRules,

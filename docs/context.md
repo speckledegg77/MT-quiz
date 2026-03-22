@@ -105,6 +105,8 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - `heads_up_packs` stores themed decks.
 - `heads_up_pack_items` lets one item belong to several packs.
 - Person items can carry multiple roles such as performer, composer, and lyricist.
+- Heads Up v1 gameplay currently appears as a manual round behaviour, using one Heads Up pack per round.
+- Heads Up v1 does not use phone answers or automatic scoring.
 
 ### Round-plan model
 - Packs are content sources.
