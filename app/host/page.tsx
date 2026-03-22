@@ -1767,6 +1767,16 @@ export default function HostPage() {
       }
     : null
 
+  const headsUpReviewSignature = useMemo(
+    () =>
+      JSON.stringify(
+        Array.isArray(roomHeadsUp?.currentTurnActions)
+          ? roomHeadsUp.currentTurnActions.map((item: any) => `${String(item.questionId ?? "")}:${String(item.action ?? "")}`)
+          : []
+      ),
+    [roomHeadsUp?.currentTurnActions]
+  )
+
   const continueLabel =
     roomStage === "open"
       ? forcingClose
@@ -1800,7 +1810,7 @@ export default function HostPage() {
         : roomStage === "heads_up_live"
           ? "The turn is live. The active guesser controls Correct and Pass from their phone."
           : roomStage === "heads_up_review"
-            ? "Review the turn log, correct any mistakes, then confirm the turn."
+            ? "Review the turn log, correct any mistakes if needed, then confirm it. The round will continue automatically after a short pause."
             : "The Heads Up round is finished. Move on when you are ready."
       : roomPhase === "lobby"
       ? roomIsInfinite
@@ -1813,6 +1823,21 @@ export default function HostPage() {
         : roomIsInfinite
           ? "The infinite run is finished. Reset the room to play again with the same teams."
           : "The game is finished. Reset the room to play again with the same teams."
+
+
+  useEffect(() => {
+    if (!roomCode || !roomIsHeadsUp || roomStage !== "heads_up_review" || forcingClose) return
+
+    const timeoutId = window.setTimeout(() => {
+      fetch("/api/room/heads-up", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: roomCode, action: "host_confirm_turn" }),
+      }).catch(() => {})
+    }, 4500)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [forcingClose, headsUpReviewSignature, roomCode, roomHeadsUp?.currentTurnIndex, roomIsHeadsUp, roomStage])
 
   const roomModeSummary = getRunModeSummaryLabel({
     isInfiniteMode: roomIsInfinite,
@@ -3036,6 +3061,11 @@ export default function HostPage() {
                         {forcingClose && roomStage === "heads_up_review" ? "Confirming..." : roomState?.flow?.isLastQuestionOverall ? "Confirm and finish round" : "Confirm turn"}
                       </Button>
                     </div>
+                    {roomStage === "heads_up_review" ? (
+                      <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-3 py-2 text-sm text-amber-100">
+                        The next turn will prepare automatically after a short pause unless you correct something here first.
+                      </div>
+                    ) : null}
                     <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
                       <div className="rounded-xl border border-border bg-card p-3">
                         <div className="text-xs text-muted-foreground">Active turn</div>

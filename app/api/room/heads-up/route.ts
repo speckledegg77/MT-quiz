@@ -250,6 +250,9 @@ export async function POST(req: Request) {
   }
 
   if (action === "host_confirm_turn") {
+    if (derivedStage === "heads_up_ready" || derivedStage === "round_summary") {
+      return NextResponse.json({ ok: true, stage: derivedStage })
+    }
     if (derivedStage !== "heads_up_review") return NextResponse.json({ error: "The turn is not in review." }, { status: 400 })
 
     const completedTurn: HeadsUpCompletedTurn = {

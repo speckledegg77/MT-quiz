@@ -55,9 +55,13 @@ export default function PlayerPage() {
 
   const [jokerBusy, setJokerBusy] = useState(false)
   const [jokerError, setJokerError] = useState<string | null>(null)
+  const [headsUpSubmittingAction, setHeadsUpSubmittingAction] = useState<null | "start" | "correct" | "pass">(null)
+  const [headsUpFeedback, setHeadsUpFeedback] = useState<null | "correct" | "pass">(null)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const autoSubmitAttemptKeyRef = useRef<string | null>(null)
+  const headsUpFeedbackTimeoutRef = useRef<number | null>(null)
+  const feedbackAudioContextRef = useRef<AudioContext | null>(null)
 
   useEffect(() => {
     if (!code) return
@@ -129,6 +133,12 @@ export default function PlayerPage() {
       setTypedIsCorrect(null)
 
       setAnswerError(null)
+      setHeadsUpSubmittingAction(null)
+      setHeadsUpFeedback(null)
+      if (headsUpFeedbackTimeoutRef.current !== null) {
+        window.clearTimeout(headsUpFeedbackTimeoutRef.current)
+        headsUpFeedbackTimeoutRef.current = null
+      }
 
       setPlayedForQ(null)
       setPreparedForQ(null)
@@ -207,6 +217,17 @@ export default function PlayerPage() {
       gameMode,
     })
   }, [gameMode, headsUp?.activeGuesserId, headsUp?.activeTeamName, isHeadsUpRound, myPlayer?.team_name, playerId, teamName])
+
+
+  const headsUpReviewSignature = useMemo(
+    () =>
+      JSON.stringify(
+        Array.isArray(state?.headsUp?.currentTurnActions)
+          ? state.headsUp.currentTurnActions.map((item: any) => `${String(item.questionId ?? "")}:${String(item.action ?? "")}`)
+          : []
+      ),
+    [state?.headsUp?.currentTurnActions]
+  )
 
   const myJokerIndex = useMemo(() => {
     const value = Number(myPlayer?.joker_round_index)
@@ -480,8 +501,61 @@ export default function PlayerPage() {
     }
   }
 
+  async function playHeadsUpCue(kind: "correct" | "pass") {
+    try {
+      const anyWindow = window as typeof window & { webkitAudioContext?: typeof AudioContext }
+      const Ctx = anyWindow.AudioContext || anyWindow.webkitAudioContext
+      if (!Ctx) return
+
+      const ctx = feedbackAudioContextRef.current ?? new Ctx()
+      feedbackAudioContextRef.current = ctx
+      await ctx.resume()
+
+      const pulse = (frequency: number, start: number, duration: number, type: OscillatorType, volume: number) => {
+        const oscillator = ctx.createOscillator()
+        const gain = ctx.createGain()
+        oscillator.type = type
+        oscillator.frequency.setValueAtTime(frequency, start)
+        gain.gain.setValueAtTime(0.0001, start)
+        gain.gain.exponentialRampToValueAtTime(volume, start + 0.01)
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
+        oscillator.connect(gain)
+        gain.connect(ctx.destination)
+        oscillator.start(start)
+        oscillator.stop(start + duration + 0.02)
+      }
+
+      const start = ctx.currentTime + 0.01
+      if (kind === "correct") {
+        pulse(880, start, 0.12, "sine", 0.14)
+        pulse(1174, start + 0.12, 0.16, "triangle", 0.12)
+      } else {
+        pulse(392, start, 0.1, "triangle", 0.12)
+        pulse(294, start + 0.08, 0.18, "sawtooth", 0.08)
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  function showHeadsUpFeedback(kind: "correct" | "pass") {
+    if (headsUpFeedbackTimeoutRef.current !== null) {
+      window.clearTimeout(headsUpFeedbackTimeoutRef.current)
+    }
+    setHeadsUpFeedback(kind)
+    void playHeadsUpCue(kind)
+    headsUpFeedbackTimeoutRef.current = window.setTimeout(() => {
+      setHeadsUpFeedback(null)
+      headsUpFeedbackTimeoutRef.current = null
+    }, 650)
+  }
+
   async function submitHeadsUpAction(action: "guesser_start_turn" | "guesser_correct" | "guesser_pass") {
     if (!playerId || !isHeadsUpRound) return
+    const pendingAction =
+      action === "guesser_start_turn" ? "start" : action === "guesser_correct" ? "correct" : "pass"
+
+    setHeadsUpSubmittingAction(pendingAction)
     setAnswerError(null)
     try {
       const res = await fetch("/api/room/heads-up", {
@@ -494,9 +568,14 @@ export default function PlayerPage() {
         setAnswerError(String(data?.error ?? "Could not update Heads Up."))
         return
       }
-      void refreshState()
+      if (pendingAction === "correct" || pendingAction === "pass") {
+        showHeadsUpFeedback(pendingAction)
+      }
+      await refreshState()
     } catch {
       setAnswerError("Could not update Heads Up.")
+    } finally {
+      setHeadsUpSubmittingAction(null)
     }
   }
 
@@ -657,8 +736,36 @@ export default function PlayerPage() {
   useEffect(() => {
     return () => {
       stopClip()
+      if (headsUpFeedbackTimeoutRef.current !== null) {
+        window.clearTimeout(headsUpFeedbackTimeoutRef.current)
+      }
+      try {
+        feedbackAudioContextRef.current?.close()
+      } catch {
+        // ignore
+      }
+      feedbackAudioContextRef.current = null
     }
   }, [])
+
+
+  useEffect(() => {
+    const isReviewStage = String(state?.stage ?? "") === "heads_up_review"
+    const isHeadsUpBehaviour = String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
+    if (!code || !state || !isHeadsUpBehaviour || !isReviewStage) return
+
+    const timeoutId = window.setTimeout(() => {
+      fetch("/api/room/heads-up", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, action: "host_confirm_turn" }),
+      })
+        .then(() => refreshState())
+        .catch(() => {})
+    }, 4500)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [code, headsUpReviewSignature, refreshState, state?.headsUp?.currentTurnIndex, state?.stage, state?.rounds?.current?.behaviourType])
 
   if (!code) {
     return (
@@ -1018,7 +1125,7 @@ export default function PlayerPage() {
                 ) : headsUpRole === "guesser" ? (
                   <div className="rounded-2xl border border-border bg-muted px-4 py-5 text-center">
                     <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Guess without seeing the card</div>
-                    <div className="mt-2 text-lg font-semibold text-foreground">{isHeadsUpReadyStage ? "Start the turn when you are ready, then listen to the clues." : "Listen to the clues and tap the result."}</div>
+                    <div className="mt-2 text-lg font-semibold text-foreground">{isHeadsUpReadyStage ? "Start the turn when you are ready, then listen to the clues." : headsUpFeedback === "correct" ? "Correct recorded. Move on to the next clue." : headsUpFeedback === "pass" ? "Pass recorded. Skip and keep moving." : "Listen to the clues and tap the result."}</div>
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-border bg-muted px-4 py-5 text-center">
@@ -1076,35 +1183,47 @@ export default function PlayerPage() {
                     {isHeadsUpReadyStage ? (
                       <Button
                         onClick={() => submitHeadsUpAction("guesser_start_turn")}
+                        disabled={headsUpSubmittingAction !== null}
                         className="min-h-20 text-lg"
                       >
-                        Start turn
+                        {headsUpSubmittingAction === "start" ? "Starting..." : "Start turn"}
                       </Button>
                     ) : (
-                      <div className="grid grid-cols-2 gap-3">
-                        <Button
-                          variant="secondary"
-                          onClick={() => submitHeadsUpAction("guesser_pass")}
-                          disabled={!isHeadsUpLiveStage}
-                          className="min-h-20 text-lg"
-                        >
-                          Pass
-                        </Button>
-                        <Button
-                          onClick={() => submitHeadsUpAction("guesser_correct")}
-                          disabled={!isHeadsUpLiveStage}
-                          className="min-h-20 text-lg"
-                        >
-                          Correct
-                        </Button>
+                      <div className="grid gap-3">
+                        {headsUpFeedback ? (
+                          <div className={`rounded-2xl border px-4 py-3 text-center text-sm font-semibold shadow-sm transition-all ${headsUpFeedback === "correct" ? "border-emerald-500/40 bg-emerald-600/10 text-emerald-200" : "border-amber-500/40 bg-amber-600/10 text-amber-200"}`}>
+                            {headsUpFeedback === "correct" ? "Correct recorded" : "Pass recorded"}
+                          </div>
+                        ) : null}
+                        <div className="grid grid-cols-2 gap-3">
+                          <Button
+                            variant="secondary"
+                            onClick={() => submitHeadsUpAction("guesser_pass")}
+                            disabled={!isHeadsUpLiveStage || headsUpSubmittingAction !== null}
+                            className={`min-h-20 text-lg ${headsUpSubmittingAction === "pass" ? "scale-[0.98] border-amber-500/40 bg-amber-600/10 text-amber-100" : ""}`}
+                          >
+                            {headsUpSubmittingAction === "pass" ? "Passing..." : "Pass"}
+                          </Button>
+                          <Button
+                            onClick={() => submitHeadsUpAction("guesser_correct")}
+                            disabled={!isHeadsUpLiveStage || headsUpSubmittingAction !== null}
+                            className={`min-h-20 text-lg ${headsUpSubmittingAction === "correct" ? "scale-[0.98] border-emerald-500/50 bg-emerald-500 text-background" : ""}`}
+                          >
+                            {headsUpSubmittingAction === "correct" ? "Correct..." : "Correct"}
+                          </Button>
+                        </div>
                       </div>
                     )}
                     <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm text-muted-foreground">
                       {isHeadsUpReadyStage
                         ? "Start the timer from this phone when you are ready to begin guessing."
                         : isHeadsUpReviewStage
-                          ? "The host is reviewing that turn now."
-                          : "Keep facing away from the clue and use the buttons as each guess lands."}
+                          ? "The turn is ending. The next guesser will be prepared automatically in a moment unless the host corrects something."
+                          : headsUpSubmittingAction === "correct"
+                            ? "Saving that correct answer now."
+                            : headsUpSubmittingAction === "pass"
+                              ? "Skipping that clue now."
+                              : "Keep facing away from the clue and use the buttons as each guess lands."}
                     </div>
                   </div>
                 ) : headsUpRole === "clue_giver" ? (
@@ -1112,14 +1231,16 @@ export default function PlayerPage() {
                     {isHeadsUpReadyStage
                       ? `Waiting for ${String(headsUp?.activeGuesserName ?? "the guesser")} to start the turn.`
                       : isHeadsUpReviewStage
-                        ? "The turn has ended. Wait for the host to confirm it."
+                        ? "The turn has ended. The next player will be prepared automatically in a moment unless the host makes a correction."
                         : "Give clues without saying any part of the answer on the card."}
                   </div>
                 ) : (
                   <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm text-muted-foreground">
                     {isHeadsUpReadyStage
                       ? `Waiting for ${String(headsUp?.activeGuesserName ?? "the active player")} to start the turn.`
-                      : "Waiting for the active player to finish. You will get a live clue view when it is your turn to help."}
+                      : isHeadsUpReviewStage
+                        ? "The turn has ended. The next player will be prepared automatically in a moment unless the host makes a correction."
+                        : "Waiting for the active player to finish. You will get a live clue view when it is your turn to help."}
                   </div>
                 )
               ) : isTextQ ? (
