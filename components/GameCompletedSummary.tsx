@@ -86,7 +86,7 @@ function PlayerCard({
   isInfiniteMode: boolean
 }) {
   const questionRun = Array.isArray(player.questionRun) ? player.questionRun : []
-  const jokerLabel = getJokerLabel(player.rounds)
+  const jokerLabel = !isInfiniteMode ? getJokerLabel(player.rounds) : null
 
   return (
     <div

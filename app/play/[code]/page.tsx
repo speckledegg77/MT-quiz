@@ -11,6 +11,7 @@ import RoundSummaryCard from "@/components/RoundSummaryCard"
 import PageShell from "@/components/PageShell"
 import { getGameProgressLabel, getRoundBehaviourBadgeClass, getRoundBehaviourLabel, getRunBadgeLabel, getStagePillClass, getStageStatusText, isInfiniteFinalStage, isInfiniteModeFromState } from "@/lib/gameMode"
 import { deriveClientStageFromTimes, getAnswerWindowLabel, shouldSuppressQuestionBetweenRounds } from "@/lib/roundFlow"
+import { getHeadsUpRole } from "@/lib/headsUpGameplay"
 
 type RoomState = any
 
@@ -54,9 +55,13 @@ export default function PlayerPage() {
 
   const [jokerBusy, setJokerBusy] = useState(false)
   const [jokerError, setJokerError] = useState<string | null>(null)
+  const [headsUpSubmittingAction, setHeadsUpSubmittingAction] = useState<null | "start" | "correct" | "pass">(null)
+  const [headsUpFeedback, setHeadsUpFeedback] = useState<null | "correct" | "pass">(null)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const autoSubmitAttemptKeyRef = useRef<string | null>(null)
+  const headsUpFeedbackTimeoutRef = useRef<number | null>(null)
+  const feedbackAudioContextRef = useRef<AudioContext | null>(null)
 
   useEffect(() => {
     if (!code) return
@@ -128,6 +133,12 @@ export default function PlayerPage() {
       setTypedIsCorrect(null)
 
       setAnswerError(null)
+      setHeadsUpSubmittingAction(null)
+      setHeadsUpFeedback(null)
+      if (headsUpFeedbackTimeoutRef.current !== null) {
+        window.clearTimeout(headsUpFeedbackTimeoutRef.current)
+        headsUpFeedbackTimeoutRef.current = null
+      }
 
       setPlayedForQ(null)
       setPreparedForQ(null)
@@ -172,15 +183,20 @@ export default function PlayerPage() {
     : null
   const revealAnswerText = String(state?.reveal?.answerText ?? "").trim()
   const inReveal = String(state?.stage ?? "") === "reveal" && Boolean(state?.reveal)
+  const currentRound = state?.rounds?.current ?? null
+  const isQuickfireRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "quickfire"
+  const isHeadsUpRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
+  const headsUp = state?.headsUp ?? null
 
   const canAnswer = useMemo(() => {
     if (state?.phase !== "running") return false
-    if (state?.stage !== "open") return false
+    if (!(state?.stage === "open" || state?.stage === "heads_up_live")) return false
     if (!q?.id) return false
 
+    if (isHeadsUpRound || answerType === "none") return false
     if (answerType === "text") return !typedSubmitted
     return submittedIndex === null && !mcqSubmitting
-  }, [state?.phase, state?.stage, q?.id, answerType, typedSubmitted, submittedIndex, mcqSubmitting])
+  }, [state?.phase, state?.stage, q?.id, answerType, typedSubmitted, submittedIndex, mcqSubmitting, isHeadsUpRound])
 
   const players = useMemo(() => {
     return Array.isArray(state?.players) ? state.players : []
@@ -190,6 +206,28 @@ export default function PlayerPage() {
     if (!playerId) return null
     return players.find((p: any) => p.id === playerId) ?? null
   }, [players, playerId])
+
+  const headsUpRole = useMemo(() => {
+    if (!isHeadsUpRound) return "spectator" as const
+    return getHeadsUpRole({
+      playerId,
+      playerTeamName: String(myPlayer?.team_name ?? teamName ?? "").trim() || null,
+      activeGuesserId: String(headsUp?.activeGuesserId ?? "").trim() || null,
+      activeTeamName: String(headsUp?.activeTeamName ?? "").trim() || null,
+      gameMode,
+    })
+  }, [gameMode, headsUp?.activeGuesserId, headsUp?.activeTeamName, isHeadsUpRound, myPlayer?.team_name, playerId, teamName])
+
+
+  const headsUpReviewSignature = useMemo(
+    () =>
+      JSON.stringify(
+        Array.isArray(state?.headsUp?.currentTurnActions)
+          ? state.headsUp.currentTurnActions.map((item: any) => `${String(item.questionId ?? "")}:${String(item.action ?? "")}`)
+          : []
+      ),
+    [state?.headsUp?.currentTurnActions]
+  )
 
   const myJokerIndex = useMemo(() => {
     const value = Number(myPlayer?.joker_round_index)
@@ -228,8 +266,6 @@ export default function PlayerPage() {
     return jokerEligibleCount >= 2
   }, [state?.rounds?.jokerEnabled, jokerEligibleCount])
 
-  const currentRound = state?.rounds?.current ?? null
-  const isQuickfireRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "quickfire"
   const isUntimedAnswers = Boolean(state?.settings?.untimedAnswers)
 
   const actualCloseAtMs = state?.times?.closeAt ? Date.parse(String(state.times.closeAt)) : null
@@ -238,10 +274,18 @@ export default function PlayerPage() {
   const displayCloseAtMs = displayCloseAtRaw ? Date.parse(String(displayCloseAtRaw)) : null
   const adjustedNowMs = liveNowMs + serverOffsetMs
 
+  const headsUpTurnSeconds = Number(state?.headsUp?.turnSeconds ?? 0)
+  const headsUpRoundCompleteReason = String(state?.headsUp?.roundCompleteReason ?? "").trim()
   const secondsRemaining =
     displayCloseAtMs && Number.isFinite(displayCloseAtMs)
       ? Math.max(0, Math.ceil((displayCloseAtMs - adjustedNowMs) / 1000))
-      : 0
+      : String(state?.stage ?? "") === "heads_up_ready" && Number.isFinite(headsUpTurnSeconds) && headsUpTurnSeconds > 0
+        ? headsUpTurnSeconds
+        : 0
+  const headsUpReviewAutoAdvanceAtMs = state?.headsUp?.reviewAutoAdvanceAt ? Date.parse(String(state.headsUp.reviewAutoAdvanceAt)) : Number.NaN
+  const headsUpReviewCountdownSeconds = Number.isFinite(headsUpReviewAutoAdvanceAtMs)
+    ? Math.max(0, Math.ceil((headsUpReviewAutoAdvanceAtMs - adjustedNowMs) / 1000))
+    : 0
 
   useEffect(() => {
     if (!playerId || !q?.id) return
@@ -462,6 +506,84 @@ export default function PlayerPage() {
     }
   }
 
+  async function playHeadsUpCue(kind: "correct" | "pass") {
+    try {
+      const anyWindow = window as typeof window & { webkitAudioContext?: typeof AudioContext }
+      const Ctx = anyWindow.AudioContext || anyWindow.webkitAudioContext
+      if (!Ctx) return
+
+      const ctx = feedbackAudioContextRef.current ?? new Ctx()
+      feedbackAudioContextRef.current = ctx
+      await ctx.resume()
+
+      const pulse = (frequency: number, start: number, duration: number, type: OscillatorType, volume: number) => {
+        const oscillator = ctx.createOscillator()
+        const gain = ctx.createGain()
+        oscillator.type = type
+        oscillator.frequency.setValueAtTime(frequency, start)
+        gain.gain.setValueAtTime(0.0001, start)
+        gain.gain.exponentialRampToValueAtTime(volume, start + 0.01)
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
+        oscillator.connect(gain)
+        gain.connect(ctx.destination)
+        oscillator.start(start)
+        oscillator.stop(start + duration + 0.02)
+      }
+
+      const start = ctx.currentTime + 0.01
+      if (kind === "correct") {
+        pulse(880, start, 0.12, "sine", 0.14)
+        pulse(1174, start + 0.12, 0.16, "triangle", 0.12)
+      } else {
+        pulse(392, start, 0.1, "triangle", 0.12)
+        pulse(294, start + 0.08, 0.18, "sawtooth", 0.08)
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  function showHeadsUpFeedback(kind: "correct" | "pass") {
+    if (headsUpFeedbackTimeoutRef.current !== null) {
+      window.clearTimeout(headsUpFeedbackTimeoutRef.current)
+    }
+    setHeadsUpFeedback(kind)
+    void playHeadsUpCue(kind)
+    headsUpFeedbackTimeoutRef.current = window.setTimeout(() => {
+      setHeadsUpFeedback(null)
+      headsUpFeedbackTimeoutRef.current = null
+    }, 650)
+  }
+
+  async function submitHeadsUpAction(action: "guesser_start_turn" | "guesser_correct" | "guesser_pass") {
+    if (!playerId || !isHeadsUpRound) return
+    const pendingAction =
+      action === "guesser_start_turn" ? "start" : action === "guesser_correct" ? "correct" : "pass"
+
+    setHeadsUpSubmittingAction(pendingAction)
+    setAnswerError(null)
+    try {
+      const res = await fetch("/api/room/heads-up", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, playerId, action }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setAnswerError(String(data?.error ?? "Could not update Heads Up."))
+        return
+      }
+      if (pendingAction === "correct" || pendingAction === "pass") {
+        showHeadsUpFeedback(pendingAction)
+      }
+      await refreshState()
+    } catch {
+      setAnswerError("Could not update Heads Up.")
+    } finally {
+      setHeadsUpSubmittingAction(null)
+    }
+  }
+
   async function pickJoker(roundIndex: number) {
     if (!playerId) return
     if (state?.phase !== "lobby") return
@@ -605,7 +727,7 @@ export default function PlayerPage() {
   useEffect(() => {
     const shouldKeepPlaying =
       state?.phase === "running" &&
-      state?.stage === "open" &&
+      (state?.stage === "open" || state?.stage === "heads_up_live") &&
       shouldPlayOnPhone &&
       audioEnabled &&
       isAudioQ &&
@@ -619,8 +741,39 @@ export default function PlayerPage() {
   useEffect(() => {
     return () => {
       stopClip()
+      if (headsUpFeedbackTimeoutRef.current !== null) {
+        window.clearTimeout(headsUpFeedbackTimeoutRef.current)
+      }
+      try {
+        feedbackAudioContextRef.current?.close()
+      } catch {
+        // ignore
+      }
+      feedbackAudioContextRef.current = null
     }
   }, [])
+
+
+  useEffect(() => {
+    const isReviewStage = String(state?.stage ?? "") === "heads_up_review"
+    const isHeadsUpBehaviour = String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
+    if (!code || !state || !isHeadsUpBehaviour || !isReviewStage) return
+
+    const reviewAtMs = state?.headsUp?.reviewAutoAdvanceAt ? Date.parse(String(state.headsUp.reviewAutoAdvanceAt)) : Number.NaN
+    const delayMs = Number.isFinite(reviewAtMs) ? Math.max(0, reviewAtMs - adjustedNowMs) : 4500
+
+    const timeoutId = window.setTimeout(() => {
+      fetch("/api/room/heads-up", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, action: "host_confirm_turn" }),
+      })
+        .then(() => refreshState())
+        .catch(() => {})
+    }, delayMs)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [adjustedNowMs, code, headsUpReviewSignature, refreshState, state?.headsUp?.currentTurnIndex, state?.headsUp?.reviewAutoAdvanceAt, state?.stage, state?.rounds?.current?.behaviourType])
 
   if (!code) {
     return (
@@ -657,6 +810,10 @@ export default function PlayerPage() {
   const isInfiniteMode = isInfiniteModeFromState(state)
 
   const stage = String(state?.stage ?? "")
+  const isHeadsUpReadyStage = stage === "heads_up_ready"
+  const isHeadsUpLiveStage = stage === "heads_up_live"
+  const isHeadsUpReviewStage = stage === "heads_up_review"
+  const isLiveAnswerStage = stage === "open" || isHeadsUpLiveStage
   const showInfiniteFinalStage = isInfiniteFinalStage(stage, {
     isInfiniteMode,
     isLastQuestionOverall: Boolean(state?.flow?.isLastQuestionOverall),
@@ -694,10 +851,11 @@ export default function PlayerPage() {
   let timerLabel = getAnswerWindowLabel({
     isUntimedAnswers,
     isQuickfire: isQuickfireRound,
+    isHeadsUp: isHeadsUpRound,
   })
   let timerValue = isUntimedAnswers ? "No timer" : formatDuration(secondsRemaining)
 
-  if (stage !== "open") {
+  if (!isLiveAnswerStage) {
     timerValue = isUntimedAnswers ? "Closed" : formatDuration(secondsRemaining)
   }
 
@@ -706,13 +864,15 @@ export default function PlayerPage() {
       ? correctIndex !== null && Array.isArray(q?.options)
         ? String(q.options[correctIndex] ?? "")
         : revealAnswerText
-      : revealAnswerText
+      : answerType === "none"
+        ? String(q?.text ?? "")
+        : revealAnswerText
 
   return (
     <PageShell width="narrow">
       <audio ref={audioRef} />
 
-      <div className="mb-4 flex items-end justify-between gap-3">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="text-xs text-muted-foreground">Room</div>
           <div className="text-lg font-semibold tracking-wide">{code}</div>
@@ -729,7 +889,7 @@ export default function PlayerPage() {
           ) : null}
         </div>
 
-        <div className="flex max-w-[72%] flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           {status ? (
             <span className={`rounded-full border px-3 py-1 text-xs ${getStagePillClass(stage)}`}>{status}</span>
           ) : null}
@@ -867,15 +1027,33 @@ export default function PlayerPage() {
       ) : null}
 
       {!showLobby && !finished && stage === "round_summary" ? (
-        <RoundSummaryCard
-          round={currentRound}
-          roundStats={state?.roundStats}
-          gameMode={gameMode}
-          isLastQuestionOverall={Boolean(state?.flow?.isLastQuestionOverall)}
-          roundSummaryEndsAt={state?.times?.roundSummaryEndsAt ?? null}
-          roundReview={state?.roundReview}
-          isInfiniteMode={isInfiniteMode}
-        />
+        <div className="grid gap-4">
+          {isHeadsUpRound ? (
+            <Card>
+              <CardContent className="py-4">
+                <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-4 py-3 text-sm">
+                  <div className="font-medium text-foreground">
+                    {headsUpRoundCompleteReason === "card_pool_exhausted" ? "This Heads Up round has run out of cards." : "This Heads Up round is complete."}
+                  </div>
+                  <div className="mt-1 text-muted-foreground">
+                    {headsUpRoundCompleteReason === "card_pool_exhausted"
+                      ? "Wait for the host to continue to the next round. Future Heads Up rounds need a larger card pool if you want more players to take a turn."
+                      : "Wait for the host to continue when they are ready."}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+          <RoundSummaryCard
+            round={currentRound}
+            roundStats={state?.roundStats}
+            gameMode={gameMode}
+            isLastQuestionOverall={Boolean(state?.flow?.isLastQuestionOverall)}
+            roundSummaryEndsAt={state?.times?.roundSummaryEndsAt ?? null}
+            roundReview={state?.roundReview}
+            isInfiniteMode={isInfiniteMode}
+          />
+        </div>
       ) : null}
 
       {!showLobby && !finished && suppressStaleQuestionBetweenRounds ? (
@@ -921,9 +1099,9 @@ export default function PlayerPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between gap-3">
-                <CardTitle>Question</CardTitle>
+                <CardTitle>{isHeadsUpRound ? "Card" : "Question"}</CardTitle>
                 <div className="text-sm text-muted-foreground">
-                  {q.roundType === "audio" ? "Audio" : q.roundType === "picture" ? "Picture" : "General"}
+                  {q.roundType === "audio" ? "Audio" : q.roundType === "picture" ? "Picture" : q.roundType === "heads_up" ? "Heads Up" : "General"}
                 </div>
               </div>
             </CardHeader>
@@ -945,7 +1123,44 @@ export default function PlayerPage() {
                 </div>
               ) : null}
 
-              <div className="text-base font-semibold leading-tight">{q.text}</div>
+              {isHeadsUpRound ? (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-3 py-3 text-sm">
+                  <div className="font-medium text-foreground">Heads Up</div>
+                  <div className="mt-1 text-muted-foreground">
+                    {headsUpRole === "guesser"
+                      ? isHeadsUpReadyStage
+                        ? "You are the next guesser. Start the turn from this phone when you are ready."
+                        : "You are the guesser. Use Correct and Pass while your team or the rest of the room gives clues."
+                      : headsUpRole === "clue_giver"
+                        ? isHeadsUpLiveStage
+                          ? "You can see the live clue. Do not say the answer itself, only give clues."
+                          : "Wait for the guesser to start the turn. The clue will appear here when the timer begins."
+                        : "Wait for the active team or player to finish their turn."}
+                  </div>
+                </div>
+              ) : null}
+
+              {isHeadsUpRound ? (
+                headsUpRole === "clue_giver" && isHeadsUpLiveStage ? (
+                  <div className="rounded-2xl border border-amber-500/30 bg-amber-600/10 px-4 py-6 text-center">
+                    <div className="text-xs uppercase tracking-[0.2em] text-amber-200">Live clue</div>
+                    <div className="mt-3 text-2xl font-semibold leading-tight text-foreground sm:text-3xl">{q.text}</div>
+                  </div>
+                ) : headsUpRole === "guesser" ? (
+                  <div className="rounded-2xl border border-border bg-muted px-4 py-5 text-center">
+                    <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Guess without seeing the card</div>
+                    <div className="mt-2 text-lg font-semibold text-foreground">{isHeadsUpReadyStage ? "Start the turn when you are ready, then listen to the clues." : headsUpFeedback === "correct" ? "Correct recorded. Move on to the next clue." : headsUpFeedback === "pass" ? "Pass recorded. Skip and keep moving." : "Listen to the clues and tap the result."}</div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-border bg-muted px-4 py-5 text-center">
+                    <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Waiting</div>
+                    <div className="mt-2 text-lg font-semibold text-foreground">{isHeadsUpReadyStage ? `${String(headsUp?.activeGuesserName ?? "Another player")} will start the turn from their phone.` : `This turn belongs to ${String(headsUp?.activeGuesserName ?? "another player")}.`}
+                    </div>
+                  </div>
+                )
+              ) : (
+                <div className="text-base font-semibold leading-tight">{q.text}</div>
+              )}
 
               {isAudioQ && shouldPlayOnPhone ? (
                 <div className="rounded-xl border border-border bg-muted p-3">
@@ -983,6 +1198,89 @@ export default function PlayerPage() {
               {answerError ? (
                 <div className="rounded-lg border border-red-300 bg-red-600/10 px-3 py-2 text-sm text-red-600">
                   {answerError}
+                </div>
+              ) : null}
+
+              {isHeadsUpRound ? (
+                headsUpRole === "guesser" ? (
+                  <div className="grid gap-3">
+                    {isHeadsUpReadyStage ? (
+                      <Button
+                        onClick={() => submitHeadsUpAction("guesser_start_turn")}
+                        disabled={headsUpSubmittingAction !== null}
+                        className="min-h-20 text-lg"
+                      >
+                        {headsUpSubmittingAction === "start" ? "Starting..." : "Start turn"}
+                      </Button>
+                    ) : (
+                      <div className="grid gap-3">
+                        {headsUpFeedback ? (
+                          <div className={`rounded-2xl border px-4 py-3 text-center text-sm font-semibold shadow-sm transition-all ${headsUpFeedback === "correct" ? "border-emerald-500/40 bg-emerald-600/10 text-emerald-200" : "border-amber-500/40 bg-amber-600/10 text-amber-200"}`}>
+                            {headsUpFeedback === "correct" ? "Correct recorded" : "Pass recorded"}
+                          </div>
+                        ) : null}
+                        <div className="grid grid-cols-2 gap-3">
+                          <Button
+                            variant="secondary"
+                            onClick={() => submitHeadsUpAction("guesser_pass")}
+                            disabled={!isHeadsUpLiveStage || headsUpSubmittingAction !== null}
+                            className={`min-h-20 text-lg ${headsUpSubmittingAction === "pass" ? "scale-[0.98] border-amber-500/40 bg-amber-600/10 text-amber-100" : ""}`}
+                          >
+                            {headsUpSubmittingAction === "pass" ? "Passing..." : "Pass"}
+                          </Button>
+                          <Button
+                            onClick={() => submitHeadsUpAction("guesser_correct")}
+                            disabled={!isHeadsUpLiveStage || headsUpSubmittingAction !== null}
+                            className={`min-h-20 text-lg ${headsUpSubmittingAction === "correct" ? "scale-[0.98] border-emerald-500/50 bg-emerald-500 text-background" : ""}`}
+                          >
+                            {headsUpSubmittingAction === "correct" ? "Correct..." : "Correct"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm text-muted-foreground">
+                      {isHeadsUpReadyStage
+                        ? "Start the timer from this phone when you are ready to begin guessing."
+                        : isHeadsUpReviewStage
+                          ? "The turn is ending. The next player will be prepared automatically after the countdown below unless the host corrects something."
+                          : headsUpSubmittingAction === "correct"
+                            ? "Saving that correct answer now."
+                            : headsUpSubmittingAction === "pass"
+                              ? "Skipping that clue now."
+                              : "Keep facing away from the clue and use the buttons as each guess lands."}
+                    </div>
+                  </div>
+                ) : headsUpRole === "clue_giver" ? (
+                  <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm text-muted-foreground">
+                    {isHeadsUpReadyStage
+                      ? `Waiting for ${String(headsUp?.activeGuesserName ?? "the guesser")} to start the turn.`
+                      : isHeadsUpReviewStage
+                        ? "The turn has ended. Watch the countdown below for the next player unless the host makes a correction."
+                        : "Give clues without saying any part of the answer on the card."}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm text-muted-foreground">
+                    {isHeadsUpReadyStage
+                      ? `Waiting for ${String(headsUp?.activeGuesserName ?? "the active player")} to start the turn.`
+                      : isHeadsUpReviewStage
+                        ? "The turn has ended. Watch the countdown below for the next player unless the host makes a correction."
+                        : "Waiting for the active player to finish. You will get a live clue view when it is your turn to help."}
+                  </div>
+                )
+              ) : null}
+
+              {isHeadsUpRound && isHeadsUpReviewStage ? (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-4 py-3 text-sm">
+                  <div className="font-medium text-foreground">
+                    {headsUp?.willAdvanceToNextTurn
+                      ? `Next player: ${String(headsUp?.nextGuesserName ?? "The next player")}${headsUp?.nextTeamName ? ` · Team ${String(headsUp.nextTeamName)}` : ""}`
+                      : "Ending Heads Up round"}
+                  </div>
+                  <div className="mt-1 text-muted-foreground">
+                    {headsUp?.willAdvanceToNextTurn
+                      ? `Moving on in ${headsUpReviewCountdownSeconds}s unless the host corrects the turn or skips ahead.`
+                      : `Finishing the round in ${headsUpReviewCountdownSeconds}s unless the host skips ahead.`}
+                  </div>
                 </div>
               ) : null}
 
