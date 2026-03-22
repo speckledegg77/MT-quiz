@@ -4,6 +4,12 @@
 
 This document sets the standard for writing quiz questions so they feel fair, clear, and fun, and so they import cleanly into the admin CSV workflow.
 
+Use this together with:
+
+- `docs/shows-reference.md`
+- `docs/questions_csv/question-import-template.csv`
+- `docs/import-regression-checklist.md`
+
 ## Core principles
 
 Write questions that test knowledge, not guesswork.
@@ -120,6 +126,20 @@ Do not accept answers that make marking unfair.
 
 If the question asks for a performer, do not accept the character name.
 
+## Show key rules
+
+Use `primary_show_key` only when the question clearly maps to one show.
+
+Use the canonical key from `docs/shows-reference.md`.
+
+Keys are lower snake_case.
+
+Do not invent new show keys in a content-writing chat.
+
+If the right show is not in the reference file yet, add it to the shows seed and the reference doc first.
+
+If a question does not clearly belong to one show, leave `primary_show_key` blank.
+
 ## Explanations are required
 
 Every question must include an explanation.
@@ -184,20 +204,35 @@ Older CSVs may still include `pack_sort_order` after `pack_round_type`.
 
 The importer still tolerates that legacy column, but it ignores it. Do not include it in new CSVs.
 
-### Always quote these CSV fields
+### Quote every text-like field
 
-Wrap these fields in double quotes on every row:
+For new CSVs, always wrap these fields in double quotes on every row, even when the current value does not contain a comma:
 
+- `pack_name`
 - `question_text`
-- `explanation`
-- `answer_text`
-- `accepted_answers`
 - `option_a`
 - `option_b`
 - `option_c`
 - `option_d`
+- `answer_text`
+- `accepted_answers`
+- `explanation`
+- `audio_path`
+- `image_path`
 
-Also quote `audio_path` and `image_path` if they contain commas or unusual punctuation.
+This is the safest rule for content generated in another chat.
+
+Bad:
+`Sincerely, Me`
+
+Good:
+`"Sincerely, Me"`
+
+Bad:
+`He said "hello"`
+
+Good:
+`"He said ""hello"""`
 
 ### Escaping rule
 
@@ -219,46 +254,37 @@ The importer still accepts a JSON array string for backward compatibility, but t
 
 ### `media_duration_ms` format
 
-Use a whole number in milliseconds.
+Use a whole number of milliseconds.
 
 Example:
 `5000`
 
-Leave it blank when there is no audio clip.
+Leave it blank when there is no timed media clip.
 
-### `audio_clip_type` values
+### `audio_clip_type` format
 
-Use one of these values when the question uses audio:
+Use the current allowed clip type values from the app.
+
+At the time of writing, common values include:
 
 - `song_intro`
-- `song_clip`
-- `instrumental_section`
-- `vocal_section`
-- `dialogue_quote`
-- `character_voice`
-- `sound_effect`
+- `underscoring`
+- `dialogue`
+- `stinger`
 - `other`
 
-Leave it blank when the question does not use audio.
+If you are unsure, check the current app enum before import.
 
-### Validate before import
+## Import safety checks
 
-Use the admin import page to run a validate-only pass before the real import.
+Before a real import:
 
-That will tell you how many packs and questions will be created or updated, and it will catch formatting problems before anything is written.
+- run validate-only first
+- check all comma-containing fields are quoted
+- check all quote-containing fields are escaped
+- check `primary_show_key` values exist in `docs/shows-reference.md`
+- check `accepted_answers` uses pipe separators, not free text
+- check MCQ rows really have four options
+- check text-answer rows do not accidentally carry stale MCQ options
 
-## Final checks before import
-
-Each question has one clear correct answer.
-
-Nothing in the question gives the answer away.
-
-MCQ distractors are plausible and not outliers.
-
-Text answers have fair marking.
-
-Audio and picture questions have the correct media references.
-
-Question IDs are unique.
-
-Each row includes the required pack and question fields for import.
+Use `docs/import-regression-checklist.md` when testing importer behaviour after changes.

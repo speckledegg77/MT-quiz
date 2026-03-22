@@ -94,3 +94,9 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 
 
 - Round templates now use alphabetical ordering by name, and sort order is no longer used in template selection or admin editing.
+
+## Authoring and import discipline
+
+- `docs/shows-reference.md` is the canonical source for `show_key` values.
+- New content-writing chats should use the current writing standards and CSV templates from the repo rather than inventing their own format.
+- Generated CSV rows should quote every text-like field, even when the current value does not contain a comma.

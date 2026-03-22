@@ -1,6 +1,12 @@
-# Heads Up CSV writing guide
+# Heads Up writing guide
 
 Use this when you want to bulk import Heads Up items and themed pack assignments.
+
+Use this together with:
+
+- `docs/shows-reference.md`
+- `docs/heads_up_csv/heads-up-import-template.csv`
+- `docs/import-regression-checklist.md`
 
 ## One row equals one item
 
@@ -8,7 +14,34 @@ Each CSV row should describe one Heads Up item.
 
 That row can assign the item to several packs by using a pipe-separated `pack_names` field.
 
-If you import an existing item by `item_id`, the importer will replace that item’s pack membership with the pack names listed in that row.
+If you import an existing item by `item_id`, the importer will replace that item's pack membership with the pack names listed in that row.
+
+## Heads Up content rules
+
+Write clues that are playable out loud.
+
+Avoid clues that are too obscure without a strong themed pack around them.
+
+Do not create near-duplicate items in the same pack unless there is a clear reason.
+
+Examples to avoid in the same broad pack:
+
+- `The Phantom`
+- `The Phantom of the Opera`
+
+That pair may be fine in a show-specific pack but messy in a general pack.
+
+Use `person_roles` only for real people, not characters.
+
+Only use `primary_show_key` when the item clearly belongs to one show.
+
+Do not force a broad phrase or a person into one show when that would be misleading.
+
+Examples where leaving `primary_show_key` blank is often better:
+
+- `Stephen Sondheim`
+- `Standing ovation`
+- `Jazz hands`
 
 ## Required column order
 
@@ -38,6 +71,7 @@ Examples:
 - `Defying Gravity`
 - `Elphaba`
 - `Stephen Sondheim`
+- `Sincerely, Me`
 
 ## `item_type`
 
@@ -91,7 +125,7 @@ If you leave it blank, the importer uses `medium`.
 
 Optional.
 
-Use an existing show key from the `shows` table when the item clearly belongs to one show.
+Use an existing show key from the `shows` table and `docs/shows-reference.md` when the item clearly belongs to one show.
 
 Leave it blank for broad phrases or people where one show link would be misleading.
 
@@ -128,12 +162,19 @@ The importer will create missing pack names automatically.
 
 ## Quoting and escaping
 
-Wrap these fields in double quotes on every row:
+For new CSVs, always wrap these fields in double quotes on every row:
 
 - `answer_text`
 - `person_roles`
 - `notes`
 - `pack_names`
+
+Also quote `primary_show_key` when you are generating CSV rows in another chat, so the output stays consistent.
+
+If the content contains a comma, it must be quoted.
+
+Example:
+`"Sincerely, Me"`
 
 If the content contains a double quote character, escape it by doubling it.
 
@@ -152,4 +193,5 @@ That will tell you how many items will be created or updated, and how many missi
 item_id,answer_text,item_type,person_roles,difficulty,primary_show_key,notes,is_active,pack_names
 ,Elphaba,character,,easy,wicked,,true,"Characters|Villains|Modern Musicals"
 ,Stephen Sondheim,person,"composer|lyricist",medium,,"Broad creator clue",true,"People|Creators|Sondheim"
+,"Sincerely, Me",song,,easy,"dear_evan_hansen","Comma example",true,"Songs|Modern Musicals"
 ```

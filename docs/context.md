@@ -346,3 +346,11 @@ Pack loading:
 
 
 - Round templates now use alphabetical ordering by name, and sort order is no longer used in template selection or admin editing.
+
+
+## Authoring references
+
+- `docs/shows-reference.md` is the canonical source for `primary_show_key` values.
+- `docs/question-writing-standards.md` is the canonical guide for quiz-question CSV generation.
+- `docs/heads-up-writing-standards.md` is the canonical guide for Heads Up CSV generation.
+- `docs/import-regression-checklist.md` is the quick test list for importer changes.

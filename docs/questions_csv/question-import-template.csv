@@ -1,4 +1,5 @@
 pack_id,pack_name,pack_round_type,question_id,question_round_type,answer_type,question_text,option_a,option_b,option_c,option_d,answer_index,answer_text,accepted_answers,explanation,audio_path,image_path,media_duration_ms,audio_clip_type
-modern-mixed,Modern Mixed,general,q-modern-001,general,mcq,"Which musical features the song 'Waving Through a Window'?","Dear Evan Hansen","Be More Chill","Heathers","Next to Normal",0,,,"It is from Dear Evan Hansen.",,,,
-modern-mixed,Modern Mixed,general,q-modern-002,general,text,"Which musical features the character Diana Goodman?",,,,,,,"Next to Normal","Diana Goodman|Next to Normal","Diana Goodman is a central character in Next to Normal.",,,,
-audio-intros,Audio Intros,audio,q-audio-001,audio,mcq,"Which show is this intro from?","Hamilton","Wicked","Company","Rent",1,,,"This clip is from Wicked.","wicked/defying-gravity-intro.mp3",,5000,song_intro
+modern-mixed,"Modern Mixed",general,q-modern-001,general,mcq,"Which musical features the song ""Waving Through a Window""?","Dear Evan Hansen","Be More Chill","Heathers","Next to Normal",0,,,"It is from Dear Evan Hansen.",,,,
+modern-mixed,"Modern Mixed",general,q-modern-002,general,text,"Which musical features the character Diana Goodman?",,,,,,,"Next to Normal","Diana Goodman|Diana","Diana Goodman is a central character in Next to Normal.",,,,
+audio-intros,"Audio Intros",audio,q-audio-001,audio,mcq,"Which show is this intro from?","Hamilton","Wicked","Company","Rent",1,,,"This clip is from Wicked.","wicked/defying-gravity-intro.mp3",,5000,song_intro
+modern-mixed,"Modern Mixed",general,q-modern-003,general,mcq,"Which song title includes a comma?","If I Loved You","No Good Deed","Sincerely, Me","One Day More",2,,,"""Sincerely, Me"" is from Dear Evan Hansen.",,,,

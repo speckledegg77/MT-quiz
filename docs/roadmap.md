@@ -33,6 +33,7 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Content building
 
+- [ ] Seed a broader canonical `shows` list and keep `docs/shows-reference.md` in sync.
 - [ ] Expand the question bank, especially for rounds that need larger eligible pools.
 - [ ] Add pack-side Heads Up curation tools so packs can add and remove large numbers of existing items quickly.
 - [ ] Polish Heads Up turn review and correction flow after live playtesting.
@@ -48,6 +49,8 @@ This file tracks the live plan. Keep it short and practical.
 - [ ] Export tooling for the question bank.
 
 ## Recently completed
+
+- [x] Add importer guidance for quoted CSV fields, show-key discipline, and a regression checklist.
 
 - [x] Review and tidy the main question CSV import format, plus add Heads Up CSV import and validate-only checks.
 - [x] Heads Up v1 data model and admin workflow with separate items and pack management.

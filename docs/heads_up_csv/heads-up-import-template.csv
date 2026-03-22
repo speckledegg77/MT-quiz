@@ -2,3 +2,4 @@ item_id,answer_text,item_type,person_roles,difficulty,primary_show_key,notes,is_
 ,Elphaba,character,,easy,wicked,,true,"Characters|Villains|Modern Musicals"
 ,Defying Gravity,song,,easy,wicked,,true,"Songs|Modern Musicals|Wicked"
 ,Stephen Sondheim,person,"composer|lyricist",medium,,"Broad creator clue",true,"People|Creators|Sondheim"
+,"Sincerely, Me",song,,easy,dear_evan_hansen,"Comma example",true,"Songs|Modern Musicals|Dear Evan Hansen"
