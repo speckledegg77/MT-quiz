@@ -50,14 +50,6 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Infinite simple games run as one continuous standard round under the hood, so they skip round setup without creating a separate game engine.
 - Infinite mode keeps Joker hidden, shows question progress as a continuous run, and gives the host an explicit End game control.
 
-## Heads Up content model
-
-- Heads Up content stays separate from the normal quiz questions table.
-- Heads Up uses `heads_up_items`, `heads_up_packs`, and `heads_up_pack_items`.
-- Heads Up packs are many-to-many, so one item can sit in several themed packs.
-- Heads Up item types include `person`, and person items can carry multiple `person_roles`.
-- The initial admin workflow manages pack membership from the item editor, while the pack editor remains focused on pack details and assigned-item review.
-
 ## Quickfire
 
 - Quickfire is a real round behaviour, not just a naming convention.
@@ -69,13 +61,13 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Quickfire and Standard rounds can use different default timings.
 - Hosts can still override timings per round.
 
-## Import rules
 
-- The main question CSV format now officially uses `pack_id, pack_name, pack_round_type, question_id, question_round_type, answer_type, question_text, option_a, option_b, option_c, option_d, answer_index, answer_text, accepted_answers, explanation, audio_path, image_path, media_duration_ms, audio_clip_type`.
-- Legacy `pack_sort_order` is still tolerated during question import, but it is ignored and should not appear in new CSVs.
-- The documented `accepted_answers` format is now pipe-separated text inside one CSV cell, not a JSON array string.
-- Question and Heads Up CSV imports should support validate-only runs before writing.
-- Heads Up CSV import should use one row per item, with pack membership supplied through pipe-separated `pack_names`.
+## Heads Up content model
+
+- Heads Up content should not be forced into the normal `questions` table. It should use separate Heads Up tables.
+- Heads Up items can belong to more than one Heads Up pack. Pack membership should stay many-to-many.
+- People-based Heads Up items should use `person_roles` as a multi-select field rather than one fixed role.
+- One logical Heads Up item is unique by normalised `answer_text`, `item_type`, and `primary_show_key`.
 
 ## UI and code conventions
 
