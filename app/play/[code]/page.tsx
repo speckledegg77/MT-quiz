@@ -934,6 +934,8 @@ export default function PlayerPage() {
     roundTransitionQuestionIndex,
   })
 
+  const showHeadsUpCompactLayout = isHeadsUpRound && !showLobby && !finished && stage !== "round_summary"
+
   const showScoreTimerRow =
     !showLobby &&
     !finished &&
@@ -966,49 +968,51 @@ export default function PlayerPage() {
     <PageShell width="narrow">
       <audio ref={audioRef} />
 
-      <div className="mb-4 flex items-end justify-between gap-3">
-        <div>
-          <div className="text-xs text-muted-foreground">Room</div>
-          <div className="text-lg font-semibold tracking-wide">{code}</div>
-          {playerName ? (
-            <div className="text-xs text-muted-foreground">
-              Player: <span className="text-foreground">{playerName}</span>
-              {gameMode === "teams" && teamName ? (
-                <>
-                  <span className="mx-2">|</span>
-                  Team: <span className="text-foreground">{teamName}</span>
-                </>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
+      {!showHeadsUpCompactLayout ? (
+        <div className="mb-4 flex items-end justify-between gap-3">
+          <div>
+            <div className="text-xs text-muted-foreground">Room</div>
+            <div className="text-lg font-semibold tracking-wide">{code}</div>
+            {playerName ? (
+              <div className="text-xs text-muted-foreground">
+                Player: <span className="text-foreground">{playerName}</span>
+                {gameMode === "teams" && teamName ? (
+                  <>
+                    <span className="mx-2">|</span>
+                    Team: <span className="text-foreground">{teamName}</span>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
 
-        <div className="flex flex-col items-end gap-2">
-          {status ? (
-            <span className={`rounded-full border px-3 py-1 text-xs ${getStagePillClass(stage)}`}>{status}</span>
-          ) : null}
+          <div className="flex flex-col items-end gap-2">
+            {status ? (
+              <span className={`rounded-full border px-3 py-1 text-xs ${getStagePillClass(stage)}`}>{status}</span>
+            ) : null}
 
-          {state.phase === "running" ? (
-            <div className="flex flex-col items-end gap-2">
-              {currentRound ? (
-                <span className={`rounded-full border px-3 py-1 text-xs ${isInfiniteMode ? "border-sky-500/40 bg-sky-600/10 text-sky-200" : "border-border bg-card text-muted-foreground"}`}>
-                  {getRunBadgeLabel({ isInfiniteMode, currentRound })}
+            {state.phase === "running" ? (
+              <div className="flex flex-col items-end gap-2">
+                {currentRound ? (
+                  <span className={`rounded-full border px-3 py-1 text-xs ${isInfiniteMode ? "border-sky-500/40 bg-sky-600/10 text-sky-200" : "border-border bg-card text-muted-foreground"}`}>
+                    {getRunBadgeLabel({ isInfiniteMode, currentRound })}
+                  </span>
+                ) : null}
+
+                {!isInfiniteMode && currentRound ? (
+                  <span className={`rounded-full border px-3 py-1 text-xs ${getRoundBehaviourBadgeClass(currentRound.behaviourType)}`}>
+                    {getRoundBehaviourLabel(currentRound.behaviourType)}
+                  </span>
+                ) : null}
+
+                <span className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
+                  {progressLabel || `Q${questionNumber} of ${questionCount}`}
                 </span>
-              ) : null}
-
-              {!isInfiniteMode && currentRound ? (
-                <span className={`rounded-full border px-3 py-1 text-xs ${getRoundBehaviourBadgeClass(currentRound.behaviourType)}`}>
-                  {getRoundBehaviourLabel(currentRound.behaviourType)}
-                </span>
-              ) : null}
-
-              <span className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
-                {progressLabel || `Q${questionNumber} of ${questionCount}`}
-              </span>
-            </div>
-          ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {showLobby ? (
         <Card>
@@ -1219,7 +1223,19 @@ export default function PlayerPage() {
                 </div>
               ) : null}
 
-              {isHeadsUpRound ? (
+              {showHeadsUpCompactLayout ? (
+                <div className="flex flex-wrap gap-2">
+                  <span className={`rounded-full border px-3 py-1 text-xs ${getRoundBehaviourBadgeClass(currentRound?.behaviourType)}`}>
+                    {getRoundBehaviourLabel(currentRound?.behaviourType)}
+                  </span>
+                  {status ? (
+                    <span className={`rounded-full border px-3 py-1 text-xs ${getStagePillClass(stage)}`}>{status}</span>
+                  ) : null}
+                  <span className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground">
+                    {headsUpRole === "guesser" ? "Guesser" : headsUpRole === "clue_giver" ? "Clue giver" : "Waiting"}
+                  </span>
+                </div>
+              ) : isHeadsUpRound ? (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-3 py-3 text-sm">
                   <div className="font-medium text-foreground">Heads Up</div>
                   <div className="mt-1 text-muted-foreground">
@@ -1243,13 +1259,13 @@ export default function PlayerPage() {
                     <div className="mt-3 text-2xl font-semibold leading-tight text-foreground sm:text-3xl">{q.text}</div>
                   </div>
                 ) : headsUpRole === "guesser" ? (
-                  <div className="rounded-2xl border border-border bg-muted px-4 py-5 text-center">
-                    <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Guess without seeing the card</div>
-                    <div className="mt-2 text-lg font-semibold text-foreground">{isHeadsUpReadyStage ? "Start the turn when you are ready, then listen to the clues." : headsUpFeedback === "correct" ? "Correct recorded. Move on to the next clue." : headsUpFeedback === "pass" ? "Pass recorded. Skip and keep moving." : "Listen to the clues and tap the result."}</div>
+                  <div className="rounded-2xl border border-border bg-muted px-4 py-4 text-center">
+                    <div className="text-sm font-semibold text-foreground">{isHeadsUpReadyStage ? "Guesser ready" : headsUpFeedback === "correct" ? "Correct recorded" : headsUpFeedback === "pass" ? "Pass recorded" : "Guesser"}</div>
+                    <div className="mt-1 text-sm text-muted-foreground">{isHeadsUpReadyStage ? "Face away from the clue, then start the turn from this phone." : "Face away from the clue. Tap Correct or Pass as each guess lands."}</div>
                   </div>
                 ) : (
-                  <div className="rounded-2xl border border-border bg-muted px-4 py-5 text-center">
-                    <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Waiting</div>
+                  <div className="rounded-2xl border border-border bg-muted px-4 py-4 text-center">
+                    <div className="text-sm font-semibold text-foreground">Waiting</div>
                     <div className="mt-2 text-lg font-semibold text-foreground">{isHeadsUpReadyStage ? `${String(headsUp?.activeGuesserName ?? "Another player")} will start the turn from their phone.` : `This turn belongs to ${String(headsUp?.activeGuesserName ?? "another player")}.`}
                     </div>
                   </div>
@@ -1343,7 +1359,7 @@ export default function PlayerPage() {
                             ? "Saving that correct answer now."
                             : headsUpSubmittingAction === "pass"
                               ? "Skipping that clue now."
-                              : "Keep facing away from the clue and use the buttons as each guess lands."}
+                              : "Keep facing away from the clue."}
                     </div>
                   </div>
                 ) : headsUpRole === "clue_giver" ? (

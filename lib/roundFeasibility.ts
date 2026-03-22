@@ -323,7 +323,7 @@ export function evaluateRoundsFeasibility(params: {
   candidates: QuestionCandidate[]
 }): FeasibilitySetResult {
   const evaluations: InternalRoundEvaluation[] = (Array.isArray(params.roundsInput) ? params.roundsInput : []).map((roundRaw, index) => {
-    const requestedCount = normaliseCount(roundRaw.questionCount)
+    const rawRequestedCount = normaliseCount(roundRaw.questionCount)
     const behaviourType = normaliseBehaviourType(roundRaw.behaviourType)
     const sourceMode = normaliseSourceMode(roundRaw.sourceMode)
     const packIds = cleanPackIds(roundRaw.packIds)
@@ -351,6 +351,8 @@ export function evaluateRoundsFeasibility(params: {
             return candidateMatchesRules(candidate, rules, behaviourType)
           })
           .map((candidate) => candidate.id)
+
+    const requestedCount = behaviourType === "heads_up" ? [...new Set(eligibleCandidateIds)].length : rawRequestedCount
 
     return {
       id: String(roundRaw.id ?? `round_${index + 1}`).trim() || `round_${index + 1}`,

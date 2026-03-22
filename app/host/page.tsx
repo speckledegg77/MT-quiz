@@ -299,7 +299,7 @@ function serialiseManualRoundDraft(round: ManualRoundDraft, index: number) {
   return {
     id: round.id,
     name: round.name.trim() || defaultRoundName(index),
-    questionCount: clampInt(parseIntOr(round.questionCountStr, 0), 1, 200),
+    questionCount: round.behaviourType === "heads_up" ? 0 : clampInt(parseIntOr(round.questionCountStr, 0), 1, 200),
     behaviourType: round.behaviourType,
     jokerEligible: round.behaviourType === "quickfire" || round.behaviourType === "heads_up" ? false : round.jokerEligible,
     countsTowardsScore: round.behaviourType === "heads_up" ? false : round.countsTowardsScore,
@@ -910,12 +910,6 @@ export default function HostPage() {
       prev.map((round) => {
         if (round.id !== id) return round
         const next: Partial<ManualRoundDraft> = { ...changes }
-        if (changes.behaviourType === "heads_up" && round.behaviourType !== "heads_up") {
-          const currentCount = clampInt(parseIntOr(round.questionCountStr, 0), 0, 200)
-          if (currentCount <= 5 && !changes.questionCountStr) {
-            next.questionCountStr = "20"
-          }
-        }
         return normaliseManualRoundDraft({ ...round, ...next })
       })
     )
@@ -1824,7 +1818,7 @@ export default function HostPage() {
           : roomStage === "heads_up_review"
             ? "Review the turn log, correct any mistakes if needed, then confirm it. The round will continue automatically after a short pause."
             : headsUpRoundCompleteReason === "card_pool_exhausted"
-              ? "This Heads Up round has run out of cards before every player has taken a turn. Continue to the next round, then recreate future Heads Up rounds with a larger card pool."
+              ? "This Heads Up round has run out of active cards before every player has taken a turn. Continue to the next round, then add more cards to this pack if you want longer Heads Up rounds."
               : "The Heads Up round is finished. Continue when you are ready."
       : roomPhase === "lobby"
       ? roomIsInfinite
@@ -2358,7 +2352,7 @@ export default function HostPage() {
                                         ) : null}
                                       </div>
                                       <div className="mt-1 text-xs text-muted-foreground">
-                                        {round.questionCount} {round.behaviourType === "heads_up" ? `card${round.questionCount === 1 ? "" : "s"}` : `question${round.questionCount === 1 ? "" : "s"}`}. {round.answerSeconds}s {round.behaviourType === "heads_up" ? "turn" : "answer window"}, {round.roundReviewSeconds}s round review.
+                                        {round.behaviourType === "heads_up" ? "All active cards from the selected pack." : `${round.questionCount} question${round.questionCount === 1 ? "" : "s"}.`} {round.answerSeconds}s {round.behaviourType === "heads_up" ? "turn" : "answer window"}, {round.roundReviewSeconds}s round review.
                                       </div>
                                     </div>
                                   ))}
@@ -2555,9 +2549,14 @@ export default function HostPage() {
                               <Input value={round.name} onChange={(e) => updateManualRound(round.id, { name: e.target.value })} placeholder={defaultRoundName(index)} />
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-foreground">{round.behaviourType === "heads_up" ? "Card pool" : "Questions"}</div>
-                              <Input value={round.questionCountStr} onChange={(e) => updateManualRound(round.id, { questionCountStr: e.target.value })} inputMode="numeric" />
-                              {round.behaviourType === "heads_up" ? <div className="mt-1 text-xs text-muted-foreground">This is the number of cards available across the whole round, not per turn.</div> : null}
+                              <div className="text-sm font-medium text-foreground">{round.behaviourType === "heads_up" ? "Cards" : "Questions"}</div>
+                              {round.behaviourType === "heads_up" ? (
+                                <div className="mt-1 rounded-xl border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
+                                  Uses all active cards from the selected pack.
+                                </div>
+                              ) : (
+                                <Input value={round.questionCountStr} onChange={(e) => updateManualRound(round.id, { questionCountStr: e.target.value })} inputMode="numeric" />
+                              )}
                             </div>
                             <div>
                               <div className="text-sm font-medium text-foreground">Behaviour</div>
@@ -3094,7 +3093,7 @@ export default function HostPage() {
                     {roomStage === "round_summary" ? (
                       <div className={`rounded-xl border px-3 py-2 text-sm ${headsUpRoundCompleteReason === "card_pool_exhausted" ? "border-amber-500/30 bg-amber-600/10 text-amber-100" : "border-border bg-card text-muted-foreground"}`}>
                         {headsUpRoundCompleteReason === "card_pool_exhausted"
-                          ? `This Heads Up round used all ${Math.max(0, Number(roomHeadsUp?.cardPoolSize ?? 0))} cards in its pool before another player turn could begin. Continue to the next round, or recreate this Heads Up round with a larger card pool.`
+                          ? `This Heads Up round used all ${Math.max(0, Number(roomHeadsUp?.cardPoolSize ?? 0))} active cards in its selected pack before another player turn could begin. Continue to the next round, or add more cards to that pack for a longer Heads Up round.`
                           : "This Heads Up round is complete. Continue when you are ready."}
                       </div>
                     ) : null}

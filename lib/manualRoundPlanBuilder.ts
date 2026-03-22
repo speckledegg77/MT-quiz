@@ -166,13 +166,12 @@ export function buildManualRoomRoundPlan(params: {
   for (let index = 0; index < roundsInput.length; index++) {
     const roundRaw = roundsInput[index] ?? {}
     const name = normaliseRoundName(roundRaw.name, index)
-    const questionCount = normaliseCount(roundRaw.questionCount)
-    if (questionCount <= 0) {
-      throw new Error(`Round ${index + 1} needs a question count greater than 0.`)
-    }
-
     const sourceMode = normaliseSourceMode(roundRaw.sourceMode)
     const behaviourType = normaliseBehaviourType(roundRaw.behaviourType)
+    const questionCount = normaliseCount(roundRaw.questionCount)
+    if (behaviourType !== "heads_up" && questionCount <= 0) {
+      throw new Error(`Round ${index + 1} needs a question count greater than 0.`)
+    }
     const packIds = cleanPackIds(roundRaw.packIds)
     const sourcePackIds = getSourcePackIds({
       sourceMode,
@@ -216,22 +215,31 @@ export function buildManualRoomRoundPlan(params: {
       return candidateMatchesRules(candidate, selectionRules, behaviourType)
     })
 
-    if (available.length < questionCount) {
+    const requestedCount = behaviourType === "heads_up" ? available.length : questionCount
+    if (requestedCount <= 0) {
       throw new Error(
-        `Round "${name}" needs ${questionCount} item${questionCount === 1 ? "" : "s"}, but only ${available.length} match.`
+        behaviourType === "heads_up"
+          ? `Round "${name}" needs at least one active Heads Up card in the selected pack.`
+          : `Round "${name}" needs a question count greater than 0.`
+      )
+    }
+
+    if (available.length < requestedCount) {
+      throw new Error(
+        `Round "${name}" needs ${requestedCount} item${requestedCount === 1 ? "" : "s"}, but only ${available.length} match.`
       )
     }
 
     const shuffled = [...available]
     shuffleInPlace(shuffled)
-    const chosen = shuffled.slice(0, questionCount)
+    const chosen = shuffled.slice(0, requestedCount)
     for (const candidate of chosen) usedIds.add(candidate.id)
 
     rounds.push({
       id: String(roundRaw.id ?? `manual_round_${index + 1}`).trim() || `manual_round_${index + 1}`,
       name,
       behaviourType,
-      questionCount,
+      questionCount: chosen.length,
       jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : Boolean(roundRaw.jokerEligible ?? true),
       countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(roundRaw.countsTowardsScore ?? true),
       sourceMode,
