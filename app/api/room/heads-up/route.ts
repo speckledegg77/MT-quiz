@@ -2,7 +2,7 @@ export const runtime = "nodejs"
 
 import { NextResponse } from "next/server"
 import { getQuestionById } from "@/lib/questionBank"
-import { createHeadsUpReadyState, deriveHeadsUpStage, getHeadsUpTurnSeconds, normaliseHeadsUpRoomState, serialiseHeadsUpState, type HeadsUpActionKind, type HeadsUpCompletedTurn, type HeadsUpRoomState } from "@/lib/headsUpGameplay"
+import { createHeadsUpReadyState, deriveHeadsUpStage, getHeadsUpReadyTurnMeta, getHeadsUpTurnSeconds, normaliseHeadsUpRoomState, serialiseHeadsUpState, type HeadsUpActionKind, type HeadsUpCompletedTurn, type HeadsUpRoomState } from "@/lib/headsUpGameplay"
 import { findRoundForQuestionIndex, getEffectiveRoomRoundPlan, materialiseRoundPlan } from "@/lib/roomRoundPlan"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
@@ -14,6 +14,7 @@ function normaliseAction(raw: unknown) {
   const value = String(raw ?? "").trim().toLowerCase()
   return value as
     | "host_start_turn"
+    | "guesser_start_turn"
     | "guesser_correct"
     | "guesser_pass"
     | "host_undo"
@@ -89,7 +90,7 @@ export async function POST(req: Request) {
     closeAt: room.close_at,
   })
 
-  if (action === "host_start_turn") {
+  if (action === "host_start_turn" || action === "guesser_start_turn") {
     if (derivedStage !== "heads_up_ready") return NextResponse.json({ error: "The turn is not ready to start." }, { status: 400 })
     if (currentState.currentTurnIndex >= currentState.turnOrderPlayerIds.length || currentIndex > currentRound.endIndex) {
       const nextState: HeadsUpRoomState = { ...currentState, status: "round_summary" }
@@ -101,15 +102,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, stage: "round_summary" })
     }
 
-    const activeGuesserId = String(currentState.turnOrderPlayerIds[currentState.currentTurnIndex] ?? "").trim()
-    const activePlayer = players.find((player: any) => String(player?.id ?? "") === activeGuesserId) ?? null
+    const readyTurn = getHeadsUpReadyTurnMeta({
+      turnOrderPlayerIds: currentState.turnOrderPlayerIds,
+      currentTurnIndex: currentState.currentTurnIndex,
+      players,
+    })
+
+    if (!readyTurn.activeGuesserId) {
+      return NextResponse.json({ error: "Could not find the next guesser for this turn." }, { status: 400 })
+    }
+
+    if (action === "guesser_start_turn" && (!playerId || playerId !== readyTurn.activeGuesserId)) {
+      return NextResponse.json({ error: "Only the selected guesser can start this turn." }, { status: 403 })
+    }
+
     const now = new Date()
     const closeAt = addSeconds(now, getHeadsUpTurnSeconds(currentRound))
     const nextState: HeadsUpRoomState = {
       ...currentState,
       status: "live",
-      activeGuesserId,
-      activeTeamName: String(activePlayer?.team_name ?? "").trim() || null,
+      activeGuesserId: readyTurn.activeGuesserId,
+      activeTeamName: readyTurn.activeTeamName,
       turnStartedAt: now.toISOString(),
       turnEndsAt: closeAt.toISOString(),
       currentTurnActions: [],
@@ -252,12 +265,19 @@ export async function POST(req: Request) {
     const lastActionQuestionId = currentState.currentTurnActions[currentState.currentTurnActions.length - 1]?.questionId ?? null
     const lastActionQuestionIndex = lastActionQuestionId ? findQuestionIndex(Array.isArray(room.question_ids) ? room.question_ids.map(String) : questionIds, lastActionQuestionId) : -1
     const roundComplete = nextTurnIndex >= currentState.turnOrderPlayerIds.length || lastActionQuestionIndex >= currentRound.endIndex
+    const nextReadyTurn = roundComplete
+      ? { activeGuesserId: null, activeTeamName: null }
+      : getHeadsUpReadyTurnMeta({
+          turnOrderPlayerIds: currentState.turnOrderPlayerIds,
+          currentTurnIndex: nextTurnIndex,
+          players,
+        })
     const nextState: HeadsUpRoomState = {
       ...currentState,
       status: roundComplete ? "round_summary" : "ready",
       currentTurnIndex: nextTurnIndex,
-      activeGuesserId: null,
-      activeTeamName: null,
+      activeGuesserId: nextReadyTurn.activeGuesserId,
+      activeTeamName: nextReadyTurn.activeTeamName,
       turnStartedAt: null,
       turnEndsAt: null,
       currentTurnActions: [],

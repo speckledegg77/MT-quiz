@@ -115,19 +115,50 @@ export function buildHeadsUpTurnOrder(playersRaw: HeadsUpPlayerLike[], options: 
   return out
 }
 
+
+
+export function getHeadsUpReadyTurnMeta(params: {
+  turnOrderPlayerIds: string[]
+  currentTurnIndex: number
+  players: HeadsUpPlayerLike[]
+}) {
+  const turnOrder = cleanStringArray(params.turnOrderPlayerIds)
+  const currentTurnIndex = Math.max(0, Math.floor(Number(params.currentTurnIndex ?? 0)) || 0)
+  const activeGuesserId = String(turnOrder[currentTurnIndex] ?? "").trim() || null
+  if (!activeGuesserId) {
+    return { activeGuesserId: null, activeTeamName: null }
+  }
+
+  const activePlayer = [...(Array.isArray(params.players) ? params.players : [])].find(
+    (player) => String(player?.id ?? "").trim() === activeGuesserId
+  )
+
+  return {
+    activeGuesserId,
+    activeTeamName: String(activePlayer?.team_name ?? "").trim() || null,
+  }
+}
+
 export function createHeadsUpReadyState(params: {
   roundIndex: number
   players: HeadsUpPlayerLike[]
   gameMode?: unknown
   teamNames?: unknown
 }): HeadsUpRoomState {
+  const turnOrderPlayerIds = buildHeadsUpTurnOrder(params.players, { gameMode: params.gameMode, teamNames: params.teamNames })
+  const readyTurn = getHeadsUpReadyTurnMeta({
+    turnOrderPlayerIds,
+    currentTurnIndex: 0,
+    players: params.players,
+  })
+
   return {
     roundIndex: Math.max(0, Math.floor(Number(params.roundIndex ?? 0)) || 0),
     status: "ready",
-    turnOrderPlayerIds: buildHeadsUpTurnOrder(params.players, { gameMode: params.gameMode, teamNames: params.teamNames }),
+    turnOrderPlayerIds,
     currentTurnIndex: 0,
-    activeGuesserId: null,
-    activeTeamName: null,
+    activeGuesserId: readyTurn.activeGuesserId,
+    activeTeamName: readyTurn.activeTeamName,
     turnStartedAt: null,
     turnEndsAt: null,
     currentTurnActions: [],
@@ -226,7 +257,9 @@ export function getHeadsUpRole(params: {
 }) {
   const playerId = String(params.playerId ?? "").trim()
   if (!playerId) return "spectator" as const
+
   const activeGuesserId = String(params.activeGuesserId ?? "").trim()
+  if (!activeGuesserId) return "waiting" as const
   if (playerId === activeGuesserId) return "guesser" as const
 
   const gameMode = String(params.gameMode ?? "teams").trim().toLowerCase() === "solo" ? "solo" : "teams"

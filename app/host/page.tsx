@@ -1796,7 +1796,7 @@ export default function HostPage() {
   const roomSummaryText =
     roomIsHeadsUp && roomPhase === "running"
       ? roomStage === "heads_up_ready"
-        ? "Start the next turn when the active guesser is ready."
+        ? "The next guesser starts the turn from their phone when they are ready. Use Force start only as a fallback."
         : roomStage === "heads_up_live"
           ? "The turn is live. The active guesser controls Correct and Pass from their phone."
           : roomStage === "heads_up_review"
@@ -3024,7 +3024,7 @@ export default function HostPage() {
                   <div className="space-y-3">
                     <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                       <Button variant="secondary" onClick={() => sendHeadsUpAction("host_start_turn")} disabled={!headsUpHostButtons?.canStartTurn}>
-                        {forcingClose && roomStage === "heads_up_ready" ? "Starting..." : "Start turn"}
+                        {forcingClose && roomStage === "heads_up_ready" ? "Starting..." : "Force start turn"}
                       </Button>
                       <Button variant="secondary" onClick={() => sendHeadsUpAction("host_undo")} disabled={!headsUpHostButtons?.canUndo}>
                         {forcingClose && roomStage === "heads_up_live" ? "Working..." : "Undo last action"}
@@ -3039,7 +3039,7 @@ export default function HostPage() {
                     <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
                       <div className="rounded-xl border border-border bg-card p-3">
                         <div className="text-xs text-muted-foreground">Active turn</div>
-                        <div className="mt-1 text-lg font-semibold text-foreground">{roomHeadsUp?.activeGuesserName || "Waiting to start"}</div>
+                        <div className="mt-1 text-lg font-semibold text-foreground">{roomHeadsUp?.activeGuesserName || "No guesser selected"}</div>
                         <div className="mt-1 text-sm text-muted-foreground">
                           {roomHeadsUp?.activeTeamName ? `Team ${roomHeadsUp.activeTeamName}` : roomState?.gameMode === "solo" ? "Solo mode" : "No active team"}
                         </div>

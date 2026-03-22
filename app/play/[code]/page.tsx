@@ -480,7 +480,7 @@ export default function PlayerPage() {
     }
   }
 
-  async function submitHeadsUpAction(action: "guesser_correct" | "guesser_pass") {
+  async function submitHeadsUpAction(action: "guesser_start_turn" | "guesser_correct" | "guesser_pass") {
     if (!playerId || !isHeadsUpRound) return
     setAnswerError(null)
     try {
@@ -997,16 +997,20 @@ export default function PlayerPage() {
                   <div className="font-medium text-foreground">Heads Up</div>
                   <div className="mt-1 text-muted-foreground">
                     {headsUpRole === "guesser"
-                      ? "You are the guesser. Use Correct and Pass while your team or the rest of the room gives clues."
+                      ? isHeadsUpReadyStage
+                        ? "You are the next guesser. Start the turn from this phone when you are ready."
+                        : "You are the guesser. Use Correct and Pass while your team or the rest of the room gives clues."
                       : headsUpRole === "clue_giver"
-                        ? "You can see the live clue. Do not say the answer itself, only give clues."
+                        ? isHeadsUpLiveStage
+                          ? "You can see the live clue. Do not say the answer itself, only give clues."
+                          : "Wait for the guesser to start the turn. The clue will appear here when the timer begins."
                         : "Wait for the active team or player to finish their turn."}
                   </div>
                 </div>
               ) : null}
 
               {isHeadsUpRound ? (
-                headsUpRole === "clue_giver" ? (
+                headsUpRole === "clue_giver" && isHeadsUpLiveStage ? (
                   <div className="rounded-2xl border border-amber-500/30 bg-amber-600/10 px-4 py-6 text-center">
                     <div className="text-xs uppercase tracking-[0.2em] text-amber-200">Live clue</div>
                     <div className="mt-3 text-2xl font-semibold leading-tight text-foreground sm:text-3xl">{q.text}</div>
@@ -1014,12 +1018,12 @@ export default function PlayerPage() {
                 ) : headsUpRole === "guesser" ? (
                   <div className="rounded-2xl border border-border bg-muted px-4 py-5 text-center">
                     <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Guess without seeing the card</div>
-                    <div className="mt-2 text-lg font-semibold text-foreground">Listen to the clues and tap the result.</div>
+                    <div className="mt-2 text-lg font-semibold text-foreground">{isHeadsUpReadyStage ? "Start the turn when you are ready, then listen to the clues." : "Listen to the clues and tap the result."}</div>
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-border bg-muted px-4 py-5 text-center">
                     <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Waiting</div>
-                    <div className="mt-2 text-lg font-semibold text-foreground">This turn belongs to {String(headsUp?.activeGuesserName ?? "another player")}.
+                    <div className="mt-2 text-lg font-semibold text-foreground">{isHeadsUpReadyStage ? `${String(headsUp?.activeGuesserName ?? "Another player")} will start the turn from their phone.` : `This turn belongs to ${String(headsUp?.activeGuesserName ?? "another player")}.`}
                     </div>
                   </div>
                 )
@@ -1069,26 +1073,35 @@ export default function PlayerPage() {
               {isHeadsUpRound ? (
                 headsUpRole === "guesser" ? (
                   <div className="grid gap-3">
-                    <div className="grid grid-cols-2 gap-3">
+                    {isHeadsUpReadyStage ? (
                       <Button
-                        variant="secondary"
-                        onClick={() => submitHeadsUpAction("guesser_pass")}
-                        disabled={!isHeadsUpLiveStage}
+                        onClick={() => submitHeadsUpAction("guesser_start_turn")}
                         className="min-h-20 text-lg"
                       >
-                        Pass
+                        Start turn
                       </Button>
-                      <Button
-                        onClick={() => submitHeadsUpAction("guesser_correct")}
-                        disabled={!isHeadsUpLiveStage}
-                        className="min-h-20 text-lg"
-                      >
-                        Correct
-                      </Button>
-                    </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3">
+                        <Button
+                          variant="secondary"
+                          onClick={() => submitHeadsUpAction("guesser_pass")}
+                          disabled={!isHeadsUpLiveStage}
+                          className="min-h-20 text-lg"
+                        >
+                          Pass
+                        </Button>
+                        <Button
+                          onClick={() => submitHeadsUpAction("guesser_correct")}
+                          disabled={!isHeadsUpLiveStage}
+                          className="min-h-20 text-lg"
+                        >
+                          Correct
+                        </Button>
+                      </div>
+                    )}
                     <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm text-muted-foreground">
                       {isHeadsUpReadyStage
-                        ? "Wait for the host to start your turn."
+                        ? "Start the timer from this phone when you are ready to begin guessing."
                         : isHeadsUpReviewStage
                           ? "The host is reviewing that turn now."
                           : "Keep facing away from the clue and use the buttons as each guess lands."}
@@ -1097,14 +1110,16 @@ export default function PlayerPage() {
                 ) : headsUpRole === "clue_giver" ? (
                   <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm text-muted-foreground">
                     {isHeadsUpReadyStage
-                      ? "Wait for the host to start the turn."
+                      ? `Waiting for ${String(headsUp?.activeGuesserName ?? "the guesser")} to start the turn.`
                       : isHeadsUpReviewStage
                         ? "The turn has ended. Wait for the host to confirm it."
                         : "Give clues without saying any part of the answer on the card."}
                   </div>
                 ) : (
                   <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm text-muted-foreground">
-                    Waiting for the active player to finish. You will get a live clue view when it is your turn to help.
+                    {isHeadsUpReadyStage
+                      ? `Waiting for ${String(headsUp?.activeGuesserName ?? "the active player")} to start the turn.`
+                      : "Waiting for the active player to finish. You will get a live clue view when it is your turn to help."}
                   </div>
                 )
               ) : isTextQ ? (
