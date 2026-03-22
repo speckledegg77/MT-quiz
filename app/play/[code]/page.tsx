@@ -275,6 +275,7 @@ export default function PlayerPage() {
   const adjustedNowMs = liveNowMs + serverOffsetMs
 
   const headsUpTurnSeconds = Number(state?.headsUp?.turnSeconds ?? 0)
+  const headsUpRoundCompleteReason = String(state?.headsUp?.roundCompleteReason ?? "").trim()
   const secondsRemaining =
     displayCloseAtMs && Number.isFinite(displayCloseAtMs)
       ? Math.max(0, Math.ceil((displayCloseAtMs - adjustedNowMs) / 1000))
@@ -1028,15 +1029,33 @@ export default function PlayerPage() {
       ) : null}
 
       {!showLobby && !finished && stage === "round_summary" ? (
-        <RoundSummaryCard
-          round={currentRound}
-          roundStats={state?.roundStats}
-          gameMode={gameMode}
-          isLastQuestionOverall={Boolean(state?.flow?.isLastQuestionOverall)}
-          roundSummaryEndsAt={state?.times?.roundSummaryEndsAt ?? null}
-          roundReview={state?.roundReview}
-          isInfiniteMode={isInfiniteMode}
-        />
+        <div className="grid gap-4">
+          {isHeadsUpRound ? (
+            <Card>
+              <CardContent className="py-4">
+                <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-4 py-3 text-sm">
+                  <div className="font-medium text-foreground">
+                    {headsUpRoundCompleteReason === "card_pool_exhausted" ? "This Heads Up round has run out of cards." : "This Heads Up round is complete."}
+                  </div>
+                  <div className="mt-1 text-muted-foreground">
+                    {headsUpRoundCompleteReason === "card_pool_exhausted"
+                      ? "Wait for the host to continue to the next round. Future Heads Up rounds need a larger card pool if you want more players to take a turn."
+                      : "Wait for the host to continue when they are ready."}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+          <RoundSummaryCard
+            round={currentRound}
+            roundStats={state?.roundStats}
+            gameMode={gameMode}
+            isLastQuestionOverall={Boolean(state?.flow?.isLastQuestionOverall)}
+            roundSummaryEndsAt={state?.times?.roundSummaryEndsAt ?? null}
+            roundReview={state?.roundReview}
+            isInfiniteMode={isInfiniteMode}
+          />
+        </div>
       ) : null}
 
       {!showLobby && !finished && suppressStaleQuestionBetweenRounds ? (

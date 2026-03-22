@@ -907,7 +907,17 @@ export default function HostPage() {
 
   function updateManualRound(id: string, changes: Partial<ManualRoundDraft>) {
     setManualRounds((prev) =>
-      prev.map((round) => (round.id === id ? normaliseManualRoundDraft({ ...round, ...changes }) : round))
+      prev.map((round) => {
+        if (round.id !== id) return round
+        const next: Partial<ManualRoundDraft> = { ...changes }
+        if (changes.behaviourType === "heads_up" && round.behaviourType !== "heads_up") {
+          const currentCount = clampInt(parseIntOr(round.questionCountStr, 0), 0, 200)
+          if (currentCount <= 5 && !changes.questionCountStr) {
+            next.questionCountStr = "20"
+          }
+        }
+        return normaliseManualRoundDraft({ ...round, ...next })
+      })
     )
   }
 
@@ -1757,6 +1767,8 @@ export default function HostPage() {
     ["open", "round_summary", "needs_advance"].includes(roomStage) &&
     !forcingClose
   const canEndGame = hasRoom && roomPhase === "running" && roomIsInfinite && !endingGame
+  const canAdvanceHeadsUpSummary = hasRoom && roomPhase === "running" && roomIsHeadsUp && roomStage === "round_summary" && !forcingClose
+  const headsUpRoundCompleteReason = String(roomHeadsUp?.roundCompleteReason ?? "").trim()
 
   const headsUpHostButtons = roomIsHeadsUp
     ? {
@@ -1811,7 +1823,9 @@ export default function HostPage() {
           ? "The turn is live. The active guesser controls Correct and Pass from their phone."
           : roomStage === "heads_up_review"
             ? "Review the turn log, correct any mistakes if needed, then confirm it. The round will continue automatically after a short pause."
-            : "The Heads Up round is finished. Move on when you are ready."
+            : headsUpRoundCompleteReason === "card_pool_exhausted"
+              ? "This Heads Up round has run out of cards before every player has taken a turn. Continue to the next round, then recreate future Heads Up rounds with a larger card pool."
+              : "The Heads Up round is finished. Continue when you are ready."
       : roomPhase === "lobby"
       ? roomIsInfinite
         ? "Players can still join. When you are ready, start the infinite run from the host controls."
@@ -2541,8 +2555,9 @@ export default function HostPage() {
                               <Input value={round.name} onChange={(e) => updateManualRound(round.id, { name: e.target.value })} placeholder={defaultRoundName(index)} />
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-foreground">{round.behaviourType === "heads_up" ? "Cards" : "Questions"}</div>
+                              <div className="text-sm font-medium text-foreground">{round.behaviourType === "heads_up" ? "Card pool" : "Questions"}</div>
                               <Input value={round.questionCountStr} onChange={(e) => updateManualRound(round.id, { questionCountStr: e.target.value })} inputMode="numeric" />
+                              {round.behaviourType === "heads_up" ? <div className="mt-1 text-xs text-muted-foreground">This is the number of cards available across the whole round, not per turn.</div> : null}
                             </div>
                             <div>
                               <div className="text-sm font-medium text-foreground">Behaviour</div>
@@ -3075,6 +3090,18 @@ export default function HostPage() {
                           ? `Moving to ${String(roomHeadsUp?.nextGuesserName ?? "the next player")}${roomHeadsUp?.nextTeamName ? ` from Team ${String(roomHeadsUp.nextTeamName)}` : ""} in ${headsUpReviewCountdownSeconds}s unless you move on sooner or correct the turn log first.`
                           : `Finishing the Heads Up round in ${headsUpReviewCountdownSeconds}s unless you move on sooner or correct the turn log first.`}
                       </div>
+                    ) : null}
+                    {roomStage === "round_summary" ? (
+                      <div className={`rounded-xl border px-3 py-2 text-sm ${headsUpRoundCompleteReason === "card_pool_exhausted" ? "border-amber-500/30 bg-amber-600/10 text-amber-100" : "border-border bg-card text-muted-foreground"}`}>
+                        {headsUpRoundCompleteReason === "card_pool_exhausted"
+                          ? `This Heads Up round used all ${Math.max(0, Number(roomHeadsUp?.cardPoolSize ?? 0))} cards in its pool before another player turn could begin. Continue to the next round, or recreate this Heads Up round with a larger card pool.`
+                          : "This Heads Up round is complete. Continue when you are ready."}
+                      </div>
+                    ) : null}
+                    {roomStage === "round_summary" ? (
+                      <Button onClick={continueGame} disabled={!canAdvanceHeadsUpSummary}>
+                        {forcingClose ? "Moving on..." : Boolean(roomState?.flow?.isLastQuestionOverall) ? (roomIsInfinite ? "Finish game" : "Finish now") : "Continue to next round"}
+                      </Button>
                     ) : null}
                     <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
                       <div className="rounded-xl border border-border bg-card p-3">

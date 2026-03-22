@@ -724,6 +724,12 @@ export async function GET(req: Request) {
         name: String(player?.name ?? "").trim() || "Player",
         teamName: String(player?.team_name ?? "").trim() || null,
       }))
+    const headsUpRoundCompleteReason =
+      stage === "round_summary"
+        ? Math.max(0, Number(headsUpState.currentTurnIndex ?? 0) || 0) >= headsUpState.turnOrderPlayerIds.length
+          ? "all_turns_complete"
+          : "card_pool_exhausted"
+        : null
 
     headsUp = {
       stage,
@@ -769,6 +775,8 @@ export async function GET(req: Request) {
       nextGuesserId: nextReadyTurn.activeGuesserId,
       nextGuesserName,
       nextTeamName,
+      roundCompleteReason: headsUpRoundCompleteReason,
+      cardPoolSize: currentRound.questionIds.length,
     }
   }
 

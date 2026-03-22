@@ -280,15 +280,34 @@ export default function DisplayPage() {
       ) : null}
 
       {!showJoin && !finished && stage === "round_summary" ? (
-        <RoundSummaryCard
-          round={currentRound}
-          roundStats={roundStats}
-          isLastQuestionOverall={Boolean(state?.flow?.isLastQuestionOverall)}
-          roundSummaryEndsAt={state?.times?.roundSummaryEndsAt ?? null}
-          gameMode={String(state?.gameMode ?? "teams") === "solo" ? "solo" : "teams"}
-          roundReview={state?.roundReview}
-          isInfiniteMode={isInfiniteMode}
-        />
+        <div className="space-y-4">
+          {isHeadsUpRound ? (
+            <Card>
+              <CardContent className="py-6">
+                <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-5 py-4 text-center">
+                  <div className="text-xs uppercase tracking-[0.24em] text-amber-200">Heads Up round complete</div>
+                  <div className="mt-2 text-2xl font-semibold text-foreground">
+                    {String(state?.headsUp?.roundCompleteReason ?? "") === "card_pool_exhausted" ? "No more cards left in this round" : "All turns complete"}
+                  </div>
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    {String(state?.headsUp?.roundCompleteReason ?? "") === "card_pool_exhausted"
+                      ? "The host will need to continue to the next round. Use a larger card pool next time if you want more turns."
+                      : "Waiting for the host to continue."}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+          <RoundSummaryCard
+            round={currentRound}
+            roundStats={roundStats}
+            isLastQuestionOverall={Boolean(state?.flow?.isLastQuestionOverall)}
+            roundSummaryEndsAt={state?.times?.roundSummaryEndsAt ?? null}
+            gameMode={String(state?.gameMode ?? "teams") === "solo" ? "solo" : "teams"}
+            roundReview={state?.roundReview}
+            isInfiniteMode={isInfiniteMode}
+          />
+        </div>
       ) : null}
 
       {!showJoin && !finished && suppressStaleQuestionBetweenRounds ? (
