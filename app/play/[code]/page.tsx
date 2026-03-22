@@ -62,6 +62,8 @@ export default function PlayerPage() {
   const autoSubmitAttemptKeyRef = useRef<string | null>(null)
   const headsUpFeedbackTimeoutRef = useRef<number | null>(null)
   const feedbackAudioContextRef = useRef<AudioContext | null>(null)
+  const lastHeadsUpCountdownSecondRef = useRef<number | null>(null)
+  const lastHeadsUpCountdownStageRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!code) return
@@ -506,15 +508,58 @@ export default function PlayerPage() {
     }
   }
 
-  async function playHeadsUpCue(kind: "correct" | "pass") {
+  async function ensureHeadsUpAudioReady() {
     try {
       const anyWindow = window as typeof window & { webkitAudioContext?: typeof AudioContext }
       const Ctx = anyWindow.AudioContext || anyWindow.webkitAudioContext
-      if (!Ctx) return
+      if (!Ctx) return null
 
       const ctx = feedbackAudioContextRef.current ?? new Ctx()
       feedbackAudioContextRef.current = ctx
       await ctx.resume()
+      return ctx
+    } catch {
+      return null
+    }
+  }
+
+  async function playHeadsUpTimerCue(kind: "tick" | "end") {
+    try {
+      const ctx = await ensureHeadsUpAudioReady()
+      if (!ctx) return
+
+      const pulse = (frequency: number, start: number, duration: number, type: OscillatorType, volume: number) => {
+        const oscillator = ctx.createOscillator()
+        const gain = ctx.createGain()
+        oscillator.type = type
+        oscillator.frequency.setValueAtTime(frequency, start)
+        gain.gain.setValueAtTime(0.0001, start)
+        gain.gain.exponentialRampToValueAtTime(volume, start + 0.01)
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
+        oscillator.connect(gain)
+        gain.connect(ctx.destination)
+        oscillator.start(start)
+        oscillator.stop(start + duration + 0.02)
+      }
+
+      const start = ctx.currentTime + 0.01
+      if (kind === "tick") {
+        pulse(1320, start, 0.07, "square", 0.045)
+      } else {
+        pulse(784, start, 0.09, "triangle", 0.06)
+        pulse(622, start + 0.1, 0.12, "triangle", 0.055)
+        pulse(440, start + 0.24, 0.24, "sawtooth", 0.07)
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  async function playHeadsUpCue(kind: "correct" | "pass") {
+
+    try {
+      const ctx = await ensureHeadsUpAudioReady()
+      if (!ctx) return
 
       const pulse = (frequency: number, start: number, duration: number, type: OscillatorType, volume: number) => {
         const oscillator = ctx.createOscillator()
@@ -631,20 +676,7 @@ export default function PlayerPage() {
     setAutoplayFailed(false)
 
     try {
-      const anyWindow = window as any
-      const Ctx = anyWindow.AudioContext || anyWindow.webkitAudioContext
-      if (Ctx) {
-        const ctx = new Ctx()
-        await ctx.resume()
-        const buf = ctx.createBuffer(1, 1, 22050)
-        const src = ctx.createBufferSource()
-        src.buffer = buf
-        src.connect(ctx.destination)
-        src.start(0)
-        src.stop(0.01)
-        await new Promise((resolve) => setTimeout(resolve, 20))
-        await ctx.close()
-      }
+      await ensureHeadsUpAudioReady()
     } catch {
       // ignore
     }
@@ -737,6 +769,68 @@ export default function PlayerPage() {
       stopClip()
     }
   }, [state?.phase, state?.stage, q?.id, q?.audioUrl, shouldPlayOnPhone, audioEnabled, isAudioQ])
+
+  useEffect(() => {
+    const resumeAudio = () => {
+      void ensureHeadsUpAudioReady()
+    }
+    window.addEventListener("pointerdown", resumeAudio)
+    window.addEventListener("keydown", resumeAudio)
+    return () => {
+      window.removeEventListener("pointerdown", resumeAudio)
+      window.removeEventListener("keydown", resumeAudio)
+    }
+  }, [])
+
+  useEffect(() => {
+    const currentStage = String(state?.stage ?? "")
+    const isHeadsUpBehaviour = String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
+    const currentRole = isHeadsUpBehaviour
+      ? getHeadsUpRole({
+          playerId,
+          playerTeamName: String(myPlayer?.team_name ?? teamName ?? "").trim() || null,
+          activeGuesserId: String(state?.headsUp?.activeGuesserId ?? "").trim() || null,
+          activeTeamName: String(state?.headsUp?.activeTeamName ?? "").trim() || null,
+          gameMode,
+        })
+      : "spectator"
+
+    const shouldPlayCountdownCue =
+      isHeadsUpBehaviour &&
+      currentStage === "heads_up_live" &&
+      (currentRole === "guesser" || currentRole === "clue_giver")
+
+    if (!shouldPlayCountdownCue) {
+      lastHeadsUpCountdownSecondRef.current = null
+      lastHeadsUpCountdownStageRef.current = currentStage
+      return
+    }
+
+    const closeAtMs = state?.times?.closeAt ? Date.parse(String(state.times.closeAt)) : Number.NaN
+    const currentSecondsRemaining = Number.isFinite(closeAtMs)
+      ? Math.max(0, Math.ceil((closeAtMs - Date.now()) / 1000))
+      : 0
+
+    if (!Number.isFinite(currentSecondsRemaining)) return
+
+    const currentSecond = Math.max(0, Math.floor(currentSecondsRemaining))
+    const previousSecond = lastHeadsUpCountdownSecondRef.current
+    const previousStage = lastHeadsUpCountdownStageRef.current
+    lastHeadsUpCountdownSecondRef.current = currentSecond
+    lastHeadsUpCountdownStageRef.current = currentStage
+
+    if (previousStage !== "heads_up_live") return
+    if (previousSecond === currentSecond) return
+
+    if (currentSecond > 0 && currentSecond <= 5) {
+      void playHeadsUpTimerCue("tick")
+      return
+    }
+
+    if (currentSecond === 0 && previousSecond !== 0) {
+      void playHeadsUpTimerCue("end")
+    }
+  }, [gameMode, myPlayer?.team_name, playerId, state, teamName])
 
   useEffect(() => {
     return () => {
@@ -1284,77 +1378,79 @@ export default function PlayerPage() {
                 </div>
               ) : null}
 
-              {isTextQ ? (
-                <div className="grid gap-2">
-                  <Input
-                    value={typedValue}
-                    onChange={(e) => setTypedValue(e.target.value)}
-                    placeholder="Type your answer"
-                    disabled={!canAnswer}
-                  />
-                  <div className="flex items-center justify-end gap-2">
-                    <Button variant="secondary" onClick={() => setTypedValue("")} disabled={!canAnswer || !typedValue.trim()}>
-                      Clear
-                    </Button>
-                    <Button onClick={submitTyped} disabled={!canAnswer || !typedValue.trim()}>
-                      Submit
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid gap-2">
-                  {Array.isArray(q.options)
-                    ? q.options.map((opt: string, idx: number) => {
-                        const selected = selectedIndex === idx
-                        const submitted = submittedIndex !== null
-
-                        let cls = "rounded-xl border px-3 py-3 text-left text-sm transition-colors"
-                        cls += " border-border hover:bg-emerald-600/10"
-
-                        if (selected && !submitted) cls += " bg-emerald-600/15 border-emerald-500/40"
-                        if (submitted) cls += " opacity-80 cursor-not-allowed"
-                        if (inReveal && correctIndex === idx) cls += " bg-emerald-600/10 border-emerald-600/30"
-                        if (inReveal && submittedIndex === idx && correctIndex !== idx) cls += " bg-red-600/10 border-red-600/30"
-
-                        return (
-                          <button
-                            key={idx}
-                            className={cls}
-                            onClick={() => pickOption(idx)}
-                            disabled={!canAnswer || mcqSubmitting}
-                          >
-                            <div className="text-sm text-foreground">{opt}</div>
-                          </button>
-                        )
-                      })
-                    : null}
-
-                  {mcqAutoSubmitted && submittedIndex !== null && !inReveal ? (
-                    <div className="rounded-lg border border-emerald-500/30 bg-emerald-600/10 px-3 py-2 text-sm text-emerald-200">
-                      Time expired, so your selected answer was submitted automatically.
-                    </div>
-                  ) : null}
-
-                  {!inReveal ? (
+              {!isHeadsUpRound ? (
+                isTextQ ? (
+                  <div className="grid gap-2">
+                    <Input
+                      value={typedValue}
+                      onChange={(e) => setTypedValue(e.target.value)}
+                      placeholder="Type your answer"
+                      disabled={!canAnswer}
+                    />
                     <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="secondary"
-                        onClick={() => {
-                          setSelectedIndex(null)
-                          setAnswerError(null)
-                        }}
-                        disabled={!canAnswer || selectedIndex === null}
-                      >
+                      <Button variant="secondary" onClick={() => setTypedValue("")} disabled={!canAnswer || !typedValue.trim()}>
                         Clear
                       </Button>
-
-                      <Button onClick={submitMcq} disabled={!canAnswer || selectedIndex === null}>
-                        {mcqSubmitting ? "Submitting..." : "Submit"}
+                      <Button onClick={submitTyped} disabled={!canAnswer || !typedValue.trim()}>
+                        Submit
                       </Button>
                     </div>
-                  ) : null}
-                </div>
-              )}
+                  </div>
+                ) : (
+                  <div className="grid gap-2">
+                    {Array.isArray(q.options)
+                      ? q.options.map((opt: string, idx: number) => {
+                          const selected = selectedIndex === idx
+                          const submitted = submittedIndex !== null
+
+                          let cls = "rounded-xl border px-3 py-3 text-left text-sm transition-colors"
+                          cls += " border-border hover:bg-emerald-600/10"
+
+                          if (selected && !submitted) cls += " bg-emerald-600/15 border-emerald-500/40"
+                          if (submitted) cls += " opacity-80 cursor-not-allowed"
+                          if (inReveal && correctIndex === idx) cls += " bg-emerald-600/10 border-emerald-600/30"
+                          if (inReveal && submittedIndex === idx && correctIndex !== idx) cls += " bg-red-600/10 border-red-600/30"
+
+                          return (
+                            <button
+                              key={idx}
+                              className={cls}
+                              onClick={() => pickOption(idx)}
+                              disabled={!canAnswer || mcqSubmitting}
+                            >
+                              <div className="text-sm text-foreground">{opt}</div>
+                            </button>
+                          )
+                        })
+                      : null}
+
+                    {mcqAutoSubmitted && submittedIndex !== null && !inReveal ? (
+                      <div className="rounded-lg border border-emerald-500/30 bg-emerald-600/10 px-3 py-2 text-sm text-emerald-200">
+                        Time expired, so your selected answer was submitted automatically.
+                      </div>
+                    ) : null}
+
+                    {!inReveal ? (
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            setSelectedIndex(null)
+                            setAnswerError(null)
+                          }}
+                          disabled={!canAnswer || selectedIndex === null}
+                        >
+                          Clear
+                        </Button>
+
+                        <Button onClick={submitMcq} disabled={!canAnswer || selectedIndex === null}>
+                          {mcqSubmitting ? "Submitting..." : "Submit"}
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                )
+              ) : null}
 
               {inReveal && correctAnswerText ? (
                 <div className="rounded-xl border border-emerald-600/30 bg-emerald-600/10 p-3">
