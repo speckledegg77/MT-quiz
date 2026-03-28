@@ -103,6 +103,7 @@ const AUDIO_CLIP_TYPE_OPTIONS = [
 const CLUE_SOURCE_OPTIONS = [
   { value: "", label: "No filter" },
   { value: "direct_fact", label: "direct_fact" },
+  { value: "song_title", label: "song_title" },
   { value: "song_clip", label: "song_clip" },
   { value: "overture_clip", label: "overture_clip" },
   { value: "entracte_clip", label: "entracte_clip" },

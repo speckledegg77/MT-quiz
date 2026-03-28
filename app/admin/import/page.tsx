@@ -402,8 +402,11 @@ export default function AdminImportPage() {
 
               <div className="grid gap-2">
                 <div className="text-sm font-medium">Question CSV reminder</div>
+                <div className="text-xs text-muted-foreground">
+                  The metadata columns are optional, but when provided they are imported and validated.
+                </div>
                 <pre className={mutedBoxClassName}>
-                  {"pack_id,pack_name,pack_round_type,pack_sort_order,\nquestion_id,question_round_type,answer_type,question_text,\noption_a,option_b,option_c,option_d,answer_index,\nanswer_text,accepted_answers,explanation,audio_path,image_path,media_duration_ms,audio_clip_type"}
+                  {"pack_id,pack_name,pack_round_type,pack_sort_order,\nquestion_id,question_round_type,answer_type,question_text,\noption_a,option_b,option_c,option_d,answer_index,\nanswer_text,accepted_answers,explanation,audio_path,image_path,\nmedia_type,prompt_target,clue_source,primary_show_key,\nmedia_duration_ms,audio_clip_type"}
                 </pre>
               </div>
             </CardContent>

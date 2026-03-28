@@ -62,6 +62,7 @@ begin
       check (
         clue_source in (
           'direct_fact',
+          'song_title',
           'song_clip',
           'overture_clip',
           'entracte_clip',

@@ -158,6 +158,7 @@ const AUDIO_CLIP_TYPE_OPTIONS = [
 const CLUE_SOURCE_OPTIONS = [
   { value: "", label: "Blank" },
   { value: "direct_fact", label: "direct_fact" },
+  { value: "song_title", label: "song_title" },
   { value: "song_clip", label: "song_clip" },
   { value: "overture_clip", label: "overture_clip" },
   { value: "entracte_clip", label: "entracte_clip" },
@@ -236,6 +237,7 @@ const BULK_CLUE_SOURCE_OPTIONS = [
   { value: UNCHANGED_VALUE, label: "Leave unchanged" },
   { value: "", label: "Set blank" },
   { value: "direct_fact", label: "direct_fact" },
+  { value: "song_title", label: "song_title" },
   { value: "song_clip", label: "song_clip" },
   { value: "overture_clip", label: "overture_clip" },
   { value: "entracte_clip", label: "entracte_clip" },
