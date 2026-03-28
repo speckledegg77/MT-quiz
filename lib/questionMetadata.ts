@@ -15,6 +15,7 @@ export const PROMPT_TARGET_VALUES = [
 ] as const
 export const CLUE_SOURCE_VALUES = [
   "direct_fact",
+  "song_title",
   "song_clip",
   "overture_clip",
   "entracte_clip",
@@ -229,6 +230,17 @@ function suggestClueSource(question: QuestionRowForMetadata): { value: ClueSourc
     return {
       value: "lyric_excerpt",
       reason: "Suggested because the clue is based on lyrics.",
+    }
+  }
+
+  if (
+    /\b(which musical|which show|name the show|name the musical|identify the show|identify the musical|what show|what musical)\b/.test(
+      text
+    ) && /\bsong\b/.test(text)
+  ) {
+    return {
+      value: "song_title",
+      reason: "Suggested because the clue is the title of a song written in the question text.",
     }
   }
 
