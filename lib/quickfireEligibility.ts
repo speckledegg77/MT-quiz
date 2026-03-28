@@ -8,8 +8,11 @@ export type QuickfireEligibilityLike = {
 }
 
 export function normaliseMediaDurationMs(raw: unknown): number | null {
+  if (raw === null || raw === undefined || raw === "") return null
+
   const parsed = Math.floor(Number(raw))
   if (!Number.isFinite(parsed) || parsed < 0) return null
+
   return parsed
 }
 
