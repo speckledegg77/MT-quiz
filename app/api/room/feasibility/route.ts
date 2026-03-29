@@ -114,6 +114,19 @@ export async function POST(req: Request) {
     const specificHeadsUpPackIds = [...new Set(headsUpRounds.flatMap((round) => cleanStringArray(round.packIds)))]
 
     let candidates: QuestionCandidate[] = []
+    let selectedCandidates: QuestionCandidate[] = []
+
+    if (selectedPackIds.length > 0) {
+      const selectedLinksRes = await supabaseAdmin
+        .from("pack_questions")
+        .select(
+          "pack_id, question_id, questions(round_type, answer_type, media_type, prompt_target, clue_source, primary_show_key, media_duration_ms, audio_clip_type)"
+        )
+        .in("pack_id", selectedPackIds)
+
+      if (selectedLinksRes.error) return NextResponse.json({ error: selectedLinksRes.error.message }, { status: 500 })
+      selectedCandidates = buildQuestionCandidatesFromPackRows((selectedLinksRes.data ?? []) as Array<Record<string, unknown>>)
+    }
 
     if (scopeQuestionPackIds.length > 0) {
       const linksRes = await supabaseAdmin
@@ -158,7 +171,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       ok: true,
-      candidateCount: candidates.length,
+      candidateCount: selectedCandidates.length,
       scopePackCount: scopeQuestionPackIds.length + specificHeadsUpPackIds.length,
       manual,
       templates,

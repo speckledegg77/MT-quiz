@@ -1041,15 +1041,10 @@ export default function HostPage() {
     if (roomCode) return
     if (packsLoading) return
 
+    let cancelled = false
     setSimpleFeasibilityBusy(true)
     setSimpleFeasibilityError(null)
-  }, [allTemplateRoundsPayload, packsLoading, roomCode, simpleSelectedPackIds, templates.length])
 
-  useEffect(() => {
-    if (roomCode) return
-    if (packsLoading) return
-
-    let cancelled = false
     const timer = window.setTimeout(async () => {
       try {
 
@@ -1890,15 +1885,13 @@ export default function HostPage() {
       ? `${selectedPackCount} selected pack${selectedPackCount === 1 ? "" : "s"}`
       : "no packs selected yet"
 
-  const simpleReadyLabel = simpleFeasibilityBusy
-    ? "Checking..."
-    : simpleGameType === "infinite"
-      ? simpleCandidateCount > 0
-        ? "Ready to create"
-        : "Needs changes"
-      : simpleTemplatePlan.rounds.length > 0
-        ? "Ready to create"
-        : "Needs changes"
+  const simpleReadyLabel = simpleGameType === "infinite"
+    ? simpleCandidateCount > 0
+      ? "Ready to create"
+      : "Needs changes"
+    : simpleTemplatePlan.rounds.length > 0
+      ? "Ready to create"
+      : "Needs changes"
 
   const simpleJokerSummary = simpleTemplatePlan.jokerEligibleCount >= 2
     ? `Joker available in ${simpleTemplatePlan.jokerEligibleCount} round${simpleTemplatePlan.jokerEligibleCount === 1 ? "" : "s"}`
@@ -2249,7 +2242,7 @@ export default function HostPage() {
                                 <div className="rounded-xl border border-border bg-card p-3">
                                   <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Questions asked</div>
                                   <div className="mt-1 text-sm font-medium text-foreground">
-                                    {simpleFeasibilityBusy ? "Checking..." : simpleInfiniteQuestionLimit == null ? "All available" : simpleInfiniteResolvedQuestionCount}
+                                    {simpleInfiniteQuestionLimit == null ? "All available" : simpleInfiniteResolvedQuestionCount}
                                   </div>
                                 </div>
                                 <div className="rounded-xl border border-border bg-card p-3">
