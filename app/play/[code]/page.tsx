@@ -1238,7 +1238,7 @@ export default function PlayerPage() {
                 headsUpRole === "clue_giver" && isHeadsUpLiveStage ? (
                   <div className="rounded-2xl border border-amber-500/30 bg-amber-600/10 px-4 py-6 text-center">
                     <div className="text-xs uppercase tracking-[0.2em] text-amber-200">Live clue</div>
-                    <div className="mt-3 text-2xl font-semibold leading-tight text-foreground sm:text-3xl">{q.text}</div>
+                    <div className="mt-3 whitespace-pre-line text-2xl font-semibold leading-tight text-foreground sm:text-3xl">{q.text}</div>
                   </div>
                 ) : headsUpRole === "guesser" ? (
                   <div className="rounded-2xl border border-border bg-muted px-4 py-5 text-center">
@@ -1253,7 +1253,7 @@ export default function PlayerPage() {
                   </div>
                 )
               ) : (
-                <div className="text-base font-semibold leading-tight">{q.text}</div>
+                <div className="whitespace-pre-line text-base font-semibold leading-tight">{q.text}</div>
               )}
 
               {isAudioQ && shouldPlayOnPhone ? (

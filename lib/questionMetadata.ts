@@ -161,11 +161,21 @@ function suggestMediaType(question: QuestionRowForMetadata): { value: MediaType 
 
 function suggestPromptTarget(question: QuestionRowForMetadata): { value: PromptTarget | null; reason: string | null } {
   const text = cleanLower(question.text)
+  const refersToLyrics = /\b(from these lyrics|from the lyrics|these lyrics|lyric excerpt|lyrics?)\b/.test(text)
 
-  if (/\b(song title|name the song|identify the song|what song|which song)\b/.test(text)) {
+  if (/\b(song title|which song|what song|identify the song)\b/.test(text)) {
     return {
       value: "song_title",
       reason: "Suggested because the question asks the player to identify the song.",
+    }
+  }
+
+  if (/\bname\b[\w\s]{0,40}\bsong\b/.test(text) || (refersToLyrics && /\bsong\b/.test(text))) {
+    return {
+      value: "song_title",
+      reason: refersToLyrics
+        ? "Suggested because the question asks the player to name the song from lyrics."
+        : "Suggested because the question asks the player to name the song.",
     }
   }
 
@@ -177,6 +187,15 @@ function suggestPromptTarget(question: QuestionRowForMetadata): { value: PromptT
     return {
       value: "show_title",
       reason: "Suggested because the question asks the player to name the show.",
+    }
+  }
+
+  if (/\bname\b[\w\s]{0,40}\b(musical|show)\b/.test(text) || (refersToLyrics && /\b(musical|show)\b/.test(text))) {
+    return {
+      value: "show_title",
+      reason: refersToLyrics
+        ? "Suggested because the question asks the player to name the show from lyrics."
+        : "Suggested because the question asks the player to name the show.",
     }
   }
 
@@ -226,7 +245,7 @@ function suggestClueSource(question: QuestionRowForMetadata): { value: ClueSourc
     }
   }
 
-  if (/\blyric\b/.test(text)) {
+  if (/\b(lyric excerpt|from these lyrics|from the lyrics|these lyrics|lyrics?)\b/.test(text)) {
     return {
       value: "lyric_excerpt",
       reason: "Suggested because the clue is based on lyrics.",

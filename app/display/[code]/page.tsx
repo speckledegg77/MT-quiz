@@ -492,7 +492,7 @@ export default function DisplayPage() {
                     {stage === "heads_up_live" && headsUp?.tvDisplayMode === "show_clue" ? (
                       <div className="mt-6 rounded-3xl border border-amber-500/30 bg-amber-600/10 px-6 py-10 text-center">
                         <div className="text-xs uppercase tracking-[0.24em] text-amber-200">Live clue</div>
-                        <div className="mt-4 text-4xl font-semibold leading-tight text-foreground">{q.text}</div>
+                        <div className="mt-4 whitespace-pre-line text-4xl font-semibold leading-tight text-foreground">{q.text}</div>
                       </div>
                     ) : (
                       <div className="mt-6 rounded-3xl border border-border bg-muted px-6 py-10 text-center">
@@ -537,7 +537,7 @@ export default function DisplayPage() {
                     ) : null}
                   </div>
                 ) : (
-                  <div className="text-xl font-semibold">{q.text}</div>
+                  <div className="whitespace-pre-line text-xl font-semibold">{q.text}</div>
                 )}
 
                 {isAudioQ && audioMode === "phones" ? (
