@@ -1043,10 +1043,18 @@ export default function HostPage() {
 
     setSimpleFeasibilityBusy(true)
     setSimpleFeasibilityError(null)
+    setSimpleTemplateFeasibility(null)
+  }, [allTemplateRoundsPayload, packsLoading, roomCode, simpleSelectedPackIds, templates.length])
+
+  useEffect(() => {
+    if (roomCode) return
+    if (packsLoading) return
 
     let cancelled = false
     const timer = window.setTimeout(async () => {
       try {
+        setSimpleFeasibilityBusy(true)
+        setSimpleFeasibilityError(null)
 
         const response = await fetch("/api/room/feasibility", {
           method: "POST",
@@ -2029,15 +2037,15 @@ export default function HostPage() {
                           </div>
                         </div>
                         <div className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-sky-400/50 bg-gradient-to-r from-sky-500/20 to-cyan-500/20 px-3 py-1 text-sm font-semibold leading-none text-sky-100 shadow-sm shadow-sky-950/20">
-                          {simpleGameType === "infinite"
-                            ? simpleFeasibilityBusy
-                              ? "Checking..."
-                              : simpleInfiniteQuestionLimit == null
+                          {simpleFeasibilityBusy
+                            ? "Checking..."
+                            : simpleGameType === "infinite"
+                              ? simpleInfiniteQuestionLimit == null
                                 ? simpleCandidateCount > 0
                                   ? `${simpleCandidateCount} available`
                                   : "Question pool"
                                 : `${simpleInfiniteResolvedQuestionCount} questions`
-                            : `${simpleRoundCount} rounds`}
+                              : `${simpleRoundCount} rounds`}
                         </div>
                       </div>
 
@@ -2237,12 +2245,12 @@ export default function HostPage() {
                               <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                                 <div className="rounded-xl border border-border bg-card p-3">
                                   <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Question pool</div>
-                                  <div className="mt-1 text-sm font-medium text-foreground">{simpleFeasibilityBusy ? "Checking..." : `${simpleCandidateCount} available`}</div>
+                                  <div className="mt-1 text-sm font-medium text-foreground">{simpleCandidateCount} available</div>
                                 </div>
                                 <div className="rounded-xl border border-border bg-card p-3">
                                   <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Questions asked</div>
                                   <div className="mt-1 text-sm font-medium text-foreground">
-                                    {simpleFeasibilityBusy ? "Checking..." : simpleInfiniteQuestionLimit == null ? "All available" : simpleInfiniteResolvedQuestionCount}
+                                    {simpleInfiniteQuestionLimit == null ? "All available" : simpleInfiniteResolvedQuestionCount}
                                   </div>
                                 </div>
                                 <div className="rounded-xl border border-border bg-card p-3">
