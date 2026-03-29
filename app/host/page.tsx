@@ -1047,6 +1047,7 @@ export default function HostPage() {
     let cancelled = false
     const timer = window.setTimeout(async () => {
       try {
+
         const response = await fetch("/api/room/feasibility", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2241,7 +2242,7 @@ export default function HostPage() {
                                 <div className="rounded-xl border border-border bg-card p-3">
                                   <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Questions asked</div>
                                   <div className="mt-1 text-sm font-medium text-foreground">
-                                    {simpleInfiniteQuestionLimit == null ? "All available" : simpleInfiniteResolvedQuestionCount}
+                                    {simpleFeasibilityBusy ? "Checking..." : simpleInfiniteQuestionLimit == null ? "All available" : simpleInfiniteResolvedQuestionCount}
                                   </div>
                                 </div>
                                 <div className="rounded-xl border border-border bg-card p-3">
