@@ -114,6 +114,93 @@ function tokenPrefixMatch(inputTokens: string[], answerTokens: string[]) {
   return ratio >= 0.6 || inputTokens.length >= 3
 }
 
+function stripLeadingTokens(tokens: string[]) {
+  let out = [...tokens]
+  const dropSingles = new Set(["the", "a", "an"])
+  const dropPairs = [
+    ["there", "s"],
+    ["there", "is"],
+    ["it", "s"],
+    ["it", "is"],
+  ]
+
+  let changed = true
+  while (changed) {
+    changed = false
+    if (out.length >= 2) {
+      for (const pair of dropPairs) {
+        if (out[0] === pair[0] && out[1] === pair[1]) {
+          out = out.slice(2)
+          changed = true
+          break
+        }
+      }
+      if (changed) continue
+    }
+
+    if (out.length >= 1 && dropSingles.has(out[0])) {
+      out = out.slice(1)
+      changed = true
+    }
+  }
+
+  return out
+}
+
+function tokenSequenceFuzzyMatch(inputTokens: string[], answerTokens: string[]) {
+  if (inputTokens.length < 2 || answerTokens.length < 2) return false
+  if (inputTokens.length > answerTokens.length) return false
+
+  const maxOffset = answerTokens.length - inputTokens.length
+
+  for (let offset = 0; offset <= maxOffset; offset++) {
+    let fuzzyTokens = 0
+    let totalEdits = 0
+    let matched = true
+
+    for (let i = 0; i < inputTokens.length; i++) {
+      const it = inputTokens[i]
+      const at = answerTokens[offset + i]
+      if (it === at) continue
+      if (it.length >= 3 && at.startsWith(it)) continue
+      if (at.length >= 3 && it.startsWith(at)) continue
+
+      const dist = levenshtein(it, at)
+      const maxLen = Math.max(it.length, at.length)
+      let maxEdits = 1
+      if (maxLen >= 8) maxEdits = 2
+      if (maxLen >= 12) maxEdits = 3
+
+      if (dist > maxEdits) {
+        matched = false
+        break
+      }
+
+      fuzzyTokens += 1
+      totalEdits += dist
+      if (fuzzyTokens > 1 || totalEdits > 2) {
+        matched = false
+        break
+      }
+    }
+
+    if (matched) return true
+  }
+
+  return false
+}
+
+function candidateNormalisedVariants(candidate: string) {
+  const baseTokens = tokenise(candidate)
+  const variants = new Set<string>()
+  if (baseTokens.length) variants.add(baseTokens.join(" "))
+
+  const stripped = stripLeadingTokens(baseTokens)
+  if (stripped.length >= 2) variants.add(stripped.join(" "))
+
+  return Array.from(variants)
+}
+
 function isTextCorrect(input: string, answer: string, accepted?: string[]) {
   const inputNorm = normalise(input)
   if (!inputNorm) return false
@@ -121,7 +208,7 @@ function isTextCorrect(input: string, answer: string, accepted?: string[]) {
   const candidates = [answer, ...(accepted ?? [])].map((x) => String(x ?? "")).filter(Boolean)
   if (candidates.length === 0) return false
 
-  const candNorms = candidates.map(normalise).filter(Boolean)
+  const candNorms = candidates.flatMap(candidateNormalisedVariants).filter(Boolean)
   if (candNorms.includes(inputNorm)) return true
 
   const inputCompact = inputNorm.replace(/\s+/g, "")
@@ -132,9 +219,16 @@ function isTextCorrect(input: string, answer: string, accepted?: string[]) {
   }
 
   const inTokens = tokenise(inputNorm)
+  const strippedInputTokens = stripLeadingTokens(inTokens)
+
   for (const c of candidates) {
     const aTokens = tokenise(c)
+    const strippedAnswerTokens = stripLeadingTokens(aTokens)
+
     if (tokenPrefixMatch(inTokens, aTokens)) return true
+    if (strippedInputTokens.length >= 2 && tokenPrefixMatch(strippedInputTokens, strippedAnswerTokens)) return true
+    if (strippedInputTokens.length >= 2 && tokenSequenceFuzzyMatch(strippedInputTokens, strippedAnswerTokens)) return true
+    if (tokenSequenceFuzzyMatch(inTokens, aTokens)) return true
   }
 
   for (const c of candNorms) {

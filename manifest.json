@@ -1,10 +1,10 @@
 ﻿{
     "exportName":  "latest-chatgpt-source",
-    "exportedAtUtc":  "2026-03-29T13:36:56Z",
+    "exportedAtUtc":  "2026-03-29T14:15:14Z",
     "sourceRepoRoot":  "C:/Users/mark/musical-theatre-quiz",
     "sourceBranch":  "main",
-    "sourceCommit":  "e41f041a0cd5847fe4be02260dfb2e0f4bf33968",
-    "workingTreeDirty":  true,
+    "sourceCommit":  "8512560cc737d384dc25f52c7f8497994a69f4ad",
+    "workingTreeDirty":  false,
     "includePaths":  [
                          "app",
                          "components",
