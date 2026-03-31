@@ -37,6 +37,13 @@ function parsePositiveInt(value: string | null, fallback: number) {
   return Math.floor(parsed)
 }
 
+function parseOptionalPositiveInt(value: string | null) {
+  if (value === null || value.trim() === "") return null
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed < 0) return null
+  return Math.floor(parsed)
+}
+
 function warningMatchesFilter(warningState: string | null, warningCount: number) {
   if (!warningState) return true
   if (warningState === "has_warnings") return warningCount > 0
@@ -98,9 +105,7 @@ export async function GET(req: Request) {
   const search = url.searchParams.get("search")?.trim() || null
   const hasAudio = parseBooleanParam(url.searchParams.get("hasAudio"))
   const hasImage = parseBooleanParam(url.searchParams.get("hasImage"))
-  const limitParam = url.searchParams.get("limit")
-  const hasLimit = limitParam !== null && limitParam.trim() !== ""
-  const limit = hasLimit ? parsePositiveInt(limitParam, 50) : null
+  const limit = parseOptionalPositiveInt(url.searchParams.get("limit"))
   const offset = parsePositiveInt(url.searchParams.get("offset"), 0)
 
   let allowedQuestionIds: string[] | null = null
