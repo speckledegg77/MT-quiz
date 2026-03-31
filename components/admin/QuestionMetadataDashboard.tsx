@@ -1248,7 +1248,7 @@ export function QuestionMetadataDashboard() {
                               <div className="text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
                                 {item.question.id}
                               </div>
-                              <div className="mt-0.5 whitespace-pre-line text-[13px] leading-5 text-foreground">
+                              <div className="mt-0.5 text-[13px] leading-5 text-foreground">
                                 {item.question.text}
                               </div>
                             </div>
@@ -1316,7 +1316,7 @@ export function QuestionMetadataDashboard() {
                       </span>
                     </div>
                   </div>
-                  <div className="mt-3 whitespace-pre-line text-sm leading-6 text-foreground">{detailItem.question.text}</div>
+                  <div className="mt-3 text-sm leading-6 text-foreground">{detailItem.question.text}</div>
                   <div className="mt-3 text-xs text-muted-foreground">
                     Packs: {detailItem.packs.map((pack) => pack.display_name).join(", ") || "None"}
                   </div>

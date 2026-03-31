@@ -37,13 +37,6 @@ function parsePositiveInt(value: string | null, fallback: number) {
   return Math.floor(parsed)
 }
 
-function parseOptionalPositiveInt(value: string | null) {
-  if (value === null || value.trim() === "") return null
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed) || parsed < 0) return null
-  return Math.floor(parsed)
-}
-
 function warningMatchesFilter(warningState: string | null, warningCount: number) {
   if (!warningState) return true
   if (warningState === "has_warnings") return warningCount > 0
@@ -105,7 +98,9 @@ export async function GET(req: Request) {
   const search = url.searchParams.get("search")?.trim() || null
   const hasAudio = parseBooleanParam(url.searchParams.get("hasAudio"))
   const hasImage = parseBooleanParam(url.searchParams.get("hasImage"))
-  const limit = parseOptionalPositiveInt(url.searchParams.get("limit"))
+  const limitParam = url.searchParams.get("limit")
+  const hasLimit = limitParam !== null && limitParam.trim() !== ""
+  const limit = hasLimit ? parsePositiveInt(limitParam, 50) : null
   const offset = parsePositiveInt(url.searchParams.get("offset"), 0)
 
   let allowedQuestionIds: string[] | null = null
@@ -123,7 +118,7 @@ export async function GET(req: Request) {
     allowedQuestionIds = (packLinksRes.data ?? []).map((row: { question_id: string }) => row.question_id)
 
     if (!allowedQuestionIds.length) {
-      return NextResponse.json({ ok: true, total: 0, limit: limit ?? 0, offset, items: [] })
+      return NextResponse.json({ ok: true, total: 0, limit, offset, items: [] })
     }
   }
 
@@ -135,13 +130,13 @@ export async function GET(req: Request) {
     )
     .order("id", { ascending: true })
 
-  if (limit !== null) {
-    dataQuery = dataQuery.range(offset, offset + limit - 1)
-  }
-
   if (allowedQuestionIds) {
     countQuery = countQuery.in("id", allowedQuestionIds)
     dataQuery = dataQuery.in("id", allowedQuestionIds)
+  }
+
+  if (limit !== null) {
+    dataQuery = dataQuery.range(offset, offset + limit - 1)
   }
 
   if (legacyRoundType) {
@@ -276,7 +271,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     ok: true,
     total: filteredTotal,
-    limit: limit ?? items.length,
+    limit,
     offset,
     items,
   })
