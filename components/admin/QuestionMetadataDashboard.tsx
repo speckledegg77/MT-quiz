@@ -115,11 +115,6 @@ type EditorState = {
   mediaDurationMs: string
 }
 
-type AnswerEditorState = {
-  answerText: string
-  acceptedAnswers: string
-}
-
 type BulkEditorState = {
   mediaType: string
   promptTarget: string
@@ -376,60 +371,6 @@ function normaliseDurationEditorValue(value: number | null | undefined) {
   return value === null || value === undefined || !Number.isFinite(Number(value)) ? "" : String(Math.floor(Number(value)))
 }
 
-function parseAcceptedAnswersValue(value: unknown) {
-  if (Array.isArray(value)) {
-    return value.map((item) => String(item ?? "").trim()).filter(Boolean)
-  }
-
-  const raw = String(value ?? "").trim()
-  if (!raw) return []
-
-  try {
-    const parsed = JSON.parse(raw)
-    if (Array.isArray(parsed)) {
-      if (parsed.length === 1 && typeof parsed[0] === "string") {
-        try {
-          const nested = JSON.parse(parsed[0])
-          if (Array.isArray(nested)) {
-            return nested.map((item) => String(item ?? "").trim()).filter(Boolean)
-          }
-        } catch {
-          // ignore nested parse failure
-        }
-      }
-
-      return parsed.map((item) => String(item ?? "").trim()).filter(Boolean)
-    }
-  } catch {
-    // fall back to text parsing
-  }
-
-  return raw
-    .split(/\||\r?\n/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-}
-
-function normaliseAcceptedAnswersEditorValue(value: unknown) {
-  return parseAcceptedAnswersValue(value).join(" | ")
-}
-
-function parseAcceptedAnswersInput(value: string) {
-  const seen = new Set<string>()
-  const out: string[] = []
-
-  for (const part of value.split(/\||\r?\n/)) {
-    const cleaned = part.trim()
-    if (!cleaned) continue
-    const key = cleaned.toLowerCase()
-    if (seen.has(key)) continue
-    seen.add(key)
-    out.push(cleaned)
-  }
-
-  return out
-}
-
 function parseDurationMs(value: string) {
   const cleaned = value.trim()
   if (!cleaned) return null
@@ -486,8 +427,6 @@ export function QuestionMetadataDashboard() {
 
   const [saveBusy, setSaveBusy] = useState(false)
   const [saveResult, setSaveResult] = useState("")
-  const [answerSaveBusy, setAnswerSaveBusy] = useState(false)
-  const [answerSaveResult, setAnswerSaveResult] = useState("")
 
   const [bulkBusy, setBulkBusy] = useState(false)
   const [bulkResult, setBulkResult] = useState("")
@@ -505,10 +444,6 @@ export function QuestionMetadataDashboard() {
     audioClipType: "",
     metadataReviewState: "unreviewed",
     mediaDurationMs: "",
-  })
-  const [answerEditor, setAnswerEditor] = useState<AnswerEditorState>({
-    answerText: "",
-    acceptedAnswers: "",
   })
 
   const [bulkEditor, setBulkEditor] = useState<BulkEditorState>({
@@ -603,7 +538,6 @@ export function QuestionMetadataDashboard() {
     setListBusy(true)
     setListError("")
     setSaveResult("")
-    setAnswerSaveResult("")
     setBulkResult("")
     setApplySuggestedResult("")
 
@@ -615,7 +549,6 @@ export function QuestionMetadataDashboard() {
       }
 
       const params = new URLSearchParams()
-      params.set("limit", "100")
 
       if (packId) params.set("packId", packId)
       if (legacyRoundType) params.set("legacyRoundType", legacyRoundType)
@@ -670,7 +603,6 @@ export function QuestionMetadataDashboard() {
     setDetailBusy(true)
     setDetailError("")
     setSaveResult("")
-    setAnswerSaveResult("")
 
     try {
       const res = await fetch(`/api/admin/questions/${questionId}`, {
@@ -696,10 +628,6 @@ export function QuestionMetadataDashboard() {
         audioClipType: normaliseEditorValue(nextItem.metadata.saved.audioClipType),
         metadataReviewState: normaliseEditorValue(nextItem.metadata.saved.metadataReviewState || "unreviewed"),
         mediaDurationMs: normaliseDurationEditorValue(nextItem.metadata.saved.mediaDurationMs),
-      })
-      setAnswerEditor({
-        answerText: normaliseEditorValue(nextItem.question.answer_text),
-        acceptedAnswers: normaliseAcceptedAnswersEditorValue(nextItem.question.accepted_answers),
       })
     } catch (error: any) {
       setDetailItem(null)
@@ -761,41 +689,6 @@ export function QuestionMetadataDashboard() {
       setSaveResult(error?.message || "Save failed.")
     } finally {
       setSaveBusy(false)
-    }
-  }
-
-  async function saveAnswerFields() {
-    if (!cleanToken || !detailItem || detailItem.question.answer_type !== "text") return
-
-    setAnswerSaveBusy(true)
-    setAnswerSaveResult("")
-
-    try {
-      const res = await fetch(`/api/admin/questions/${detailItem.question.id}/answer`, {
-        method: "PATCH",
-        headers: {
-          ...buildAdminHeaders(cleanToken),
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          answerText: answerEditor.answerText.trim(),
-          acceptedAnswers: parseAcceptedAnswersInput(answerEditor.acceptedAnswers),
-        }),
-      })
-
-      const json = (await res.json()) as { error?: string }
-
-      if (!res.ok) {
-        setAnswerSaveResult(json.error || "Answer save failed.")
-        return
-      }
-
-      setAnswerSaveResult("Answers saved.")
-      await loadQuestions(detailItem.question.id)
-    } catch (error: any) {
-      setAnswerSaveResult(error?.message || "Answer save failed.")
-    } finally {
-      setAnswerSaveBusy(false)
     }
   }
 
@@ -942,8 +835,6 @@ export function QuestionMetadataDashboard() {
     setListError("")
     setDetailError("")
     setSaveResult("")
-    setAnswerSaveResult("")
-    setAnswerSaveResult("")
     setBulkResult("")
     setApplySuggestedResult("")
     try {
@@ -1429,59 +1320,6 @@ export function QuestionMetadataDashboard() {
                   <div className="mt-3 text-xs text-muted-foreground">
                     Packs: {detailItem.packs.map((pack) => pack.display_name).join(", ") || "None"}
                   </div>
-
-                  {detailItem.question.answer_type === "text" ? (
-                    <div className="mt-4 rounded-lg border border-border bg-background p-3">
-                      <div className="mb-3 flex items-center justify-between gap-2">
-                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Answer matching
-                        </div>
-                        <span className={pillClass("accent")}>text answer</span>
-                      </div>
-                      <div className="grid gap-3">
-                        <label className={metadataFieldLabelClass()}>
-                          <div className={metadataFieldHeaderClass()}>
-                            <span className={metadataFieldNameClass()}>answer_text</span>
-                            <MetadataHint label="answer_text" hint="Canonical answer shown in results and used for text matching" />
-                          </div>
-                          <input
-                            value={answerEditor.answerText}
-                            onChange={(event) =>
-                              setAnswerEditor((current) => ({
-                                ...current,
-                                answerText: event.target.value,
-                              }))
-                            }
-                            className={metadataInputClass()}
-                          />
-                        </label>
-
-                        <label className={metadataFieldLabelClass()}>
-                          <div className={metadataFieldHeaderClass()}>
-                            <span className={metadataFieldNameClass()}>accepted_answers</span>
-                            <MetadataHint label="accepted_answers" hint="Use pipes or one answer per line for fair alternatives" />
-                          </div>
-                          <textarea
-                            value={answerEditor.acceptedAnswers}
-                            onChange={(event) =>
-                              setAnswerEditor((current) => ({
-                                ...current,
-                                acceptedAnswers: event.target.value,
-                              }))
-                            }
-                            rows={4}
-                            className={`${metadataInputClass()} min-h-28 resize-y py-2`}
-                            placeholder="Example: The Ballad of Czolgosz | Ballad of Czolgosz"
-                          />
-                        </label>
-
-                        <div className="text-xs leading-5 text-muted-foreground">
-                          The matcher now ignores punctuation and handles mild spelling errors. Use accepted answers for genuinely fair title variants, alternate forms, and article-free versions you want to allow explicitly.
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-
                   {detailItem.question.audio_path ? (
                     <>
                       <div className="mt-2 text-xs text-muted-foreground break-all">
@@ -1650,28 +1488,10 @@ export function QuestionMetadataDashboard() {
                   <Button size="sm" variant="secondary" onClick={applySuggestedValues} disabled={!selectedSummary}>
                     Use suggested values
                   </Button>
-                  {detailItem.question.answer_type === "text" ? (
-                    <Button size="sm" variant="secondary" onClick={saveAnswerFields} disabled={answerSaveBusy}>
-                      {answerSaveBusy ? "Saving answers…" : "Save answers"}
-                    </Button>
-                  ) : null}
                   <Button size="sm" onClick={saveMetadata} disabled={saveBusy}>
-                    {saveBusy ? "Saving metadata…" : "Save metadata"}
+                    {saveBusy ? "Saving…" : "Save"}
                   </Button>
                 </div>
-
-                {answerSaveResult ? (
-                  <div
-                    className={cx(
-                      "rounded-lg border px-3 py-2 text-sm",
-                      answerSaveResult === "Answers saved."
-                        ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                        : "border-red-300 bg-red-50 text-red-700"
-                    )}
-                  >
-                    {answerSaveResult}
-                  </div>
-                ) : null}
 
                 {saveResult ? (
                   <div

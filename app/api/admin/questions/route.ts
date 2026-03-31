@@ -37,6 +37,13 @@ function parsePositiveInt(value: string | null, fallback: number) {
   return Math.floor(parsed)
 }
 
+function parseOptionalPositiveInt(value: string | null) {
+  if (value === null || value.trim() === "") return null
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed < 0) return null
+  return Math.floor(parsed)
+}
+
 function warningMatchesFilter(warningState: string | null, warningCount: number) {
   if (!warningState) return true
   if (warningState === "has_warnings") return warningCount > 0
@@ -98,7 +105,7 @@ export async function GET(req: Request) {
   const search = url.searchParams.get("search")?.trim() || null
   const hasAudio = parseBooleanParam(url.searchParams.get("hasAudio"))
   const hasImage = parseBooleanParam(url.searchParams.get("hasImage"))
-  const limit = Math.min(parsePositiveInt(url.searchParams.get("limit"), 50), 200)
+  const limit = parseOptionalPositiveInt(url.searchParams.get("limit"))
   const offset = parsePositiveInt(url.searchParams.get("offset"), 0)
 
   let allowedQuestionIds: string[] | null = null
@@ -116,7 +123,7 @@ export async function GET(req: Request) {
     allowedQuestionIds = (packLinksRes.data ?? []).map((row: { question_id: string }) => row.question_id)
 
     if (!allowedQuestionIds.length) {
-      return NextResponse.json({ ok: true, total: 0, limit, offset, items: [] })
+      return NextResponse.json({ ok: true, total: 0, limit: limit ?? 0, offset, items: [] })
     }
   }
 
@@ -127,7 +134,10 @@ export async function GET(req: Request) {
       "id, text, round_type, answer_type, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, audio_clip_type, created_at, updated_at"
     )
     .order("id", { ascending: true })
-    .range(offset, offset + limit - 1)
+
+  if (limit !== null) {
+    dataQuery = dataQuery.range(offset, offset + limit - 1)
+  }
 
   if (allowedQuestionIds) {
     countQuery = countQuery.in("id", allowedQuestionIds)
@@ -266,7 +276,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     ok: true,
     total: filteredTotal,
-    limit,
+    limit: limit ?? items.length,
     offset,
     items,
   })
