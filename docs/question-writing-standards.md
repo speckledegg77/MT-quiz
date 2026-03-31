@@ -126,6 +126,71 @@ Do not accept answers that make marking unfair.
 
 If the question asks for a performer, do not accept the character name.
 
+### Matching tolerance
+
+The live text-answer matcher already normalises case, punctuation, apostrophes, and spacing before comparison.
+
+It also tolerates omission of a leading `a`, `an`, or `the` at the start of a title.
+
+For longer answers, the app now allows mild typo tolerance.
+
+Do not treat that as permission to stop curating accepted answers. Use `accepted_answers` for fair human variants that you actively want to allow.
+
+Examples:
+- missing or present leading article when it materially changes how players are likely to type the title
+- punctuation-heavy titles
+- very common subtitle trims
+
+Do not add huge lists of misspellings or vague near-misses.
+
+## Lyric title questions
+
+Lyric-title questions need slightly different rules.
+
+### Answer target
+
+For lyric-title questions, the answer target is usually the song title.
+
+That means:
+- `answer_type` is usually `text` for the first pass
+- `prompt_target` should usually be `song_title`
+- `clue_source` should usually be `lyric_excerpt`
+- `media_type` should usually be `text`
+
+### Wording
+
+Keep the stem clear about what the player is naming.
+
+Good styles:
+- `Name the musical theatre song from these lyrics:`
+- `Which song title matches this lyric excerpt?`
+
+Do not accidentally ask for the show title if the intended answer is the song title.
+
+### Excerpt length
+
+Use the shortest excerpt that still feels complete and fair.
+
+Two lines is often enough.
+
+Some songs need three or four lines when two lines would feel cut off or too vague.
+
+Do not force every lyric clue into the same line count.
+
+### Formatting
+
+When lyric questions need line breaks, put real line breaks into `question_text`.
+
+Do not fake lyric layout with slashes unless there is a specific reason.
+
+The live app now preserves line breaks on player, display, and admin screens, so multiline lyric blocks are allowed.
+
+### Duplicate songs
+
+It is acceptable for the same song to appear more than once with different lyric clues when the variety is deliberate.
+
+Use judgement so a pack does not feel repetitive.
+
 ## Show key rules
 
 Use `primary_show_key` only when the question clearly maps to one show.
@@ -196,7 +261,7 @@ We generate CSVs for import. CSV breaks easily when fields contain commas or quo
 
 Use this exact order for the current question importer:
 
-`pack_id, pack_name, pack_round_type, question_id, question_round_type, answer_type, question_text, option_a, option_b, option_c, option_d, answer_index, answer_text, accepted_answers, explanation, audio_path, image_path, media_duration_ms, audio_clip_type`
+`pack_id, pack_name, pack_round_type, question_id, question_round_type, answer_type, question_text, option_a, option_b, option_c, option_d, answer_index, answer_text, accepted_answers, explanation, audio_path, image_path, media_type, prompt_target, clue_source, primary_show_key, media_duration_ms, audio_clip_type`
 
 ### Legacy tolerance
 
@@ -219,6 +284,7 @@ For new CSVs, always wrap these fields in double quotes on every row, even when 
 - `explanation`
 - `audio_path`
 - `image_path`
+- `primary_show_key`
 
 This is the safest rule for content generated in another chat.
 
@@ -286,5 +352,6 @@ Before a real import:
 - check `accepted_answers` uses pipe separators, not free text
 - check MCQ rows really have four options
 - check text-answer rows do not accidentally carry stale MCQ options
+- check lyric rows that need line breaks contain real multiline `question_text`
 
 Use `docs/import-regression-checklist.md` when testing importer behaviour after changes.

@@ -231,6 +231,8 @@ Rules:
 - field guide should be collapsed by default
 - audio preview should sit naturally in the detail workflow
 - suggested values should be compact and use tooltip help for reasoning
+- text-answer questions should expose canonical answer and accepted-answer editing in the detail panel
+- multiline question text should remain readable in the detail panel, especially for lyric and excerpt-based questions
 
 Do not:
 - let helper text break alignment
@@ -252,6 +254,7 @@ Rules:
 - strong hierarchy between round setup and supporting panels
 - sticky or fixed secondary panels are fine when they aid setup
 - avoid clutter and repeated wording
+- when pack selection changes affect candidate counts, the UI should move into an explicit checking state rather than showing stale totals
 
 ## Player page
 
@@ -260,6 +263,7 @@ Rules:
 - clean primary action area
 - no repeated labels where the state already explains itself
 - keep controls at mobile-safe sizing
+- lyric or excerpt-based question text should preserve real line breaks when the source text includes them
 
 ## Display page
 
@@ -267,6 +271,7 @@ Rules:
 - optimise for visibility at distance
 - minimise unnecessary labels and controls
 - prioritise question clarity, timing clarity, and score clarity
+- lyric or excerpt-based question text should preserve real line breaks when the source text includes them
 
 ## Theming and tokens
 
@@ -304,7 +309,6 @@ Update this guide when:
 - a new form or list style becomes the preferred approach
 - a new helper-text or tooltip rule is agreed
 - a substantial UI pass changes the direction of a screen
-
 - host setup should open in a simple, low-friction mode by default
 - advanced host controls should stay hidden behind an explicit button or reveal
 - quick-start flows should use sensible recommended defaults and preview the resulting plan when possible

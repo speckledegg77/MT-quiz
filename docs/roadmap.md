@@ -30,11 +30,13 @@ This file tracks the live plan. Keep it short and practical.
 - [x] Do a shared cleanup pass on repeated timer and state-handling logic across Host, Player, and Display.
 - [ ] Review whether any host controls still feel duplicated or unclear.
 - [ ] Tighten template and round-builder labels so Quickfire, Standard, and future round types feel clearly different.
+- [ ] Review whether the admin questions screen needs more answer-audit tools beyond the new canonical-answer and accepted-answer editing.
 
 ## Content building
 
-- [ ] Seed a broader canonical `shows` list and keep `docs/shows-reference.md` in sync.
+- [x] Seed a broader canonical `shows` list and keep `docs/shows-reference.md` in sync.
 - [ ] Expand the question bank, especially for rounds that need larger eligible pools.
+- [ ] Build out the `Waxing Lyrical` text and MCQ packs.
 - [ ] Add pack-side Heads Up curation tools so packs can add and remove large numbers of existing items quickly.
 - [ ] Polish Heads Up turn review and correction flow after live playtesting.
 - [ ] Decide whether Heads Up should support host-selected team order and turn order overrides.
@@ -51,7 +53,6 @@ This file tracks the live plan. Keep it short and practical.
 ## Recently completed
 
 - [x] Add importer guidance for quoted CSV fields, show-key discipline, and a regression checklist.
-
 - [x] Review and tidy the main question CSV import format, plus add Heads Up CSV import and validate-only checks.
 - [x] Heads Up v1 data model and admin workflow with separate items and pack management.
 - [x] Heads Up v2 turn-based gameplay with role-based player views, TV clue toggle, and 60s or 90s turn options.
@@ -66,6 +67,10 @@ This file tracks the live plan. Keep it short and practical.
 - [x] Simple mode can collapse Game Summary and Recommended Rounds for a cleaner first view.
 - [x] Infinite simple game type using one continuous question run from the chosen packs.
 - [x] Infinite mode polish, including clearer progress, Joker messaging, and an End game host control.
+- [x] Fix Infinite availability so a blank limit uses the currently selected pack pool rather than a stale wider count.
+- [x] Improve text-answer matching for punctuation, leading articles, and mild long-title typo tolerance.
+- [x] Add admin editing for canonical text answers and accepted alternatives.
+- [x] Preserve lyric question line breaks on player, display, and admin screens.
 - [x] Teams mode and solo mode.
 - [x] Unique team names with random musical-pun suggestions.
 - [x] Joker round choice in lobby.
@@ -86,6 +91,4 @@ This file tracks the live plan. Keep it short and practical.
 - [x] Host page layout tidy-up.
 - [x] Light and dark mode fixes, including phone behaviour.
 - [x] iPhone input zoom fix.
-
-
-- Round templates now use alphabetical ordering by name, and sort order is no longer used in template selection or admin editing.
+- [x] Round templates now use alphabetical ordering by name, and sort order is no longer used in template selection or admin editing.

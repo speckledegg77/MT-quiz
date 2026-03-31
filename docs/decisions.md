@@ -49,6 +49,7 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Legacy pack-based rooms stay supported through a compatibility layer while the round-plan model beds in.
 - Infinite simple games run as one continuous standard round under the hood, so they skip round setup without creating a separate game engine.
 - Infinite mode keeps Joker hidden, shows question progress as a continuous run, and gives the host an explicit End game control.
+- In Simple mode, a blank Infinite question limit means every currently available question from the selected packs, not a stale wider pool.
 
 ## Quickfire
 
@@ -60,7 +61,6 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Quickfire round review shows the correct answer and exactly who got it right, with `⚡` on the fastest correct player.
 - Quickfire and Standard rounds can use different default timings.
 - Hosts can still override timings per round.
-
 
 ## Heads Up content model
 
@@ -88,15 +88,27 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - When a colour or token already exists in the Tailwind theme, use the canonical utility class instead of an arbitrary value form.
 - Examples: `text-foreground` instead of `text-[var(--foreground)]`, `text-muted-foreground` instead of `text-[var(--muted-foreground)]`, `bg-card` instead of `bg-[var(--card)]`, `bg-muted` instead of `bg-[var(--muted)]`, and `border-border` instead of `border-[var(--border)]`.
 - Only use arbitrary value classes when there is no suitable canonical theme utility, or when the value is a true one-off such as a custom calculation or unusual dimension.
-
 - Shared stage labels, run badges, and mode badges should come from common helpers so Host, Player, Display, and summaries stay in sync.
 - Shared round-flow helpers should decide derived client stage and whether stale questions stay hidden between rounds.
-
-
+- Lyric and excerpt-based question text should preserve real line breaks on player, display, and admin screens.
+- Admin answer editing for text-answer questions should sit in the questions dashboard rather than living only in CSV workflows.
 - Round templates now use alphabetical ordering by name, and sort order is no longer used in template selection or admin editing.
+
+## Answer matching and lyric packs
+
+- The app is intended for adult private groups, so 18+ lyric or quote material is acceptable.
+- Lyric packs use the `Waxing Lyrical` naming pattern, with separate Text and MCQ variants.
+- For lyric-title questions, the text-answer pack should be built first. The MCQ pack can then be created from the same approved lyric set.
+- Text-answer matching should normalise case, punctuation, apostrophes, and spacing before comparison.
+- Text-answer matching should tolerate omission of a leading `a`, `an`, or `the` at the start of the answer.
+- Text-answer matching can be mildly typo-tolerant for longer answers, but curated `accepted_answers` are still preferred over very loose fuzzy matching.
+- `accepted_answers` should be used for fair human variants, not as a dumping ground for every imaginable misspelling.
+- For lyric question wording, varied stems are fine, but the clue must stay clear that the answer target is the song title.
+- British spelling should be preferred in generated content unless the changed spelling would alter a proper noun or the exact intended title.
 
 ## Authoring and import discipline
 
 - `docs/shows-reference.md` is the canonical source for `show_key` values.
 - New content-writing chats should use the current writing standards and CSV templates from the repo rather than inventing their own format.
 - Generated CSV rows should quote every text-like field, even when the current value does not contain a comma.
+- Question CSV generation should use the current full importer column order, including metadata fields after `image_path`.

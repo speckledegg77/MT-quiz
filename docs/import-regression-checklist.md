@@ -1,6 +1,6 @@
 # Import regression checklist
 
-Use this after any change to the question importer, Heads Up importer, CSV templates, or authoring guidance.
+Use this after any change to the question importer, Heads Up importer, CSV templates, authoring guidance, or text-answer matching.
 
 ## Question CSV checks
 
@@ -16,6 +16,22 @@ Check these cases:
 - a row with blank optional fields
 - a row with `primary_show_key` set to a real existing show key
 - a deliberately broken row with an unquoted comma, to see whether the importer fails clearly
+- a question that uses the current metadata columns after `image_path`
+
+## Lyric and text-answer checks
+
+Run validate-only first, then a real import on a safe lyric pack.
+
+Check these cases:
+
+- a multiline lyric question with real line breaks in `question_text`
+- a lyric question with punctuation-heavy song title, for example `"Sincerely, Me"`
+- a long title with accepted answers present
+- a title that should accept omission of a leading `a`, `an`, or `the`
+- a title that should still be rejected if a key content word is wrong
+- a long awkward title with mild misspelling, for example `Ballad of Czolgosz`
+- a text-answer row where `accepted_answers` is blank and the matcher alone should still behave reasonably
+- a text-answer row where `accepted_answers` contains several pipe-separated fair variants
 
 ## Heads Up CSV checks
 
@@ -39,6 +55,8 @@ Check these cases:
 - no unexpected blank fields were created
 - new shows, packs, or Heads Up pack links were created only when intended
 - duplicate Heads Up items were not created
+- lyric question line breaks render properly on player, display, and admin screens
+- text-answer canonical answer and accepted answers are editable in the admin questions panel
 
 ## Rule of thumb
 
