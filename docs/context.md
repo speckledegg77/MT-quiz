@@ -128,6 +128,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Free text answers stay manual.
 - Audio stops when the question closes.
 - Lyric and excerpt-based question text can now preserve real line breaks on player, display, and admin review screens.
+- Multiline lyric and excerpt questions rely on newline-preserving rendering in the UI. Flattening those question blocks back into a single paragraph counts as a regression unless an equivalent rendering approach is put in place.
 
 ### Standard round behaviour
 - Player and display pages show the correct answer on reveal.
@@ -220,6 +221,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Use canonical Tailwind theme utilities where a theme token already exists, for example `text-foreground`, `text-muted-foreground`, `bg-card`, `bg-muted`, and `border-border`.
 - Use the `JokerBadge` component instead of pasting the Joker symbol inline.
 - Lyric and excerpt-based question text should render with preserved line breaks rather than being flattened into a single paragraph.
+- That newline-preserving behaviour needs to hold in all current review surfaces: player question view, display question view, admin question list rows, and the admin question detail panel.
 
 ---
 
@@ -354,6 +356,7 @@ Pack loading:
 - For major changes, prefer small, testable steps.
 - For project continuity, update `docs/context.md`, `docs/roadmap.md`, and `docs/decisions.md` at the end of a substantial work block.
 - For UI and UX changes, prefer canonical Tailwind theme utilities over arbitrary value classes wherever a theme token already exists.
+- When a screen renders multiline lyric or excerpt question text, preserve real line breaks with an explicit newline-preserving approach such as `whitespace-pre-line` or an equivalent implementation.
 - Round-flow cleanup has centralised stage/status labels, mode badges, and stale-question suppression into shared helpers in `lib/gameMode.ts` and `lib/roundFlow.ts`.
 - Round templates now use alphabetical ordering by name, and sort order is no longer used in template selection or admin editing.
 

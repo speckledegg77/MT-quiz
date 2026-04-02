@@ -185,6 +185,11 @@ Do not fake lyric layout with slashes unless there is a specific reason.
 
 The live app now preserves line breaks on player, display, and admin screens, so multiline lyric blocks are allowed.
 
+Implementation rule:
+- multiline lyric and excerpt question text must be rendered with a newline-preserving UI treatment, for example `whitespace-pre-line` or an equivalent approach
+- this rule applies to the player question view, display question view, admin question list rows, and the admin question detail panel
+- flattening multiline question text back into a single paragraph counts as a regression
+
 ### Duplicate songs
 
 It is acceptable for the same song to appear more than once with different lyric clues when the variety is deliberate.

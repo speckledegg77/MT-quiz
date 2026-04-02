@@ -91,6 +91,8 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Shared stage labels, run badges, and mode badges should come from common helpers so Host, Player, Display, and summaries stay in sync.
 - Shared round-flow helpers should decide derived client stage and whether stale questions stay hidden between rounds.
 - Lyric and excerpt-based question text should preserve real line breaks on player, display, and admin screens.
+- Removing newline-preserving rendering from those screens is a regression unless an equivalent approach is deliberately added at the same time.
+- This applies to the player question view, display question view, admin question list rows, and the admin question detail panel.
 - Admin answer editing for text-answer questions should sit in the questions dashboard rather than living only in CSV workflows.
 - Round templates now use alphabetical ordering by name, and sort order is no longer used in template selection or admin editing.
 

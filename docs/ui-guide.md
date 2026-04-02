@@ -233,6 +233,8 @@ Rules:
 - suggested values should be compact and use tooltip help for reasoning
 - text-answer questions should expose canonical answer and accepted-answer editing in the detail panel
 - multiline question text should remain readable in the detail panel, especially for lyric and excerpt-based questions
+- if a question uses real line breaks, render it with an explicit newline-preserving treatment such as `whitespace-pre-line` or an equivalent approach
+- apply that rule in both the list row preview and the detail panel, not just one of them
 
 Do not:
 - let helper text break alignment
@@ -264,6 +266,8 @@ Rules:
 - no repeated labels where the state already explains itself
 - keep controls at mobile-safe sizing
 - lyric or excerpt-based question text should preserve real line breaks when the source text includes them
+- this should be implemented deliberately with newline-preserving rendering, not left to default paragraph behaviour
+- this should be implemented deliberately with newline-preserving rendering, not left to default paragraph behaviour
 
 ## Display page
 
@@ -289,6 +293,7 @@ When making UI changes:
 - do not rebuild from memory or from an older snapshot
 - change one screen or one area at a time when possible
 - keep new patterns aligned with the existing accepted page style
+- when touching question text rendering, treat multiline lyric and excerpt support as an implementation contract, not optional styling
 - update this guide when a new UI direction is approved
 
 ## Current accepted patterns worth preserving

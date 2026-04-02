@@ -55,8 +55,12 @@ Check these cases:
 - no unexpected blank fields were created
 - new shows, packs, or Heads Up pack links were created only when intended
 - duplicate Heads Up items were not created
-- lyric question line breaks render properly on player, display, and admin screens
+- lyric question line breaks render properly on the player question view
+- lyric question line breaks render properly on the display question view
+- lyric question line breaks render properly in admin question list rows
+- lyric question line breaks render properly in the admin question detail panel
 - text-answer canonical answer and accepted answers are editable in the admin questions panel
+- no unrelated refactor has removed newline-preserving rendering from multiline lyric or excerpt questions
 
 ## Rule of thumb
 
