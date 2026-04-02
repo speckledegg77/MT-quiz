@@ -7,19 +7,14 @@ type PackInfo = { id: string; label: string; questionCount: number; audioCount: 
 
 type PackRow = {
   id: string
-  display_name: string
+  display_name: string | null
   sort_order: number | null
   is_active: boolean | null
 }
 
-type PackQuestionLinkRow = {
+type PackQuestionWithQuestion = {
   pack_id: string
-  questions:
-    | {
-        round_type?: string | null
-      }
-    | Array<{ round_type?: string | null }>
-    | null
+  questions: { round_type: string | null } | Array<{ round_type: string | null }> | null
 }
 
 export async function GET() {
@@ -50,14 +45,15 @@ export async function GET() {
       return NextResponse.json({ error: linksRes.error.message }, { status: 500 })
     }
 
-    for (const row of (linksRes.data ?? []) as PackQuestionLinkRow[]) {
-      const packId = String(row.pack_id ?? "").trim()
+    for (const row of (linksRes.data ?? []) as PackQuestionWithQuestion[]) {
+      const packId = String(row.pack_id ?? "")
       if (!packId) continue
 
       questionCountMap.set(packId, (questionCountMap.get(packId) ?? 0) + 1)
 
-      const related = Array.isArray(row.questions) ? row.questions[0] : row.questions
-      if (String(related?.round_type ?? "").trim() === "audio") {
+      const questionValue = Array.isArray(row.questions) ? row.questions[0] : row.questions
+      const roundType = String(questionValue?.round_type ?? "")
+      if (roundType === "audio") {
         audioCountMap.set(packId, (audioCountMap.get(packId) ?? 0) + 1)
       }
     }
