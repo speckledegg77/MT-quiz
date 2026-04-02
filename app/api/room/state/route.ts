@@ -561,6 +561,19 @@ export async function GET(req: Request) {
   let questionPublic: any = null
   let revealData: any = null
 
+  async function getShowDisplayName(showKey: string | null | undefined) {
+    const key = String(showKey ?? "").trim()
+    if (!key) return null
+
+    const showRes = await supabaseAdmin
+      .from("shows")
+      .select("display_name")
+      .eq("show_key", key)
+      .maybeSingle()
+
+    return showRes.error || !showRes.data?.display_name ? null : String(showRes.data.display_name).trim() || null
+  }
+
   if (canShowQuestion && currentQuestionId) {
     const question = await getQuestionById(String(currentQuestionId))
 
@@ -579,6 +592,9 @@ export async function GET(req: Request) {
         revealAnswerIndex = shuffled.answerIndex
       }
 
+      const primaryShowKey = String(question.meta?.primaryShowKey ?? "").trim() || null
+      const primaryShowDisplayName = primaryShowKey ? await getShowDisplayName(primaryShowKey) : null
+
       questionPublic = {
         id: question.id,
         roundType: question.roundType,
@@ -587,7 +603,14 @@ export async function GET(req: Request) {
         options,
         audioUrl: question.audioPath ? `/api/audio?path=${encodeURIComponent(question.audioPath)}` : null,
         imageUrl: question.imagePath ? `/api/image?path=${encodeURIComponent(question.imagePath)}` : null,
-        meta: question.meta ?? null,
+        meta: question.meta
+          ? {
+              ...question.meta,
+              primaryShowDisplayName,
+            }
+          : primaryShowDisplayName
+            ? { primaryShowDisplayName }
+            : null,
       }
 
       if (stage === "reveal" && !isHeadsUpRound(currentRound)) {

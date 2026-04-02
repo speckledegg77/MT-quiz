@@ -21,20 +21,6 @@ function formatDuration(totalSeconds: number) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`
 }
 
-function getHeadsUpShowLabel(question: any) {
-  const primaryShowName = String(question?.meta?.primaryShowName ?? "").trim()
-  if (primaryShowName) return primaryShowName
-
-  const primaryShowKey = String(question?.meta?.primaryShowKey ?? "").trim()
-  if (!primaryShowKey) return ""
-
-  return primaryShowKey
-    .split("_")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ")
-}
-
 export default function DisplayPage() {
   const params = useParams<{ code?: string }>();
   const code = String(params?.code ?? "").toUpperCase();
@@ -297,7 +283,6 @@ export default function DisplayPage() {
   });
   const status = getStageStatusText(stage, showInfiniteFinalStage);
   const q = state.question;
-  const headsUpShowLabel = getHeadsUpShowLabel(q);
   const isAudioQ = q?.roundType === "audio";
   const isPictureQ = q?.roundType === "picture";
   const isTextQ = q?.answerType === "text";
@@ -311,6 +296,19 @@ export default function DisplayPage() {
   const questionCount = Number(state.questionCount ?? 0);
   const roundStats = state?.roundStats ?? null;
   const headsUp = state?.headsUp ?? null;
+  const headsUpShowLabel = useMemo(() => {
+    const explicitLabel = String(q?.meta?.primaryShowDisplayName ?? "").trim();
+    if (explicitLabel) return explicitLabel;
+
+    const showKey = String(q?.meta?.primaryShowKey ?? "").trim();
+    if (!showKey) return "";
+
+    return showKey
+      .split("_")
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+  }, [q?.meta?.primaryShowDisplayName, q?.meta?.primaryShowKey]);
   const closeAtMs = state?.times?.closeAt ? Date.parse(String(state.times.closeAt)) : Number.NaN;
   const headsUpTurnSeconds = Number(state?.headsUp?.turnSeconds ?? 0);
   const secondsRemaining = Number.isFinite(closeAtMs)
@@ -506,14 +504,14 @@ export default function DisplayPage() {
                     </div>
                     {stage === "heads_up_live" && headsUp?.tvDisplayMode === "show_clue" ? (
                       <div className="mt-6 rounded-3xl border border-amber-500/30 bg-amber-600/10 px-6 py-10 text-center">
-                        <div className="text-xs uppercase tracking-[0.24em] text-amber-200">Live clue</div>
-                        {headsUpShowLabel ? (
-                          <div className="mt-4 flex justify-center">
-                            <span className="rounded-full border border-amber-400/40 bg-background/10 px-4 py-1.5 text-sm font-medium text-amber-100">
+                        <div className="flex items-start justify-between gap-4 text-left">
+                          <div className="text-xs uppercase tracking-[0.24em] text-amber-200">Live clue</div>
+                          {headsUpShowLabel ? (
+                            <div className="rounded-full border border-amber-400/40 bg-amber-500/15 px-3 py-1.5 text-sm font-medium leading-none text-amber-100">
                               {headsUpShowLabel}
-                            </span>
-                          </div>
-                        ) : null}
+                            </div>
+                          ) : null}
+                        </div>
                         <div className="mt-4 whitespace-pre-line text-4xl font-semibold leading-tight text-foreground">{q.text}</div>
                       </div>
                     ) : (

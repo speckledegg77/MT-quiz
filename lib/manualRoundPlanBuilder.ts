@@ -247,7 +247,7 @@ export function buildManualRoomRoundPlan(params: {
       selectionRules,
       answerSeconds,
       roundReviewSeconds,
-      headsUpTvDisplayMode: behaviourType === "heads_up" ? (String((roundRaw as any).headsUpTvDisplayMode ?? "show_clue").trim().toLowerCase() === "timer_only" ? "timer_only" : "show_clue") : undefined,
+      headsUpTvDisplayMode: behaviourType === "heads_up" ? (String((roundRaw as any).headsUpTvDisplayMode ?? "timer_only").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only") : undefined,
       questionIds: chosen.map((candidate) => candidate.id),
     })
   }

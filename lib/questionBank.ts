@@ -20,7 +20,6 @@ export type Question = {
     itemType?: string
     difficulty?: string
     primaryShowKey?: string | null
-    primaryShowName?: string | null
   }
 }
 
@@ -49,7 +48,6 @@ type DbHeadsUpRow = {
 
 const CACHE_TTL_MS = 10 * 60 * 1000
 const cache = new Map<string, { at: number; q: Question }>()
-const showNameCache = new Map<string, { at: number; name: string | null }>()
 
 function shuffleInPlace<T>(arr: T[]) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -58,33 +56,6 @@ function shuffleInPlace<T>(arr: T[]) {
     arr[i] = arr[j]
     arr[j] = tmp
   }
-}
-
-async function getShowDisplayName(showKeyRaw: string | null | undefined) {
-  const showKey = String(showKeyRaw ?? "").trim()
-  if (!showKey) return null
-
-  const now = Date.now()
-  const cached = showNameCache.get(showKey)
-  if (cached && now - cached.at < CACHE_TTL_MS) return cached.name
-
-  const res = await supabaseAdmin
-    .from("shows")
-    .select("display_name")
-    .eq("show_key", showKey)
-    .maybeSingle()
-
-  const displayName = String(res.data?.display_name ?? "").trim() || formatShowKeyLabel(showKey)
-  showNameCache.set(showKey, { at: now, name: displayName })
-  return displayName
-}
-
-function formatShowKeyLabel(showKey: string) {
-  return showKey
-    .split("_")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ")
 }
 
 function mapDbRow(row: DbQuestionRow): Question {
@@ -119,10 +90,7 @@ function mapDbRow(row: DbQuestionRow): Question {
   }
 }
 
-async function mapHeadsUpRow(questionId: string, row: DbHeadsUpRow): Promise<Question> {
-  const primaryShowKey = row.primary_show_key ?? null
-  const primaryShowName = await getShowDisplayName(primaryShowKey)
-
+function mapHeadsUpRow(questionId: string, row: DbHeadsUpRow): Question {
   return {
     id: questionId,
     roundType: "heads_up",
@@ -136,8 +104,7 @@ async function mapHeadsUpRow(questionId: string, row: DbHeadsUpRow): Promise<Que
     meta: {
       itemType: row.item_type ?? undefined,
       difficulty: row.difficulty ?? undefined,
-      primaryShowKey,
-      primaryShowName,
+      primaryShowKey: row.primary_show_key ?? null,
     },
   }
 }
@@ -161,7 +128,7 @@ export async function getQuestionById(id: string): Promise<Question | null> {
 
     if (res.error || !res.data) return null
 
-    const q = await mapHeadsUpRow(key, res.data as DbHeadsUpRow)
+    const q = mapHeadsUpRow(key, res.data as DbHeadsUpRow)
     cache.set(key, { at: now, q })
     return q
   }
