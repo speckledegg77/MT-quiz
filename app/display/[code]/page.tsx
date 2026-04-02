@@ -29,6 +29,7 @@ export default function DisplayPage() {
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [playedForQ, setPlayedForQ] = useState<string | null>(null);
   const [roundTransitionQuestionIndex, setRoundTransitionQuestionIndex] = useState<number | null>(null);
+  const [origin, setOrigin] = useState("");
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const feedbackAudioContextRef = useRef<AudioContext | null>(null);
@@ -170,7 +171,12 @@ export default function DisplayPage() {
     }
   }, [state?.stage, state?.phase, state?.questionIndex, roundTransitionQuestionIndex]);
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setOrigin(window.location.origin);
+    }
+  }, []);
+
   const joinUrl = useMemo(() => (code && origin ? `${origin}/join?code=${code}` : ""), [code, origin]);
 
   const audioMode = String(state?.audioMode ?? "display");
@@ -296,19 +302,6 @@ export default function DisplayPage() {
   const questionCount = Number(state.questionCount ?? 0);
   const roundStats = state?.roundStats ?? null;
   const headsUp = state?.headsUp ?? null;
-  const headsUpShowLabel = useMemo(() => {
-    const explicitLabel = String(q?.meta?.primaryShowDisplayName ?? "").trim();
-    if (explicitLabel) return explicitLabel;
-
-    const showKey = String(q?.meta?.primaryShowKey ?? "").trim();
-    if (!showKey) return "";
-
-    return showKey
-      .split("_")
-      .filter(Boolean)
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(" ");
-  }, [q?.meta?.primaryShowDisplayName, q?.meta?.primaryShowKey]);
   const closeAtMs = state?.times?.closeAt ? Date.parse(String(state.times.closeAt)) : Number.NaN;
   const headsUpTurnSeconds = Number(state?.headsUp?.turnSeconds ?? 0);
   const secondsRemaining = Number.isFinite(closeAtMs)
@@ -384,12 +377,16 @@ export default function DisplayPage() {
               <div className="text-base">Players can join on their phones before the game starts.</div>
               <div className="rounded-xl border border-border bg-muted px-3 py-3">
                 <div className="text-sm text-muted-foreground">Join URL</div>
-                <a
-                  className="mt-1 block break-all text-sm text-foreground underline underline-offset-2"
-                  href={joinUrl}
-                >
-                  {joinUrl}
-                </a>
+                {joinUrl ? (
+                  <a
+                    className="mt-1 block break-all text-sm text-foreground underline underline-offset-2"
+                    href={joinUrl}
+                  >
+                    {joinUrl}
+                  </a>
+                ) : (
+                  <div className="mt-1 text-sm text-muted-foreground">Preparing join link…</div>
+                )}
               </div>
               <div className="text-sm text-muted-foreground">
                 Start the game from the host screen when everyone is ready.
@@ -397,7 +394,7 @@ export default function DisplayPage() {
             </div>
 
             <div className="flex justify-center lg:justify-end">
-              <QRTile value={joinUrl} size={160} />
+              {joinUrl ? <QRTile value={joinUrl} size={160} /> : null}
             </div>
           </CardContent>
         </Card>
@@ -504,14 +501,7 @@ export default function DisplayPage() {
                     </div>
                     {stage === "heads_up_live" && headsUp?.tvDisplayMode === "show_clue" ? (
                       <div className="mt-6 rounded-3xl border border-amber-500/30 bg-amber-600/10 px-6 py-10 text-center">
-                        <div className="flex items-start justify-between gap-4 text-left">
-                          <div className="text-xs uppercase tracking-[0.24em] text-amber-200">Live clue</div>
-                          {headsUpShowLabel ? (
-                            <div className="rounded-full border border-amber-400/40 bg-amber-500/15 px-3 py-1.5 text-sm font-medium leading-none text-amber-100">
-                              {headsUpShowLabel}
-                            </div>
-                          ) : null}
-                        </div>
+                        <div className="text-xs uppercase tracking-[0.24em] text-amber-200">Live clue</div>
                         <div className="mt-4 whitespace-pre-line text-4xl font-semibold leading-tight text-foreground">{q.text}</div>
                       </div>
                     ) : (
