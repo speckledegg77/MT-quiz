@@ -22,6 +22,20 @@ function formatDuration(totalSeconds: number) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`
 }
 
+function getHeadsUpShowLabel(question: any) {
+  const primaryShowName = String(question?.meta?.primaryShowName ?? "").trim()
+  if (primaryShowName) return primaryShowName
+
+  const primaryShowKey = String(question?.meta?.primaryShowKey ?? "").trim()
+  if (!primaryShowKey) return ""
+
+  return primaryShowKey
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
+}
+
 export default function PlayerPage() {
   const params = useParams<{ code?: string }>()
   const router = useRouter()
@@ -174,6 +188,7 @@ export default function PlayerPage() {
   const shouldPlayOnPhone = audioMode === "phones" || audioMode === "both"
 
   const q = state?.question
+  const headsUpShowLabel = getHeadsUpShowLabel(q)
   const answerType = String(q?.answerType ?? "mcq")
 
   const isAudioQ = q?.roundType === "audio"
@@ -1244,6 +1259,13 @@ export default function PlayerPage() {
                 headsUpRole === "clue_giver" && isHeadsUpLiveStage ? (
                   <div className="rounded-2xl border border-amber-500/30 bg-amber-600/10 px-4 py-6 text-center">
                     <div className="text-xs uppercase tracking-[0.2em] text-amber-200">Live clue</div>
+                    {headsUpShowLabel ? (
+                      <div className="mt-3 flex justify-center">
+                        <span className="rounded-full border border-amber-400/40 bg-background/10 px-3 py-1 text-xs font-medium text-amber-100">
+                          {headsUpShowLabel}
+                        </span>
+                      </div>
+                    ) : null}
                     <div className="mt-3 whitespace-pre-line text-2xl font-semibold leading-tight text-foreground sm:text-3xl">{q.text}</div>
                   </div>
                 ) : headsUpRole === "guesser" ? (

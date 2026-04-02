@@ -51,7 +51,7 @@ function cleanActionKind(raw: unknown): HeadsUpActionKind {
 }
 
 export function cleanHeadsUpTvDisplayMode(raw: unknown): HeadsUpTvDisplayMode {
-  return String(raw ?? "").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only"
+  return String(raw ?? "").trim().toLowerCase() === "timer_only" ? "timer_only" : "show_clue"
 }
 
 export function getHeadsUpTurnSeconds(round: { behaviourType?: unknown; answerSeconds?: unknown } | null | undefined) {

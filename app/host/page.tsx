@@ -159,8 +159,8 @@ const AUDIO_CLIP_TYPE_OPTIONS = [
 
 
 const HEADS_UP_TV_DISPLAY_OPTIONS = [
-  { value: "timer_only", label: "Timer only on TV" },
-  { value: "show_clue", label: "Show clue on TV" },
+  { value: "show_clue", label: "TV and phones" },
+  { value: "timer_only", label: "Phones only" },
 ]
 
 const HEADS_UP_TURN_OPTIONS = [
@@ -278,7 +278,7 @@ function makeManualRound(index: number): ManualRoundDraft {
     primaryShowKey: "",
     audioClipType: "",
     headsUpDifficulty: "",
-    headsUpTvDisplayMode: "timer_only",
+    headsUpTvDisplayMode: "show_clue",
     headsUpTurnSeconds: 60,
     useTimingOverride: false,
     answerSecondsStr: "",
@@ -977,7 +977,7 @@ export default function HostPage() {
         primaryShowKey,
         audioClipType,
         headsUpDifficulty: "",
-        headsUpTvDisplayMode: "timer_only",
+        headsUpTvDisplayMode: "show_clue",
         headsUpTurnSeconds: 60,
         useTimingOverride: false,
         answerSecondsStr: "",
@@ -1462,7 +1462,7 @@ export default function HostPage() {
                 selectionRules: {},
                 answerSeconds: 60,
                 roundReviewSeconds: getDefaultRoundReviewSecondsForBehaviour("heads_up"),
-                headsUpTvDisplayMode: "timer_only",
+                headsUpTvDisplayMode: "show_clue",
               },
             ],
           }
@@ -1980,14 +1980,14 @@ export default function HostPage() {
       : "Joker hidden for this game"
 
   const simpleTimingSummary = simpleGameType === "heads_up"
-    ? "Heads Up quick play uses 60 second turns, timer-only TV, and the normal Heads Up end-of-turn review."
+    ? "Heads Up quick play uses 60 second turns, TV and phones, and the normal Heads Up end-of-turn review."
     : simpleTemplatePlan.quickfireCount > 0
       ? "Standard rounds use 20 second answers and 30 second reviews. Quickfire uses 10 second answers and 45 second round reviews."
       : "Standard rounds use 20 second answers and 30 second round reviews."
 
   const simpleGameSummaryText = simpleGameType === "heads_up"
     ? simpleCandidateCount > 0
-      ? `This game will start a quick Heads Up round using ${headsUpPacks.find((pack) => pack.id === simpleHeadsUpPackId)?.name ?? "the selected pack"}, with ${simpleCandidateCount} active card${simpleCandidateCount === 1 ? "" : "s"}, 60 second turns, and timer-only TV.`
+      ? `This game will start a quick Heads Up round using ${headsUpPacks.find((pack) => pack.id === simpleHeadsUpPackId)?.name ?? "the selected pack"}, with ${simpleCandidateCount} active card${simpleCandidateCount === 1 ? "" : "s"}, 60 second turns, and TV and phones.`
       : "Simple mode will start a quick Heads Up round as soon as the selected pack has active cards."
     : simpleTemplatePlan.rounds.length > 0
       ? `This game will create ${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"}: ${simpleTemplatePlan.standardCount} Standard and ${simpleTemplatePlan.quickfireCount} Quickfire, using ${simplePackScopeText}, with ${audioModeLabel(audioMode)} audio and sensible default timings.`
@@ -2252,7 +2252,7 @@ export default function HostPage() {
                                 <option key={pack.id} value={pack.id}>{pack.name}</option>
                               ))}
                             </select>
-                            <div className="mt-1 text-xs text-muted-foreground">Quick play uses one Heads Up pack, 60 second turns, and timer-only TV by default.</div>
+                            <div className="mt-1 text-xs text-muted-foreground">Quick play uses one Heads Up pack, 60 second turns, and TV and phones by default.</div>
                           </div>
                           <div className="rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">
                             Heads Up quick play is ready for a fast host flow. No extra round builder steps, Joker stays hidden, and solo mode still works if you do not want teams.
@@ -2410,7 +2410,7 @@ export default function HostPage() {
                                 </div>
                                 <div className="rounded-xl border border-border bg-card p-3">
                                   <div className="text-[11px] uppercase tracking-wide text-muted-foreground">TV</div>
-                                  <div className="mt-1 text-sm font-medium text-foreground">Timer only</div>
+                                  <div className="mt-1 text-sm font-medium text-foreground">TV and phones</div>
                                 </div>
                               </div>
                               <div className="rounded-xl border border-border bg-card p-3 text-xs text-muted-foreground">{simpleTimingSummary}</div>

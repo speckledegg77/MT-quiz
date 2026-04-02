@@ -115,7 +115,7 @@ function normaliseSourceMode(raw: unknown): RoundSourceMode {
 }
 
 function normaliseHeadsUpTvDisplayMode(raw: unknown): HeadsUpTvDisplayMode {
-  return String(raw ?? "").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only"
+  return String(raw ?? "").trim().toLowerCase() === "timer_only" ? "timer_only" : "show_clue"
 }
 
 function normaliseBehaviourType(raw: unknown): RoundBehaviourType {
