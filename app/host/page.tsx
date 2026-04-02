@@ -51,7 +51,7 @@ type AudioMode = "display" | "phones" | "both"
 type GameMode = "teams" | "solo"
 type BuildMode = "manual_rounds" | "quick_random" | "legacy_pack_mode" | "infinite"
 type SetupMode = "simple" | "advanced"
-type SimpleGameType = "recommended" | "infinite"
+type SimpleGameType = "recommended" | "infinite" | "heads_up"
 type SimplePresetId = "classic" | "balanced" | "quickfire_mix"
 type RoundBehaviourType = "standard" | "quickfire" | "heads_up"
 type RoundSourceMode = "selected_packs" | "specific_packs" | "all_questions"
@@ -586,6 +586,7 @@ export default function HostPage() {
   const [setupMode, setSetupMode] = useState<SetupMode>("simple")
   const [advancedUnlocked, setAdvancedUnlocked] = useState(false)
   const [simpleGameType, setSimpleGameType] = useState<SimpleGameType>("recommended")
+  const [simpleHeadsUpPackId, setSimpleHeadsUpPackId] = useState("")
   const [simplePreset, setSimplePreset] = useState<SimplePresetId>("balanced")
   const [buildMode, setBuildMode] = useState<BuildMode>("manual_rounds")
   const [selectPacks, setSelectPacks] = useState(false)
@@ -612,7 +613,7 @@ export default function HostPage() {
   const [quickRandomUseTemplates, setQuickRandomUseTemplates] = useState(true)
   const [quickRandomTemplateIds, setQuickRandomTemplateIds] = useState<string[]>([])
 
-  const [gameMode, setGameMode] = useState<GameMode>("teams")
+  const [gameMode, setGameMode] = useState<GameMode>("solo")
   const [teamNames, setTeamNames] = useState<string[]>(() => {
     const first = randomTeamName()
     const second = randomTeamName([first])
@@ -663,6 +664,14 @@ export default function HostPage() {
   const joinUrl = roomCode ? `${origin}/join?code=${roomCode}` : ""
   const joinPageUrl = roomCode ? `/join?code=${roomCode}` : ""
   const displayUrl = roomCode ? `/display/${roomCode}` : ""
+
+  useEffect(() => {
+    if (!headsUpPacks.length) return
+    setSimpleHeadsUpPackId((current) => {
+      if (current && headsUpPacks.some((pack) => pack.id === current)) return current
+      return headsUpPacks[0]?.id ?? ""
+    })
+  }, [headsUpPacks])
 
   useEffect(() => {
     const raw = clampInt(parseIntOr(roundCountStr, 4), 1, 20)
@@ -1051,11 +1060,31 @@ export default function HostPage() {
         const response = await fetch("/api/room/feasibility", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            selectedPackIds: simpleSelectedPackIds,
-            manualRounds: [],
-            templateRounds: allTemplateRoundsPayload,
-          }),
+          body: JSON.stringify(
+            simpleGameType === "heads_up"
+              ? {
+                  selectedPackIds: [],
+                  manualRounds: simpleHeadsUpPackId
+                    ? [
+                        {
+                          id: "simple_heads_up_round",
+                          name: "Heads Up",
+                          questionCount: 0,
+                          behaviourType: "heads_up",
+                          sourceMode: "specific_packs",
+                          packIds: [simpleHeadsUpPackId],
+                          selectionRules: {},
+                        },
+                      ]
+                    : [],
+                  templateRounds: [],
+                }
+              : {
+                  selectedPackIds: simpleSelectedPackIds,
+                  manualRounds: [],
+                  templateRounds: allTemplateRoundsPayload,
+                }
+          ),
         })
 
         const json = (await response.json().catch(() => ({}))) as FeasibilityResponse
@@ -1069,8 +1098,12 @@ export default function HostPage() {
           return
         }
 
-        setSimpleTemplateFeasibility(json.templates ?? null)
-        setSimpleCandidateCount(Math.max(0, Number(json.candidateCount ?? 0) || 0))
+        setSimpleTemplateFeasibility(simpleGameType === "heads_up" ? json.manual ?? null : json.templates ?? null)
+        setSimpleCandidateCount(
+          simpleGameType === "heads_up"
+            ? Math.max(0, Number(json.manual?.rounds?.[0]?.eligibleCount ?? 0) || 0)
+            : Math.max(0, Number(json.candidateCount ?? 0) || 0)
+        )
         setSimpleFeasibilityBusy(false)
       } catch (error: any) {
         if (cancelled) return
@@ -1085,7 +1118,7 @@ export default function HostPage() {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [allTemplateRoundsPayload, packsLoading, roomCode, simpleSelectedPackIds, templates.length])
+  }, [allTemplateRoundsPayload, headsUpPacks.length, packsLoading, roomCode, simpleGameType, simpleHeadsUpPackId, simpleSelectedPackIds, templates.length])
 
   useEffect(() => {
     if (setupMode !== "advanced") {
@@ -1288,6 +1321,13 @@ export default function HostPage() {
       return null
     }
 
+    if (simpleGameType === "heads_up") {
+      if (!simpleHeadsUpPackId) return "Choose a Heads Up pack first."
+      if (simpleFeasibilityBusy) return "Still checking the selected Heads Up pack."
+      if (simpleCandidateCount <= 0) return "No active Heads Up cards are available in the selected pack."
+      return null
+    }
+
     return simpleTemplatePlan.error
   }, [selectPacks, simpleCandidateCount, simpleFeasibilityError, simpleGameType, simpleInfiniteQuestionLimit, simpleSelectedPackIds.length, simpleTemplatePlan.error])
 
@@ -1351,7 +1391,9 @@ export default function HostPage() {
           setCreateError(
             simpleGameType === "infinite"
               ? "Still checking how many questions are available for this pack choice."
-              : "Still checking which round templates are ready for this pack choice."
+              : simpleGameType === "heads_up"
+                ? "Still checking the selected Heads Up pack."
+                : "Still checking which round templates are ready for this pack choice."
           )
           setCreating(false)
           return
@@ -1387,6 +1429,40 @@ export default function HostPage() {
                 selectionRules: {},
                 answerSeconds: getDefaultAnswerSecondsForBehaviour("standard"),
                 roundReviewSeconds: getDefaultRoundReviewSecondsForBehaviour("standard"),
+              },
+            ],
+          }
+        } else if (simpleGameType === "heads_up") {
+          if (!simpleHeadsUpPackId) {
+            setCreateError("Choose a Heads Up pack first.")
+            setCreating(false)
+            return
+          }
+
+          if (simpleCandidateCount <= 0) {
+            setCreateError("No active Heads Up cards are available in the selected pack.")
+            setCreating(false)
+            return
+          }
+
+          const selectedHeadsUpPack = headsUpPacks.find((pack) => pack.id === simpleHeadsUpPackId)
+          payload = {
+            ...payload,
+            selectedPacks: [],
+            manualRounds: [
+              {
+                id: "simple_heads_up_round",
+                name: selectedHeadsUpPack?.name?.trim() || "Heads Up",
+                questionCount: 0,
+                behaviourType: "heads_up",
+                jokerEligible: false,
+                countsTowardsScore: false,
+                sourceMode: "specific_packs",
+                packIds: [simpleHeadsUpPackId],
+                selectionRules: {},
+                answerSeconds: 60,
+                roundReviewSeconds: getDefaultRoundReviewSecondsForBehaviour("heads_up"),
+                headsUpTvDisplayMode: "timer_only",
               },
             ],
           }
@@ -1889,21 +1965,33 @@ export default function HostPage() {
     ? simpleCandidateCount > 0
       ? "Ready to create"
       : "Needs changes"
+    : simpleGameType === "heads_up"
+      ? simpleCandidateCount > 0 && simpleHeadsUpPackId
+        ? "Ready to create"
+        : "Needs changes"
+      : simpleTemplatePlan.rounds.length > 0
+        ? "Ready to create"
+        : "Needs changes"
+
+  const simpleJokerSummary = simpleGameType === "heads_up"
+    ? "Joker hidden in Heads Up"
+    : simpleTemplatePlan.jokerEligibleCount >= 2
+      ? `Joker available in ${simpleTemplatePlan.jokerEligibleCount} round${simpleTemplatePlan.jokerEligibleCount === 1 ? "" : "s"}`
+      : "Joker hidden for this game"
+
+  const simpleTimingSummary = simpleGameType === "heads_up"
+    ? "Heads Up quick play uses 60 second turns, timer-only TV, and the normal Heads Up end-of-turn review."
+    : simpleTemplatePlan.quickfireCount > 0
+      ? "Standard rounds use 20 second answers and 30 second reviews. Quickfire uses 10 second answers and 45 second round reviews."
+      : "Standard rounds use 20 second answers and 30 second round reviews."
+
+  const simpleGameSummaryText = simpleGameType === "heads_up"
+    ? simpleCandidateCount > 0
+      ? `This game will start a quick Heads Up round using ${headsUpPacks.find((pack) => pack.id === simpleHeadsUpPackId)?.name ?? "the selected pack"}, with ${simpleCandidateCount} active card${simpleCandidateCount === 1 ? "" : "s"}, 60 second turns, and timer-only TV.`
+      : "Simple mode will start a quick Heads Up round as soon as the selected pack has active cards."
     : simpleTemplatePlan.rounds.length > 0
-      ? "Ready to create"
-      : "Needs changes"
-
-  const simpleJokerSummary = simpleTemplatePlan.jokerEligibleCount >= 2
-    ? `Joker available in ${simpleTemplatePlan.jokerEligibleCount} round${simpleTemplatePlan.jokerEligibleCount === 1 ? "" : "s"}`
-    : "Joker hidden for this game"
-
-  const simpleTimingSummary = simpleTemplatePlan.quickfireCount > 0
-    ? "Standard rounds use 20 second answers and 30 second reviews. Quickfire uses 10 second answers and 45 second round reviews."
-    : "Standard rounds use 20 second answers and 30 second round reviews."
-
-  const simpleGameSummaryText = simpleTemplatePlan.rounds.length > 0
-    ? `This game will create ${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"}: ${simpleTemplatePlan.standardCount} Standard and ${simpleTemplatePlan.quickfireCount} Quickfire, using ${simplePackScopeText}, with ${audioModeLabel(audioMode)} audio and sensible default timings.`
-    : "Simple mode will build a game from ready templates as soon as the current pack choice supports it."
+      ? `This game will create ${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"}: ${simpleTemplatePlan.standardCount} Standard and ${simpleTemplatePlan.quickfireCount} Quickfire, using ${simplePackScopeText}, with ${audioModeLabel(audioMode)} audio and sensible default timings.`
+      : "Simple mode will build a game from ready templates as soon as the current pack choice supports it."
 
   const simpleInfiniteSummaryText = simpleCandidateCount > 0
     ? simpleInfiniteQuestionLimit == null
@@ -1992,7 +2080,7 @@ export default function HostPage() {
                       <div className="text-sm font-semibold text-foreground">Setup</div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {setupMode === "simple"
-                          ? "Quick host flow for recommended games or one continuous Infinite run."
+                          ? "Quick host flow for automatic quiz setup, quick Heads Up, or one continuous Infinite run."
                           : "Full round builder with templates, metadata filters, timing overrides, and legacy options."}
                       </div>
                     </div>
@@ -2025,7 +2113,7 @@ export default function HostPage() {
                         <div>
                           <div className="text-sm font-semibold text-foreground">Simple game</div>
                           <div className="mt-1 text-xs text-muted-foreground">
-                            Pick a game type first. Recommended builds rounds for you. Infinite keeps moving through one long stream of questions without round setup.
+                            Pick a game type first. Recommended builds rounds for you, Heads Up starts a fast clueing game, and Infinite keeps moving through one long stream of questions without round setup.
                           </div>
                         </div>
                         <div className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-sky-400/50 bg-gradient-to-r from-sky-500/20 to-cyan-500/20 px-3 py-1 text-sm font-semibold leading-none text-sky-100 shadow-sm shadow-sky-950/20">
@@ -2037,7 +2125,13 @@ export default function HostPage() {
                                   ? `${simpleCandidateCount} available`
                                   : "Question pool"
                                 : `${simpleInfiniteResolvedQuestionCount} questions`
-                            : `${simpleRoundCount} rounds`}
+                            : simpleGameType === "heads_up"
+                              ? simpleFeasibilityBusy
+                                ? "Checking..."
+                                : simpleCandidateCount > 0
+                                  ? `${simpleCandidateCount} cards`
+                                  : "Heads Up pack"
+                              : `${simpleRoundCount} rounds`}
                         </div>
                       </div>
 
@@ -2074,6 +2168,24 @@ export default function HostPage() {
                             <div>
                               <div className="font-medium text-foreground">Infinite</div>
                               <div className="mt-1 text-xs text-muted-foreground">One continuous run of questions from the chosen packs, with no round setup.</div>
+                            </div>
+                          </div>
+                        </label>
+
+                        <label
+                          className={`rounded-xl border p-3 text-sm transition-colors ${simpleGameType === "heads_up" ? "border-foreground bg-muted" : "border-border bg-card hover:bg-muted"}`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <input
+                              type="radio"
+                              name="simple-game-type"
+                              checked={simpleGameType === "heads_up"}
+                              onChange={() => setSimpleGameType("heads_up")}
+                              className="mt-0.5"
+                            />
+                            <div>
+                              <div className="font-medium text-foreground">Heads Up quick play</div>
+                              <div className="mt-1 text-xs text-muted-foreground">Start a quick Heads Up game with one pack and sensible defaults.</div>
                             </div>
                           </div>
                         </label>
@@ -2124,6 +2236,26 @@ export default function HostPage() {
                                 )
                               })}
                             </div>
+                          </div>
+                        </div>
+                      ) : simpleGameType === "heads_up" ? (
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <div className="text-sm font-medium text-foreground">Heads Up pack</div>
+                            <select
+                              value={simpleHeadsUpPackId}
+                              onChange={(e) => setSimpleHeadsUpPackId(e.target.value)}
+                              className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
+                            >
+                              <option value="">Choose a Heads Up pack</option>
+                              {headsUpPacks.map((pack) => (
+                                <option key={pack.id} value={pack.id}>{pack.name}</option>
+                              ))}
+                            </select>
+                            <div className="mt-1 text-xs text-muted-foreground">Quick play uses one Heads Up pack, 60 second turns, and timer-only TV by default.</div>
+                          </div>
+                          <div className="rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">
+                            Heads Up quick play is ready for a fast host flow. No extra round builder steps, Joker stays hidden, and solo mode still works if you do not want teams.
                           </div>
                         </div>
                       ) : (
@@ -2210,7 +2342,9 @@ export default function HostPage() {
                           <div className="mt-1 text-xs text-muted-foreground">
                             {simpleGameType === "infinite"
                               ? "Open to preview the question pool and continuous-run behaviour."
-                              : "Open to preview the game that Simple mode will create."}
+                              : simpleGameType === "heads_up"
+                                ? "Open to preview the quick Heads Up setup."
+                                : "Open to preview the game that Simple mode will create."}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -2257,6 +2391,29 @@ export default function HostPage() {
                               <div className="rounded-xl border border-border bg-card p-3 text-xs text-muted-foreground">
                                 Standard timing stays in place, with 20 second answers, 30 second reveals, and a single end-of-game summary when the continuous run finishes.
                               </div>
+                            </div>
+                          ) : simpleGameType === "heads_up" ? (
+                            <div className="space-y-3">
+                              <div className="rounded-xl border border-border bg-card p-3 text-sm text-foreground">{simpleGameSummaryText}</div>
+                              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                                <div className="rounded-xl border border-border bg-card p-3">
+                                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Pack</div>
+                                  <div className="mt-1 text-sm font-medium text-foreground">{headsUpPacks.find((pack) => pack.id === simpleHeadsUpPackId)?.name ?? "Choose pack"}</div>
+                                </div>
+                                <div className="rounded-xl border border-border bg-card p-3">
+                                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Cards</div>
+                                  <div className="mt-1 text-sm font-medium text-foreground">{simpleFeasibilityBusy ? "Checking..." : `${simpleCandidateCount} active`}</div>
+                                </div>
+                                <div className="rounded-xl border border-border bg-card p-3">
+                                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Turns</div>
+                                  <div className="mt-1 text-sm font-medium text-foreground">60 seconds</div>
+                                </div>
+                                <div className="rounded-xl border border-border bg-card p-3">
+                                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">TV</div>
+                                  <div className="mt-1 text-sm font-medium text-foreground">Timer only</div>
+                                </div>
+                              </div>
+                              <div className="rounded-xl border border-border bg-card p-3 text-xs text-muted-foreground">{simpleTimingSummary}</div>
                             </div>
                           ) : simpleTemplatePlan.rounds.length > 0 ? (
                             <div className="space-y-3">

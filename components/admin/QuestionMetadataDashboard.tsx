@@ -64,6 +64,7 @@ type QuestionSummaryItem = {
     metadata_review_state: string | null
     media_duration_ms: number | null
     audio_clip_type: string | null
+    is_active: boolean | null
     created_at: string
     updated_at: string
   }
@@ -113,6 +114,7 @@ type EditorState = {
   audioClipType: string
   metadataReviewState: string
   mediaDurationMs: string
+  isActive: boolean
 }
 
 type BulkEditorState = {
@@ -122,6 +124,7 @@ type BulkEditorState = {
   primaryShowKey: string
   audioClipType: string
   metadataReviewState: string
+  isActive: string
 }
 
 const UNCHANGED_VALUE = "__UNCHANGED__"
@@ -182,6 +185,12 @@ const REVIEW_STATE_SAVE_OPTIONS = [
   { value: "suggested", label: "suggested" },
   { value: "confirmed", label: "confirmed" },
   { value: "needs_attention", label: "needs_attention" },
+]
+
+const ACTIVE_STATE_OPTIONS = [
+  { value: "", label: "Any question status" },
+  { value: "active", label: "Active only" },
+  { value: "inactive", label: "Inactive only" },
 ]
 
 const WARNING_FILTER_OPTIONS = [
@@ -412,6 +421,7 @@ export function QuestionMetadataDashboard() {
   const [legacyRoundType, setLegacyRoundType] = useState("")
   const [answerType, setAnswerType] = useState("")
   const [reviewState, setReviewState] = useState("")
+  const [activeState, setActiveState] = useState("")
   const [warningState, setWarningState] = useState("")
   const [metadataGap, setMetadataGap] = useState("")
   const [search, setSearch] = useState("")
@@ -444,6 +454,7 @@ export function QuestionMetadataDashboard() {
     audioClipType: "",
     metadataReviewState: "unreviewed",
     mediaDurationMs: "",
+    isActive: true,
   })
 
   const [bulkEditor, setBulkEditor] = useState<BulkEditorState>({
@@ -453,6 +464,7 @@ export function QuestionMetadataDashboard() {
     primaryShowKey: UNCHANGED_VALUE,
     audioClipType: UNCHANGED_VALUE,
     metadataReviewState: UNCHANGED_VALUE,
+    isActive: UNCHANGED_VALUE,
   })
 
   useEffect(() => {
@@ -554,6 +566,7 @@ export function QuestionMetadataDashboard() {
       if (legacyRoundType) params.set("legacyRoundType", legacyRoundType)
       if (answerType) params.set("answerType", answerType)
       if (reviewState) params.set("reviewState", reviewState)
+      if (activeState) params.set("activeState", activeState)
       if (warningState) params.set("warningState", warningState)
       if (metadataGap) params.set("metadataGap", metadataGap)
       if (search.trim()) params.set("search", search.trim())
@@ -628,6 +641,7 @@ export function QuestionMetadataDashboard() {
         audioClipType: normaliseEditorValue(nextItem.metadata.saved.audioClipType),
         metadataReviewState: normaliseEditorValue(nextItem.metadata.saved.metadataReviewState || "unreviewed"),
         mediaDurationMs: normaliseDurationEditorValue(nextItem.metadata.saved.mediaDurationMs),
+        isActive: nextItem.question.is_active !== false,
       })
     } catch (error: any) {
       setDetailItem(null)
@@ -673,6 +687,7 @@ export function QuestionMetadataDashboard() {
           audioClipType: trimToNull(editor.audioClipType),
           metadataReviewState: editor.metadataReviewState || "unreviewed",
           mediaDurationMs: parseDurationMs(editor.mediaDurationMs),
+          isActive: editor.isActive,
         }),
       })
 
@@ -957,6 +972,18 @@ export function QuestionMetadataDashboard() {
               </select>
 
               <select
+                value={activeState}
+                onChange={(event) => setActiveState(event.target.value)}
+                className={metadataSelectClass()}
+              >
+                {ACTIVE_STATE_OPTIONS.map((option) => (
+                  <option key={option.value || "blank"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
                 value={warningState}
                 onChange={(event) => setWarningState(event.target.value)}
                 className={metadataSelectClass()}
@@ -995,6 +1022,7 @@ export function QuestionMetadataDashboard() {
                   setLegacyRoundType("")
                   setAnswerType("")
                   setReviewState("")
+                  setActiveState("")
                   setWarningState("")
                   setMetadataGap("")
                   setSearch("")
@@ -1257,6 +1285,7 @@ export function QuestionMetadataDashboard() {
                               <span className={pillClass()}>{item.question.round_type}</span>
                               <span className={pillClass()}>{item.question.answer_type}</span>
                               <span className={pillClass(reviewStateTone(reviewValue))}>{reviewValue}</span>
+                              <span className={pillClass(item.question.is_active === false ? "warning" : "accent")}>{item.question.is_active === false ? "inactive" : "active"}</span>
                               {hasAudio ? <span className={pillClass("accent")}>audio</span> : null}
                               {audioChipType ? <span className={pillClass("accent")}>{audioChipType}</span> : null}
                               {warningCount ? (
@@ -1313,6 +1342,9 @@ export function QuestionMetadataDashboard() {
                       <span className={pillClass()}>{detailItem.question.answer_type}</span>
                       <span className={pillClass(reviewStateTone(detailItem.metadata.saved.metadataReviewState || detailItem.question.metadata_review_state))}>
                         {detailItem.metadata.saved.metadataReviewState || detailItem.question.metadata_review_state || "unreviewed"}
+                      </span>
+                      <span className={pillClass(detailItem.question.is_active === false ? "warning" : "accent")}>
+                        {detailItem.question.is_active === false ? "Inactive" : "Active"}
                       </span>
                     </div>
                   </div>
@@ -1483,6 +1515,16 @@ export function QuestionMetadataDashboard() {
                     </select>
                   </label>
                 </div>
+
+                <label className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={editor.isActive}
+                    onChange={(event) => setEditor((current) => ({ ...current, isActive: event.target.checked }))}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                  <span>{editor.isActive ? "Active question" : "Archived question"}</span>
+                </label>
 
                 <div className="flex flex-wrap gap-2 pt-1">
                   <Button size="sm" variant="secondary" onClick={applySuggestedValues} disabled={!selectedSummary}>

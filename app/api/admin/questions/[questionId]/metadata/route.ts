@@ -28,6 +28,7 @@ const metadataSchema = z
     metadataReviewState: z.enum(METADATA_REVIEW_STATE_VALUES).optional(),
     mediaDurationMs: z.number().int().min(0).nullable().optional(),
     audioClipType: z.enum(AUDIO_CLIP_TYPE_VALUES).nullable().optional(),
+    isActive: z.boolean().optional(),
   })
   .refine(
     (value) =>
@@ -37,7 +38,8 @@ const metadataSchema = z
       value.primaryShowKey !== undefined ||
       value.metadataReviewState !== undefined ||
       value.mediaDurationMs !== undefined ||
-      value.audioClipType !== undefined,
+      value.audioClipType !== undefined ||
+      value.isActive !== undefined,
     { message: "At least one metadata field must be provided." }
   )
 
@@ -75,13 +77,14 @@ export async function PATCH(req: Request, context: RouteContext) {
   if (parsed.data.metadataReviewState !== undefined) update.metadata_review_state = parsed.data.metadataReviewState
   if (parsed.data.mediaDurationMs !== undefined) update.media_duration_ms = parsed.data.mediaDurationMs
   if (parsed.data.audioClipType !== undefined) update.audio_clip_type = parsed.data.audioClipType
+  if (parsed.data.isActive !== undefined) update.is_active = parsed.data.isActive
 
   const updateRes = await supabaseAdmin
     .from("questions")
     .update(update)
     .eq("id", questionId)
     .select(
-      "id, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, audio_clip_type, metadata_updated_at"
+      "id, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, audio_clip_type, is_active, metadata_updated_at"
     )
     .maybeSingle()
 

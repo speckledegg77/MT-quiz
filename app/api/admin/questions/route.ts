@@ -103,6 +103,7 @@ export async function GET(req: Request) {
   const warningState = url.searchParams.get("warningState")?.trim() || null
   const metadataGap = url.searchParams.get("metadataGap")?.trim() || null
   const search = url.searchParams.get("search")?.trim() || null
+  const activeState = url.searchParams.get("activeState")?.trim() || null
   const hasAudio = parseBooleanParam(url.searchParams.get("hasAudio"))
   const hasImage = parseBooleanParam(url.searchParams.get("hasImage"))
   const limit = parseOptionalPositiveInt(url.searchParams.get("limit"))
@@ -131,7 +132,7 @@ export async function GET(req: Request) {
   let dataQuery = supabaseAdmin
     .from("questions")
     .select(
-      "id, text, round_type, answer_type, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, audio_clip_type, created_at, updated_at"
+      "id, text, round_type, answer_type, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, audio_clip_type, is_active, created_at, updated_at"
     )
     .order("id", { ascending: true })
 
@@ -178,6 +179,14 @@ export async function GET(req: Request) {
   if (search) {
     countQuery = countQuery.ilike("text", `%${search}%`)
     dataQuery = dataQuery.ilike("text", `%${search}%`)
+  }
+
+  if (activeState === "active") {
+    countQuery = countQuery.eq("is_active", true)
+    dataQuery = dataQuery.eq("is_active", true)
+  } else if (activeState === "inactive") {
+    countQuery = countQuery.eq("is_active", false)
+    dataQuery = dataQuery.eq("is_active", false)
   }
 
   const [countRes, questionsRes, showsRes] = await Promise.all([

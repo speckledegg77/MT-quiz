@@ -185,6 +185,12 @@ export default function PlayerPage() {
     : null
   const revealAnswerText = String(state?.reveal?.answerText ?? "").trim()
   const inReveal = String(state?.stage ?? "") === "reveal" && Boolean(state?.reveal)
+  const revealDidAnswerCorrectly = useMemo(() => {
+    if (!inReveal) return null as boolean | null
+    if (isTextQ) return typedSubmitted ? typedIsCorrect : null
+    if (submittedIndex === null || correctIndex === null) return null
+    return submittedIndex === correctIndex
+  }, [correctIndex, inReveal, isTextQ, submittedIndex, typedIsCorrect, typedSubmitted])
   const currentRound = state?.rounds?.current ?? null
   const isQuickfireRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "quickfire"
   const isHeadsUpRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
@@ -1411,6 +1417,9 @@ export default function PlayerPage() {
                           if (inReveal && correctIndex === idx) cls += " bg-emerald-600/10 border-emerald-600/30"
                           if (inReveal && submittedIndex === idx && correctIndex !== idx) cls += " bg-red-600/10 border-red-600/30"
 
+                          const showCorrectIcon = inReveal && correctIndex === idx
+                          const showWrongIcon = inReveal && submittedIndex === idx && correctIndex !== idx
+
                           return (
                             <button
                               key={idx}
@@ -1418,7 +1427,14 @@ export default function PlayerPage() {
                               onClick={() => pickOption(idx)}
                               disabled={!canAnswer || mcqSubmitting}
                             >
-                              <div className="text-sm text-foreground">{opt}</div>
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="text-sm text-foreground">{opt}</div>
+                                {showCorrectIcon ? (
+                                  <span aria-label="Correct" className="shrink-0 text-base text-emerald-300">✓</span>
+                                ) : showWrongIcon ? (
+                                  <span aria-label="Incorrect" className="shrink-0 text-base text-red-300">✕</span>
+                                ) : null}
+                              </div>
                             </button>
                           )
                         })
@@ -1452,9 +1468,21 @@ export default function PlayerPage() {
                 )
               ) : null}
 
+              {inReveal && revealDidAnswerCorrectly !== null ? (
+                <div className={`rounded-xl border p-3 ${revealDidAnswerCorrectly ? "border-emerald-600/30 bg-emerald-600/10" : "border-red-600/30 bg-red-600/10"}`}>
+                  <div className={`flex items-center gap-2 text-sm font-medium ${revealDidAnswerCorrectly ? "text-emerald-200" : "text-red-200"}`}>
+                    <span aria-hidden="true" className="text-base">{revealDidAnswerCorrectly ? "✓" : "✕"}</span>
+                    <span>{revealDidAnswerCorrectly ? "Your answer was correct" : "Your answer was incorrect"}</span>
+                  </div>
+                </div>
+              ) : null}
+
               {inReveal && correctAnswerText ? (
                 <div className="rounded-xl border border-emerald-600/30 bg-emerald-600/10 p-3">
-                  <div className="text-sm font-medium text-emerald-200">Correct answer</div>
+                  <div className="flex items-center gap-2 text-sm font-medium text-emerald-200">
+                    <span aria-hidden="true" className="text-base">✓</span>
+                    <span>Correct answer</span>
+                  </div>
                   <div className="mt-1 text-sm text-foreground">{correctAnswerText}</div>
                 </div>
               ) : null}

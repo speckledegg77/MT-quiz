@@ -1,9 +1,9 @@
 ﻿{
     "exportName":  "latest-chatgpt-source",
-    "exportedAtUtc":  "2026-03-29T14:15:14Z",
+    "exportedAtUtc":  "2026-04-01T18:49:27Z",
     "sourceRepoRoot":  "C:/Users/mark/musical-theatre-quiz",
     "sourceBranch":  "main",
-    "sourceCommit":  "8512560cc737d384dc25f52c7f8497994a69f4ad",
+    "sourceCommit":  "9462ce4e8b045a4ac7678d1d5e42b04f3942efee",
     "workingTreeDirty":  false,
     "includePaths":  [
                          "app",
@@ -79,7 +79,7 @@
                                ".webp",
                                ".zip"
                            ],
-    "includedFileCount":  152,
+    "includedFileCount":  153,
     "skippedFileCount":  166,
     "includedFiles":  [
                           "app\\admin\\heads-up\\page.tsx",
@@ -98,6 +98,7 @@
                           "app\\api\\admin\\import-heads-up\\route.ts",
                           "app\\api\\admin\\import-questions\\route.ts",
                           "app\\api\\admin\\ping\\route.ts",
+                          "app\\api\\admin\\questions\\[questionId]\\answer\\route.ts",
                           "app\\api\\admin\\questions\\[questionId]\\metadata\\route.ts",
                           "app\\api\\admin\\questions\\[questionId]\\route.ts",
                           "app\\api\\admin\\questions\\apply-suggestions\\route.ts",

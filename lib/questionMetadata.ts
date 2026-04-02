@@ -70,6 +70,7 @@ export type QuestionRowForMetadata = {
   metadata_review_state?: string | null
   media_duration_ms?: number | null
   audio_clip_type?: string | null
+  is_active?: boolean | null
 }
 
 export type SuggestedMetadata = {

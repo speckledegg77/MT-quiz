@@ -24,6 +24,7 @@ const bulkMetadataSchema = z.object({
       metadataReviewState: z.enum(METADATA_REVIEW_STATE_VALUES).optional(),
       mediaDurationMs: z.number().int().min(0).nullable().optional(),
       audioClipType: z.enum(AUDIO_CLIP_TYPE_VALUES).nullable().optional(),
+      isActive: z.boolean().optional(),
     })
     .refine(
       (value) =>
@@ -33,7 +34,8 @@ const bulkMetadataSchema = z.object({
         value.primaryShowKey !== undefined ||
         value.metadataReviewState !== undefined ||
         value.mediaDurationMs !== undefined ||
-        value.audioClipType !== undefined,
+        value.audioClipType !== undefined ||
+        value.isActive !== undefined,
       { message: "At least one metadata change must be provided." }
     ),
 })
@@ -72,6 +74,7 @@ export async function POST(req: Request) {
   if (changes.metadataReviewState !== undefined) update.metadata_review_state = changes.metadataReviewState
   if (changes.mediaDurationMs !== undefined) update.media_duration_ms = changes.mediaDurationMs
   if (changes.audioClipType !== undefined) update.audio_clip_type = changes.audioClipType
+  if (changes.isActive !== undefined) update.is_active = changes.isActive
 
   const updateRes = await supabaseAdmin
     .from("questions")
