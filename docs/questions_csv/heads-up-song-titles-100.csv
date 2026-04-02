@@ -1,0 +1,101 @@
+item_id,answer_text,item_type,person_roles,difficulty,primary_show_key,notes,is_active,pack_names
+,Defying Gravity,song,,easy,wicked,,true,Song Titles
+,Popular,song,,easy,wicked,,true,Song Titles
+,For Good,song,,easy,wicked,,true,Song Titles
+,No One Mourns the Wicked,song,,easy,wicked,,true,Song Titles
+,I Dreamed a Dream,song,,easy,les_miserables,,true,Song Titles
+,On My Own,song,,easy,les_miserables,,true,Song Titles
+,One Day More,song,,easy,les_miserables,,true,Song Titles
+,Do You Hear the People Sing?,song,,easy,les_miserables,,true,Song Titles
+,The Music of the Night,song,,easy,the_phantom_of_the_opera,,true,Song Titles
+,All I Ask of You,song,,easy,the_phantom_of_the_opera,,true,Song Titles
+,Think of Me,song,,easy,the_phantom_of_the_opera,,true,Song Titles
+,The Phantom of the Opera,song,,easy,the_phantom_of_the_opera,,true,Song Titles
+,My Shot,song,,easy,hamilton,,true,Song Titles
+,Helpless,song,,easy,hamilton,,true,Song Titles
+,You'll Be Back,song,,easy,hamilton,,true,Song Titles
+,The Room Where It Happens,song,,easy,hamilton,,true,Song Titles
+,Seasons of Love,song,,easy,rent,,true,Song Titles
+,Take Me or Leave Me,song,,easy,rent,,true,Song Titles
+,La Vie Bohème,song,,easy,rent,,true,Song Titles
+,Out Tonight,song,,easy,rent,,true,Song Titles
+,Ex-Wives,song,,easy,six,,true,Song Titles
+,No Way,song,,easy,six,,true,Song Titles
+,Don't Lose Ur Head,song,,easy,six,,true,Song Titles
+,Heart of Stone,song,,easy,six,,true,Song Titles
+,All That Jazz,song,,easy,chicago,,true,Song Titles
+,Cell Block Tango,song,,easy,chicago,,true,Song Titles
+,Razzle Dazzle,song,,easy,chicago,,true,Song Titles
+,Mr. Cellophane,song,,easy,chicago,,true,Song Titles
+,Cabaret,song,,easy,cabaret,,true,Song Titles
+,Maybe This Time,song,,easy,cabaret,,true,Song Titles
+,Willkommen,song,,medium,cabaret,,true,Song Titles
+,"Money, Money",song,,medium,cabaret,,true,Song Titles
+,Waving Through a Window,song,,easy,dear_evan_hansen,,true,Song Titles
+,You Will Be Found,song,,easy,dear_evan_hansen,,true,Song Titles
+,"Sincerely, Me",song,,easy,dear_evan_hansen,,true,Song Titles
+,Requiem,song,,medium,dear_evan_hansen,,true,Song Titles
+,Candy Store,song,,easy,heathers,,true,Song Titles
+,Dead Girl Walking,song,,easy,heathers,,true,Song Titles
+,Seventeen,song,,easy,heathers,,true,Song Titles
+,Freeze Your Brain,song,,medium,heathers,,true,Song Titles
+,Agony,song,,easy,into_the_woods,,true,Song Titles
+,Children Will Listen,song,,easy,into_the_woods,,true,Song Titles
+,No One Is Alone,song,,easy,into_the_woods,,true,Song Titles
+,Giants in the Sky,song,,easy,into_the_woods,,true,Song Titles
+,Suddenly Seymour,song,,easy,little_shop_of_horrors,,true,Song Titles
+,Somewhere That's Green,song,,easy,little_shop_of_horrors,,true,Song Titles
+,Feed Me (Git It),song,,medium,little_shop_of_horrors,,true,Song Titles
+,Skid Row (Downtown),song,,medium,little_shop_of_horrors,,true,Song Titles
+,I Believe,song,,easy,the_book_of_mormon,,true,Song Titles
+,Turn It Off,song,,easy,the_book_of_mormon,,true,Song Titles
+,Hasa Diga Eebowai,song,,medium,the_book_of_mormon,,true,Song Titles
+,Sal Tlay Ka Siti,song,,medium,the_book_of_mormon,,true,Song Titles
+,Omigod You Guys,song,,easy,legally_blonde,,true,Song Titles
+,So Much Better,song,,easy,legally_blonde,,true,Song Titles
+,Bend and Snap,song,,easy,legally_blonde,,true,Song Titles
+,Ireland,song,,medium,legally_blonde,,true,Song Titles
+,Tonight,song,,easy,west_side_story,,true,Song Titles
+,America,song,,easy,west_side_story,,true,Song Titles
+,I Feel Pretty,song,,easy,west_side_story,,true,Song Titles
+,Somewhere,song,,easy,west_side_story,,true,Song Titles
+,And I Am Telling You I'm Not Going,song,,easy,dreamgirls,,true,Song Titles
+,One Night Only,song,,easy,dreamgirls,,true,Song Titles
+,Listen,song,,easy,dreamgirls,,true,Song Titles
+,Dreamgirls,song,,medium,dreamgirls,,true,Song Titles
+,Don't Rain on My Parade,song,,easy,funny_girl,,true,Song Titles
+,People,song,,easy,funny_girl,,true,Song Titles
+,I'm the Greatest Star,song,,medium,funny_girl,,true,Song Titles
+,Rat-Tat-Tat-Tat,song,,medium,funny_girl,,true,Song Titles
+,Don't Cry for Me Argentina,song,,easy,evita,,true,Song Titles
+,Buenos Aires,song,,easy,evita,,true,Song Titles
+,Another Suitcase in Another Hall,song,,easy,evita,,true,Song Titles
+,Oh What a Circus,song,,medium,evita,,true,Song Titles
+,She Used to Be Mine,song,,easy,waitress,,true,Song Titles
+,What Baking Can Do,song,,easy,waitress,,true,Song Titles
+,When He Sees Me,song,,easy,waitress,,true,Song Titles
+,Opening Up,song,,medium,waitress,,true,Song Titles
+,Good Morning Baltimore,song,,easy,hairspray,,true,Song Titles
+,You Can't Stop the Beat,song,,easy,hairspray,,true,Song Titles
+,I Can Hear the Bells,song,,easy,hairspray,,true,Song Titles
+,"Big, Blonde and Beautiful",song,,medium,hairspray,,true,Song Titles
+,Naughty,song,,easy,matilda,,true,Song Titles
+,When I Grow Up,song,,easy,matilda,,true,Song Titles
+,Revolting Children,song,,easy,matilda,,true,Song Titles
+,Quiet,song,,medium,matilda,,true,Song Titles
+,Seize the Day,song,,easy,newsies,,true,Song Titles
+,Santa Fe,song,,medium,newsies,,true,Song Titles
+,Carrying the Banner,song,,medium,newsies,,true,Song Titles
+,King of New York,song,,easy,newsies,,true,Song Titles
+,"96,000",song,,easy,in_the_heights,,true,Song Titles
+,Breathe,song,,medium,in_the_heights,,true,Song Titles
+,Paciencia y Fe,song,,medium,in_the_heights,,true,Song Titles
+,It Won't Be Long Now,song,,easy,in_the_heights,,true,Song Titles
+,Tomorrow,song,,easy,annie,,true,Song Titles
+,Maybe,song,,easy,annie,,true,Song Titles
+,It's the Hard-Knock Life,song,,easy,annie,,true,Song Titles
+,Little Girls,song,,medium,annie,,true,Song Titles
+,My Favourite Things,song,,easy,the_sound_of_music,,true,Song Titles
+,Do-Re-Mi,song,,easy,the_sound_of_music,,true,Song Titles
+,Climb Ev'ry Mountain,song,,easy,the_sound_of_music,,true,Song Titles
+,Edelweiss,song,,easy,the_sound_of_music,,true,Song Titles

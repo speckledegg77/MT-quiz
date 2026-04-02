@@ -1,0 +1,41 @@
+item_id,answer_text,item_type,person_roles,difficulty,primary_show_key,notes,is_active,pack_names
+,barber chair,other,,easy,sweeney_todd,,true,Iconic Props and Places
+,pie shop,other,,easy,sweeney_todd,,true,Iconic Props and Places
+,barricade,other,,easy,les_miserables,,true,Iconic Props and Places
+,chandelier,other,,easy,the_phantom_of_the_opera,,true,Iconic Props and Places
+,opera house,other,,easy,the_phantom_of_the_opera,,true,Iconic Props and Places
+,mask,other,,medium,the_phantom_of_the_opera,,true,Iconic Props and Places
+,broomstick,other,,easy,wicked,,true,Iconic Props and Places
+,Grimmerie,other,,medium,wicked,,true,Iconic Props and Places
+,magic beans,other,,easy,into_the_woods,,true,Iconic Props and Places
+,woods,other,,medium,into_the_woods,,true,Iconic Props and Places
+,flower shop,other,,easy,little_shop_of_horrors,,true,Iconic Props and Places
+,dentist chair,other,,medium,little_shop_of_horrors,,true,Iconic Props and Places
+,loft apartment,other,,medium,rent,,true,Iconic Props and Places
+,hairspray can,other,,easy,hairspray,,true,Iconic Props and Places
+,TV studio,other,,medium,hairspray,,true,Iconic Props and Places
+,orphanage,other,,easy,annie,,true,Iconic Props and Places
+,newspaper,other,,easy,newsies,,true,Iconic Props and Places
+,printing press,other,,medium,newsies,,true,Iconic Props and Places
+,bodega,other,,easy,in_the_heights,,true,Iconic Props and Places
+,magic carpet,other,,easy,aladdin,,true,Iconic Props and Places
+,lamp,other,,easy,aladdin,,true,Iconic Props and Places
+,Cave of Wonders,other,,easy,aladdin,,true,Iconic Props and Places
+,enchanted rose,other,,easy,beauty_and_the_beast,,true,Iconic Props and Places
+,castle,other,,medium,beauty_and_the_beast,,true,Iconic Props and Places
+,Pride Rock,other,,easy,the_lion_king,,true,Iconic Props and Places
+,ice castle,other,,easy,frozen,,true,Iconic Props and Places
+,umbrella,other,,easy,mary_poppins,,true,Iconic Props and Places
+,carpet bag,other,,medium,mary_poppins,,true,Iconic Props and Places
+,kite,other,,easy,mary_poppins,,true,Iconic Props and Places
+,swamp,other,,easy,shrek,,true,Iconic Props and Places
+,coat of many colours,other,,easy,joseph_and_the_amazing_technicolor_dreamcoat,,true,Iconic Props and Places
+,junkyard,other,,easy,cats,,true,Iconic Props and Places
+,helicopter,other,,easy,miss_saigon,,true,Iconic Props and Places
+,Handbook for the Recently Deceased,other,,medium,beetlejuice,,true,Iconic Props and Places
+,sandworm,other,,medium,beetlejuice,,true,Iconic Props and Places
+,fire escape,other,,medium,west_side_story,,true,Iconic Props and Places
+,Kit Kat Club,other,,easy,cabaret,,true,Iconic Props and Places
+,diner,other,,easy,waitress,,true,Iconic Props and Places
+,underworld,other,,easy,hadestown,,true,Iconic Props and Places
+,cell block,other,,easy,chicago,,true,Iconic Props and Places

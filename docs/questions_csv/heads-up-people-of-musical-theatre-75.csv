@@ -1,0 +1,76 @@
+item_id,answer_text,item_type,person_roles,difficulty,primary_show_key,notes,is_active,pack_names
+,Stephen Sondheim,person,composer|lyricist,easy,,,true,People of Musical Theatre
+,Andrew Lloyd Webber,person,composer,easy,,,true,People of Musical Theatre
+,Tim Rice,person,lyricist,easy,,,true,People of Musical Theatre
+,Lin-Manuel Miranda,person,composer|lyricist|book_writer|performer,easy,,,true,People of Musical Theatre
+,Patti LuPone,person,performer,easy,,,true,People of Musical Theatre
+,Bernadette Peters,person,performer,easy,,,true,People of Musical Theatre
+,Idina Menzel,person,performer,easy,,,true,People of Musical Theatre
+,Kristin Chenoweth,person,performer,easy,,,true,People of Musical Theatre
+,Lea Salonga,person,performer,easy,,,true,People of Musical Theatre
+,Audra McDonald,person,performer,easy,,,true,People of Musical Theatre
+,Sutton Foster,person,performer,easy,,,true,People of Musical Theatre
+,Jonathan Groff,person,performer,easy,,,true,People of Musical Theatre
+,Aaron Tveit,person,performer,easy,,,true,People of Musical Theatre
+,Jeremy Jordan,person,performer,easy,,,true,People of Musical Theatre
+,Ramin Karimloo,person,performer,easy,,,true,People of Musical Theatre
+,Sierra Boggess,person,performer,easy,,,true,People of Musical Theatre
+,Elaine Paige,person,performer,easy,,,true,People of Musical Theatre
+,Michael Ball,person,performer,easy,,,true,People of Musical Theatre
+,Imelda Staunton,person,performer,easy,,,true,People of Musical Theatre
+,Alfie Boe,person,performer,easy,,,true,People of Musical Theatre
+,Norm Lewis,person,performer,medium,,,true,People of Musical Theatre
+,Eva Noblezada,person,performer,easy,,,true,People of Musical Theatre
+,Ben Platt,person,performer,easy,,,true,People of Musical Theatre
+,Ariana DeBose,person,performer,medium,,,true,People of Musical Theatre
+,George Salazar,person,performer,medium,,,true,People of Musical Theatre
+,Alex Newell,person,performer,medium,,,true,People of Musical Theatre
+,Barrett Wilbert Weed,person,performer,medium,,,true,People of Musical Theatre
+,Megan Hilty,person,performer,medium,,,true,People of Musical Theatre
+,Samantha Barks,person,performer,medium,,,true,People of Musical Theatre
+,Mandy Patinkin,person,performer,medium,,,true,People of Musical Theatre
+,Raúl Esparza,person,performer,medium,,,true,People of Musical Theatre
+,Christian Borle,person,performer,medium,,,true,People of Musical Theatre
+,Andrew Rannells,person,performer,medium,,,true,People of Musical Theatre
+,Sara Bareilles,person,composer|lyricist|performer,easy,,,true,People of Musical Theatre
+,Jason Robert Brown,person,composer|lyricist,easy,,,true,People of Musical Theatre
+,Jeanine Tesori,person,composer,medium,,,true,People of Musical Theatre
+,David Yazbek,person,composer|lyricist,medium,,,true,People of Musical Theatre
+,Tom Kitt,person,composer,medium,,,true,People of Musical Theatre
+,Brian Yorkey,person,lyricist|book_writer,medium,,,true,People of Musical Theatre
+,Alan Menken,person,composer,easy,,,true,People of Musical Theatre
+,Howard Ashman,person,lyricist|book_writer,medium,,,true,People of Musical Theatre
+,Marc Shaiman,person,composer|lyricist,medium,,,true,People of Musical Theatre
+,Scott Wittman,person,lyricist,medium,,,true,People of Musical Theatre
+,Elton John,person,composer,medium,,,true,People of Musical Theatre
+,Lynn Ahrens,person,lyricist,medium,,,true,People of Musical Theatre
+,Stephen Flaherty,person,composer,medium,,,true,People of Musical Theatre
+,John Kander,person,composer,medium,,,true,People of Musical Theatre
+,Fred Ebb,person,lyricist,medium,,,true,People of Musical Theatre
+,Richard Rodgers,person,composer,easy,,,true,People of Musical Theatre
+,Oscar Hammerstein II,person,lyricist|book_writer,easy,,,true,People of Musical Theatre
+,Stephen Schwartz,person,composer|lyricist,easy,,,true,People of Musical Theatre
+,Jonathan Larson,person,composer|lyricist,easy,,,true,People of Musical Theatre
+,Leonard Bernstein,person,composer,easy,,,true,People of Musical Theatre
+,Stephen Sater,person,lyricist|book_writer,medium,,,true,People of Musical Theatre
+,Duncan Sheik,person,composer,medium,,,true,People of Musical Theatre
+,Trey Parker,person,composer|lyricist|book_writer,medium,,,true,People of Musical Theatre
+,Matt Stone,person,composer|lyricist|book_writer,medium,,,true,People of Musical Theatre
+,Robert Lopez,person,composer|lyricist,medium,,,true,People of Musical Theatre
+,Kristen Anderson-Lopez,person,composer|lyricist,medium,,,true,People of Musical Theatre
+,Benny Andersson,person,composer,medium,,,true,People of Musical Theatre
+,Björn Ulvaeus,person,composer|lyricist,medium,,,true,People of Musical Theatre
+,Cyndi Lauper,person,composer|lyricist,medium,,,true,People of Musical Theatre
+,Harvey Fierstein,person,book_writer|performer,medium,,,true,People of Musical Theatre
+,Casey Nicholaw,person,director|choreographer,medium,,,true,People of Musical Theatre
+,Susan Stroman,person,director|choreographer,medium,,,true,People of Musical Theatre
+,Bob Fosse,person,director|choreographer,easy,,,true,People of Musical Theatre
+,Jerome Robbins,person,director|choreographer,medium,,,true,People of Musical Theatre
+,Harold Prince,person,director,medium,,,true,People of Musical Theatre
+,Trevor Nunn,person,director,medium,,,true,People of Musical Theatre
+,George C. Wolfe,person,director|book_writer,medium,,,true,People of Musical Theatre
+,Kathleen Marshall,person,director|choreographer,medium,,,true,People of Musical Theatre
+,Tim Minchin,person,composer|lyricist|performer,easy,,,true,People of Musical Theatre
+,Joe Iconis,person,composer|lyricist,medium,,,true,People of Musical Theatre
+,Benj Pasek,person,lyricist,medium,,,true,People of Musical Theatre
+,Justin Paul,person,composer|lyricist,medium,,,true,People of Musical Theatre

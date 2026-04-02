@@ -1,0 +1,887 @@
+id,question_text,answer_type,answer_text,accepted_answers,primary_show_key,round_type,media_type,prompt_target,clue_source,explanation,pack_ids,pack_names
+4001-002,"In Next to Normal, what is the first name of the mother at the centre of the story?",text,Diana,"[""[\""Diana Goodman\"", \""Diana\""]""]",next_to_normal,general,text,fact_value,direct_fact,Diana Goodman is the mother whose mental health and grief shape the family’s story.,4001,Next to Normal
+4001-009,Next to Normal won the Pulitzer Prize for Drama in which year?,text,2010,"[""[\""2010\""]""]",next_to_normal,general,text,fact_value,direct_fact,Next to Normal won the 2010 Pulitzer Prize for Drama.,4001,Next to Normal
+4001-012,"In Next to Normal, what is the family surname?",text,Goodman,"[""[\""Goodman\""]""]",next_to_normal,general,text,fact_value,direct_fact,The central family are the Goodmans.,4001,Next to Normal
+4001-015,"In Next to Normal, name the psychiatrist Diana sees in Act 1 (the one who prescribes medication).",text,Dr Madden,"[""[\""Dr Madden\"", \""Doctor Madden\"", \""Madden\""]""]",next_to_normal,general,text,fact_value,direct_fact,Diana’s psychiatrist in Act 1 is Dr Madden (played alongside Dr Fine in the London production).,4001,Next to Normal
+4001-025,PICTURE: This is a photo of the London actor playing Gabe. What is the actor’s name?,text,Jack Wolfe,"[""[\""Jack Wolfe\""]""]",next_to_normal,picture,image,performer_name,cast_headshot,Jack Wolfe played Gabe in the London production.,4001,Next to Normal
+4002-003,"In the original West End cast of Dear Evan Hansen, who played Evan Hansen?",text,Sam Tutty,"[""[\""Sam Tutty\""]""]",dear_evan_hansen,general,text,fact_value,direct_fact,Sam Tutty played Evan in the original West End cast and won the Olivier for the role.,4002,Dear Evan Hansen
+4002-005,"In Dear Evan Hansen, what is the first name of Evan’s mother?",text,Heidi,"[""[\""Heidi\"", \""Heidi Hansen\""]""]",dear_evan_hansen,general,text,fact_value,direct_fact,Evan’s mother is Heidi Hansen.,4002,Dear Evan Hansen
+4002-012,"In Dear Evan Hansen, what is the surname of the family whose son Connor dies?",text,Murphy,"[""[\""Murphy\""]""]",dear_evan_hansen,general,text,fact_value,direct_fact,Connor is part of the Murphy family.,4002,Dear Evan Hansen
+4002-015,"In Dear Evan Hansen, complete the song title: To Break in a ____.",text,Glove,"[""[\""Glove\""]""]",dear_evan_hansen,general,text,song_title,direct_fact,The song is titled To Break in a Glove.,4002,Dear Evan Hansen
+4002-025,PICTURE: This is the signature prop from which show?,text,Dear Evan Hansen,"[""[\""Evan Hansen\"", \""Even Hansen\"", \""Hansen\"", \""Dear Evan Hanson\""]""]",dear_evan_hansen,picture,image,show_title,prop_image,"Evan wears an arm cast, which becomes central to the story’s misunderstanding.",4002,Dear Evan Hansen
+4003-002,"In Two Strangers (Carry a Cake Across New York), what is the first name of the English visitor?",text,Dougal,"[""[\""Dougal\"", \""Dougal Todd\""]""]",two_strangers_carry_a_cake_across_new_york,general,text,fact_value,direct_fact,Dougal Todd is the Englishman visiting New York.,4003,Two Strangers (Carry a Cake Across New York)
+4003-003,"In Two Strangers (Carry a Cake Across New York), what is the first name of the New Yorker who picks Dougal up at the airport?",text,Robin,"[""[\""Robin\"", \""Robin Rainey\""]""]",two_strangers_carry_a_cake_across_new_york,general,text,fact_value,direct_fact,Robin Rainey is the cynical New Yorker who picks Dougal up.,4003,Two Strangers (Carry a Cake Across New York)
+4003-012,"In Two Strangers (Carry a Cake Across New York), complete the Act 2 song title: The Hangover ____.",text,Duet,"[""[\""Duet\""]""]",two_strangers_carry_a_cake_across_new_york,general,text,song_title,direct_fact,The Act 2 number is titled The Hangover Duet.,4003,Two Strangers (Carry a Cake Across New York)
+4003-015,"In Two Strangers (Carry a Cake Across New York), what is Robin’s surname?",text,Rainey,"[""[\""Rainey\""]""]",two_strangers_carry_a_cake_across_new_york,general,text,fact_value,direct_fact,Robin’s full name is Robin Rainey.,4003,Two Strangers (Carry a Cake Across New York)
+4003-024,PICTURE: This is a publicity photo of Robin in London. What is the actor’s name?,text,Dujonna Gift,"[""[\""Dujonna Gift\""]""]",two_strangers_carry_a_cake_across_new_york,picture,image,performer_name,cast_headshot,Dujonna Gift played Robin in the London production.,4003,Two Strangers (Carry a Cake Across New York)
+4004-004,"In The Curious Case of Benjamin Button, what is the name of Benjamin’s love interest?",text,Elowen,"[""[\""Elowen\"", \""Elowen Keene\""]""]",the_curious_case_of_benjamin_button,general,text,fact_value,direct_fact,Elowen Keene is Benjamin’s love interest.,4004,The Curious Case of Benjamin Button
+4004-012,In which year did The Curious Case of Benjamin Button have its world premiere at Southwark Playhouse?,text,2019,"[""[\""2019\""]""]",null,general,null,null,null,The musical premiered at Southwark Playhouse in 2019.,4004,The Curious Case of Benjamin Button
+4004-023,PICTURE: This is a West End publicity photo of Benjamin. What is the actor’s name?,text,John Dagleish,"[""[\""John Dagleish\""]""]",null,picture,null,null,null,John Dagleish played Benjamin Button in the West End production.,4004,The Curious Case of Benjamin Button
+4004-025,PICTURE: This is a photo of the actor playing Elowen. What is the actor’s name?,text,Clare Foster,"[""[\""Clare Foster\""]""]",null,picture,null,null,null,Clare Foster played Elowen in the West End production.,4004,The Curious Case of Benjamin Button
+disney-260215-041,Name the Sherman Brothers (first and last names).,text,Richard M. Sherman and Robert B. Sherman,"[""[\""Richard Sherman and Robert Sherman\"", \""Robert Sherman and Richard Sherman\"", \""Richard M. Sherman and Robert B. Sherman\"", \""Robert B. Sherman and Richard M. Sherman\"", \""The Sherman Brothers\""]""]",null,general,null,null,null,They are the brothers who wrote the songs for Mary Poppins (1964).,disney-260215,Disney Musicals
+disney-260215-042,Who wrote the lyrics for the stage musical Newsies?,text,Jack Feldman,"[""[\""Jack Feldman\"", \""Feldman\""]""]",null,general,null,null,null,"Jack Feldman wrote the lyrics, with music by Alan Menken.",disney-260215,Disney Musicals
+disney-260215-043,"In Aida, what is the name of the Egyptian princess who becomes Aida's rival and friend?",text,Amneris,"[""[\""Amneris\""]""]",null,general,null,null,null,Amneris is the Egyptian princess in Disney’s Aida.,disney-260215,Disney Musicals
+disney-260215-044,"In Frozen, what is the name of the kingdom where the story is set?",text,Arendelle,"[""[\""Arendelle\""]""]",null,general,null,null,null,Arendelle is the kingdom in Frozen.,disney-260215,Disney Musicals
+disney-260215-045,What is the title of Frozen's Academy Award winning song (Best Original Song)?,text,Let It Go,"[""[\""Let It Go\"", \""Let It Go (Frozen)\""]""]",null,general,null,null,null,"""Let It Go"" won the Academy Award for Best Original Song.",disney-260215,Disney Musicals
+disney-260215-046,Who wrote the lyrics for the film songs in The Lion King (1994)?,text,Tim Rice,"[""[\""Tim Rice\"", \""Rice\""]""]",null,general,null,null,null,Tim Rice wrote the lyrics for the film’s songs.,disney-260215,Disney Musicals
+disney-260215-047,What is the opening number of The Lion King stage musical?,text,Circle of Life,"[""[\""Circle of Life\"", \""The Circle of Life\""]""]",null,general,null,null,null,"""Circle of Life"" opens the stage show.",disney-260215,Disney Musicals
+disney-260215-048,"What is the title of Moana's big ""edge of the water"" song?",text,How Far I'll Go,"[""[\""How Far I'll Go\"", \""How Far I'll Go (Moana)\""]""]",null,general,null,null,null,"""How Far I'll Go"" is Moana’s key solo.",disney-260215,Disney Musicals
+disney-260215-049,Who wrote the music for the songs in Mulan (1998)?,text,Matthew Wilder,"[""[\""Matthew Wilder\"", \""Wilder\""]""]",null,general,null,null,null,Matthew Wilder wrote the music for Mulan’s songs (with lyrics by David Zippel).,disney-260215,Disney Musicals
+disney-260215-050,Who wrote the book for the stage musical Tarzan?,text,David Henry Hwang,"[""[\""David Henry Hwang\"", \""Hwang\""]""]",null,general,null,null,null,David Henry Hwang wrote the book for Tarzan (musical).,disney-260215,Disney Musicals
+lyric_song_titles_text__42nd_street__lullaby_of_broadway__v1,"Which musical theatre song contains these lyrics?
+
+The rumble of the subway train,
+The rattle of the taxis.
+The daffy-dills who entertain
+At Angelo's and Maxie's.",text,Lullaby of Broadway,null,42nd_street,general,text,song_title,lyric_excerpt,"The correct answer is ""Lullaby of Broadway"" from 42nd Street.",,
+lyric_song_titles_text__42nd_street__we_re_in_the_money__v1,"Name the musical theatre song from these lyrics.
+
+Let's spend it, lend it,
+Send it rolling around!",text,We're in the Money,null,42nd_street,general,text,song_title,lyric_excerpt,"The correct answer is ""We're in the Money"" from 42nd Street.",,
+lyric_song_titles_text__9_to_5__9_to_5__v1,"Which show tune includes these lyrics?
+
+They just use your mind
+And they never give you credit",text,9 to 5,null,9_to_5,general,text,song_title,lyric_excerpt,"The correct answer is ""9 to 5"" from 9 to 5.",,
+lyric_song_titles_text__9_to_5__backwoods_barbie__v1,"Identify the musical theatre song from this lyric extract.
+
+Now, I've always been misunderstood because of how I look.
+Don't judge me by the cover, cause I'm a real good book",text,Backwoods Barbie,null,9_to_5,general,text,song_title,lyric_excerpt,"The correct answer is ""Backwoods Barbie"" from 9 to 5.",,
+lyric_song_titles_text__a_chorus_line__at_the_ballet__v1,"What is the title of the song containing these lyrics?
+
+Life with my dad wasn't ever a picnic
+More like a ""Come as you are.""",text,At the Ballet,null,a_chorus_line,general,text,song_title,lyric_excerpt,"The correct answer is ""At the Ballet"" from A Chorus Line.",,
+lyric_song_titles_text__a_chorus_line__dance_ten_looks_three__v1,"Which musical theatre song contains these lyrics?
+
+Didn't cost a fortune neither.
+Didn't hurt my sex life either.",text,"Dance Ten, Looks Three",null,a_chorus_line,general,text,song_title,lyric_excerpt,"The correct answer is ""Dance Ten, Looks Three"" from A Chorus Line.",,
+lyric_song_titles_text__a_chorus_line__nothing__v1,"Name the musical theatre song from these lyrics.
+
+And I dug right down to the bottom of my soul
+To see what I had inside.",text,Nothing,null,a_chorus_line,general,text,song_title,lyric_excerpt,"The correct answer is ""Nothing"" from A Chorus Line.",,
+lyric_song_titles_text__a_chorus_line__one__v1,"Which show tune includes these lyrics?
+
+Ooh! Sigh! Give her your attention.
+Do I really have to mention",text,One,null,a_chorus_line,general,text,song_title,lyric_excerpt,"The correct answer is ""One"" from A Chorus Line.",,
+lyric_song_titles_text__a_chorus_line__what_i_did_for_love__v1,"Identify the musical theatre song from this lyric extract.
+
+Kiss today goodbye,
+The sweetness and the sorrow.",text,What I Did for Love,null,a_chorus_line,general,text,song_title,lyric_excerpt,"The correct answer is ""What I Did for Love"" from A Chorus Line.",,
+lyric_song_titles_text__a_funny_thing_happened_on_the_way_to_the_forum__comedy_tonight__v1,"What is the title of the song containing these lyrics?
+
+Nothing with kings, nothing with crowns;
+Bring on the lovers, liars and clowns!",text,Comedy Tonight,null,a_funny_thing_happened_on_the_way_to_the_forum,general,text,song_title,lyric_excerpt,"The correct answer is ""Comedy Tonight"" from A Funny Thing Happened on the Way to the Forum.",,
+lyric_song_titles_text__a_funny_thing_happened_on_the_way_to_the_forum__everybody_ought_to_have_a_maid__v1,"Which musical theatre song contains these lyrics?
+
+Fluttering up the stairway,
+Shuttering up the windows,
+Cluttering up the bedroom,
+Buttering up the master...",text,Everybody Ought To Have A Maid,null,a_funny_thing_happened_on_the_way_to_the_forum,general,text,song_title,lyric_excerpt,"The correct answer is ""Everybody Ought To Have A Maid"" from A Funny Thing Happened on the Way to the Forum.",,
+lyric_song_titles_text__a_little_night_music__a_weekend_in_the_country__v1,"Name the musical theatre song from these lyrics.
+
+And the shooting should be pleasant
+If the weather's not too rough.
+Happy birthday, it's your present.
+You haven't been getting out nearly enough.",text,A Weekend In The Country,null,a_little_night_music,general,text,song_title,lyric_excerpt,"The correct answer is ""A Weekend In The Country"" from A Little Night Music.",,
+lyric_song_titles_text__a_little_night_music__liaisons__v1,"Which show tune includes these lyrics?
+
+At the villa of the Baron De Signac,
+Where I spent a somewhat infamous year,",text,Liaisons,null,a_little_night_music,general,text,song_title,lyric_excerpt,"The correct answer is ""Liaisons"" from A Little Night Music.",,
+lyric_song_titles_text__a_little_night_music__send_in_the_clowns__v1,"What is the title of the song containing these lyrics?
+
+Just when I'd stopped opening doors,
+Finally knowing the one that I wanted was yours,",text,Send In The Clowns,null,a_little_night_music,general,text,song_title,lyric_excerpt,"The correct answer is ""Send In The Clowns"" from A Little Night Music.",,
+lyric_song_titles_text__a_little_night_music__the_miller_s_son__v1,"Which musical theatre song contains these lyrics?
+
+It's a very short road
+From the pinch and the punch
+To the paunch and the pouch
+And the pension.",text,The Miller's Son,null,a_little_night_music,general,text,song_title,lyric_excerpt,"The correct answer is ""The Miller's Son"" from A Little Night Music.",,
+lyric_song_titles_text__a_little_night_music__you_must_meet_my_wife__v1,"Identify the musical theatre song from this lyric extract.
+
+Let me get my hat and my knife!",text,You Must Meet My Wife,null,a_little_night_music,general,text,song_title,lyric_excerpt,"The correct answer is ""You Must Meet My Wife"" from A Little Night Music.",,
+lyric_song_titles_text__aladdin__a_whole_new_world__v1,"Name the musical theatre song from these lyrics.
+
+But when I'm way up here, it's crystal clear",text,A Whole New World,null,aladdin,general,text,song_title,lyric_excerpt,"The correct answer is ""A Whole New World"" from Aladdin.",,
+lyric_song_titles_text__aladdin__friend_like_me__v1,"Which show tune includes these lyrics?
+
+Life is your restaurant
+And I'm your maitre d'",text,Friend Like Me,null,aladdin,general,text,song_title,lyric_excerpt,"The correct answer is ""Friend Like Me"" from Aladdin.",,
+lyric_song_titles_text__anastasia__journey_to_the_past__v1,"Identify the musical theatre song from this lyric extract.
+
+Heart, don't fail me now.
+Courage, don't desert me.",text,Journey to the Past,null,anastasia,general,text,song_title,lyric_excerpt,"The correct answer is ""Journey to the Past"" from Anastasia.",,
+lyric_song_titles_text__anastasia__once_upon_a_december__v1,"What is the title of the song containing these lyrics?
+
+Dancing bears,
+Painted wings,
+Things I almost remember,",text,Once Upon a December,null,once,general,text,song_title,lyric_excerpt,"The correct answer is ""Once Upon a December"" from Anastasia.",,
+lyric_song_titles_text__annie__it_s_the_hard_knock_life__v1,"Which musical theatre song contains these lyrics?
+
+Instead of kisses
+We get kicked!",text,It's the Hard Knock Life,null,annie,general,text,song_title,lyric_excerpt,"The correct answer is ""It's the Hard Knock Life"" from Annie.",,
+lyric_song_titles_text__annie__maybe__v1,"Name the musical theatre song from these lyrics.
+
+Betcha they're young
+Betcha they're smart",text,Maybe,null,annie,general,text,song_title,lyric_excerpt,"The correct answer is ""Maybe"" from Annie.",,
+lyric_song_titles_text__annie__nyc__v1,"Which show tune includes these lyrics?
+
+The city's bright
+As a penny arcade
+It blinks, it tilts, it rings",text,NYC,null,annie,general,text,song_title,lyric_excerpt,"The correct answer is ""NYC"" from Annie.",,
+lyric_song_titles_text__annie__tomorrow__v1,"Identify the musical theatre song from this lyric extract.
+
+When I'm stuck with a day
+That's gray, and lonely",text,Tomorrow,null,annie,general,text,song_title,lyric_excerpt,"The correct answer is ""Tomorrow"" from Annie.",,
+lyric_song_titles_text__annie_get_your_gun__anything_you_can_do__v1,"What is the title of the song containing these lyrics?
+
+I can get a sparrow
+With a bow and arrow.",text,Anything You Can Do,null,annie,general,text,song_title,lyric_excerpt,"The correct answer is ""Anything You Can Do"" from Annie Get Your Gun.",,
+lyric_song_titles_text__annie_get_your_gun__moonshine_lullaby__v1,"Which musical theatre song contains these lyrics?
+
+Behind the hill
+There's a busy little still
+Where your Pappy's workin' in the moonlight",text,Moonshine Lullaby,null,annie,general,text,song_title,lyric_excerpt,"The correct answer is ""Moonshine Lullaby"" from Annie Get Your Gun.",,
+lyric_song_titles_text__annie_get_your_gun__there_s_no_business_like_show_business__v1,"Name the musical theatre song from these lyrics.
+
+Traveling through the country is so thrilling
+Standing out in front on opening nights",text,There's No Business Like Show Business,null,annie,general,text,song_title,lyric_excerpt,"The correct answer is ""There's No Business Like Show Business"" from Annie Get Your Gun.",,
+lyric_song_titles_text__annie_get_your_gun__you_can_t_get_a_man_with_a_gun__v1,"Which show tune includes these lyrics?
+
+But a man never trifles
+With gals who carry rifles",text,You Can't Get a Man With a Gun,null,annie,general,text,song_title,lyric_excerpt,"The correct answer is ""You Can't Get a Man With a Gun"" from Annie Get Your Gun.",,
+lyric_song_titles_text__anything_goes__anything_goes__v1,"Identify the musical theatre song from this lyric extract.
+
+Times have changed,
+And we've often rewound the clock,",text,Anything Goes,null,anything_goes,general,text,song_title,lyric_excerpt,"The correct answer is ""Anything Goes"" from Anything Goes.",,
+lyric_song_titles_text__anything_goes__blow_gabriel_blow__v1,"What is the title of the song containing these lyrics?
+
+Come on you scamps, get up you sinners!
+You're all too full of expensive dinners.",text,"Blow, Gabriel, Blow",null,anything_goes,general,text,song_title,lyric_excerpt,"The correct answer is ""Blow, Gabriel, Blow"" from Anything Goes.",,
+lyric_song_titles_text__anything_goes__i_get_a_kick_out_of_you__v1,"Which musical theatre song contains these lyrics?
+
+Mere alcohol doesn't thrill me at all",text,I Get a Kick Out of You,null,anything_goes,general,text,song_title,lyric_excerpt,"The correct answer is ""I Get a Kick Out of You"" from Anything Goes.",,
+lyric_song_titles_text__anything_goes__you_re_the_top__v1,"Name the musical theatre song from these lyrics.
+
+But I got a notion
+I'll second the motion",text,You're the Top,null,anything_goes,general,text,song_title,lyric_excerpt,"The correct answer is ""You're the Top"" from Anything Goes.",,
+lyric_song_titles_text__assassins__another_national_anthem__v1,"Which show tune includes these lyrics?
+
+The delivery boy's on Wall Street,
+And the the usherette's a rock star",text,Another National Anthem,null,assassins,general,text,song_title,lyric_excerpt,"The correct answer is ""Another National Anthem"" from Assassins.",,
+lyric_song_titles_text__assassins__ballad_of_czolgosz__v1,"Identify the musical theatre song from this lyric extract.
+
+In the U.S.A.
+You can work your way
+To the head of the line!""",text,Ballad of Czolgosz,null,assassins,general,text,song_title,lyric_excerpt,"The correct answer is ""Ballad of Czolgosz"" from Assassins.",,
+lyric_song_titles_text__assassins__everybody_s_got_the_right__v1,"What is the title of the song containing these lyrics?
+
+Hey, pal- feelin' blue?
+Don't know what to do?",text,Everybody's Got the Right,null,assassins,general,text,song_title,lyric_excerpt,"The correct answer is ""Everybody's Got the Right"" from Assassins.",,
+lyric_song_titles_text__assassins__unworthy_of_your_love__v1,"Which musical theatre song contains these lyrics?
+
+I am nothing,
+You are wind and devil and God",text,Unworthy of Your Love,null,assassins,general,text,song_title,lyric_excerpt,"The correct answer is ""Unworthy of Your Love"" from Assassins.",,
+lyric_song_titles_text__avenue_q__everyone_s_a_little_bit_racist__v1,"Name the musical theatre song from these lyrics.
+
+Look around and you will find
+No one's really colour blind.",text,Everyone's A Little Bit Racist,null,avenue_q,general,text,song_title,lyric_excerpt,"The correct answer is ""Everyone's A Little Bit Racist"" from Avenue Q.",,
+lyric_song_titles_text__avenue_q__if_you_were_gay__v1,"Which show tune includes these lyrics?
+
+You can count on me
+To always be
+Beside you every day",text,If You Were Gay,null,avenue_q,general,text,song_title,lyric_excerpt,"The correct answer is ""If You Were Gay"" from Avenue Q.",,
+lyric_song_titles_text__avenue_q__there_s_a_fine_fine_line__v1,"Identify the musical theatre song from this lyric extract.
+
+I guess if someone doesn't love you back it isn't such a crime,",text,"There's a Fine, Fine Line",null,avenue_q,general,text,song_title,lyric_excerpt,"The correct answer is ""There's a Fine, Fine Line"" from Avenue Q.",,
+lyric_song_titles_text__baby__i_want_it_all__v1,"What is the title of the song containing these lyrics?
+
+I wanna know that I can find inside me anyone I need
+I wanna be Donna McKechnie, Donna Summer, Donna Reed",text,I Want It All,null,baby,general,text,song_title,lyric_excerpt,"The correct answer is ""I Want It All"" from Baby.",,
+lyric_song_titles_text__baby__story_goes_on__v1,"Which musical theatre song contains these lyrics?
+
+And all these things I feel and more
+My mother's mother felt and hers before",text,Story Goes On,null,baby,general,text,song_title,lyric_excerpt,"The correct answer is ""Story Goes On"" from Baby.",,
+lyric_song_titles_text__baby__what_could_be_better__v1,"Name the musical theatre song from these lyrics.
+
+Your sense of mission, my sense of duty
+Your disposition my inner beauty",text,What Could Be Better,null,baby,general,text,song_title,lyric_excerpt,"The correct answer is ""What Could Be Better"" from Baby.",,
+lyric_song_titles_text__ballad_lines__prologue__v1,"Which show tune includes these lyrics?
+
+Oh women of earth, wind and flame
+Born under changin' skies",text,Prologue,null,ballad_lines,general,text,song_title,lyric_excerpt,"The correct answer is ""Prologue"" from Ballad Lines.",,
+lyric_song_titles_text__ballad_lines__secondhand_shame__v1,"Identify the musical theatre song from this lyric extract.
+
+I've moved on
+This is the happiest home
+Of all the homes I can remember",text,Secondhand Shame,null,ballad_lines,general,text,song_title,lyric_excerpt,"The correct answer is ""Secondhand Shame"" from Ballad Lines.",,
+lyric_song_titles_text__barnum__come_follow_the_band__v1,"What is the title of the song containing these lyrics?
+
+Up out of your seat
+Down off of the stand
+Step out to the sweet beat the bugle plays",text,Come Follow The Band,null,barnum,general,text,song_title,lyric_excerpt,"The correct answer is ""Come Follow The Band"" from Barnum.",,
+lyric_song_titles_text__barnum__the_colors_of_my_life__v1,"Which musical theatre song contains these lyrics?
+
+No quiet browns and grays,
+I'll take my days instead
+And fill them till they overflow
+With rose and cherry red!",text,The Colors Of My Life,null,barnum,general,text,song_title,lyric_excerpt,"The correct answer is ""The Colors Of My Life"" from Barnum.",,
+lyric_song_titles_text__be_more_chill__i_love_play_rehearsal__v1,"Name the musical theatre song from these lyrics.
+
+I have mad, gigantic feelings,
+Red and frantic feelings,
+About most everything",text,I Love Play Rehearsal,null,be_more_chill,general,text,song_title,lyric_excerpt,"The correct answer is ""I Love Play Rehearsal"" from Be More Chill.",,
+lyric_song_titles_text__be_more_chill__michael_in_the_bathroom__v1,"Which show tune includes these lyrics?
+
+But I'd rather fake pee than stand awkwardly
+Or pretend to check a text on my phone",text,Michael in the Bathroom,null,be_more_chill,general,text,song_title,lyric_excerpt,"The correct answer is ""Michael in the Bathroom"" from Be More Chill.",,
+lyric_song_titles_text__beauty_and_the_beast__be_our_guest__v1,"Identify the musical theatre song from this lyric extract.
+
+They can sing, they can dance
+After all, Miss, this is France",text,Be Our Guest,null,beauty_and_the_beast,general,text,song_title,lyric_excerpt,"The correct answer is ""Be Our Guest"" from Beauty and the Beast.",,
+lyric_song_titles_text__beauty_and_the_beast__beauty_and_the_beast__v1,"What is the title of the song containing these lyrics?
+
+Certain as the sun
+Rising in the east",text,Beauty and the Beast,null,beauty_and_the_beast,general,text,song_title,lyric_excerpt,"The correct answer is ""Beauty and the Beast"" from Beauty and the Beast.",,
+lyric_song_titles_text__billy_elliot__electricity__v1,"Which musical theatre song contains these lyrics?
+
+It's like that there's a music, playing in your ear
+And I'm listening, and I'm listening, and then I disappear",text,Electricity,null,billy_elliot,general,text,song_title,lyric_excerpt,"The correct answer is ""Electricity"" from Billy Elliot.",,
+lyric_song_titles_text__billy_elliot__expressing_yourself__v1,"Name the musical theatre song from these lyrics.
+
+What is wrong with dressing up in satin and lace?
+Get some earrings, some mascara, heels and a fan.",text,Expressing Yourself,null,billy_elliot,general,text,song_title,lyric_excerpt,"The correct answer is ""Expressing Yourself"" from Billy Elliot.",,
+lyric_song_titles_text__billy_elliot__letter__v1,"Which show tune includes these lyrics?
+
+Missed your stamping and your shouting
+I have missed telling you off",text,Letter,null,billy_elliot,general,text,song_title,lyric_excerpt,"The correct answer is ""Letter"" from Billy Elliot.",,
+lyric_song_titles_text__blood_brothers__bright_new_day__v1,"Identify the musical theatre song from this lyric extract.
+
+Where we can begin again,
+Feel we can win and then
+Live just like livin' should be.",text,Bright New Day,null,blood_brothers,general,text,song_title,lyric_excerpt,"The correct answer is ""Bright New Day"" from Blood Brothers.",,
+lyric_song_titles_text__blood_brothers__easy_terms__v1,"What is the title of the song containing these lyrics?
+
+Living on the never never,
+Constant as the changing weather",text,Easy Terms,null,blood_brothers,general,text,song_title,lyric_excerpt,"The correct answer is ""Easy Terms"" from Blood Brothers.",,
+lyric_song_titles_text__blood_brothers__i_m_not_saying_a_word__v1,"Which musical theatre song contains these lyrics?
+
+I'd take a page in all the papers
+I'd announce it in the news
+If it was the guy, if I was in his shoes",text,I'm Not Saying a Word,null,blood_brothers,general,text,song_title,lyric_excerpt,"The correct answer is ""I'm Not Saying a Word"" from Blood Brothers.",,
+lyric_song_titles_text__blood_brothers__marilyn_monroe__v1,"Name the musical theatre song from these lyrics.
+
+By the time I was twenty-five
+I looked like forty-two
+With seven hungry mouths to feed
+And one more nearly due",text,Marilyn Monroe,null,blood_brothers,general,text,song_title,lyric_excerpt,"The correct answer is ""Marilyn Monroe"" from Blood Brothers.",,
+lyric_song_titles_text__blood_brothers__tell_me_it_s_not_true__v1,"Which show tune includes these lyrics?
+
+Say it's just two clowns,
+Who couldn't get their lines right",text,Tell Me It's Not True,null,blood_brothers,general,text,song_title,lyric_excerpt,"The correct answer is ""Tell Me It's Not True"" from Blood Brothers.",,
+lyric_song_titles_text__cabaret__cabaret__v1,"Identify the musical theatre song from this lyric extract.
+
+Put down the knitting, the book and the broom
+It's time for a holiday",text,Cabaret,null,cabaret,general,text,song_title,lyric_excerpt,"The correct answer is ""Cabaret"" from Cabaret.",,
+lyric_song_titles_text__cabaret__maybe_this_time__v1,"What is the title of the song containing these lyrics?
+
+He will hold me fast
+I'll be home at last",text,Maybe this Time,null,cabaret,general,text,song_title,lyric_excerpt,"The correct answer is ""Maybe this Time"" from Cabaret.",,
+lyric_song_titles_text__camelot__if_ever_i_would_leave_you__v1,"Which musical theatre song contains these lyrics?
+
+I've seen how you sparkle
+When fall nips the air.
+I know you in autumn
+And I must be there.",text,If Ever I Would Leave You,null,camelot,general,text,song_title,lyric_excerpt,"The correct answer is ""If Ever I Would Leave You"" from Camelot.",,
+lyric_song_titles_text__candide__glitter_and_be_gay__v1,"Name the musical theatre song from these lyrics.
+
+Pearls and ruby rings...
+Ah, how can worldly things
+Take the place of honour lost?",text,Glitter And Be Gay,null,candide,general,text,song_title,lyric_excerpt,"The correct answer is ""Glitter And Be Gay"" from Candide.",,
+lyric_song_titles_text__carousel__if_i_loved_you__v1,"Which show tune includes these lyrics?
+
+Words wouldn't come in an easy way
+Round in circles I'd go!",text,If I Loved You,null,carousel,general,text,song_title,lyric_excerpt,"The correct answer is ""If I Loved You"" from Carousel.",,
+lyric_song_titles_text__carousel__june_is_bustin_out_all_over__v1,"Identify the musical theatre song from this lyric extract.
+
+March went out like a lion
+A-whippin' up the water in the bay
+Then April cried and stepped aside,
+And along come pretty little May!",text,June Is Bustin' Out All Over,null,carousel,general,text,song_title,lyric_excerpt,"The correct answer is ""June Is Bustin' Out All Over"" from Carousel.",,
+lyric_song_titles_text__carousel__you_ll_never_walk_alone__v1,"What is the title of the song containing these lyrics?
+
+At the end of the storm
+Is a golden sky",text,You'll Never Walk Alone,null,carousel,general,text,song_title,lyric_excerpt,"The correct answer is ""You'll Never Walk Alone"" from Carousel.",,
+lyric_song_titles_text__cats__bustopher_jones__v1,"Which musical theatre song contains these lyrics?
+
+He's the cat we all greet as he walks down the street
+In his coat of fastidious black",text,Bustopher Jones,null,cats,general,text,song_title,lyric_excerpt,"The correct answer is ""Bustopher Jones"" from Cats.",,
+lyric_song_titles_text__cats__macavity_the_mystery_cat__v1,"Name the musical theatre song from these lyrics.
+
+He's broken every human law
+He breaks the law of gravity",text,Macavity The Mystery Cat,null,cats,general,text,song_title,lyric_excerpt,"The correct answer is ""Macavity The Mystery Cat"" from Cats.",,
+lyric_song_titles_text__cats__memory__v1,"Which show tune includes these lyrics?
+
+Burnt out ends of smoky days
+The stale, cold smell of morning",text,Memory,null,cats,general,text,song_title,lyric_excerpt,"The correct answer is ""Memory"" from Cats.",,
+lyric_song_titles_text__cats__mr_mistoffelees__v1,"Identify the musical theatre song from this lyric extract.
+
+He can pick any card from a pack
+He is equally cunning with dice",text,Mr. Mistoffelees,null,cats,general,text,song_title,lyric_excerpt,"The correct answer is ""Mr. Mistoffelees"" from Cats.",,
+lyric_song_titles_text__chess__anthem__v1,"What is the title of the song containing these lyrics?
+
+And you ask me why I love her
+Through wars, death and despair",text,Anthem,null,chess,general,text,song_title,lyric_excerpt,"The correct answer is ""Anthem"" from Chess.",,
+lyric_song_titles_text__chess__i_know_him_so_well__v1,"Which musical theatre song contains these lyrics?
+
+Wanting far too much for far too long.
+Looking back I could have played it differently",text,I Know Him So Well,null,chess,general,text,song_title,lyric_excerpt,"The correct answer is ""I Know Him So Well"" from Chess.",,
+lyric_song_titles_text__chess__nobody_s_side__v1,"Name the musical theatre song from these lyrics.
+
+Everybody's playing the game
+But nobody's rules are the same",text,Nobody's Side,null,chess,general,text,song_title,lyric_excerpt,"The correct answer is ""Nobody's Side"" from Chess.",,
+lyric_song_titles_text__chess__one_night_in_bangkok__v1,"Which show tune includes these lyrics?
+
+You'll find a god in every golden cloister
+And if you're lucky then the god's a she
+I can feel an angel sliding up to me",text,One Night in Bangkok,null,chess,general,text,song_title,lyric_excerpt,"The correct answer is ""One Night in Bangkok"" from Chess.",,
+lyric_song_titles_text__chicago__all_that_jazz__v1,"Identify the musical theatre song from this lyric extract.
+
+It's just a noisy hall
+Where there's a nightly brawl",text,All That Jazz,null,chicago,general,text,song_title,lyric_excerpt,"The correct answer is ""All That Jazz"" from Chicago.",,
+lyric_song_titles_text__chicago__cell_block_tango__v1,"What is the title of the song containing these lyrics?
+
+Pop! Six! Squish! Uh uh! Cicero, Lipschitz!",text,Cell Block Tango,null,chicago,general,text,song_title,lyric_excerpt,"The correct answer is ""Cell Block Tango"" from Chicago.",,
+lyric_song_titles_text__chicago__cell_block_tango__v2,"Which musical theatre song contains these lyrics?
+
+If you'd have been there, if you'd have heard it
+I betcha you would have done the same",text,Cell Block Tango,null,chicago,general,text,song_title,lyric_excerpt,"The correct answer is ""Cell Block Tango"" from Chicago.",,
+lyric_song_titles_text__chicago__class__v1,"Name the musical theatre song from these lyrics.
+
+Whatever happened to fair dealing?
+And pure ethics?
+And nice manners?",text,Class,null,chicago,general,text,song_title,lyric_excerpt,"The correct answer is ""Class"" from Chicago.",,
+lyric_song_titles_text__chicago__mr_cellophane__v1,"Which show tune includes these lyrics?
+
+If someone in the movie show
+Yelled ""Fire in the second row",text,Mr. Cellophane,null,chicago,general,text,song_title,lyric_excerpt,"The correct answer is ""Mr. Cellophane"" from Chicago.",,
+lyric_song_titles_text__chicago__razzle_dazzle__v1,"Identify the musical theatre song from this lyric extract.
+
+What if your hinges all are rusting?
+What if, in fact, you're just disgusting ?",text,Razzle Dazzle,null,chicago,general,text,song_title,lyric_excerpt,"The correct answer is ""Razzle Dazzle"" from Chicago.",,
+lyric_song_titles_text__chicago__we_both_reached_for_the_gun__v1,"What is the title of the song containing these lyrics?
+
+Though my choo-choo jumped my track
+I'd give my life to bring him back",text,We Both Reached for the Gun,null,chicago,general,text,song_title,lyric_excerpt,"The correct answer is ""We Both Reached for the Gun"" from Chicago.",,
+lyric_song_titles_text__chicago__when_you_re_good_to_mama__v1,"Which musical theatre song contains these lyrics?
+
+They say that life is tit for tat
+And that's the way I live",text,When You're Good to Mama,null,chicago,general,text,song_title,lyric_excerpt,"The correct answer is ""When You're Good to Mama"" from Chicago.",,
+lyric_song_titles_text__closer_than_ever__life_story__v1,"Which show tune includes these lyrics?
+
+So now my son's half way through college
+I pay tuition like a fine",text,Life Story,null,closer_than_ever,general,text,song_title,lyric_excerpt,"The correct answer is ""Life Story"" from Closer Than Ever.",,
+lyric_song_titles_text__closer_than_ever__miss_byrd__v1,"Identify the musical theatre song from this lyric extract.
+
+At work I'm hardly seen
+I come and go
+But I know something that people don't know",text,Miss Byrd,null,closer_than_ever,general,text,song_title,lyric_excerpt,"The correct answer is ""Miss Byrd"" from Closer Than Ever.",,
+lyric_song_titles_text__closer_than_ever__the_bear_the_tiger_the_hamster_and_the_mole__v1,"Name the musical theatre song from these lyrics.
+
+The bitch, the vixen, the queen bee, and the shrew
+What men have done to those fine words, we never can undo",text,"The Bear, the Tiger, the Hamster and the Mole",null,closer_than_ever,general,text,song_title,lyric_excerpt,"The correct answer is ""The Bear, the Tiger, the Hamster and the Mole"" from Closer Than Ever.",,
+lyric_song_titles_text__come_from_away__welcome_to_the_rock__v1,"What is the title of the song containing these lyrics?
+
+Welcome to the fog, welcome to the trees,
+to the ocean and the sky, and whatever's in between.",text,Welcome to the Rock,null,come_from_away,general,text,song_title,lyric_excerpt,"The correct answer is ""Welcome to the Rock"" from Come From Away.",,
+lyric_song_titles_text__company__another_hundred_people__v1,"Which musical theatre song contains these lyrics?
+
+It's a city of strangers,
+Some come to work, some to play.",text,Another Hundred People,null,company,general,text,song_title,lyric_excerpt,"The correct answer is ""Another Hundred People"" from Company.",,
+lyric_song_titles_text__company__another_hundred_people__v2,"Name the musical theatre song from these lyrics.
+
+Did you get my message? 'Cause I looked in vain.
+Can we see each other Tuesday if it doesn't rain?",text,Another Hundred People,null,company,general,text,song_title,lyric_excerpt,"The correct answer is ""Another Hundred People"" from Company.",,
+lyric_song_titles_text__company__being_alive__v1,"Which show tune includes these lyrics?
+
+Someone you have to let in,
+Someone whose feelings you spare",text,Being Alive,null,company,general,text,song_title,lyric_excerpt,"The correct answer is ""Being Alive"" from Company.",,
+lyric_song_titles_text__company__being_alive__v2,"Identify the musical theatre song from this lyric extract.
+
+I'll always be there,
+As frightened as you,
+To help us survive",text,Being Alive,null,company,general,text,song_title,lyric_excerpt,"The correct answer is ""Being Alive"" from Company.",,
+lyric_song_titles_text__company__getting_married_today__v1,"What is the title of the song containing these lyrics?
+
+But I thank you all
+For the gifts and the flowers",text,Getting Married Today,null,company,general,text,song_title,lyric_excerpt,"The correct answer is ""Getting Married Today"" from Company.",,
+lyric_song_titles_text__company__getting_married_today__v2,"Which musical theatre song contains these lyrics?
+
+The heart sinks down and feels dead
+This dreadful day.",text,Getting Married Today,null,company,general,text,song_title,lyric_excerpt,"The correct answer is ""Getting Married Today"" from Company.",,
+lyric_song_titles_text__company__ladies_who_lunch__v1,"Name the musical theatre song from these lyrics.
+
+Does anyone still wear a hat?",text,Ladies Who Lunch,null,company,general,text,song_title,lyric_excerpt,"The correct answer is ""Ladies Who Lunch"" from Company.",,
+lyric_song_titles_text__company__ladies_who_lunch__v2,"Which show tune includes these lyrics?
+
+Look into their eyes,
+And you'll see what they know:
+Everybody dies.",text,Ladies Who Lunch,null,company,general,text,song_title,lyric_excerpt,"The correct answer is ""Ladies Who Lunch"" from Company.",,
+lyric_song_titles_text__company__marry_me_a_little__v1,"Identify the musical theatre song from this lyric extract.
+
+Keep a tender distance
+So we'll both be free",text,Marry Me a Little,null,company,general,text,song_title,lyric_excerpt,"The correct answer is ""Marry Me a Little"" from Company.",,
+lyric_song_titles_text__company__sorry_grateful__v1,"What is the title of the song containing these lyrics?
+
+Everything's different, nothing's changed.
+Only maybe slightly rearranged.",text,Sorry-Grateful,null,company,general,text,song_title,lyric_excerpt,"The correct answer is ""Sorry-Grateful"" from Company.",,
+modern-260215-051,Type the first name of the mayor of Gander in Come From Away.,text,Claude,"[""[\""Claude\"", \""Claude Elliott\""]""]",null,general,null,null,null,"In Come From Away, Claude is the mayor of Gander.",modern-260215,Modern Musicals
+modern-260215-052,Type the name of Matilda's school.,text,Crunchem Hall,"[""[\""Crunchem Hall\"", \""Crunchem Hall Primary School\"", \""Crunchem Hall School\""]""]",null,general,null,null,null,"Matilda attends Crunchem Hall, run by Miss Trunchbull.",modern-260215,Modern Musicals
+modern-260215-053,Type the first name of Alexander Hamilton's wife in Hamilton.,text,Eliza,"[""[\""Eliza\"", \""Eliza Hamilton\"", \""Elizabeth\"", \""Elizabeth Hamilton\"", \""Elizabeth Schuyler\"", \""Elizabeth Schuyler Hamilton\""]""]",null,general,null,null,null,Eliza (Elizabeth Schuyler Hamilton) is Alexander Hamilton's wife in Hamilton.,modern-260215,Modern Musicals
+modern-260215-054,Type the title of the opening song in Six.,text,Ex-Wives,"[""[\""Ex-Wives\"", \""Ex Wives\"", \""Exwives\"", \""Exwives (Ex-Wives)\"", \""Ex-Wives (SIX)\""]""]",null,general,null,null,null,‘Ex-Wives' opens Six and introduces the queens.,modern-260215,Modern Musicals
+modern-260215-055,Type the name of the mega-corporation that controls music in We Will Rock You.,text,Globalsoft,"[""[\""Globalsoft\"", \""Global Soft\""]""]",null,general,null,null,null,"In We Will Rock You, the Killer Queen runs Globalsoft.",modern-260215,Modern Musicals
+modern-260215-056,Which musical is named after the codename of the WWII deception plan in which British intelligence used a dead man with planted documents to mislead the Axis about an Allied invasion.,text,Operation Mincemeat,"[""[\""Operation Mincemeat\"", \""Operation Mincemeat: A New Musical\"", \""Mincemeat\""]""]",null,general,null,null,null,The musical dramatises the real Operation Mincemeat deception.,modern-260215,Modern Musicals
+modern-260215-057,Type the name of the green-skinned witch who becomes the Wicked Witch of the West.,text,Elphaba,"[""[\""Elphaba\"", \""Elphaba Thropp\""]""]",null,general,null,null,null,Wicked follows Elphaba's story before The Wizard of Oz.,modern-260215,Modern Musicals
+modern-260215-058,Type the name of Charlie's family business in Kinky Boots (as written on the sign).,text,Price & Son,"[""[\""Price & Son\"", \""Price and Son\"", \""Price & Sons\"", \""Price and Sons\""]""]",null,general,null,null,null,Charlie inherits the shoe factory Price & Son.,modern-260215,Modern Musicals
+modern-260215-059,Type the first name of the young writer who is the male lead in Moulin Rouge! The Musical.,text,Christian,"[""[\""Christian\""]""]",null,general,null,null,null,Christian is the young writer who falls for Satine in Moulin Rouge! The Musical.,modern-260215,Modern Musicals
+modern-260215-060,Type the title of the musical by Tom Kitt and Brian Yorkey that won the Pulitzer Prize for Drama.,text,Next to Normal,"[""[\""Next to Normal\"", \""Next 2 Normal\"", \""Next-to-Normal\"", \""NTN\""]""]",null,general,null,null,null,Next to Normal won the Pulitzer Prize for Drama and explores a family living with mental illness.,modern-260215,Modern Musicals
+modern-260215-076,AUDIO: Type the musical this clip comes from.,text,Jersey Boys,"[""[\""Jersey Boys\""]""]",null,audio,null,null,null,This clip comes from Jersey Boys.,modern-260215,Modern Musicals
+modern-260215-077,AUDIO: Type the title of the musical that this Queen song appears in as part of the story.,text,We Will Rock You,"[""[\""We Will Rock You\"", \""WWRY\""]""]",null,audio,null,null,null,We Will Rock You is the jukebox musical built around Queen's catalogue.,modern-260215,Modern Musicals
+modern-260215-078,AUDIO: Type the musical this clip comes from.,text,Bat Out of Hell,"[""[\""Bat Out of Hell\"", \""Bat Out of Hell: The Musical\""]""]",null,audio,null,null,null,This clip comes from Bat Out of Hell: The Musical.,modern-260215,Modern Musicals
+modern-260215-079,AUDIO: Type the musical this clip comes from.,text,Operation Mincemeat,"[""[\""Operation Mincemeat\"", \""Operation Mincemeat: A New Musical\"", \""Operation Mincemeat: The Musical\""]""]",null,audio,null,null,null,This clip comes from Operation Mincemeat.,modern-260215,Modern Musicals
+modern-260215-080,AUDIO: Type the musical this clip comes from.,text,Next to Normal,"[""[\""Next to Normal\"", \""NTN\""]""]",null,audio,null,null,null,This clip comes from Next to Normal.,modern-260215,Modern Musicals
+modern-260215-096,PICTURE: Type the title of the musical shown in this picture.,text,Aladdin,"[""[\""Aladdin\"", \""Disney's Aladdin\"", \""Disney's Aladdin\""]""]",null,picture,null,null,null,This image is from Aladdin.,modern-260215,Modern Musicals
+modern-260215-097,PICTURE: Type the title of the musical shown in this picture.,text,The Prince of Egypt,"[""[\""The Prince of Egypt\"", \""Prince of Egypt\""]""]",null,picture,null,null,null,This image is from The Prince of Egypt.,modern-260215,Modern Musicals
+modern-260215-098,PICTURE: Type the title of the musical shown in this picture.,text,Billy Elliot,"[""[\""Billy Elliot\"", \""Billy Elliot the Musical\""]""]",null,picture,null,null,null,This image is from Billy Elliot the Musical.,modern-260215,Modern Musicals
+modern-260215-099,PICTURE: Type the title of the musical shown in this picture.,text,Jersey Boys,"[""[\""Jersey Boys\""]""]",null,picture,null,null,null,This image is from Jersey Boys.,modern-260215,Modern Musicals
+modern-260215-100,PICTURE: Type the title of the musical shown in this picture.,text,Bat Out of Hell,"[""[\""Bat Out of Hell\"", \""Bat Out of Hell: The Musical\""]""]",null,picture,null,null,null,This image is from Bat Out of Hell: The Musical.,modern-260215,Modern Musicals
+sondheim-260217-005,"In Company, the dance piece ""Tick-Tock"" is associated with which character?",text,Kathy,"[""Kathy""]",null,general,null,null,null,"""Tick-Tock"" is an instrumental dance associated with Kathy in Company.",sondheim-260217,Sondheim
+sondheim-260217-010,West Side Story: who wrote the music (with Sondheim as lyricist)?,text,Leonard Bernstein,"[""Leonard Bernstein"",""Bernstein""]",null,general,null,null,null,West Side Story's music is by Leonard Bernstein.,sondheim-260217,Sondheim
+sondheim-260217-012,"In A Funny Thing Happened on the Way to the Forum, what is the name of the scheming slave protagonist?",text,Pseudolus,"[""Pseudolus""]",null,general,null,null,null,Pseudolus is the central scheming slave in Forum.,sondheim-260217,Sondheim
+sondheim-260217-018,A Little Night Music is based on which Ingmar Bergman film?,text,Smiles of a Summer Night,"[""Smiles of a Summer Night"",""Smiles of Summer Night""]",null,general,null,null,null,A Little Night Music is based on Bergman's film Smiles of a Summer Night.,sondheim-260217,Sondheim
+sondheim-260217-020,"In A Little Night Music, which character sings the comic show-stopper ""The Miller's Son""?",text,Petra,"[""Petra""]",null,general,null,null,null,"Petra sings ""The Miller's Son"".",sondheim-260217,Sondheim
+sondheim-260217-025,"In Follies, which character sings ""Broadway Baby""?",text,Hattie Walker,"[""Hattie Walker"",""Hattie""]",null,general,null,null,null,"""Broadway Baby"" is sung by Hattie Walker in Follies.",sondheim-260217,Sondheim
+sondheim-260217-030,What is the full name of Frank Shepard's lyricist friend in Merrily We Roll Along?,text,Charley Kringas,"[""Charley Kringas"",""Charlie Kringas"",""Charles Kringas""]",null,general,null,null,null,Frank's closest collaborator is Charley Kringas.,sondheim-260217,Sondheim
+sondheim-260217-035,Into the Woods: name ONE of the four items the Witch demands to lift the curse.,text,cow as white as milk,"[""cow as white as milk"",""white cow"",""cape as red as blood"",""red cape"",""slipper as pure as gold"",""gold slipper"",""hair as yellow as corn"",""yellow hair""]",null,general,null,null,null,"The Witch demands four items: cow, red cape, golden slipper, and yellow hair.",sondheim-260217,Sondheim
+sondheim-260217-040,Who painted A Sunday Afternoon on the Island of La Grande Jatte?,text,Georges Seurat,"[""Georges Seurat"",""George Seurat"",""Seurat""]",null,general,null,null,null,The painting is by Georges Seurat.,sondheim-260217,Sondheim
+sondheim-260217-045,Which museum holds Seurat's painting A Sunday Afternoon on the Island of La Grande Jatte?,text,Art Institute of Chicago,"[""Art Institute of Chicago"",""The Art Institute of Chicago"",""AIC""]",null,general,null,null,null,The painting is in the Art Institute of Chicago's collection.,sondheim-260217,Sondheim
+sondheim-260217-050,Which Sondheim-written film song won the Oscar for Best Original Song and is often listed as 'Sooner or Later (I Always Get My Man)'?,text,Sooner or Later (I Always Get My Man),"[""Sooner or Later"",""Sooner or Later (I Always Get My Man)"",""I Always Get My Man""]",null,general,null,null,null,"Sondheim won the Academy Award for ""Sooner or Later (I Always Get My Man)"" from Dick Tracy.",sondheim-260217,Sondheim
+sondheim-260217-054,In Sweeney Todd  what is the name of the young sailor who falls in love with Johanna?,text,Anthony Hope,"[""Anthony Hope"",""Anthony"",""Antony"",""Antony Hope""]",null,general,null,null,null,Anthony Hope is the sailor who falls for Johanna.,sondheim-260217,Sondheim
+sondheim-260217-058,What is the title of the duet in Sweeney Todd where Todd and Mrs Lovett joke about turning people into pie fillings?,text,A Little Priest,"[""A Little Priest"",""Little Priest""]",null,general,null,null,null,"The comic duet is ""A Little Priest"".",sondheim-260217,Sondheim
+sondheim-260217-066,"In Road Show, the two brothers at the centre of the story share which surname?",text,Mizner,"[""Mizner"",""The Mizners""]",null,general,null,null,null,Road Show centres on Addison and Wilson Mizner.,sondheim-260217,Sondheim
+sondheim-260217-068,The Frogs is (loosely) based on a comedy by which ancient Greek playwright?,text,Aristophanes,"[""Aristophanes""]",null,general,null,null,null,The Frogs draws from Aristophanes' play.,sondheim-260217,Sondheim
+sondheim-260217-085,AUDIO: Write the song title from this clip.,text,Colour and Light,"[""Colour and Light"",""Color and Light"",""Colour & Light"",""Color & Light""]",sunday_in_the_park_with_george,audio,audio,song_title,song_clip,"This clip is from ""Colour and Light"" (Sunday in the Park with George).",sondheim-260217,Sondheim
+sondheim-260217-089,AUDIO: Name the musical.,text,Pacific Overtures,"[""Pacific Overtures""]",pacific_overtures,audio,audio,show_title,song_clip,This clip is 'Someone in a Tree' from Pacific Overtures.,sondheim-260217,Sondheim
+sondheim-260217-096,PICTURE: Name the performer shown here (as Mrs Lovett).,text,Angela Lansbury,"[""Angela Lansbury"",""Lansbury""]",null,picture,null,null,null,Angela Lansbury famously played Mrs Lovett in the original Broadway production.,sondheim-260217,Sondheim
+sondheim-260217-098,PICTURE: Name the performer shown here (as the Witch).,text,Bernadette Peters,"[""Bernadette Peters"",""Peters""]",null,picture,null,null,null,Bernadette Peters played the Witch in the original Broadway production of Into the Woods.,sondheim-260217,Sondheim
+sondheim-260217-100,PICTURE: Name the performer shown here (originating Georges Seurat/George).,text,Mandy Patinkin,"[""Mandy Patinkin"",""Patinkin""]",null,picture,null,null,null,Mandy Patinkin originated the role of Georges Seurat/George in Sunday in the Park with George.,sondheim-260217,Sondheim
+typed-001,Name the musical with the song Defying Gravity.,text,Wicked,"[""wicked"",""wicked the musical""]",null,general,null,null,null,Defying Gravity is from Wicked.,typed,Typed Answers
+typed-002,Name the musical set in the Kit Kat Club.,text,Cabaret,"[""cabaret""]",null,general,null,null,null,The Kit Kat Club setting points to Cabaret.,typed,Typed Answers
+typed-003,Name the musical about a spelling bee.,text,The 25th Annual Putnam County Spelling Bee,"[""spelling bee"",""putnam spelling bee""]",null,general,null,null,null,The spelling bee musical is The 25th Annual Putnam County Spelling Bee.,typed,Typed Answers
+typed-004,Name the musical that features Jean Valjean.,text,Les Miserables,"[""les mis"",""les miserables""]",null,general,null,null,null,Jean Valjean is the central figure in Les Misérables.,typed,Typed Answers
+typed-005,Name the Sondheim musical about a barber returning to London seeking revenge.,text,Sweeney Todd,"[""sweeney todd""]",null,general,null,null,null,Sweeney Todd is the Sondheim musical about a barber returning to London.,typed,Typed Answers
+WaxingT-0001,"Name the musical theatre song from these lyrics:
+
+The rumble of the subway train,
+The rattle of the taxis.
+The daffy-dills who entertain
+At Angelo's and Maxie's.",text,Lullaby of Broadway,null,42nd_street,general,text,song_title,lyric_excerpt,"""Lullaby of Broadway"" is from 42nd Street.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0002,"Name the musical theatre song from these lyrics:
+
+Let's spend it, lend it,
+Send it rolling around!",text,We're in the Money,"[""Were in the Money""]",42nd_street,general,text,song_title,lyric_excerpt,"""We're in the Money"" is from 42nd Street.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0003,"Name the musical theatre song from these lyrics:
+
+They just use your mind
+And they never give you credit",text,9 to 5,null,9_to_5,general,text,song_title,lyric_excerpt,"""9 to 5"" is from 9 to 5.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0004,"Name the musical theatre song from these lyrics:
+
+Now, I've always been misunderstood because of how I look.
+Don't judge me by the cover, cause I'm a real good book",text,Backwoods Barbie,null,9_to_5,general,text,song_title,lyric_excerpt,"""Backwoods Barbie"" is from 9 to 5.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0005,"Name the musical theatre song from these lyrics:
+
+Life with my dad wasn't ever a picnic
+More like a ""Come as you are.""",text,At the Ballet,null,a_chorus_line,general,text,song_title,lyric_excerpt,"""At the Ballet"" is from A Chorus Line.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0006,"Name the musical theatre song from these lyrics:
+
+Didn't cost a fortune neither.
+Didn't hurt my sex life either.",text,"Dance Ten, Looks Three","[""Dance Ten Looks Three""]",a_chorus_line,general,text,song_title,lyric_excerpt,"""Dance Ten, Looks Three"" is from A Chorus Line.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0007,"Name the musical theatre song from these lyrics:
+
+And I dug right down to the bottom of my soul
+To see what I had inside.",text,Nothing,null,a_chorus_line,general,text,song_title,lyric_excerpt,"""Nothing"" is from A Chorus Line.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0008,"Name the musical theatre song from these lyrics:
+
+Ooh! Sigh! Give her your attention.
+Do I really have to mention",text,One,null,a_chorus_line,general,text,song_title,lyric_excerpt,"""One"" is from A Chorus Line.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0009,"Name the musical theatre song from these lyrics:
+
+Kiss today goodbye,
+The sweetness and the sorrow.",text,What I Did for Love,null,a_chorus_line,general,text,song_title,lyric_excerpt,"""What I Did for Love"" is from A Chorus Line.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0010,"Name the musical theatre song from these lyrics:
+
+Nothing with kings, nothing with crowns;
+Bring on the lovers, liars and clowns!",text,Comedy Tonight,null,a_funny_thing_happened_on_the_way_to_the_forum,general,text,song_title,lyric_excerpt,"""Comedy Tonight"" is from A Funny Thing Happened on the Way to the Forum.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0011,"Name the musical theatre song from these lyrics:
+
+Fluttering up the stairway,
+Shuttering up the windows,
+Cluttering up the bedroom,
+Buttering up the master...",text,Everybody Ought To Have A Maid,null,a_funny_thing_happened_on_the_way_to_the_forum,general,text,song_title,lyric_excerpt,"""Everybody Ought To Have A Maid"" is from A Funny Thing Happened on the Way to the Forum.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0012,"Name the musical theatre song from these lyrics:
+
+And the shooting should be pleasant
+If the weather's not too rough.
+Happy birthday, it's your present.
+You haven't been getting out nearly enough.",text,A Weekend In The Country,null,a_little_night_music,general,text,song_title,lyric_excerpt,"""A Weekend In The Country"" is from A Little Night Music.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0013,"Name the musical theatre song from these lyrics:
+
+At the villa of the Baron De Signac,
+Where I spent a somewhat infamous year,",text,Liaisons,null,a_little_night_music,general,text,song_title,lyric_excerpt,"""Liaisons"" is from A Little Night Music.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0014,"Name the musical theatre song from these lyrics:
+
+Let me get my hat and my knife!",text,You Must Meet My Wife,null,a_little_night_music,general,text,song_title,lyric_excerpt,"""You Must Meet My Wife"" is from A Little Night Music.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0015,"Name the musical theatre song from these lyrics:
+
+Just when I'd stopped opening doors,
+Finally knowing the one that I wanted was yours,",text,Send In The Clowns,null,a_little_night_music,general,text,song_title,lyric_excerpt,"""Send In The Clowns"" is from A Little Night Music.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0016,"Name the musical theatre song from these lyrics:
+
+It's a very short road
+From the pinch and the punch
+To the paunch and the pouch
+And the pension.",text,The Miller's Son,"[""The Millers Son""]",a_little_night_music,general,text,song_title,lyric_excerpt,"""The Miller's Son"" is from A Little Night Music.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0017,"Name the musical theatre song from these lyrics:
+
+But when I'm way up here, it's crystal clear",text,A Whole New World,null,aladdin,general,text,song_title,lyric_excerpt,"""A Whole New World"" is from Aladdin.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0018,"Name the musical theatre song from these lyrics:
+
+Life is your restaurant
+And I'm your maitre d'",text,Friend Like Me,null,aladdin,general,text,song_title,lyric_excerpt,"""Friend Like Me"" is from Aladdin.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0019,"Name the musical theatre song from these lyrics:
+
+Heart, don't fail me now.
+Courage, don't desert me.",text,Journey to the Past,null,anastasia,general,text,song_title,lyric_excerpt,"""Journey to the Past"" is from Anastasia.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0020,"Name the musical theatre song from these lyrics:
+
+Dancing bears,
+Painted wings,
+Things I almost remember,",text,Once Upon a December,null,anastasia,general,text,song_title,lyric_excerpt,"""Once Upon a December"" is from Anastasia.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0021,"Name the musical theatre song from these lyrics:
+
+Instead of kisses
+We get kicked!",text,It's the Hard Knock Life,"[""Its the Hard Knock Life""]",annie,general,text,song_title,lyric_excerpt,"""It's the Hard Knock Life"" is from Annie.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0022,"Name the musical theatre song from these lyrics:
+
+Betcha they're young
+Betcha they're smart",text,Maybe,null,annie,general,text,song_title,lyric_excerpt,"""Maybe"" is from Annie.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0023,"Name the musical theatre song from these lyrics:
+
+The city's bright
+As a penny arcade
+It blinks, it tilts, it rings",text,NYC,null,annie,general,text,song_title,lyric_excerpt,"""NYC"" is from Annie.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0024,"Name the musical theatre song from these lyrics:
+
+When I'm stuck with a day
+That's gray, and lonely",text,Tomorrow,null,annie,general,text,song_title,lyric_excerpt,"""Tomorrow"" is from Annie.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0025,"Name the musical theatre song from these lyrics:
+
+I can get a sparrow
+With a bow and arrow.",text,Anything You Can Do,null,annie_get_your_gun,general,text,song_title,lyric_excerpt,"""Anything You Can Do"" is from Annie Get Your Gun.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0026,"Name the musical theatre song from these lyrics:
+
+Behind the hill
+There's a busy little still
+Where your Pappy's workin' in the moonlight",text,Moonshine Lullaby,null,annie_get_your_gun,general,text,song_title,lyric_excerpt,"""Moonshine Lullaby"" is from Annie Get Your Gun.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0027,"Name the musical theatre song from these lyrics:
+
+Traveling through the country is so thrilling
+Standing out in front on opening nights",text,There's No Business Like Show Business,"[""Theres No Business Like Show Business""]",annie_get_your_gun,general,text,song_title,lyric_excerpt,"""There's No Business Like Show Business"" is from Annie Get Your Gun.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0028,"Name the musical theatre song from these lyrics:
+
+But a man never trifles
+With gals who carry rifles",text,You Can't Get a Man With a Gun,"[""You Cant Get a Man With a Gun""]",annie_get_your_gun,general,text,song_title,lyric_excerpt,"""You Can't Get a Man With a Gun"" is from Annie Get Your Gun.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0029,"Name the musical theatre song from these lyrics:
+
+Times have changed,
+And we've often rewound the clock,",text,Anything Goes,null,anything_goes,general,text,song_title,lyric_excerpt,"""Anything Goes"" is from Anything Goes.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0030,"Name the musical theatre song from these lyrics:
+
+Come on you scamps, get up you sinners!
+You're all too full of expensive dinners.",text,"Blow, Gabriel, Blow","[""Blow Gabriel Blow""]",anything_goes,general,text,song_title,lyric_excerpt,"""Blow, Gabriel, Blow"" is from Anything Goes.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0031,"Name the musical theatre song from these lyrics:
+
+Mere alcohol doesn't thrill me at all",text,I Get a Kick Out of You,null,anything_goes,general,text,song_title,lyric_excerpt,"""I Get a Kick Out of You"" is from Anything Goes.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0032,"Name the musical theatre song from these lyrics:
+
+But I got a notion
+I'll second the motion",text,You're the Top,"[""Youre the Top""]",anything_goes,general,text,song_title,lyric_excerpt,"""You're the Top"" is from Anything Goes.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0033,"Name the musical theatre song from these lyrics:
+
+The delivery boy's on Wall Street,
+And the the usherette's a rock star",text,Another National Anthem,null,assassins,general,text,song_title,lyric_excerpt,"""Another National Anthem"" is from Assassins.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0034,"Name the musical theatre song from these lyrics:
+
+In the U.S.A.
+You can work your way
+To the head of the line!""",text,Ballad of Czolgosz,null,assassins,general,text,song_title,lyric_excerpt,"""Ballad of Czolgosz"" is from Assassins.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0035,"Name the musical theatre song from these lyrics:
+
+Hey, pal- feelin' blue?
+Don't know what to do?",text,Everybody's Got the Right,"[""Everybodys Got the Right""]",assassins,general,text,song_title,lyric_excerpt,"""Everybody's Got the Right"" is from Assassins.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0036,"Name the musical theatre song from these lyrics:
+
+I am nothing,
+You are wind and devil and God",text,Unworthy of Your Love,null,assassins,general,text,song_title,lyric_excerpt,"""Unworthy of Your Love"" is from Assassins.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0037,"Name the musical theatre song from these lyrics:
+
+Look around and you will find
+No one's really colour blind.",text,Everyone's A Little Bit Racist,"[""Everyones A Little Bit Racist""]",avenue_q,general,text,song_title,lyric_excerpt,"""Everyone's A Little Bit Racist"" is from Avenue Q.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0038,"Name the musical theatre song from these lyrics:
+
+You can count on me
+To always be
+Beside you every day",text,If You Were Gay,null,avenue_q,general,text,song_title,lyric_excerpt,"""If You Were Gay"" is from Avenue Q.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0039,"Name the musical theatre song from these lyrics:
+
+I guess if someone doesn't love you back it isn't such a crime,",text,"There's a Fine, Fine Line","[""Theres a Fine Fine Line""]",avenue_q,general,text,song_title,lyric_excerpt,"""There's a Fine, Fine Line"" is from Avenue Q.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0040,"Name the musical theatre song from these lyrics:
+
+I wanna know that I can find inside me anyone I need
+I wanna be Donna McKechnie, Donna Summer, Donna Reed",text,I Want It All,null,baby,general,text,song_title,lyric_excerpt,"""I Want It All"" is from Baby.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0041,"Name the musical theatre song from these lyrics:
+
+And all these things I feel and more
+My mother's mother felt and hers before",text,Story Goes On,null,baby,general,text,song_title,lyric_excerpt,"""Story Goes On"" is from Baby.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0042,"Name the musical theatre song from these lyrics:
+
+Your sense of mission, my sense of duty
+Your disposition my inner beauty",text,What Could Be Better,null,baby,general,text,song_title,lyric_excerpt,"""What Could Be Better"" is from Baby.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0043,"Name the musical theatre song from these lyrics:
+
+Oh women of earth, wind and flame
+Born under changin' skies",text,Prologue,null,ballad_lines,general,text,song_title,lyric_excerpt,"""Prologue"" is from Ballad Lines.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0044,"Name the musical theatre song from these lyrics:
+
+I've moved on
+This is the happiest home
+Of all the homes I can remember",text,Secondhand Shame,null,ballad_lines,general,text,song_title,lyric_excerpt,"""Secondhand Shame"" is from Ballad Lines.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0045,"Name the musical theatre song from these lyrics:
+
+Up out of your seat
+Down off of the stand
+Step out to the sweet beat the bugle plays",text,Come Follow The Band,null,barnum,general,text,song_title,lyric_excerpt,"""Come Follow The Band"" is from Barnum.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0046,"Name the musical theatre song from these lyrics:
+
+No quiet browns and grays,
+I'll take my days instead
+And fill them till they overflow
+With rose and cherry red!",text,The Colors Of My Life,null,barnum,general,text,song_title,lyric_excerpt,"""The Colors Of My Life"" is from Barnum.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0047,"Name the musical theatre song from these lyrics:
+
+I have mad, gigantic feelings,
+Red and frantic feelings,
+About most everything",text,I Love Play Rehearsal,null,be_more_chill,general,text,song_title,lyric_excerpt,"""I Love Play Rehearsal"" is from Be More Chill.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0048,"Name the musical theatre song from these lyrics:
+
+But I'd rather fake pee than stand awkwardly
+Or pretend to check a text on my phone",text,Michael in the Bathroom,null,be_more_chill,general,text,song_title,lyric_excerpt,"""Michael in the Bathroom"" is from Be More Chill.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0049,"Name the musical theatre song from these lyrics:
+
+They can sing, they can dance
+After all, Miss, this is France",text,Be Our Guest,null,beauty_and_the_beast,general,text,song_title,lyric_excerpt,"""Be Our Guest"" is from Beauty and the Beast.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0050,"Name the musical theatre song from these lyrics:
+
+Certain as the sun
+Rising in the east",text,Beauty and the Beast,null,beauty_and_the_beast,general,text,song_title,lyric_excerpt,"""Beauty and the Beast"" is from Beauty and the Beast.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0051,"Name the musical theatre song from these lyrics:
+
+It's like that there's a music, playing in your ear
+And I'm listening, and I'm listening, and then I disappear",text,Electricity,null,billy_elliot,general,text,song_title,lyric_excerpt,"""Electricity"" is from Billy Elliot.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0052,"Name the musical theatre song from these lyrics:
+
+What is wrong with dressing up in satin and lace?
+Get some earrings, some mascara, heels and a fan.",text,Expressing Yourself,null,billy_elliot,general,text,song_title,lyric_excerpt,"""Expressing Yourself"" is from Billy Elliot.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0053,"Name the musical theatre song from these lyrics:
+
+Missed your stamping and your shouting
+I have missed telling you off",text,Letter,null,billy_elliot,general,text,song_title,lyric_excerpt,"""Letter"" is from Billy Elliot.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0054,"Name the musical theatre song from these lyrics:
+
+Where we can begin again,
+Feel we can win and then
+Live just like livin' should be.",text,Bright New Day,null,blood_brothers,general,text,song_title,lyric_excerpt,"""Bright New Day"" is from Blood Brothers.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0055,"Name the musical theatre song from these lyrics:
+
+Living on the never never,
+Constant as the changing weather",text,Easy Terms,null,blood_brothers,general,text,song_title,lyric_excerpt,"""Easy Terms"" is from Blood Brothers.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0056,"Name the musical theatre song from these lyrics:
+
+I'd take a page in all the papers
+I'd announce it in the news
+If it was the guy, if I was in his shoes",text,I'm Not Saying a Word,"[""Im Not Saying a Word""]",blood_brothers,general,text,song_title,lyric_excerpt,"""I'm Not Saying a Word"" is from Blood Brothers.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0057,"Name the musical theatre song from these lyrics:
+
+By the time I was twenty-five
+I looked like forty-two
+With seven hungry mouths to feed
+And one more nearly due",text,Marilyn Monroe,null,blood_brothers,general,text,song_title,lyric_excerpt,"""Marilyn Monroe"" is from Blood Brothers.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0058,"Name the musical theatre song from these lyrics:
+
+Say it's just two clowns,
+Who couldn't get their lines right",text,Tell Me It's Not True,"[""Tell Me Its Not True""]",blood_brothers,general,text,song_title,lyric_excerpt,"""Tell Me It's Not True"" is from Blood Brothers.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0059,"Name the musical theatre song from these lyrics:
+
+Put down the knitting, the book and the broom
+It's time for a holiday",text,Cabaret,null,cabaret,general,text,song_title,lyric_excerpt,"""Cabaret"" is from Cabaret.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0060,"Name the musical theatre song from these lyrics:
+
+He will hold me fast
+I'll be home at last",text,Maybe this Time,null,cabaret,general,text,song_title,lyric_excerpt,"""Maybe this Time"" is from Cabaret.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0061,"Name the musical theatre song from these lyrics:
+
+I've seen how you sparkle
+When fall nips the air.
+I know you in autumn
+And I must be there.",text,If Ever I Would Leave You,null,camelot,general,text,song_title,lyric_excerpt,"""If Ever I Would Leave You"" is from Camelot.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0062,"Name the musical theatre song from these lyrics:
+
+Pearls and ruby rings...
+Ah, how can worldly things
+Take the place of honour lost?",text,Glitter And Be Gay,null,candide,general,text,song_title,lyric_excerpt,"""Glitter And Be Gay"" is from Candide.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0063,"Name the musical theatre song from these lyrics:
+
+Words wouldn't come in an easy way
+Round in circles I'd go!",text,If I Loved You,null,carousel,general,text,song_title,lyric_excerpt,"""If I Loved You"" is from Carousel.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0064,"Name the musical theatre song from these lyrics:
+
+March went out like a lion
+A-whippin' up the water in the bay
+Then April cried and stepped aside,
+And along come pretty little May!",text,June Is Bustin' Out All Over,"[""June Is Bustin Out All Over""]",carousel,general,text,song_title,lyric_excerpt,"""June Is Bustin' Out All Over"" is from Carousel.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0065,"Name the musical theatre song from these lyrics:
+
+At the end of the storm
+Is a golden sky",text,You'll Never Walk Alone,"[""Youll Never Walk Alone""]",carousel,general,text,song_title,lyric_excerpt,"""You'll Never Walk Alone"" is from Carousel.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0066,"Name the musical theatre song from these lyrics:
+
+He's the cat we all greet as he walks down the street
+In his coat of fastidious black",text,Bustopher Jones,null,cats,general,text,song_title,lyric_excerpt,"""Bustopher Jones"" is from Cats.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0067,"Name the musical theatre song from these lyrics:
+
+He's broken every human law
+He breaks the law of gravity",text,Macavity The Mystery Cat,null,cats,general,text,song_title,lyric_excerpt,"""Macavity The Mystery Cat"" is from Cats.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0068,"Name the musical theatre song from these lyrics:
+
+Burnt out ends of smoky days
+The stale, cold smell of morning",text,Memory,null,cats,general,text,song_title,lyric_excerpt,"""Memory"" is from Cats.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0069,"Name the musical theatre song from these lyrics:
+
+He can pick any card from a pack
+He is equally cunning with dice",text,Mr. Mistoffelees,"[""Mr Mistoffelees""]",cats,general,text,song_title,lyric_excerpt,"""Mr. Mistoffelees"" is from Cats.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0070,"Name the musical theatre song from these lyrics:
+
+And you ask me why I love her
+Through wars, death and despair",text,Anthem,null,chess,general,text,song_title,lyric_excerpt,"""Anthem"" is from Chess.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0071,"Name the musical theatre song from these lyrics:
+
+Wanting far too much for far too long.
+Looking back I could have played it differently",text,I Know Him So Well,null,chess,general,text,song_title,lyric_excerpt,"""I Know Him So Well"" is from Chess.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0072,"Name the musical theatre song from these lyrics:
+
+Everybody's playing the game
+But nobody's rules are the same",text,Nobody's Side,"[""Nobodys Side""]",chess,general,text,song_title,lyric_excerpt,"""Nobody's Side"" is from Chess.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0073,"Name the musical theatre song from these lyrics:
+
+You'll find a god in every golden cloister
+And if you're lucky then the god's a she
+I can feel an angel sliding up to me",text,One Night in Bangkok,null,chess,general,text,song_title,lyric_excerpt,"""One Night in Bangkok"" is from Chess.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0074,"Name the musical theatre song from these lyrics:
+
+It's just a noisy hall
+Where there's a nightly brawl",text,All That Jazz,null,chicago,general,text,song_title,lyric_excerpt,"""All That Jazz"" is from Chicago.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0075,"Name the musical theatre song from these lyrics:
+
+Pop! Six! Squish! Uh uh! Cicero, Lipschitz!",text,Cell Block Tango,null,chicago,general,text,song_title,lyric_excerpt,"""Cell Block Tango"" is from Chicago.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0076,"Name the musical theatre song from these lyrics:
+
+If you'd have been there, if you'd have heard it
+I betcha you would have done the same",text,Cell Block Tango,null,chicago,general,text,song_title,lyric_excerpt,"""Cell Block Tango"" is from Chicago.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0077,"Name the musical theatre song from these lyrics:
+
+Whatever happened to fair dealing?
+And pure ethics?
+And nice manners?",text,Class,null,chicago,general,text,song_title,lyric_excerpt,"""Class"" is from Chicago.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0078,"Name the musical theatre song from these lyrics:
+
+If someone in the movie show
+Yelled ""Fire in the second row",text,Mr. Cellophane,"[""Mr Cellophane""]",chicago,general,text,song_title,lyric_excerpt,"""Mr. Cellophane"" is from Chicago.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0079,"Name the musical theatre song from these lyrics:
+
+What if your hinges all are rusting?
+What if, in fact, you're just disgusting ?",text,Razzle Dazzle,null,chicago,general,text,song_title,lyric_excerpt,"""Razzle Dazzle"" is from Chicago.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0080,"Name the musical theatre song from these lyrics:
+
+Though my choo-choo jumped my track
+I'd give my life to bring him back",text,We Both Reached for the Gun,null,chicago,general,text,song_title,lyric_excerpt,"""We Both Reached for the Gun"" is from Chicago.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0081,"Name the musical theatre song from these lyrics:
+
+They say that life is tit for tat
+And that's the way I live",text,When You're Good to Mama,"[""When Youre Good to Mama""]",chicago,general,text,song_title,lyric_excerpt,"""When You're Good to Mama"" is from Chicago.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0082,"Name the musical theatre song from these lyrics:
+
+The bitch, the vixen, the queen bee, and the shrew
+What men have done to those fine words, we never can undo",text,"The Bear, the Tiger, the Hamster and the Mole","[""The Bear the Tiger the Hamster and the Mole""]",closer_than_ever,general,text,song_title,lyric_excerpt,"""The Bear, the Tiger, the Hamster and the Mole"" is from Closer Than Ever.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0083,"Name the musical theatre song from these lyrics:
+
+So now my son's half way through college
+I pay tuition like a fine",text,Life Story,null,closer_than_ever,general,text,song_title,lyric_excerpt,"""Life Story"" is from Closer Than Ever.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0084,"Name the musical theatre song from these lyrics:
+
+At work I'm hardly seen
+I come and go
+But I know something that people don't know",text,Miss Byrd,null,closer_than_ever,general,text,song_title,lyric_excerpt,"""Miss Byrd"" is from Closer Than Ever.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0085,"Name the musical theatre song from these lyrics:
+
+Welcome to the fog, welcome to the trees,
+to the ocean and the sky, and whatever's in between.",text,Welcome to the Rock,null,come_from_away,general,text,song_title,lyric_excerpt,"""Welcome to the Rock"" is from Come From Away.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0086,"Name the musical theatre song from these lyrics:
+
+It's a city of strangers,
+Some come to work, some to play.",text,Another Hundred People,null,company,general,text,song_title,lyric_excerpt,"""Another Hundred People"" is from Company.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0087,"Name the musical theatre song from these lyrics:
+
+Did you get my message? 'Cause I looked in vain.
+Can we see each other Tuesday if it doesn't rain?",text,Another Hundred People,null,company,general,text,song_title,lyric_excerpt,"""Another Hundred People"" is from Company.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0088,"Name the musical theatre song from these lyrics:
+
+Someone you have to let in,
+Someone whose feelings you spare",text,Being Alive,null,company,general,text,song_title,lyric_excerpt,"""Being Alive"" is from Company.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0089,"Name the musical theatre song from these lyrics:
+
+I'll always be there,
+As frightened as you,
+To help us survive",text,Being Alive,null,company,general,text,song_title,lyric_excerpt,"""Being Alive"" is from Company.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0090,"Name the musical theatre song from these lyrics:
+
+But I thank you all
+For the gifts and the flowers",text,Getting Married Today,null,company,general,text,song_title,lyric_excerpt,"""Getting Married Today"" is from Company.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0091,"Name the musical theatre song from these lyrics:
+
+The heart sinks down and feels dead
+This dreadful day.",text,Getting Married Today,null,company,general,text,song_title,lyric_excerpt,"""Getting Married Today"" is from Company.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0092,"Name the musical theatre song from these lyrics:
+
+Does anyone still wear a hat?",text,Ladies Who Lunch,null,company,general,text,song_title,lyric_excerpt,"""Ladies Who Lunch"" is from Company.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0093,"Name the musical theatre song from these lyrics:
+
+Look into their eyes,
+And you'll see what they know:
+Everybody dies.",text,Ladies Who Lunch,null,company,general,text,song_title,lyric_excerpt,"""Ladies Who Lunch"" is from Company.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0094,"Name the musical theatre song from these lyrics:
+
+Keep a tender distance
+So we'll both be free",text,Marry Me a Little,null,company,general,text,song_title,lyric_excerpt,"""Marry Me a Little"" is from Company.",waxing_lyrical_text,Waxing Lyrical (Text)
+WaxingT-0095,"Name the musical theatre song from these lyrics:
+
+Everything's different, nothing's changed.
+Only maybe slightly rearranged.",text,Sorry-Grateful,"[""SorryGrateful""]",company,general,text,song_title,lyric_excerpt,"""Sorry-Grateful"" is from Company.",waxing_lyrical_text,Waxing Lyrical (Text)

@@ -1,0 +1,76 @@
+item_id,answer_text,item_type,person_roles,difficulty,primary_show_key,notes,is_active,pack_names
+,Wicked,show,,easy,wicked,,true,Show Titles
+,Hamilton,show,,easy,hamilton,,true,Show Titles
+,Les Misérables,show,,easy,les_miserables,,true,Show Titles
+,The Phantom of the Opera,show,,easy,the_phantom_of_the_opera,,true,Show Titles
+,Rent,show,,easy,rent,,true,Show Titles
+,Chicago,show,,easy,chicago,,true,Show Titles
+,Cabaret,show,,easy,cabaret,,true,Show Titles
+,Hairspray,show,,easy,hairspray,,true,Show Titles
+,The Lion King,show,,easy,the_lion_king,,true,Show Titles
+,Dear Evan Hansen,show,,easy,dear_evan_hansen,,true,Show Titles
+,Hadestown,show,,easy,hadestown,,true,Show Titles
+,Six,show,,easy,six,,true,Show Titles
+,Waitress,show,,easy,waitress,,true,Show Titles
+,Heathers,show,,easy,heathers,,true,Show Titles
+,Be More Chill,show,,easy,be_more_chill,,true,Show Titles
+,Mamma Mia!,show,,easy,mamma_mia,,true,Show Titles
+,Legally Blonde,show,,easy,legally_blonde,,true,Show Titles
+,Matilda,show,,easy,matilda,,true,Show Titles
+,Newsies,show,,easy,newsies,,true,Show Titles
+,Into the Woods,show,,easy,into_the_woods,,true,Show Titles
+,Sweeney Todd,show,,easy,sweeney_todd,,true,Show Titles
+,Company,show,,easy,company,,true,Show Titles
+,Fiddler on the Roof,show,,easy,fiddler_on_the_roof,,true,Show Titles
+,Guys and Dolls,show,,easy,guys_and_dolls,,true,Show Titles
+,West Side Story,show,,easy,west_side_story,,true,Show Titles
+,The Sound of Music,show,,easy,the_sound_of_music,,true,Show Titles
+,Oliver!,show,,easy,oliver,,true,Show Titles
+,Miss Saigon,show,,easy,miss_saigon,,true,Show Titles
+,Blood Brothers,show,,easy,blood_brothers,,true,Show Titles
+,Billy Elliot,show,,easy,billy_elliot,,true,Show Titles
+,Come From Away,show,,easy,come_from_away,,true,Show Titles
+,Mean Girls,show,,easy,mean_girls,,true,Show Titles
+,In the Heights,show,,easy,in_the_heights,,true,Show Titles
+,Something Rotten!,show,,medium,something_rotten,,true,Show Titles
+,The Book of Mormon,show,,easy,the_book_of_mormon,,true,Show Titles
+,Little Shop of Horrors,show,,easy,little_shop_of_horrors,,true,Show Titles
+,Mary Poppins,show,,easy,mary_poppins,,true,Show Titles
+,Frozen,show,,easy,frozen,,true,Show Titles
+,Beauty and the Beast,show,,easy,beauty_and_the_beast,,true,Show Titles
+,Aladdin,show,,easy,aladdin,,true,Show Titles
+,Anastasia,show,,medium,anastasia,,true,Show Titles
+,Kinky Boots,show,,medium,kinky_boots,,true,Show Titles
+,Dreamgirls,show,,medium,dreamgirls,,true,Show Titles
+,Evita,show,,medium,evita,,true,Show Titles
+,Gypsy,show,,medium,gypsy,,true,Show Titles
+,Funny Girl,show,,medium,funny_girl,,true,Show Titles
+,"Hello, Dolly!",show,,medium,hello_dolly,,true,Show Titles
+,Carousel,show,,medium,carousel,,true,Show Titles
+,Pippin,show,,medium,pippin,,true,Show Titles
+,A Chorus Line,show,,medium,a_chorus_line,,true,Show Titles
+,Sunday in the Park with George,show,,medium,sunday_in_the_park_with_george,,true,Show Titles
+,Merrily We Roll Along,show,,medium,merrily_we_roll_along,,true,Show Titles
+,Assassins,show,,medium,assassins,,true,Show Titles
+,Pacific Overtures,show,,hard,pacific_overtures,,true,Show Titles
+,Passion,show,,hard,passion,,true,Show Titles
+,Songs for a New World,show,,medium,songs_for_a_new_world,,true,Show Titles
+,The Last Five Years,show,,medium,the_last_five_years,,true,Show Titles
+,Falsettos,show,,medium,falsettos,,true,Show Titles
+,Parade,show,,medium,parade,,true,Show Titles
+,Next to Normal,show,,medium,next_to_normal,,true,Show Titles
+,The Producers,show,,medium,the_producers,,true,Show Titles
+,Shrek,show,,easy,shrek,,true,Show Titles
+,Moulin Rouge!,show,,easy,moulin_rouge,,true,Show Titles
+,Operation Mincemeat,show,,medium,operation_mincemeat,,true,Show Titles
+,The Great Gatsby,show,,medium,the_great_gatsby,,true,Show Titles
+,The Curious Case of Benjamin Button,show,,hard,the_curious_case_of_benjamin_button,,true,Show Titles
+,Standing at the Sky's Edge,show,,hard,standing_at_the_skys_edge,,true,Show Titles
+,Why Am I So Single?,show,,hard,why_am_i_so_single,,true,Show Titles
+,Two Strangers (Carry a Cake Across New York),show,,hard,two_strangers_carry_a_cake_across_new_york,,true,Show Titles
+,Kathy and Stella Solve a Murder!,show,,hard,kathy_and_stella_solve_a_murder,,true,Show Titles
+,Groundhog Day,show,,medium,groundhog_day,,true,Show Titles
+,Sister Act,show,,easy,sister_act,,true,Show Titles
+,Jersey Boys,show,,easy,jersey_boys,,true,Show Titles
+,Jesus Christ Superstar,show,,easy,jesus_christ_superstar,,true,Show Titles
+,Joseph and the Amazing Technicolor Dreamcoat,show,,easy,joseph_and_the_amazing_technicolor_dreamcoat,,true,Show Titles

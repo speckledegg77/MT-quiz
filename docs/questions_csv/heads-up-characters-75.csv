@@ -1,0 +1,76 @@
+item_id,answer_text,item_type,person_roles,difficulty,primary_show_key,notes,is_active,pack_names
+,Elphaba,character,,easy,wicked,,true,Characters
+,Glinda,character,,easy,wicked,,true,Characters
+,Fiyero,character,,medium,wicked,,true,Characters
+,Jean Valjean,character,,easy,les_miserables,,true,Characters
+,Javert,character,,easy,les_miserables,,true,Characters
+,Fantine,character,,medium,les_miserables,,true,Characters
+,Eponine,character,,easy,les_miserables,,true,Characters
+,The Phantom,character,,easy,the_phantom_of_the_opera,,true,Characters
+,Christine Daae,character,,easy,the_phantom_of_the_opera,,true,Characters
+,Raoul,character,,medium,the_phantom_of_the_opera,,true,Characters
+,Effie White,character,,easy,dreamgirls,,true,Characters
+,Veronica Sawyer,character,,easy,heathers,,true,Characters
+,JD,character,,easy,heathers,,true,Characters
+,Lydia Deetz,character,,easy,beetlejuice,,true,Characters
+,Beetlejuice,character,,easy,beetlejuice,,true,Characters
+,Evan Hansen,character,,easy,dear_evan_hansen,,true,Characters
+,Connor Murphy,character,,medium,dear_evan_hansen,,true,Characters
+,Orpheus,character,,easy,hadestown,,true,Characters
+,Eurydice,character,,easy,hadestown,,true,Characters
+,Hades,character,,medium,hadestown,,true,Characters
+,Anne Boleyn,character,,easy,six,,true,Characters
+,Catherine of Aragon,character,,easy,six,,true,Characters
+,Jane Seymour,character,,easy,six,,true,Characters
+,Jenna Hunterson,character,,easy,waitress,,true,Characters
+,Dr Pomatter,character,,medium,waitress,,true,Characters
+,Seymour Krelborn,character,,easy,little_shop_of_horrors,,true,Characters
+,Audrey,character,,easy,little_shop_of_horrors,,true,Characters
+,Audrey II,character,,easy,little_shop_of_horrors,,true,Characters
+,Tracy Turnblad,character,,easy,hairspray,,true,Characters
+,Edna Turnblad,character,,easy,hairspray,,true,Characters
+,Link Larkin,character,,medium,hairspray,,true,Characters
+,Roxie Hart,character,,easy,chicago,,true,Characters
+,Velma Kelly,character,,easy,chicago,,true,Characters
+,Billy Flynn,character,,easy,chicago,,true,Characters
+,Sally Bowles,character,,easy,cabaret,,true,Characters
+,Emcee,character,,medium,cabaret,,true,Characters
+,Fanny Brice,character,,easy,funny_girl,,true,Characters
+,Dolly Gallagher Levi,character,,easy,hello_dolly,,true,Characters
+,Mama Rose,character,,easy,gypsy,,true,Characters
+,Eva Peron,character,,easy,evita,,true,Characters
+,Che,character,,medium,evita,,true,Characters
+,Mark Cohen,character,,medium,rent,,true,Characters
+,Mimi Marquez,character,,medium,rent,,true,Characters
+,Angel,character,,easy,rent,,true,Characters
+,Alexander Hamilton,character,,easy,hamilton,,true,Characters
+,Aaron Burr,character,,easy,hamilton,,true,Characters
+,Eliza Hamilton,character,,easy,hamilton,,true,Characters
+,King George,character,,easy,hamilton,,true,Characters
+,Maria,character,,easy,west_side_story,,true,Characters
+,Tony,character,,easy,west_side_story,,true,Characters
+,Anita,character,,easy,west_side_story,,true,Characters
+,Tevye,character,,easy,fiddler_on_the_roof,,true,Characters
+,Tzeitel,character,,hard,fiddler_on_the_roof,,true,Characters
+,Sweeney Todd,character,,easy,sweeney_todd,,true,Characters
+,Mrs Lovett,character,,easy,sweeney_todd,,true,Characters
+,Johanna,character,,medium,sweeney_todd,,true,Characters
+,Bobby,character,,easy,company,,true,Characters
+,Joanne,character,,medium,company,,true,Characters
+,Cinderella,character,,easy,into_the_woods,,true,Characters
+,The Baker,character,,medium,into_the_woods,,true,Characters
+,The Witch,character,,easy,into_the_woods,,true,Characters
+,Annie,character,,easy,annie,,true,Characters
+,Daddy Warbucks,character,,medium,annie,,true,Characters
+,Miss Hannigan,character,,easy,annie,,true,Characters
+,Matilda Wormwood,character,,easy,matilda,,true,Characters
+,Miss Trunchbull,character,,easy,matilda,,true,Characters
+,Miss Honey,character,,easy,matilda,,true,Characters
+,Jack Kelly,character,,easy,newsies,,true,Characters
+,Usnavi,character,,easy,in_the_heights,,true,Characters
+,Nina Rosario,character,,hard,in_the_heights,,true,Characters
+,Diana Goodman,character,,hard,next_to_normal,,true,Characters
+,Elder Price,character,,easy,the_book_of_mormon,,true,Characters
+,Elder Cunningham,character,,easy,the_book_of_mormon,,true,Characters
+,Elle Woods,character,,easy,legally_blonde,,true,Characters
+,Paulette,character,,medium,legally_blonde,,true,Characters

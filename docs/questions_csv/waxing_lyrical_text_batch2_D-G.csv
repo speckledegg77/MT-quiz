@@ -1,0 +1,328 @@
+"pack_id","pack_name","pack_round_type","pack_sort_order","question_id","question_round_type","answer_type","question_text","option_a","option_b","option_c","option_d","answer_index","answer_text","accepted_answers","explanation","audio_path","image_path","media_type","prompt_target","clue_source","primary_show_key","media_duration_ms","audio_clip_type"
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0096","general","text","Name the musical theatre song from these lyrics:
+
+Another stellar conversation for the scrapbook
+Another stumble as I'm reaching for the right thing to say","","","","","","Anybody Have a Map","","""Anybody Have a Map"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0097","general","text","Name the musical theatre song from these lyrics:
+
+If you never get around to doing some remarkable thing
+That doesn't mean that you're not worth remembering","","","","","","Disappear","","""Disappear"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0098","general","text","Name the musical theatre song from these lyrics:
+
+There's nothing that we can't discuss
+Like girls we wish would notice us but never do","","","","","","For Forever","","""For Forever"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0099","general","text","Name the musical theatre song from these lyrics:
+
+One foot after the other
+One branch then to another","","","","","","For Forever","","""For Forever"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0100","general","text","Name the musical theatre song from these lyrics:
+
+So you found a place where the grass is greener
+And you jumped the fence to the other side","","","","","","Good For You","","""Good For You"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0101","general","text","Name the musical theatre song from these lyrics:
+
+But he kept it all inside his head
+What he saw he left unsaid","","","","","","If I Could Tell Her","","""If I Could Tell Her"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0102","general","text","Name the musical theatre song from these lyrics:
+
+But we're a million worlds apart
+And I don't know how I would even start","","","","","","If I Could Tell Her","","""If I Could Tell Her"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0103","general","text","Name the musical theatre song from these lyrics:
+
+I don't need you to sell me on reasons to want you
+I don't need you to search for the proof that I should","","","","","","Only Us","","""Only Us"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0104","general","text","Name the musical theatre song from these lyrics:
+
+Why should I play the grieving girl and
+Lie saying that I miss you","","","","","","Requiem","","""Requiem"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0105","general","text","Name the musical theatre song from these lyrics:
+
+I gave you the world, you threw it away,
+leaving these broken pieces behind you","","","","","","Requiem","","""Requiem"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0106","general","text","Name the musical theatre song from these lyrics:
+
+I should tell you that I think of you each night
+I rub my nipples and start moaning with delight","","","","","","Sincerely, Me","Sincerely Me","""Sincerely, Me"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0107","general","text","Name the musical theatre song from these lyrics:
+
+'Cause all that it takes is a little reinvention
+It's easy to change if you give it your attention","","","","","","Sincerely, Me","Sincerely Me","""Sincerely, Me"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0108","general","text","Name the musical theatre song from these lyrics:
+
+That night I tucked you into bed
+I will never forget how you sat up and said
+""Is there another truck coming to our driveway
+A truck that will take mommy away?""","","","","","","So Big/So Small","So BigSo Small|So Big So Small","""So Big/So Small"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0109","general","text","Name the musical theatre song from these lyrics:
+
+When you're falling in a forest and there's nobody around
+Do you ever really crash, or even make a sound","","","","","","Waving Through a Window","","""Waving Through a Window"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0110","general","text","Name the musical theatre song from these lyrics:
+
+I've learned to slam on the brake
+Before I even turn the key","","","","","","Waving Through a Window","","""Waving Through a Window"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0111","general","text","Name the musical theatre song from these lyrics:
+
+No, I'd rather pretend I'm something better than
+These broken parts
+Pretend I'm something other than this mess that I am","","","","","","Words Fail","","""Words Fail"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0112","general","text","Name the musical theatre song from these lyrics:
+
+Have you ever felt like nobody was there?
+Have you ever felt forgotten in the middle of nowhere?","","","","","","You Will Be Found","","""You Will Be Found"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0113","general","text","Name the musical theatre song from these lyrics:
+
+Even when the dark comes crashin' through
+When you need a friend to carry you","","","","","","You Will Be Found","","""You Will Be Found"" is from Dear Evan Hansen.","","","text","song_title","lyric_excerpt","dear_evan_hansen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0114","general","text","Name the musical theatre song from these lyrics:
+
+Some people cry when they see their old pals,
+Me, I'm a sucker for chimes and canals.","","","","","","Someone Woke Up","","""Someone Woke Up"" is from Do I Hear a Waltz.","","","text","song_title","lyric_excerpt","","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0115","general","text","Name the musical theatre song from these lyrics:
+
+I was told:
+""Just be faithful and never scold,""
+Sounded easy, so I was sold.
+I've been miserable since.","","","","","","We're Gonna Be All Right","Were Gonna Be All Right","""We're Gonna Be All Right"" is from Do I Hear a Waltz.","","","text","song_title","lyric_excerpt","","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0116","general","text","Name the musical theatre song from these lyrics:
+
+I'm staying, I'm staying
+And you... and you... and you...
+You're gonna love me","","","","","","And I Am Telling You I'm Not Going","And I Am Telling You Im Not Going","""And I Am Telling You I'm Not Going"" is from Dreamgirls.","","","text","song_title","lyric_excerpt","dreamgirls","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0117","general","text","Name the musical theatre song from these lyrics:
+
+Never met a man
+Quite like you
+Doing all he can
+Making my dreams come true","","","","","","Love You I Do","","""Love You I Do"" is from Dreamgirls.","","","text","song_title","lyric_excerpt","dreamgirls","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0118","general","text","Name the musical theatre song from these lyrics:
+
+You want all my love and my devotion
+You want my love and soul, right on the line","","","","","","One Night Only","","""One Night Only"" is from Dreamgirls.","","","text","song_title","lyric_excerpt","dreamgirls","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0119","general","text","Name the musical theatre song from these lyrics:
+
+I won't recall the names and places of each sad occasion
+But that's no consolation here and now.","","","","","","Another Suitcase in Another Hall","","""Another Suitcase in Another Hall"" is from Evita.","","","text","song_title","lyric_excerpt","evita","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0120","general","text","Name the musical theatre song from these lyrics:
+
+Let me dance to your beat, make it loud
+Let it hurt, run it through me.","","","","","","Buenos Aires","","""Buenos Aires"" is from Evita.","","","text","song_title","lyric_excerpt","evita","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0121","general","text","Name the musical theatre song from these lyrics:
+
+It won't be easy, you'll think it strange","","","","","","Don't Cry for Me Argentina","Dont Cry for Me Argentina","""Don't Cry for Me Argentina"" is from Evita.","","","text","song_title","lyric_excerpt","evita","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0122","general","text","Name the musical theatre song from these lyrics:
+
+I came from the people, they need to adore me
+So Christian Dior me from my head to my toes","","","","","","Rainbow High","","""Rainbow High"" is from Evita.","","","text","song_title","lyric_excerpt","evita","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0123","general","text","Name the musical theatre song from these lyrics:
+
+All day long I'd biddy biddy bum.","","","","","","If I Were a Rich Man","","""If I Were a Rich Man"" is from Fiddler on the Roof.","","","text","song_title","lyric_excerpt","fiddler_on_the_roof","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0124","general","text","Name the musical theatre song from these lyrics:
+
+Swiftly fly the years,
+One season following another,
+Laiden with happiness and tears.","","","","","","Sunrise, Sunset","Sunrise Sunset","""Sunrise, Sunset"" is from Fiddler on the Roof.","","","text","song_title","lyric_excerpt","fiddler_on_the_roof","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0125","general","text","Name the musical theatre song from these lyrics:
+
+At three, I started Hebrew school. At ten, I learned a trade.
+I hear they've picked a bride for me. I hope she's pretty.","","","","","","Tradition","","""Tradition"" is from Fiddler on the Roof.","","","text","song_title","lyric_excerpt","fiddler_on_the_roof","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0126","general","text","Name the musical theatre song from these lyrics:
+
+Find me a find, catch me a catch.","","","","","","Matchmaker, Matchmaker","Matchmaker Matchmaker","""Matchmaker, Matchmaker"" is from Fiddler on the Roof.","","","text","song_title","lyric_excerpt","fiddler_on_the_roof","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0127","general","text","Name the musical theatre song from these lyrics:
+
+Working for a nice man,
+Like a Ziefeld or a Weismann","","","","","","Broadway Baby","","""Broadway Baby"" is from Follies.","","","text","song_title","lyric_excerpt","follies","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0128","general","text","Name the musical theatre song from these lyrics:
+
+Hey, Mr. Producer,
+I'm talking to you, sir;","","","","","","Broadway Baby","","""Broadway Baby"" is from Follies.","","","text","song_title","lyric_excerpt","follies","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0129","general","text","Name the musical theatre song from these lyrics:
+
+Leave the quips with a sting, jokes with a sneer,
+Passionless lovemaking once a year?","","","","","","Could I Leave You","","""Could I Leave You"" is from Follies.","","","text","song_title","lyric_excerpt","follies","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0130","general","text","Name the musical theatre song from these lyrics:
+
+Plush velvet sometimes
+Sometimes just pretzels and beer","","","","","","I'm Still Here","Im Still Here","""I'm Still Here"" is from Follies.","","","text","song_title","lyric_excerpt","follies","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0131","general","text","Name the musical theatre song from these lyrics:
+
+Reefers and vino,
+Rest cures, religion and pills","","","","","","I'm Still Here","Im Still Here","""I'm Still Here"" is from Follies.","","","text","song_title","lyric_excerpt","follies","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0132","general","text","Name the musical theatre song from these lyrics:
+
+So life is ducky
+And time goes flying
+And I'm so lucky
+I feel like crying","","","","","","In Buddy's Eyes","In Buddys Eyes","""In Buddy's Eyes"" is from Follies.","","","text","song_title","lyric_excerpt","follies","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0133","general","text","Name the musical theatre song from these lyrics:
+
+Sometimes I stand in the middle of the floor
+Not going left, not going right.","","","","","","Losing My Mind","","""Losing My Mind"" is from Follies.","","","text","song_title","lyric_excerpt","follies","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0134","general","text","Name the musical theatre song from these lyrics:
+
+You said you loved me.
+Or where you just being kind?","","","","","","Losing My Mind","","""Losing My Mind"" is from Follies.","","","text","song_title","lyric_excerpt","follies","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0135","general","text","Name the musical theatre song from these lyrics:
+
+I think some company is overdue,
+I started talking to, the pictures on the walls","","","","","","Do You Want to Build a Snowman","","""Do You Want to Build a Snowman"" is from Frozen.","","","text","song_title","lyric_excerpt","frozen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0136","general","text","Name the musical theatre song from these lyrics:
+
+Come on let's go and play!
+I never see you anymore, come out the door,
+It's like you've gone away","","","","","","Do You Want to Build a Snowman","","""Do You Want to Build a Snowman"" is from Frozen.","","","text","song_title","lyric_excerpt","frozen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0137","general","text","Name the musical theatre song from these lyrics:
+
+The window is open, so's that door
+I didn't know they did that anymore","","","","","","For the First Time in Forever","","""For the First Time in Forever"" is from Frozen.","","","text","song_title","lyric_excerpt","frozen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0138","general","text","Name the musical theatre song from these lyrics:
+
+I know it all ends tomorrow,
+So it has to be today","","","","","","For the First Time in Forever","","""For the First Time in Forever"" is from Frozen.","","","text","song_title","lyric_excerpt","frozen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0139","general","text","Name the musical theatre song from these lyrics:
+
+It's funny how some distance makes everything seem small","","","","","","Let It Go","","""Let It Go"" is from Frozen.","","","text","song_title","lyric_excerpt","frozen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0140","general","text","Name the musical theatre song from these lyrics:
+
+And here I stand
+And here I'll stay","","","","","","Let It Go","","""Let It Go"" is from Frozen.","","","text","song_title","lyric_excerpt","frozen","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0141","general","text","Name the musical theatre song from these lyrics:
+
+I'll march my band out,
+I'll beat my drum","","","","","","Don't Rain On My Parade","Dont Rain On My Parade","""Don't Rain On My Parade"" is from Funny Girl.","","","text","song_title","lyric_excerpt","funny_girl","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0142","general","text","Name the musical theatre song from these lyrics:
+
+I'm gonna live and live now,
+Get what I want--I know how","","","","","","Don't Rain On My Parade","Dont Rain On My Parade","""Don't Rain On My Parade"" is from Funny Girl.","","","text","song_title","lyric_excerpt","funny_girl","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0143","general","text","Name the musical theatre song from these lyrics:
+
+Who is the pip with pizazz?
+Who is all ginger and jazz?","","","","","","I'm The Greatest Star","Im The Greatest Star","""I'm The Greatest Star"" is from Funny Girl.","","","text","song_title","lyric_excerpt","funny_girl","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0144","general","text","Name the musical theatre song from these lyrics:
+
+I've got thirty-six expressions;
+Sweet as pie to tough as leather","","","","","","I'm The Greatest Star","Im The Greatest Star","""I'm The Greatest Star"" is from Funny Girl.","","","text","song_title","lyric_excerpt","funny_girl","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0145","general","text","Name the musical theatre song from these lyrics:
+
+A feeling deep in your soul
+Says you were half, now you're whole.","","","","","","People","","""People"" is from Funny Girl.","","","text","song_title","lyric_excerpt","funny_girl","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0146","general","text","Name the musical theatre song from these lyrics:
+
+Acting more like children
+Than children","","","","","","People","","""People"" is from Funny Girl.","","","text","song_title","lyric_excerpt","funny_girl","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0147","general","text","Name the musical theatre song from these lyrics:
+
+We'll get some overhead lifters and four-barrel quads, oh yeah","","","","","","Greased Lightnin'","Greased Lightnin","""Greased Lightnin'"" is from Grease.","","","text","song_title","lyric_excerpt","","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0148","general","text","Name the musical theatre song from these lyrics:
+
+Elvis, Elvis, let me be
+Keep that pelvis far from me","","","","","","Look at Me, I'm Sandra Dee","Look at Me Im Sandra Dee","""Look at Me, I'm Sandra Dee"" is from Grease.","","","text","song_title","lyric_excerpt","","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0149","general","text","Name the musical theatre song from these lyrics:
+
+Keep your filthy paws off my silky drawers","","","","","","Look at Me, I'm Sandra Dee","Look at Me Im Sandra Dee","""Look at Me, I'm Sandra Dee"" is from Grease.","","","text","song_title","lyric_excerpt","","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0150","general","text","Name the musical theatre song from these lyrics:
+
+Stranded at the drive in, branded a fool
+What will they say, Monday at school?","","","","","","Sandy","","""Sandy"" is from Grease.","","","text","song_title","lyric_excerpt","","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0151","general","text","Name the musical theatre song from these lyrics:
+
+Took her bowling in the arcade
+We went strolling, drank lemonade","","","","","","Summer Nights","","""Summer Nights"" is from Grease.","","","text","song_title","lyric_excerpt","","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0152","general","text","Name the musical theatre song from these lyrics:
+
+I could flirt with all the guys
+Smile at them and bat my eyes","","","","","","There Are Worse Things I Could Do","","""There Are Worse Things I Could Do"" is from Grease.","","","text","song_title","lyric_excerpt","","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0153","general","text","Name the musical theatre song from these lyrics:
+
+I don't steal and I don't lie
+But I can feel and I can cry
+A fact I'll bet you never knew","","","","","","There Are Worse Things I Could Do","","""There Are Worse Things I Could Do"" is from Grease.","","","text","song_title","lyric_excerpt","","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0154","general","text","Name the musical theatre song from these lyrics:
+
+Chronic organic symptoms
+Toxic or hypertense
+Involving the eye, the ear, the nose, and throat.","","","","","","Adelaide's Lament","Adelaides Lament","""Adelaide's Lament"" is from Guys and Dolls.","","","text","song_title","lyric_excerpt","guys_and_dolls","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0155","general","text","Name the musical theatre song from these lyrics:
+
+When they get on that train to Niagara
+And she can hear church bells chime","","","","","","Adelaide's Lament","Adelaides Lament","""Adelaide's Lament"" is from Guys and Dolls.","","","text","song_title","lyric_excerpt","guys_and_dolls","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0156","general","text","Name the musical theatre song from these lyrics:
+
+How I care, how I care, how I care
+And I'll stop. And I'll stare.","","","","","","I'll Know","Ill Know","""I'll Know"" is from Guys and Dolls.","","","text","song_title","lyric_excerpt","guys_and_dolls","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0157","general","text","Name the musical theatre song from these lyrics:
+
+Yes, I knew my moral would crack
+From the wonderful way that you looked!
+Boy, if I were a duck I'd quack!
+Or if I were a goose I'd be cooked!","","","","","","If I Were a Bell","","""If I Were a Bell"" is from Guys and Dolls.","","","text","song_title","lyric_excerpt","guys_and_dolls","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0158","general","text","Name the musical theatre song from these lyrics:
+
+A lady doesn't wander all over the room
+And blow on some other guy's dice.","","","","","","Luck Be a Lady","","""Luck Be a Lady"" is from Guys and Dolls.","","","text","song_title","lyric_excerpt","guys_and_dolls","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0159","general","text","Name the musical theatre song from these lyrics:
+
+I dreamed last night I got on the boat to heaven
+And by some chance I had brought my dice along","","","","","","Sit Down, You're Rockin' the Boat","Sit Down Youre Rockin the Boat","""Sit Down, You're Rockin' the Boat"" is from Guys and Dolls.","","","text","song_title","lyric_excerpt","guys_and_dolls","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0160","general","text","Name the musical theatre song from these lyrics:
+
+And the devil will drag you under
+By the sharp lapel of your checkered coat","","","","","","Sit Down, You're Rockin' the Boat","Sit Down Youre Rockin the Boat","""Sit Down, You're Rockin' the Boat"" is from Guys and Dolls.","","","text","song_title","lyric_excerpt","guys_and_dolls","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0161","general","text","Name the musical theatre song from these lyrics:
+
+I had a dream, a dream about you, baby.
+It's gonna come true, baby.","","","","","","Everything's Coming Up Roses","Everythings Coming Up Roses","""Everything's Coming Up Roses"" is from Gypsy.","","","text","song_title","lyric_excerpt","gypsy","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0162","general","text","Name the musical theatre song from these lyrics:
+
+Now's your inning. Stand the world on it's ear!
+Set it spinning! That'll be just the beginning!","","","","","","Everything's Coming Up Roses","Everythings Coming Up Roses","""Everything's Coming Up Roses"" is from Gypsy.","","","text","song_title","lyric_excerpt","gypsy","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0163","general","text","Name the musical theatre song from these lyrics:
+
+Just Momma, three ducks, five canaries,
+A mouse, two monkeys, one father, six turtles
+And me...","","","","","","If Momma Was Married","","""If Momma Was Married"" is from Gypsy.","","","text","song_title","lyric_excerpt","gypsy","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0164","general","text","Name the musical theatre song from these lyrics:
+
+We're not keeping score
+What's one more or less","","","","","","If Momma Was Married","","""If Momma Was Married"" is from Gypsy.","","","text","song_title","lyric_excerpt","gypsy","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0165","general","text","Name the musical theatre song from these lyrics:
+
+All your life and what does it get ya?
+Thanks a lot and out with the garbage,","","","","","","Rose's Turn","Roses Turn","""Rose's Turn"" is from Gypsy.","","","text","song_title","lyric_excerpt","gypsy","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0166","general","text","Name the musical theatre song from these lyrics:
+
+Why did I do it?
+What did it get me?
+Scrapbooks full of me in the background.","","","","","","Rose's Turn","Roses Turn","""Rose's Turn"" is from Gypsy.","","","text","song_title","lyric_excerpt","gypsy","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0167","general","text","Name the musical theatre song from these lyrics:
+
+Here she is, boys!
+Here she is, world!","","","","","","Rose's Turn","Roses Turn","""Rose's Turn"" is from Gypsy.","","","text","song_title","lyric_excerpt","gypsy","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0168","general","text","Name the musical theatre song from these lyrics:
+
+Goodbye to blueberry pie.
+Good riddance to all the socials I had to go to,
+all the lodges I had to play","","","","","","Some People","","""Some People"" is from Gypsy.","","","text","song_title","lyric_excerpt","gypsy","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0169","general","text","Name the musical theatre song from these lyrics:
+
+Anybody that stays home is dead
+If I die it won't be from sitting
+It will be from fighting to get up and get out!","","","","","","Some People","","""Some People"" is from Gypsy.","","","text","song_title","lyric_excerpt","gypsy","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0170","general","text","Name the musical theatre song from these lyrics:
+
+Get yourselves some new orchestrations,
+new routines and red velvet curtains.","","","","","","Some People","","""Some People"" is from Gypsy.","","","text","song_title","lyric_excerpt","gypsy","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0171","general","text","Name the musical theatre song from these lyrics:
+
+Wherever I go I know he goes.
+Wherever I go I know she goes.","","","","","","Together Wherever We Go","","""Together Wherever We Go"" is from Gypsy.","","","text","song_title","lyric_excerpt","gypsy","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0172","general","text","Name the musical theatre song from these lyrics:
+
+If you wanna bump it,
+Bump it with a trumpet!","","","","","","You Gotta Get A Gimmick","","""You Gotta Get A Gimmick"" is from Gypsy.","","","text","song_title","lyric_excerpt","gypsy","",""
+"waxing_lyrical_text","Waxing Lyrical (Text)","general","0","WaxingT-0173","general","text","Name the musical theatre song from these lyrics:
+
+You can pull all the stops out
+Till they call the cops out
+Grind your behind 'til you're banned","","","","","","You Gotta Get A Gimmick","","""You Gotta Get A Gimmick"" is from Gypsy.","","","text","song_title","lyric_excerpt","gypsy","",""
