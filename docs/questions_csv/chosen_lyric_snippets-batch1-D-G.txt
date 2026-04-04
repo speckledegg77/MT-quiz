@@ -1,0 +1,408 @@
+[Dear Evan Hansen] Anybody Have a Map
+chosen sample: 1 | score: 14.2 | review: no
+Another stellar conversation for the scrapbook
+Another stumble as I'm reaching for the right thing to say
+
+[Dear Evan Hansen] Disappear
+chosen sample: 1 | score: 13.13 | review: no
+If you never get around to doing some remarkable thing
+That doesn't mean that you're not worth remembering
+
+[Dear Evan Hansen] For Forever
+chosen sample: 1 | score: 12.97 | review: no
+There's nothing that we can't discuss
+Like girls we wish would notice us but never do
+
+[Dear Evan Hansen] For Forever
+chosen sample: 1 | score: 12.97 | review: no
+One foot after the other
+One branch then to another
+
+[Dear Evan Hansen] Good For You
+chosen sample: 1 | score: 15.93 | review: yes | notes: spoken
+So you found a place where the grass is greener
+And you jumped the fence to the other side
+
+[Dear Evan Hansen] If I Could Tell Her
+chosen sample: 1 | score: 11.07 | review: no
+But he kept it all inside his head
+What he saw he left unsaid
+
+[Dear Evan Hansen] If I Could Tell Her
+chosen sample: 1 | score: 11.07 | review: no
+But we're a million worlds apart
+And I don't know how I would even start
+
+[Dear Evan Hansen] Only Us
+chosen sample: 1 | score: 14.5 | review: no
+I don't need you to sell me on reasons to want you
+I don't need you to search for the proof that I should
+
+[Dear Evan Hansen] Requiem
+chosen sample: 1 | score: 15.27 | review: no
+Why should I play the grieving girl and
+Lie saying that I miss you
+
+[Dear Evan Hansen] Requiem
+chosen sample: 1 | score: 15.27 | review: no
+I gave you the world, you threw it away,
+leaving these broken pieces behind you
+
+[Dear Evan Hansen] Sincerely, Me
+chosen sample: 1 | score: 14.83 | review: no
+I should tell you that I think of you each night
+I rub my nipples and start moaning with delight
+
+[Dear Evan Hansen] Sincerely, Me
+chosen sample: 1 | score: 14.83 | review: no
+'Cause all that it takes is a little reinvention
+It’s easy to change if you give it your attention
+
+[Dear Evan Hansen] So Big/So Small
+chosen sample: 1 | score: 13.2 | review: no
+That night I tucked you into bed
+I will never forget how you sat up and said
+"Is there another truck coming to our driveway
+A truck that will take mommy away?"
+
+[Dear Evan Hansen] Waving Through a Window
+chosen sample: 1 | score: 12.77 | review: yes | notes: repeated_lines
+When you're falling in a forest and there's nobody around
+Do you ever really crash, or even make a sound
+
+[Dear Evan Hansen] Waving Through a Window
+chosen sample: 1 | score: 12.77 | review: yes | notes: repeated_lines
+I've learned to slam on the brake
+Before I even turn the key
+
+[Dear Evan Hansen] Words Fail
+chosen sample: 1 | score: 12.3 | review: no
+No, I'd rather pretend I'm something better than
+These broken parts
+Pretend I'm something other than this mess that I am
+
+[Dear Evan Hansen] You Will Be Found
+chosen sample: 1 | score: 13.33 | review: no
+Have you ever felt like nobody was there?
+Have you ever felt forgotten in the middle of nowhere?
+
+[Dear Evan Hansen] You Will Be Found
+chosen sample: 1 | score: 13.33 | review: no
+Even when the dark comes crashin' through
+When you need a friend to carry you
+
+[Do I Hear a Waltz] Someone Woke Up
+chosen sample: 1 | score: 12.87 | review: no
+Some people cry when they see their old pals,
+Me, I'm a sucker for chimes and canals.
+
+[Do I Hear a Waltz] We're Gonna Be All Right
+chosen sample: 1 | score: 6.97 | review: yes | notes: open_end
+I was told:
+"Just be faithful and never scold,"
+Sounded easy, so I was sold.
+I've been miserable since.
+
+[Dreamgirls] And I Am Telling You I'm Not Going
+chosen sample: 1 | score: 10.63 | review: no
+I'm staying, I'm staying
+And you... and you... and you...
+You're gonna love me
+
+[Dreamgirls] Love You I Do
+chosen sample: 1 | score: 9.7 | review: no
+Never met a man
+Quite like you
+Doing all he can
+Making my dreams come true
+
+[Dreamgirls] One Night Only
+chosen sample: 1 | score: 11.27 | review: no
+You want all my love and my devotion
+You want my love and soul, right on the line
+
+[Evita] Another Suitcase in Another Hall
+chosen sample: 1 | score: 14.97 | review: no
+I won't recall the names and places of each sad occasion
+But that's no consolation here and now.
+
+[Evita] Buenos Aires
+chosen sample: 1 | score: 12.63 | review: no
+Let me dance to your beat, make it loud
+Let it hurt, run it through me.
+
+[Evita] Don't Cry for Me Argentina
+chosen sample: 1 | score: 14.93 | review: no
+It won't be easy, you'll think it strange
+
+[Evita] Rainbow High
+chosen sample: 1 | score: 12.9 | review: no
+I came from the people, they need to adore me
+So Christian Dior me from my head to my toes
+
+****
+
+[Fiddler on the Roof] If I Were a Rich Man
+chosen sample: 1 | score: 14.9 | review: no
+All day long I'd biddy biddy bum.
+
+
+[Fiddler on the Roof] Sunrise, Sunset
+chosen sample: 1 | score: 7.67 | review: yes | notes: mid_sentence_start
+Swiftly fly the years,
+One season following another,
+Laiden with happiness and tears.
+
+[Fiddler on the Roof] Tradition
+chosen sample: 1 | score: 16.1 | review: no
+At three, I started Hebrew school. At ten, I learned a trade.
+I hear they've picked a bride for me. I hope she's pretty.
+
+[Fiddler on the Roof] Matchmaker, Matchmaker
+chosen sample: 1 | score: 16.1 | review: no
+Find me a find, catch me a catch.
+
+[Follies] Broadway Baby
+chosen sample: 2 | score: 9.77 | review: no
+Working for a nice man,
+Like a Ziefeld or a Weismann
+
+[Follies] Broadway Baby
+chosen sample: 2 | score: 9.77 | review: no
+Hey, Mr. Producer,
+I'm talking to you, sir;
+
+[Follies] Could I Leave You
+chosen sample: 1 | score: 10.7 | review: no
+Leave the quips with a sting, jokes with a sneer,
+Passionless lovemaking once a year?
+
+[Follies] I'm Still Here
+chosen sample: 1 | score: 12.43 | review: no
+Plush velvet sometimes
+Sometimes just pretzels and beer
+
+[Follies] I'm Still Here
+chosen sample: 1 | score: 12.43 | review: no
+Reefers and vino,
+Rest cures, religion and pills
+
+[Follies] In Buddy's Eyes
+chosen sample: 1 | score: 9.7 | review: no
+So life is ducky
+And time goes flying
+And I'm so lucky
+I feel like crying
+
+[Follies] Losing My Mind
+chosen sample: 2 | score: 8.63 | review: no
+Sometimes I stand in the middle of the floor
+Not going left, not going right.
+
+[Follies] Losing My Mind
+chosen sample: 2 | score: 8.63 | review: no
+You said you loved me.
+Or where you just being kind?
+
+[Frozen] Do You Want to Build a Snowman
+chosen sample: 2 | score: 12.83 | review: no
+I think some company is overdue,
+I started talking to, the pictures on the walls
+
+[Frozen] Do You Want to Build a Snowman
+chosen sample: 2 | score: 12.83 | review: no
+Come on let’s go and play!
+I never see you anymore, come out the door,
+It’s like you’ve gone away
+
+[Frozen] For the First Time in Forever
+chosen sample: 1 | score: 13.87 | review: no
+The window is open, so's that door
+I didn't know they did that anymore
+
+[Frozen] For the First Time in Forever
+chosen sample: 1 | score: 13.87 | review: no
+I know it all ends tomorrow,
+So it has to be today
+
+[Frozen] Let It Go
+chosen sample: 1 | score: 17.47 | review: no
+It's funny how some distance makes everything seem small
+
+[Frozen] Let It Go
+chosen sample: 1 | score: 17.47 | review: no
+And here I stand
+And here I'll stay
+
+[Funny Girl] Don't Rain On My Parade
+chosen sample: 1 | score: 11.3 | review: no
+I'll march my band out,
+I'll beat my drum
+
+[Funny Girl] Don't Rain On My Parade
+chosen sample: 1 | score: 11.3 | review: no
+I'm gonna live and live now,
+Get what I want--I know how
+
+[Funny Girl] I'm The Greatest Star
+chosen sample: 2 | score: 11.17 | review: no
+Who is the pip with pizazz?
+Who is all ginger and jazz?
+
+[Funny Girl] I'm The Greatest Star
+chosen sample: 2 | score: 11.17 | review: no
+I've got thirty-six expressions;
+Sweet as pie to tough as leather
+
+[Funny Girl] People
+chosen sample: 1 | score: 9.97 | review: no
+A feeling deep in your soul
+Says you were half, now you're whole.
+
+[Funny Girl] People
+chosen sample: 1 | score: 9.97 | review: no
+Acting more like children
+Than children
+
+[Grease] Greased Lightnin’
+chosen sample: 1 | score: 10.53 | review: no
+We'll get some overhead lifters and four-barrel quads, oh yeah
+
+[Grease] Look at Me, I’m Sandra Dee
+chosen sample: 1 | score: 12.23 | review: no
+Elvis, Elvis, let me be
+Keep that pelvis far from me
+
+[Grease] Look at Me, I’m Sandra Dee
+chosen sample: 1 | score: 12.23 | review: no
+Keep your filthy paws off my silky drawers
+
+[Grease] Sandy
+chosen sample: 1 | score: 10.83 | review: yes | notes: damaged_text
+Stranded at the drive in, branded a fool
+What will they say, Monday at school?
+
+[Grease] Summer Nights
+chosen sample: 1 | score: 9.0 | review: yes | notes: repeated_lines
+Took her bowling in the arcade
+We went strolling, drank lemonade
+
+
+[Grease] There Are Worse Things I Could Do
+chosen sample: 1 | score: 11.07 | review: no
+I could flirt with all the guys
+Smile at them and bat my eyes
+
+[Grease] There Are Worse Things I Could Do
+chosen sample: 1 | score: 11.07 | review: no
+I don't steal and I don't lie
+But I can feel and I can cry
+A fact I'll bet you never knew
+
+[Guys and Dolls] Adelaide's Lament
+chosen sample: 1 | score: 16.3 | review: no
+Chronic organic symptoms
+Toxic or hypertense
+Involving the eye, the ear, the nose, and throat.
+
+[Guys and Dolls] Adelaide's Lament
+chosen sample: 1 | score: 16.3 | review: no
+When they get on that train to Niagara
+And she can hear church bells chime
+
+[Guys and Dolls] I'll Know
+chosen sample: 1 | score: 17.97 | review: yes | notes: spoken
+How I care, how I care, how I care
+And I'll stop. And I'll stare.
+
+[Guys and Dolls] If I Were a Bell
+chosen sample: 1 | score: 11.07 | review: no
+Yes, I knew my moral would crack
+From the wonderful way that you looked!
+Boy, if I were a duck I'd quack!
+Or if I were a goose I'd be cooked!
+
+[Guys and Dolls] Luck Be a Lady
+chosen sample: 1 | score: 13.97 | review: no
+A lady doesn't wander all over the room
+And blow on some other guy's dice.
+
+[Guys and Dolls] Sit Down, You're Rockin' the Boat
+chosen sample: 1 | score: 15.47 | review: no
+I dreamed last night I got on the boat to heaven
+And by some chance I had brought my dice along
+
+[Guys and Dolls] Sit Down, You're Rockin' the Boat
+chosen sample: 1 | score: 15.47 | review: no
+And the devil will drag you under
+By the sharp lapel of your checkered coat
+
+[Gypsy] Everything's Coming Up Roses
+chosen sample: 1 | score: 12.2 | review: no
+I had a dream, a dream about you, baby.
+It's gonna come true, baby.
+
+[Gypsy] Everything's Coming Up Roses
+chosen sample: 1 | score: 12.2 | review: no
+Now's your inning. Stand the world on it's ear!
+Set it spinning! That'll be just the beginning!
+
+[Gypsy] If Momma Was Married
+chosen sample: 1 | score: 9.07 | review: no
+Just Momma, three ducks, five canaries,
+A mouse, two monkeys, one father, six turtles
+And me...
+
+[Gypsy] If Momma Was Married
+chosen sample: 1 | score: 9.07 | review: no
+We're not keeping score
+What's one more or less
+
+[Gypsy] Rose's Turn
+chosen sample: 1 | score: 14.0 | review: no
+All your life and what does it get ya?
+Thanks a lot and out with the garbage,
+
+[Gypsy] Rose's Turn
+chosen sample: 1 | score: 14.0 | review: no
+Why did I do it?
+What did it get me?
+Scrapbooks full of me in the background.
+
+[Gypsy] Rose's Turn
+chosen sample: 1 | score: 14.0 | review: no
+Here she is, boys!
+Here she is, world!
+
+[Gypsy] Some People
+chosen sample: 1 | score: 12.0 | review: yes | notes: mid_sentence_start
+Goodbye to blueberry pie.
+Good riddance to all the socials I had to go to,
+all the lodges I had to play
+
+[Gypsy] Some People
+chosen sample: 1 | score: 12.0 | review: yes | notes: mid_sentence_start
+Anybody that stays home is dead
+If I die it won't be from sitting
+It will be from fighting to get up and get out!
+
+[Gypsy] Some People
+chosen sample: 1 | score: 12.0 | review: yes | notes: mid_sentence_start
+Get yourselves some new orchestrations,
+new routines and red velvet curtains.
+
+[Gypsy] Together Wherever We Go
+chosen sample: 1 | score: 10.13 | review: yes | notes: mid_sentence_start
+Wherever I go I know he goes.
+Wherever I go I know she goes.
+
+[Gypsy] You Gotta Get A Gimmick
+chosen sample: 1 | score: 10.87 | review: yes | notes: open_end
+If you wanna bump it,
+Bump it with a trumpet!
+
+[Gypsy] You Gotta Get A Gimmick
+chosen sample: 1 | score: 10.87 | review: yes | notes: open_end
+You can pull all the stops out
+Till they call the cops out
+Grind your behind 'til you're banned

@@ -1,6 +1,6 @@
 # Import regression checklist
 
-Use this after any change to the question importer, Heads Up importer, CSV templates, authoring guidance, or text-answer matching.
+Use this after any change to the question importer, Heads Up importer, CSV templates, authoring guidance, text-answer matching, or admin question loading.
 
 ## Question CSV checks
 
@@ -33,6 +33,16 @@ Check these cases:
 - a text-answer row where `accepted_answers` is blank and the matcher alone should still behave reasonably
 - a text-answer row where `accepted_answers` contains several pipe-separated fair variants
 
+## Admin questions page checks
+
+Check these cases after deploy:
+
+- the admin questions page opens without schema errors
+- the pack filter loads without depending on stale views such as `packs_with_counts`
+- selecting a question opens the detail panel without any `questions.is_active` error
+- the full matching result set can load without old hard caps accidentally returning
+- multiline lyric question text stays readable in both the list row and the detail panel
+
 ## Heads Up CSV checks
 
 Run validate-only first, then a real import on a safe test pack.
@@ -55,12 +65,8 @@ Check these cases:
 - no unexpected blank fields were created
 - new shows, packs, or Heads Up pack links were created only when intended
 - duplicate Heads Up items were not created
-- lyric question line breaks render properly on the player question view
-- lyric question line breaks render properly on the display question view
-- lyric question line breaks render properly in admin question list rows
-- lyric question line breaks render properly in the admin question detail panel
+- lyric question line breaks render properly on player, display, admin list, and admin detail screens
 - text-answer canonical answer and accepted answers are editable in the admin questions panel
-- no unrelated refactor has removed newline-preserving rendering from multiline lyric or excerpt questions
 
 ## Rule of thumb
 

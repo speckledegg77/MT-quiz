@@ -183,18 +183,32 @@ When lyric questions need line breaks, put real line breaks into `question_text`
 
 Do not fake lyric layout with slashes unless there is a specific reason.
 
-The live app now preserves line breaks on player, display, and admin screens, so multiline lyric blocks are allowed.
+The live app preserves line breaks on player, display, admin list, and admin detail screens, so multiline lyric blocks are allowed.
 
-Implementation rule:
-- multiline lyric and excerpt question text must be rendered with a newline-preserving UI treatment, for example `whitespace-pre-line` or an equivalent approach
-- this rule applies to the player question view, display question view, admin question list rows, and the admin question detail panel
-- flattening multiline question text back into a single paragraph counts as a regression
+When multiline lyric or excerpt text is rendered in the UI, use a newline-preserving approach such as `whitespace-pre-line` or an equivalent implementation. Flattening those blocks into a single paragraph is a regression.
 
 ### Duplicate songs
 
 It is acceptable for the same song to appear more than once with different lyric clues when the variety is deliberate.
 
 Use judgement so a pack does not feel repetitive.
+
+### MCQ distractors for lyric-title questions
+
+Build lyric MCQ packs from the approved text-answer lyric bank, not from the raw lyric source files.
+
+Keep all lyric MCQ options as song titles.
+
+Use same-show distractors first when they are genuinely strong.
+
+If same-show distractors are weak, prefer songs with the same dramatic function, musical feel, deeper theme, or motif, even if they are outside the current database.
+
+Avoid reusing the same little same-show distractor family so often that later rows become easier by elimination.
+
+Ask these questions when reviewing lyric MCQ distractors:
+- what type of song is it musically and thematically?
+- what other songs have similar musical styles or deeper lyrical themes?
+- what are the lyrics saying, and are there songs from other shows with similar motifs?
 
 ## Show key rules
 

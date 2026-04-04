@@ -90,23 +90,27 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Only use arbitrary value classes when there is no suitable canonical theme utility, or when the value is a true one-off such as a custom calculation or unusual dimension.
 - Shared stage labels, run badges, and mode badges should come from common helpers so Host, Player, Display, and summaries stay in sync.
 - Shared round-flow helpers should decide derived client stage and whether stale questions stay hidden between rounds.
-- Lyric and excerpt-based question text should preserve real line breaks on player, display, and admin screens.
-- Removing newline-preserving rendering from those screens is a regression unless an equivalent approach is deliberately added at the same time.
-- This applies to the player question view, display question view, admin question list rows, and the admin question detail panel.
+- Multiline lyric and excerpt-based question text must preserve real line breaks on player, display, admin list, and admin detail screens. Flattening those blocks counts as a regression unless replaced by an equivalent newline-preserving approach.
 - Admin answer editing for text-answer questions should sit in the questions dashboard rather than living only in CSV workflows.
+- The admin questions page should not depend on `questions.is_active` or stale database views such as `packs_with_counts`.
 - Round templates now use alphabetical ordering by name, and sort order is no longer used in template selection or admin editing.
 
 ## Answer matching and lyric packs
 
 - The app is intended for adult private groups, so 18+ lyric or quote material is acceptable.
 - Lyric packs use the `Waxing Lyrical` naming pattern, with separate Text and MCQ variants.
-- For lyric-title questions, the text-answer pack should be built first. The MCQ pack can then be created from the same approved lyric set.
+- `Waxing Lyrical (Text)` is the approved source pack and `Waxing Lyrical (MCQ)` is derived from that settled lyric bank.
+- For lyric-title questions, build the text pack first. Build the MCQ pack from that approved lyric set.
 - Text-answer matching should normalise case, punctuation, apostrophes, and spacing before comparison.
 - Text-answer matching should tolerate omission of a leading `a`, `an`, or `the` at the start of the answer.
 - Text-answer matching can be mildly typo-tolerant for longer answers, but curated `accepted_answers` are still preferred over very loose fuzzy matching.
 - `accepted_answers` should be used for fair human variants, not as a dumping ground for every imaginable misspelling.
 - For lyric question wording, varied stems are fine, but the clue must stay clear that the answer target is the song title.
 - British spelling should be preferred in generated content unless the changed spelling would alter a proper noun or the exact intended title.
+- For lyric MCQ distractors, keep all options as song titles.
+- For lyric MCQ distractors, use same-show options first when they are strong.
+- If same-show options are weak, use songs with the same dramatic function, deeper theme, or motif, even if they are outside the current database.
+- Avoid letting repeated same-show distractor families make nearby rows easier by elimination.
 
 ## Authoring and import discipline
 

@@ -4,7 +4,7 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Current priority
 
-- [ ] Finish the Simple vs Advanced host creation split so first-time hosts can create a solid game quickly while the power tools stay available.
+- [ ] Build better answer-audit tools into the admin questions page so text-answer cleanup is faster and safer.
 - [x] Add host-side round feasibility checks so the host can see whether a round has enough eligible questions before starting a game.
 - [ ] Keep consolidating the round-plan model so packs stay content sources and rounds stay gameplay definitions.
 
@@ -30,13 +30,14 @@ This file tracks the live plan. Keep it short and practical.
 - [x] Do a shared cleanup pass on repeated timer and state-handling logic across Host, Player, and Display.
 - [ ] Review whether any host controls still feel duplicated or unclear.
 - [ ] Tighten template and round-builder labels so Quickfire, Standard, and future round types feel clearly different.
-- [ ] Review whether the admin questions screen needs more answer-audit tools beyond the new canonical-answer and accepted-answer editing.
+- [ ] Add stronger answer-audit filters, previews, and bulk helpers to the admin questions screen.
 
 ## Content building
 
 - [x] Seed a broader canonical `shows` list and keep `docs/shows-reference.md` in sync.
 - [ ] Expand the question bank, especially for rounds that need larger eligible pools.
-- [ ] Build out the `Waxing Lyrical` text and MCQ packs.
+- [x] Build out the `Waxing Lyrical` text and MCQ packs.
+- [ ] Validate and import the final `Waxing Lyrical (MCQ)` master.
 - [ ] Add pack-side Heads Up curation tools so packs can add and remove large numbers of existing items quickly.
 - [ ] Polish Heads Up turn review and correction flow after live playtesting.
 - [ ] Decide whether Heads Up should support host-selected team order and turn order overrides.
@@ -70,7 +71,11 @@ This file tracks the live plan. Keep it short and practical.
 - [x] Fix Infinite availability so a blank limit uses the currently selected pack pool rather than a stale wider count.
 - [x] Improve text-answer matching for punctuation, leading articles, and mild long-title typo tolerance.
 - [x] Add admin editing for canonical text answers and accepted alternatives.
-- [x] Preserve lyric question line breaks on player, display, and admin screens.
+- [x] Remove stale admin question list caps.
+- [x] Stop admin questions loading from depending on `questions.is_active` and stale count views.
+- [x] Preserve lyric question line breaks on player, display, admin list, and admin detail screens.
+- [x] Complete and import `Waxing Lyrical (Text)`.
+- [x] Produce the final `Waxing Lyrical (MCQ)` master.
 - [x] Teams mode and solo mode.
 - [x] Unique team names with random musical-pun suggestions.
 - [x] Joker round choice in lobby.

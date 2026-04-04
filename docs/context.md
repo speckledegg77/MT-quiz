@@ -4,7 +4,7 @@ Live URL: https://mt-quiz.vercel.app
 Repo URL: https://github.com/speckledegg77/MT-quiz  
 Branch workflow: work directly on `main` and push to GitHub. Vercel auto-deploys from `main`.
 
-Context last updated: 2026-03-29  
+Context last updated: 2026-04-04  
 Repo commit: fill this in with `git rev-parse --short HEAD`
 
 ---
@@ -93,7 +93,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Simple mode uses ready round templates to assemble a recommended game plan, while Advanced keeps the existing manual, quick-random, and legacy controls.
 - Host creates a room and can choose timing, rounds, audio mode, and round-plan setup.
 - Simple setup now offers a recommended game path and an Infinite path. Infinite runs as one continuous stream of questions from the chosen packs.
-- If the Infinite question limit is blank, it should mean every currently available question from the selected packs, not the wider all-pack pool.
+- If the Infinite question limit is blank, it means every currently available question from the selected packs, not the wider all-pack pool.
 - Infinite mode now shows continuous-run progress, keeps Joker hidden, and gives the host an End game control while the run is live.
 - Players join from phones.
 - In teams mode, players choose a team from the host-defined team list.
@@ -127,8 +127,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Selected but unsubmitted MCQ answers auto-submit at the end of the hidden grace window.
 - Free text answers stay manual.
 - Audio stops when the question closes.
-- Lyric and excerpt-based question text can now preserve real line breaks on player, display, and admin review screens.
-- Multiline lyric and excerpt questions rely on newline-preserving rendering in the UI. Flattening those question blocks back into a single paragraph counts as a regression unless an equivalent rendering approach is put in place.
+- Lyric and excerpt-based question text preserve real line breaks on player, display, admin list, and admin detail screens.
 
 ### Standard round behaviour
 - Player and display pages show the correct answer on reveal.
@@ -136,11 +135,19 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - The host can still skip the round review early.
 
 ### Text answers and lyric packs
-- Text-answer matching now normalises case, punctuation, apostrophes, and spacing before comparison.
-- Text-answer matching is more forgiving for long titles and can tolerate omission of a leading `a`, `an`, or `the` at the start of the answer.
+- Text-answer matching normalises case, punctuation, apostrophes, and spacing before comparison.
+- Text-answer matching tolerates omission of a leading `a`, `an`, or `the` at the start of the answer.
+- Text-answer matching is mildly typo-tolerant for longer titles.
 - Curated `accepted_answers` still matter and are preferred to very loose fuzzy matching.
-- The admin questions dashboard now lets the user review and edit `answer_text` and `accepted_answers` for text-answer questions.
-- Lyric packs currently use the `Waxing Lyrical` naming pattern for Text and MCQ variants.
+- The admin questions dashboard lets the user review and edit `answer_text` and `accepted_answers` for text-answer questions.
+- `Waxing Lyrical (Text)` is complete and imported.
+- `Waxing Lyrical (MCQ)` has a final master CSV and is ready for validate-only and import.
+
+### Admin questions page
+- The admin questions list no longer depends on stale caps.
+- The admin questions flow should not depend on `questions.is_active`.
+- Pack loading for the admin questions page should not depend on a stale `packs_with_counts` view.
+- Selecting a question should open the detail panel without schema-dependent errors.
 
 ### Quickfire
 - Quickfire is a real round behaviour.
@@ -188,13 +195,13 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Question metadata dashboard exists.
 - Metadata fields include `media_type`, `prompt_target`, `clue_source`, `primary_show_key`, and `metadata_review_state`.
 - The dashboard includes warnings, suggestions, bulk apply, bulk apply suggested values, filters for missing metadata, and a sticky detail panel.
-- Text-answer questions can now be reviewed and edited for canonical answer and accepted alternatives from the admin detail panel.
+- Text-answer questions can be reviewed and edited for canonical answer and accepted alternatives from the admin detail panel.
 
 ### Import tools
-- The admin import page now supports validate-only and real import modes for the main question bank CSV.
+- The admin import page supports validate-only and real import modes for the main question bank CSV.
 - The current question CSV format includes metadata columns after `image_path`, including `media_type`, `prompt_target`, `clue_source`, and `primary_show_key`, plus `media_duration_ms` and `audio_clip_type`.
 - Legacy `pack_sort_order` is still tolerated by the importer, but it is ignored.
-- A separate Heads Up CSV import now supports item import, automatic pack creation by name, validate-only checks, and natural-key dedupe against existing Heads Up items.
+- A separate Heads Up CSV import supports item import, automatic pack creation by name, validate-only checks, and natural-key dedupe against existing Heads Up items.
 
 ### Shows manager
 - Shows can be created and edited in the UI.
@@ -220,8 +227,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Shared theme surface tokens live in `app/globals.css`, including `--card`, `--border`, `--muted`, and `--muted-foreground`.
 - Use canonical Tailwind theme utilities where a theme token already exists, for example `text-foreground`, `text-muted-foreground`, `bg-card`, `bg-muted`, and `border-border`.
 - Use the `JokerBadge` component instead of pasting the Joker symbol inline.
-- Lyric and excerpt-based question text should render with preserved line breaks rather than being flattened into a single paragraph.
-- That newline-preserving behaviour needs to hold in all current review surfaces: player question view, display question view, admin question list rows, and the admin question detail panel.
+- Multiline lyric and excerpt-based question text must render with preserved line breaks rather than being flattened into a single paragraph.
 
 ---
 
@@ -356,9 +362,9 @@ Pack loading:
 - For major changes, prefer small, testable steps.
 - For project continuity, update `docs/context.md`, `docs/roadmap.md`, and `docs/decisions.md` at the end of a substantial work block.
 - For UI and UX changes, prefer canonical Tailwind theme utilities over arbitrary value classes wherever a theme token already exists.
-- When a screen renders multiline lyric or excerpt question text, preserve real line breaks with an explicit newline-preserving approach such as `whitespace-pre-line` or an equivalent implementation.
 - Round-flow cleanup has centralised stage/status labels, mode badges, and stale-question suppression into shared helpers in `lib/gameMode.ts` and `lib/roundFlow.ts`.
 - Round templates now use alphabetical ordering by name, and sort order is no longer used in template selection or admin editing.
+- Flattening multiline lyric or excerpt text on player, display, admin list, or admin detail screens counts as a regression unless replaced by an equivalent newline-preserving approach.
 
 ## Authoring references
 

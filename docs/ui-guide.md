@@ -215,6 +215,18 @@ Rules:
 - show warnings compactly
 - selection state should be obvious without making every row heavy
 
+## Multiline question rendering contract
+
+For lyric and excerpt-based question text, newline preservation is a UI contract, not a cosmetic preference.
+
+Rules:
+- preserve real line breaks on the player page
+- preserve real line breaks on the display page
+- preserve real line breaks in the admin questions list
+- preserve real line breaks in the admin questions detail panel
+- use a newline-preserving implementation such as `whitespace-pre-line` or an equivalent approach
+- flattening multiline lyric or excerpt blocks back into a single paragraph counts as a regression unless there is an explicit approved replacement
+
 ## Page-specific rules
 
 ## Admin questions page
@@ -233,8 +245,7 @@ Rules:
 - suggested values should be compact and use tooltip help for reasoning
 - text-answer questions should expose canonical answer and accepted-answer editing in the detail panel
 - multiline question text should remain readable in the detail panel, especially for lyric and excerpt-based questions
-- if a question uses real line breaks, render it with an explicit newline-preserving treatment such as `whitespace-pre-line` or an equivalent approach
-- apply that rule in both the list row preview and the detail panel, not just one of them
+- admin question loading should not rely on stale schema assumptions such as `questions.is_active` or on stale precomputed views where direct queries are safer
 
 Do not:
 - let helper text break alignment
@@ -266,8 +277,6 @@ Rules:
 - no repeated labels where the state already explains itself
 - keep controls at mobile-safe sizing
 - lyric or excerpt-based question text should preserve real line breaks when the source text includes them
-- this should be implemented deliberately with newline-preserving rendering, not left to default paragraph behaviour
-- this should be implemented deliberately with newline-preserving rendering, not left to default paragraph behaviour
 
 ## Display page
 
@@ -293,7 +302,6 @@ When making UI changes:
 - do not rebuild from memory or from an older snapshot
 - change one screen or one area at a time when possible
 - keep new patterns aligned with the existing accepted page style
-- when touching question text rendering, treat multiline lyric and excerpt support as an implementation contract, not optional styling
 - update this guide when a new UI direction is approved
 
 ## Current accepted patterns worth preserving

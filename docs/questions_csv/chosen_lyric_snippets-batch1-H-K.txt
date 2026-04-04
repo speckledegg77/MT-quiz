@@ -1,0 +1,267 @@
+[Hair] Aquarius
+chosen sample: 1 | score: 10.33 | review: no
+When the moon is in the Seventh House
+And Jupiter aligns with Mars
+
+[Hair] Good Morning Starshine
+chosen sample: 1 | score: 6.3 | review: no
+Gliddy glub gloopy
+Nibby nabby noopy
+La la la lo lo
+
+[Hair] Good Morning Starshine
+chosen sample: 1 | score: 6.3 | review: no
+My love and me as we sing
+Our early morning singing song
+
+[Hair] Hair
+chosen sample: 1 | score: 11.13 | review: no
+I want it long, straight, curly, fuzzy
+Snaggy, shaggy, ratty, matty
+Oily, greasy, fleecy, shining
+Gleaming, steaming, flaxen, waxen
+
+[Hairspray] Good Morning Baltimore
+chosen sample: 1 | score: 10.73 | review: no
+Every day's like an open door
+Every night is a fantasy
+Every sound's like a symphony
+
+[Hairspray] Good Morning Baltimore
+chosen sample: 1 | score: 10.73 | review: no
+I know every step
+I know every song
+I know there's a place where I belong
+
+[Hairspray] I Can Hear The Bells
+chosen sample: 1 | score: 9.03 | review: no
+Everybody says
+That a guy who's such a gem
+Won't look my way
+Well, the laugh's on them
+
+[Hairspray] You Can't Stop The Beat
+chosen sample: 1 | score: 11.43 | review: no
+You can't stop an avalanche
+As it races down the hill
+
+[Hairspray] You Can't Stop The Beat
+chosen sample: 1 | score: 11.43 | review: no
+'Cause the world keeps spinning 'round and 'round
+And my heart's keeping time to the speed of sound
+I was lost 'til I heard the drums then I found my way
+
+[Hamilton] Alexander Hamilton
+chosen sample: 1 | score: 16.77 | review: no
+How does a bastard, orphan, son of a whore and a
+Scotsman, dropped in the middle of a forgotten
+Spot in the Caribbean by Providence, impoverished in squalor
+Grow up to be a hero and a scholar?
+
+[Hamilton] My Shot
+chosen sample: 1 | score: 17.17 | review: no
+Hey yo, I’m just like my country
+I’m young, scrappy and hungry
+
+[Hamilton] Wait For It
+chosen sample: 1 | score: 12.9 | review: no
+Love doesn't discriminate
+Between the sinners
+And the saints
+
+[Hamilton] You'll Be Back
+chosen sample: 1 | score: 15.93 | review: no
+So don't throw away this thing we had
+Cause when push comes to shove
+I will kill your friends and family to remind you of my love
+
+[Heathers] Candy Store
+chosen sample: 2 | score: 9.97 | review: no
+Looking hot; buying stuff they cannot.
+I like drinking hard; maxing Dad's credit card.
+
+[Heathers] Dead Girl Walking
+chosen sample: 1 | score: 13.67 | review: no
+Sorry, but I really had to wake you;
+See, I decided I must ride you till I break you.
+
+[Hello, Dolly!] Before the Parade Passes By
+chosen sample: 1 | score: 12.63 | review: no
+I need got a goal again
+I need got a drive again
+I wanna feel my heart coming alive again
+
+[Hello, Dolly!] Hello, Dolly!
+chosen sample: 1 | score: 13.8 | review: no
+I went away from the lights of Fourteenth Street
+And into my personal haze
+
+[Hello, Dolly!] Hello, Dolly!
+chosen sample: 1 | score: 13.8 | review: no
+You're still glowin', you're still crowin'
+You're still goin' strong
+
+[Hello, Dolly!] Put on Your Sunday Clothes
+chosen sample: 1 | score: 13.0 | review: no
+Get out your feathers
+Your patent leathers
+Your beads and buckles and bows
+
+[Hello, Dolly!] So Long Dearie
+chosen sample: 1 | score: 14.17 | review: no
+Yes, I can hear that choo choo callin' me on
+On board that happiness express
+
+[Hello, Dolly!] So Long Dearie
+chosen sample: 1 | score: 14.17 | review: no
+Don't come a knockin'
+I'll be all dolled up
+And singin' that song
+That says you dog, I told you so
+
+[Hello, Dolly!] So Long Dearie
+chosen sample: 1 | score: 14.17 | review: no
+And on those cold winter nights, Horace...
+You can snuggle up to your cash register.
+It's a little lumpy but it rings!
+
+[I Love You Because] Another Saturday Night in New York
+chosen sample: 1 | score: 11.7 | review: no
+Brush my teeth in the shower
+Shampoo twice.
+Clean and Primp for an hour,
+Old spice is nice.
+
+[I Love You Because] Coffee
+chosen sample: 1 | score: 11.33 | review: no
+There's a neat logic to it
+It's just how I do it.
+If you think that it's stupid,
+You're wrong.
+
+[I Love You Because] I Love You Because
+chosen sample: 1 | score: 10.83 | review: no
+People will say that we're crazy,
+crazy to fall for each other,
+but then again, what do they know?
+
+[I Love You Because] The Actuary Song
+chosen sample: 1 | score: 15.4 | review: yes | notes: backtick
+He'll have a bump
+Live in a dump
+Be such a chump
+That if you hump you'll need a penis-pump
+
+[I Love You Because] The Actuary Song
+chosen sample: 1 | score: 15.4 | review: yes | notes: backtick
+So in order to find my perfect man
+I need to find someone who's perfectly wrong!
+
+[Into the Woods] Agony
+chosen sample: 1 | score: 9.33 | review: no
+Did I abuse her, or show her disdain?
+Why does she run from me?
+
+[Into the Woods] Children Will Listen
+chosen sample: 2 | score: 15.63 | review: no
+How do you say to your child in the night?
+Nothing's all black, but then nothing's all white
+
+[Into the Woods] Giants in the Sky
+chosen sample: 1 | score: 14.07 | review: yes | notes: open_end
+When you're way up high
+And you look below
+At the world you left
+And the things you know
+
+[Into the Woods] I Know Things Now
+chosen sample: 2 | score: 10.03 | review: no
+And he showed me things
+Many beautiful things,
+That I hadn't thought to explore.
+
+[Into the Woods] I Know Things Now
+chosen sample: 2 | score: 10.03 | review: no
+And though scary is exciting,
+Nice is different than good.
+
+[Into the Woods] No One Is Alone
+chosen sample: 1 | score: 9.9 | review: no
+Witches can be right, Giants can be good.
+You decide what's right you decide what's good
+
+[Into the Woods] No One Is Alone
+chosen sample: 1 | score: 9.9 | review: no
+Sometimes people leave you.
+Halfway through the wood.
+
+[Into the Woods] On the Steps of the Palace
+chosen sample: 1 | score: 11.07 | review: no
+Now it's he and not you
+Who is stuck with a shoe,
+In a stew, in the goo,
+And you've learned something, too
+
+[Jekyll & Hyde] This Is The Moment
+chosen sample: 1 | score: 9.23 | review: no
+When all I've done;
+All the dreaming,
+Scheming and screaming,
+Become one!
+
+[Jesus Christ Superstar] Gethsemane (I Only Want To Say)
+chosen sample: 1 | score: 17.17 | review: no
+Listen, surely I've exceeded expectations,
+Tried for three years, seems like thirty.
+Could you ask as much from any other man?
+
+[Jesus Christ Superstar] I Don't Know How To Love Him
+chosen sample: 1 | score: 10.33 | review: no
+Should I bring him down?
+Should I scream and shout?
+Should I speak of love,
+Let my feelings out?
+
+[Jesus Christ Superstar] I Don't Know How To Love Him
+chosen sample: 1 | score: 10.33 | review: no
+Yet, if he said he loved me,
+I'd be lost. I'd be frightened.
+
+[Jesus Christ Superstar] King Herod's Song (Try It And See)
+chosen sample: 1 | score: 16.33 | review: no
+Prove to me that you're no fool; walk across my swimming pool.
+If you do that for me, then I'll let you go free.
+
+[Jesus Christ Superstar] (Jesus Christ) Superstar
+chosen sample: 1 | score: 16.7 | review: no
+Every time I look at you I don't understand
+Why you let the things you did get so out of hand.
+
+[Joseph and the Amazing Technicolor Dreamcoat] Any Dream Will Do
+chosen sample: 1 | score: 11.3 | review: no
+I wore my coat, with golden lining
+Bright colours shining, wonderful and new
+
+[Joseph and the Amazing Technicolor Dreamcoat] Close Every Door
+chosen sample: 1 | score: 9.63 | review: no
+Just give me a number
+Instead of my name
+
+[Joseph and the Amazing Technicolor Dreamcoat] One More Angel in Heaven
+chosen sample: 1 | score: 13.47 | review: no
+You know you had a dozen sons -
+Well now that's not quite true
+But feel no sorrow, do not grieve,
+He would not want you to
+
+[Kiss Me, Kate] Brush up Your Shakespeare
+chosen sample: 1 | score: 13.27 | review: no
+If she says your behaviour is heinous
+Kick her right in the "Coriolanus."
+
+[Kiss Me, Kate] Too Darn Hot
+chosen sample: 1 | score: 10.83 | review: no
+According to the Kinsey Report
+Ev'ry average man you know
+Much prefers to play his favourite sport
+When the temperature is low

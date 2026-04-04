@@ -1,0 +1,896 @@
+pack_id,pack_name,pack_round_type,pack_sort_order,question_id,question_round_type,answer_type,question_text,option_a,option_b,option_c,option_d,answer_index,answer_text,accepted_answers,explanation,audio_path,image_path,media_type,prompt_target,clue_source,primary_show_key,media_duration_ms,audio_clip_type
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0324,general,text,"Name the musical theatre song from these lyrics:
+
+I was younger then
+I was good at climbing trees
+I was younger then
+I saw everything!",,,,,,Someone in a Tree,,"""Someone in a Tree"" is from Pacific Overtures.",,,text,song_title,lyric_excerpt,pacific_overtures,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0325,general,text,"Name the musical theatre song from these lyrics:
+
+But it gives me purpose
+Gives me voice to say to the world:
+This is why I live; You are why I live.",,,,,,Loving You,,"""Loving You"" is from Passion.",,,text,song_title,lyric_excerpt,passion,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0326,general,text,"Name the musical theatre song from these lyrics:
+
+Rivers belong where they can ramble
+Eagles belong where they can fly
+I've got to be where my spirit can run free",,,,,,Corner Of The Sky,,"""Corner Of The Sky"" is from Pippin.",,,text,song_title,lyric_excerpt,pippin,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0327,general,text,"Name the musical theatre song from these lyrics:
+
+Everything has its season
+Everything has its time
+Show me a reason and I'll soon show you a rhyme",,,,,,Corner Of The Sky,,"""Corner Of The Sky"" is from Pippin.",,,text,song_title,lyric_excerpt,pippin,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0328,general,text,"Name the musical theatre song from these lyrics:
+
+Join us. Leave your fields to flower
+Join us. Leave your cheese to sour
+Join us. Come and waste an hour or two",,,,,,Magic To Do,,"""Magic To Do"" is from Pippin.",,,text,song_title,lyric_excerpt,pippin,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0329,general,text,"Name the musical theatre song from these lyrics:
+
+Winds of change are set to blow
+And sweep this whole land through",,,,,,Morning Glow,,"""Morning Glow"" is from Pippin.",,,text,song_title,lyric_excerpt,pippin,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0330,general,text,"Name the musical theatre song from these lyrics:
+
+We can make the new day bright
+And the phantoms of the night
+Will fade into the past",,,,,,Morning Glow,,"""Morning Glow"" is from Pippin.",,,text,song_title,lyric_excerpt,pippin,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0331,general,text,"Name the musical theatre song from these lyrics:
+
+Oh, it's time to start livin'
+Time to take a little from this world we're given
+Time to take time, cause spring will turn to fall",,,,,,No Time At All,,"""No Time At All"" is from Pippin.",,,text,song_title,lyric_excerpt,pippin,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0332,general,text,"Name the musical theatre song from these lyrics:
+
+What good is a field on a fine summer night
+When you sit all alone with the weeds?
+Or a succulent pear if with each juicy bite
+You spit out your teeth with the seeds?",,,,,,No Time At All,,"""No Time At All"" is from Pippin.",,,text,song_title,lyric_excerpt,pippin,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0333,general,text,"Name the musical theatre song from these lyrics:
+
+Now and then I call your name
+And suddenly your face appears
+But it's just a crazy game
+When it ends, it ends in tears",,,,,,A House Is Not a Home,,"""A House Is Not a Home"" is from Promises, Promises.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0334,general,text,"Name the musical theatre song from these lyrics:
+
+A chair is still a chair
+Even when there's no one sitting there",,,,,,A House Is Not a Home,,"""A House Is Not a Home"" is from Promises, Promises.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0335,general,text,"Name the musical theatre song from these lyrics:
+
+The moment I wake up
+Before I put on my make-up",,,,,,I Say A Little Prayer,,"""I Say A Little Prayer"" is from Promises, Promises.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0336,general,text,"Name the musical theatre song from these lyrics:
+
+Don't tell me what it's all about
+'cause I've been there and I'm glad I'm out
+Out of those chains, those chains that bind you
+That is why I'm here to remind you",,,,,,I'll Never Fall In Love Again,,"""I'll Never Fall In Love Again"" is from Promises, Promises.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0337,general,text,"Name the musical theatre song from these lyrics:
+
+What do you get when you kiss a guy?
+You get enough germs to catch pneumonia
+After you do, he'll never phone ya",,,,,,I'll Never Fall In Love Again,,"""I'll Never Fall In Love Again"" is from Promises, Promises.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0338,general,text,"Name the musical theatre song from these lyrics:
+
+To loving tension, no pension
+To more than one dimension,
+To starving for attention,
+Hating convention, hating pretension",,,,,,La Vie Boheme,,"""La Vie Boheme"" is from Rent.",,,text,song_title,lyric_excerpt,rent,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0339,general,text,"Name the musical theatre song from these lyrics:
+
+When I get a wink from the doorman
+Do you know how lucky you'll be?
+That you're on line with the feline of Avenue B",,,,,,Out Tonight,,"""Out Tonight"" is from Rent.",,,text,song_title,lyric_excerpt,rent,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0340,general,text,"Name the musical theatre song from these lyrics:
+
+525,600 minutes - how do you measure, measure a year?
+In daylights, in sunsets, in midnights, in cups of coffee.",,,,,,Seasons Of Love,,"""Seasons Of Love"" is from Rent.",,,text,song_title,lyric_excerpt,rent,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0341,general,text,"Name the musical theatre song from these lyrics:
+
+In truths that she learned,
+Or in times that he cried.
+In bridges he burned,
+Or the way that she died.",,,,,,Seasons Of Love,,"""Seasons Of Love"" is from Rent.",,,text,song_title,lyric_excerpt,rent,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0342,general,text,"Name the musical theatre song from these lyrics:
+
+A tiger in a cage
+Can never see the sun
+This diva needs her stage
+Baby,lets have fun.",,,,,,Take Me Or Leave Me,,"""Take Me Or Leave Me"" is from Rent.",,,text,song_title,lyric_excerpt,rent,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0343,general,text,"Name the musical theatre song from these lyrics:
+
+Fish got to swim, birds got to fly,
+I got to love one man till I die",,,,,,Can't Help Lovin' Dat Man,,"""Can't Help Lovin' Dat Man"" is from Show Boat.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0344,general,text,"Name the musical theatre song from these lyrics:
+
+He must know somthin'
+But don't say nothin',
+He just keeps rollin',
+He keeps on rollin' along.",,,,,,Ol' Man River,,"""Ol' Man River"" is from Show Boat.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0345,general,text,"Name the musical theatre song from these lyrics:
+
+Welcome to the show
+To the histo-remix
+Switching up the flow
+As we add the prefix",,,,,,Ex-Wives,,"""Ex-Wives"" is from Six.",,,text,song_title,lyric_excerpt,six,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0346,general,text,"Name the musical theatre song from these lyrics:
+
+You bring the corsets
+We'll bring the cinches
+No one wants a waist over nine inches",,,,,,Haus of Holbein,,"""Haus of Holbein"" is from Six.",,,text,song_title,lyric_excerpt,six,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0347,general,text,"Name the musical theatre song from these lyrics:
+
+You can build me up
+You can tear me down
+You can try but I'm unbreakable",,,,,,Heart of Stone,,"""Heart of Stone"" is from Six.",,,text,song_title,lyric_excerpt,six,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0348,general,text,"Name the musical theatre song from these lyrics:
+
+There are some in this world who have strength on their own
+Never broken or in need of repair
+But there are some born to shine who can't do it alone
+So protect them and take special care",,,,,,Don't Forget Me,,"""Don't Forget Me"" is from Smash Bombshell.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0349,general,text,"Name the musical theatre song from these lyrics:
+
+If math and science just ain't your style,
+Just give that teacher a wink and a smile,
+For a passing grade, you won't have to wait,
+And you can thank him later when you graduate.",,,,,,I Never Met A Wolf Who Didn't Love To Howl,,"""I Never Met A Wolf Who Didn't Love To Howl"" is from Smash Bombshell.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0350,general,text,"Name the musical theatre song from these lyrics:
+
+Fade in on a girl
+With a hunger for fame
+And a face and a name you'll remember.",,,,,,Let Me Be Your Star,,"""Let Me Be Your Star"" is from Smash Bombshell.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0351,general,text,"Name the musical theatre song from these lyrics:
+
+So another man says that he can't compete
+That he can't love a moving target
+So another affair gets an incomplete
+Well, it's time to adjust my plan",,,,,,Let Me Be Your Star,,"""Let Me Be Your Star"" is from Smash Bombshell.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0352,general,text,"Name the musical theatre song from these lyrics:
+
+You wanna see what her husband sees,
+Just wait for the next subway breeze.",,,,,,On Lexington & 52nd Street,,"""On Lexington & 52nd Street"" is from Smash Bombshell.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0353,general,text,"Name the musical theatre song from these lyrics:
+
+At Paramount it's ""Oh la la""
+The Warner Bros. ""Cha cha cha""
+And L.B. Mayer loves his schmaltz
+So M.G.M. made the great waltz",,,,,,The 20th Century Fox Mambo,,"""The 20th Century Fox Mambo"" is from Smash Bombshell.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0354,general,text,"Name the musical theatre song from these lyrics:
+
+Make it up - shake it up
+Make me feel like the main attraction
+Change the clothes, fix the nose
+And then 5,6,7,8 Action!",,,,,,The 20th Century Fox Mambo,,"""The 20th Century Fox Mambo"" is from Smash Bombshell.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0355,general,text,"Name the musical theatre song from these lyrics:
+
+They cheered at my persistence
+But prayed for my decline
+The path of least resistance
+Led to Hollywood and Vine",,,,,,They Just Keep Moving the Line,,"""They Just Keep Moving the Line"" is from Smash Bombshell.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0356,general,text,"Name the musical theatre song from these lyrics:
+
+I have never felt like this
+For once I'm lost for words
+Your smile has really thrown me",,,,,,Unexpected Song,,"""Unexpected Song"" is from Song and Dance.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0357,general,text,"Name the musical theatre song from these lyrics:
+
+I'll never have the power to control the land
+Or conquer half the world
+Or claim the sun",,,,,,Christmas Lullaby,,"""Christmas Lullaby"" is from Songs for a New World.",,,text,song_title,lyric_excerpt,songs_for_a_new_world,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0358,general,text,"Name the musical theatre song from these lyrics:
+
+And I will be like Mother Mary
+With a blessing in my soul
+And I will give the world my eyes
+So they can see",,,,,,Christmas Lullaby,,"""Christmas Lullaby"" is from Songs for a New World.",,,text,song_title,lyric_excerpt,songs_for_a_new_world,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0359,general,text,"Name the musical theatre song from these lyrics:
+
+I had a house while you were gone
+A house with silver shutters
+And a driveway laid in marble
+And thousands of rooms to fill",,,,,,I'd Give It All For You,,"""I'd Give It All For You"" is from Songs for a New World.",,,text,song_title,lyric_excerpt,songs_for_a_new_world,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0360,general,text,"Name the musical theatre song from these lyrics:
+
+Listen to the calling of excitement
+Can you feel the pounding of my heart
+The lights are ready, pulse is steady
+I can start.",,,,,,I'm Not Afraid Of Anything,,"""I'm Not Afraid Of Anything"" is from Songs for a New World.",,,text,song_title,lyric_excerpt,songs_for_a_new_world,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0361,general,text,"Name the musical theatre song from these lyrics:
+
+Clearly, I'm not wanted anymore
+Now I'm not so young and beautiful
+That's okay, I've faced defeat before",,,,,,Just One Step,,"""Just One Step"" is from Songs for a New World.",,,text,song_title,lyric_excerpt,songs_for_a_new_world,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0362,general,text,"Name the musical theatre song from these lyrics:
+
+Now you'll finally make your mother proud
+Since she never liked me anyway
+Look, she's throwing diamonds to the crowd!",,,,,,Just One Step,,"""Just One Step"" is from Songs for a New World.",,,text,song_title,lyric_excerpt,songs_for_a_new_world,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0363,general,text,"Name the musical theatre song from these lyrics:
+
+It's about one moment
+That moment you think you know where you stand
+And in that one moment
+The things that you're sure of slip from your hand",,,,,,Opening (The New World),,"""Opening (The New World)"" is from Songs for a New World.",,,text,song_title,lyric_excerpt,songs_for_a_new_world,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0364,general,text,"Name the musical theatre song from these lyrics:
+
+But then the earthquake hits
+And the bank closes in
+Then you realize you didn't know anything
+Nobody told you the best way to steer
+When the wind starts to blow",,,,,,Opening (The New World),,"""Opening (The New World)"" is from Songs for a New World.",,,text,song_title,lyric_excerpt,songs_for_a_new_world,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0365,general,text,"Name the musical theatre song from these lyrics:
+
+I met a man without a dollar to his name
+Who had no traits of any value but his smile",,,,,,Stars And The Moon,,"""Stars And The Moon"" is from Songs for a New World.",,,text,song_title,lyric_excerpt,songs_for_a_new_world,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0366,general,text,"Name the musical theatre song from these lyrics:
+
+I'll give you nights full of passion and days of adventure,
+No strings, just warm summer rain.""
+And I thought, ""You know, I'd rather have champagne.""",,,,,,Stars And The Moon,,"""Stars And The Moon"" is from Songs for a New World.",,,text,song_title,lyric_excerpt,songs_for_a_new_world,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0367,general,text,"Name the musical theatre song from these lyrics:
+
+I was just seventeen
+When you rode into town
+Just a girl full of fantasies and longing",,,,,,Surabaya-Santa,,"""Surabaya-Santa"" is from Songs for a New World.",,,text,song_title,lyric_excerpt,songs_for_a_new_world,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0368,general,text,"Name the musical theatre song from these lyrics:
+
+I don't pretend to understand Nick
+I saw you look at Blitzen long and lovingly
+The way you used to look at me",,,,,,Surabaya-Santa,,"""Surabaya-Santa"" is from Songs for a New World.",,,text,song_title,lyric_excerpt,songs_for_a_new_world,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0369,general,text,"Name the musical theatre song from these lyrics:
+
+You got to have a dream,
+If you don't have a dream,
+How you gonna have a dream come true?",,,,,,Happy Talk,,"""Happy Talk"" is from South Pacific.",,,text,song_title,lyric_excerpt,south_pacific,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0370,general,text,"Name the musical theatre song from these lyrics:
+
+Waste no time, make a change,
+Ride that man right off your range.
+Rub him out of the roll call
+And drum him out of your dreams.",,,,,,I'm Gonna Wash That Man Right Outa My Hair,,"""I'm Gonna Wash That Man Right Outa My Hair"" is from South Pacific.",,,text,song_title,lyric_excerpt,south_pacific,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0371,general,text,"Name the musical theatre song from these lyrics:
+
+We got sunlight on the sand,
+We got moonlight on the sea,
+We got mangoes and bananas
+You can pick right off the tree",,,,,,There Is Nothin' Like a Dame,,"""There Is Nothin' Like a Dame"" is from South Pacific.",,,text,song_title,lyric_excerpt,south_pacific,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0372,general,text,"Name the musical theatre song from these lyrics:
+
+Studying a face,
+Stepping back to look at a face
+Leaves a little space in the way like a window,
+But to see- it's the only way to see.",,,,,,Finishing the Hat,,"""Finishing the Hat"" is from Sunday in the Park with George.",,,text,song_title,lyric_excerpt,sunday_in_the_park_with_george,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0373,general,text,"Name the musical theatre song from these lyrics:
+
+Anything you do
+Let it come from you
+Then it will be new
+Give us more to see.",,,,,,Move On,,"""Move On"" is from Sunday in the Park with George.",,,text,song_title,lyric_excerpt,sunday_in_the_park_with_george,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0374,general,text,"Name the musical theatre song from these lyrics:
+
+As we pass
+Through arrangements of shadows
+Towards the verticals of trees
+Forever...",,,,,,Sunday,,"""Sunday"" is from Sunday in the Park with George.",,,text,song_title,lyric_excerpt,sunday_in_the_park_with_george,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0375,general,text,"Name the musical theatre song from these lyrics:
+
+Made of flecks of light
+And dark
+And parasols...",,,,,,Sunday,,"""Sunday"" is from Sunday in the Park with George.",,,text,song_title,lyric_excerpt,sunday_in_the_park_with_george,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0376,general,text,"Name the musical theatre song from these lyrics:
+
+Well, there are worse things
+Than staring at the water on a Sunday",,,,,,Sunday in the Park With George,,"""Sunday in the Park With George"" is from Sunday in the Park with George.",,,text,song_title,lyric_excerpt,sunday_in_the_park_with_george,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0377,general,text,"Name the musical theatre song from these lyrics:
+
+Who was at the zoo, George?
+Who was at the zoo?
+The monkeys and who, George?
+The monkeys and who?",,,,,,Sunday in the Park With George,,"""Sunday in the Park With George"" is from Sunday in the Park with George.",,,text,song_title,lyric_excerpt,sunday_in_the_park_with_george,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0378,general,text,"Name the musical theatre song from these lyrics:
+
+I don't know why I'm frightened
+I know my way around here
+The cardboard trees, the painted seas, the sound here...",,,,,,As If We Never Said Goodbye,,"""As If We Never Said Goodbye"" is from Sunset Boulevard.",,,text,song_title,lyric_excerpt,sunset_boulevard,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0379,general,text,"Name the musical theatre song from these lyrics:
+
+And this time will be bigger
+And brighter than we knew it
+So watch me fly, we all know I can do it...",,,,,,As If We Never Said Goodbye,,"""As If We Never Said Goodbye"" is from Sunset Boulevard.",,,text,song_title,lyric_excerpt,sunset_boulevard,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0380,general,text,"Name the musical theatre song from these lyrics:
+
+Sure I came out here to make my name
+Wanted my pool, my dose of fame
+Wanted my parking space at Warner's",,,,,,Sunset Boulevard,,"""Sunset Boulevard"" is from Sunset Boulevard.",,,text,song_title,lyric_excerpt,sunset_boulevard,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0381,general,text,"Name the musical theatre song from these lyrics:
+
+She was sinking fast, I threw a rope
+Now I have suits and she has hope
+It seemed an elegant solution",,,,,,Sunset Boulevard,,"""Sunset Boulevard"" is from Sunset Boulevard.",,,text,song_title,lyric_excerpt,sunset_boulevard,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0382,general,text,"Name the musical theatre song from these lyrics:
+
+Once, you won't remember
+If you said Hollywood, hers was the face you'd think of
+Her face on every billboard
+In just a single week, she's get ten thousand letters",,,,,,The Greatest Star Of All,,"""The Greatest Star Of All"" is from Sunset Boulevard.",,,text,song_title,lyric_excerpt,sunset_boulevard,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0383,general,text,"Name the musical theatre song from these lyrics:
+
+I don't need a crowded ballroom
+Everything I want is here",,,,,,The Perfect Year,,"""The Perfect Year"" is from Sunset Boulevard.",,,text,song_title,lyric_excerpt,sunset_boulevard,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0384,general,text,"Name the musical theatre song from these lyrics:
+
+It's New Year's Eve
+And hopes are high
+Dance one year in
+Kiss one goodbye",,,,,,The Perfect Year,,"""The Perfect Year"" is from Sunset Boulevard.",,,text,song_title,lyric_excerpt,sunset_boulevard,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0385,general,text,"Name the musical theatre song from these lyrics:
+
+No words can tell the stories my eyes tell
+Watch me when I frown, you can't write that down",,,,,,With One Look,,"""With One Look"" is from Sunset Boulevard.",,,text,song_title,lyric_excerpt,sunset_boulevard,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0386,general,text,"Name the musical theatre song from these lyrics:
+
+This time I am staying, I'm staying for good
+I'll be back to where I was born to be",,,,,,With One Look,,"""With One Look"" is from Sunset Boulevard.",,,text,song_title,lyric_excerpt,sunset_boulevard,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0387,general,text,"Name the musical theatre song from these lyrics:
+
+Mercy no, sir, look closer,
+You'll notice it's grocer!",,,,,,A Little Priest,,"""A Little Priest"" is from Sweeney Todd.",,,text,song_title,lyric_excerpt,sweeney_todd,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0388,general,text,"Name the musical theatre song from these lyrics:
+
+Lovely bit of clerk? Maybe for a lark.
+Then again there's sweep
+If you want it cheap, and you like it dark!",,,,,,A Little Priest,,"""A Little Priest"" is from Sweeney Todd.",,,text,song_title,lyric_excerpt,sweeney_todd,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0389,general,text,"Name the musical theatre song from these lyrics:
+
+I'll warm me bones on the esplanade,
+Have tea and scones with me gay young blade,
+Then I'll knit a sweater, while you write a letter
+Unless we've got better to do-hoo!",,,,,,By the Sea,,"""By the Sea"" is from Sweeney Todd.",,,text,song_title,lyric_excerpt,sweeney_todd,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0390,general,text,"Name the musical theatre song from these lyrics:
+
+There's a hole in the world like a great black pit
+And it's filled with people who are filled with shit
+And the vermin of the world inhabit it.",,,,,,Epiphany,,"""Epiphany"" is from Sweeney Todd.",,,text,song_title,lyric_excerpt,sweeney_todd,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0391,general,text,"Name the musical theatre song from these lyrics:
+
+Do they think that walls could hide you?
+Even now, I'm at your window.
+I am in the dark beside you,
+Buried sweetly in your yellow hair!",,,,,,Johanna,,"""Johanna"" is from Sweeney Todd.",,,text,song_title,lyric_excerpt,sweeney_todd,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0392,general,text,"Name the musical theatre song from these lyrics:
+
+Being close and being clever
+Ain't like being true
+I don't need to,
+I would never hide a thing from you,",,,,,,Not While I'm Around,,"""Not While I'm Around"" is from Sweeney Todd.",,,text,song_title,lyric_excerpt,sweeney_todd,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0393,general,text,"Name the musical theatre song from these lyrics:
+
+Demons are prowling everywhere, nowadays,
+I'll send 'em howling,
+I don't care, I got ways.",,,,,,Not While I'm Around,,"""Not While I'm Around"" is from Sweeney Todd.",,,text,song_title,lyric_excerpt,sweeney_todd,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0394,general,text,"Name the musical theatre song from these lyrics:
+
+Mrs. Mooney has a pie shop!
+Does a business but I notice something weird.
+Lately all her neighbors' cats have disappeared!",,,,,,The Worst Pies in London,,"""The Worst Pies in London"" is from Sweeney Todd.",,,text,song_title,lyric_excerpt,sweeney_todd,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0395,general,text,"Name the musical theatre song from these lyrics:
+
+Is that just revolting,
+All greasy and gritty?
+It looks like it's moulting,",,,,,,The Worst Pies in London,,"""The Worst Pies in London"" is from Sweeney Todd.",,,text,song_title,lyric_excerpt,sweeney_todd,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0396,general,text,"Name the musical theatre song from these lyrics:
+
+The minute you walked in the joint,
+I could see you were a man of distinction",,,,,,Big Spender,,"""Big Spender"" is from Sweet Charity.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0397,general,text,"Name the musical theatre song from these lyrics:
+
+Good looking, so refined.
+Say wouldn't you like to know
+What's going on in my mind?",,,,,,Big Spender,,"""Big Spender"" is from Sweet Charity.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0398,general,text,"Name the musical theatre song from these lyrics:
+
+Well, you don't interfere
+when you're scared of the things you might hear.
+Bet you think I should end this right now as you would do.
+Well, my hard bitten friend, I am not you.",,,,,,Take That Look Off Your Face,,"""Take That Look Off Your Face"" is from Tell Me on a Sunday.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0399,general,text,"Name the musical theatre song from these lyrics:
+
+You would love to be right.
+I bet you didn't sleep good last night,
+Couldn't wait to bring all of that bad news to my door.",,,,,,Take That Look Off Your Face,,"""Take That Look Off Your Face"" is from Tell Me on a Sunday.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0400,general,text,"Name the musical theatre song from these lyrics:
+
+Don't write a letter when you want to leave
+Don't call me at 3 a.m. from a friend's apartment",,,,,,Tell Me On A Sunday,,"""Tell Me On A Sunday"" is from Tell Me on a Sunday.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0401,general,text,"Name the musical theatre song from these lyrics:
+
+Don't want to fight day and night
+Bad enough you're going",,,,,,Tell Me On A Sunday,,"""Tell Me On A Sunday"" is from Tell Me on a Sunday.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0402,general,text,"Name the musical theatre song from these lyrics:
+
+I'd drink some sweet St Austell Ale
+Then I'd weave a drunken trail",,,,,,A Little Life,,"""A Little Life"" is from The Curious Case of Benjamin Button.",,,text,song_title,lyric_excerpt,the_curious_case_of_benjamin_button,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0403,general,text,"Name the musical theatre song from these lyrics:
+
+I was born so close to dyin'
+With barely breath for sighin'
+That it hardly seems worth tryin'
+To even live",,,,,,A Little Life,,"""A Little Life"" is from The Curious Case of Benjamin Button.",,,text,song_title,lyric_excerpt,the_curious_case_of_benjamin_button,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0404,general,text,"Name the musical theatre song from these lyrics:
+
+Time can heal and time can fly
+And time can even pass us by
+Sometimes we have time to kill
+But in this moment time stands still",,,,,,Shipping Out Tomorrow,,"""Shipping Out Tomorrow"" is from The Curious Case of Benjamin Button.",,,text,song_title,lyric_excerpt,the_curious_case_of_benjamin_button,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0405,general,text,"Name the musical theatre song from these lyrics:
+
+Elowen Keene sees Benjamin
+And Benjamin Button sees Elowen
+Across that hall of dancin' feet
+Two star-crossed lovers' eyes do meet",,,,,,Shipping Out Tomorrow,,"""Shipping Out Tomorrow"" is from The Curious Case of Benjamin Button.",,,text,song_title,lyric_excerpt,the_curious_case_of_benjamin_button,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0406,general,text,"Name the musical theatre song from these lyrics:
+
+And oh, I will watch him as he grows
+We'll build castles in the sand
+And the tide will touch our toes
+As I hold his little hand",,,,,,The Western Wind,,"""The Western Wind"" is from The Curious Case of Benjamin Button.",,,text,song_title,lyric_excerpt,the_curious_case_of_benjamin_button,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0407,general,text,"Name the musical theatre song from these lyrics:
+
+The slumberin' sheep awoke from a dream
+To find the water on the farm had started flowin' upstream
+Millie Dyer was still waterin' her one foot man
+When the water on the gnome poured back in the waterin' can",,,,,,The Western Wind,,"""The Western Wind"" is from The Curious Case of Benjamin Button.",,,text,song_title,lyric_excerpt,the_curious_case_of_benjamin_button,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0408,general,text,"Name the musical theatre song from these lyrics:
+
+Safe behind these windows and these parapets of stone
+Gazing at the people down below me
+All my life I watch them as I hide up here alone
+Hungry for the histories they show me",,,,,,Out There,,"""Out There"" is from The Hunchback of Notre Dame.",,,text,song_title,lyric_excerpt,the_hunchback_of_notre_dame,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0409,general,text,"Name the musical theatre song from these lyrics:
+
+It's a very ancient saying,
+But a true and honest thought,
+That if you become a teacher,
+By your pupils you'll be taught",,,,,,Getting to Know You,,"""Getting to Know You"" is from The King and I.",,,text,song_title,lyric_excerpt,the_king_and_i,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0410,general,text,"Name the musical theatre song from these lyrics:
+
+I know how it feels to have wings on your heels,
+And to fly down the street in a trance.
+You fly down a street on the chance that you meet,
+And you meet-not really by chance.",,,,,,"Hello, Young Lovers",,"""Hello, Young Lovers"" is from The King and I.",,,text,song_title,lyric_excerpt,the_king_and_i,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0411,general,text,"Name the musical theatre song from these lyrics:
+
+In these dreams I've loved you so
+That by now I think I know
+What it's like to be loved by you",,,,,,I Have Dreamed,,"""I Have Dreamed"" is from The King and I.",,,text,song_title,lyric_excerpt,the_king_and_i,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0412,general,text,"Name the musical theatre song from these lyrics:
+
+The result of this deception
+Is very strange to tell
+For when I fool the people I fear
+I fool myself as well!",,,,,,I Whistle a Happy Tune,,"""I Whistle a Happy Tune"" is from The King and I.",,,text,song_title,lyric_excerpt,the_king_and_i,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0413,general,text,"Name the musical theatre song from these lyrics:
+
+Eyes that shine
+Just for him-
+So he thinks.
+Just for him!",,,,,,My Lord and Master,,"""My Lord and Master"" is from The King and I.",,,text,song_title,lyric_excerpt,the_king_and_i,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0414,general,text,"Name the musical theatre song from these lyrics:
+
+Shall we still be together
+With are arms around each other
+And shall you be my new romance?",,,,,,Shall We Dance,,"""Shall We Dance"" is from The King and I.",,,text,song_title,lyric_excerpt,the_king_and_i,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0415,general,text,"Name the musical theatre song from these lyrics:
+
+So many men and girls,
+Are in each others arms-
+It made me think we might be
+Similarly occupied",,,,,,Shall We Dance,,"""Shall We Dance"" is from The King and I.",,,text,song_title,lyric_excerpt,the_king_and_i,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0416,general,text,"Name the musical theatre song from these lyrics:
+
+He has a thousand dreams
+That won't come true,
+You know that he believes in them
+And that's enough for you.",,,,,,Something Wonderful,,"""Something Wonderful"" is from The King and I.",,,text,song_title,lyric_excerpt,the_king_and_i,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0417,general,text,"Name the musical theatre song from these lyrics:
+
+We speak in a whisper,
+Afraid to be heard;
+When people are near,
+We speak not a word.",,,,,,We Kiss in a Shadow,,"""We Kiss in a Shadow"" is from The King and I.",,,text,song_title,lyric_excerpt,the_king_and_i,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0418,general,text,"Name the musical theatre song from these lyrics:
+
+And then he'll smile
+His eyes light up and deep within the ground
+Without a sound
+A moment comes to life",,,,,,A Part of That,,"""A Part of That"" is from The Last Five Years.",,,text,song_title,lyric_excerpt,the_last_five_years,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0419,general,text,"Name the musical theatre song from these lyrics:
+
+Handful after handful of Doritos
+Circling the apartment, logging miles",,,,,,A Part of That,,"""A Part of That"" is from The Last Five Years.",,,text,song_title,lyric_excerpt,the_last_five_years,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0420,general,text,"Name the musical theatre song from these lyrics:
+
+I could have a satchel full of dollar bills
+Cures for all the nations ills
+Pills to make a lion purr",,,,,,A Summer in Ohio,,"""A Summer in Ohio"" is from The Last Five Years.",,,text,song_title,lyric_excerpt,the_last_five_years,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0421,general,text,"Name the musical theatre song from these lyrics:
+
+Richard, who was with me, got uncharacteristically quiet
+And he said, ""All things considered, I guess you don't have to buy it""",,,,,,A Summer in Ohio,,"""A Summer in Ohio"" is from The Last Five Years.",,,text,song_title,lyric_excerpt,the_last_five_years,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0422,general,text,"Name the musical theatre song from these lyrics:
+
+When I walk in the room
+There's a table of men
+Always men - usually gay",,,,,,Climbing Uphill,,"""Climbing Uphill"" is from The Last Five Years.",,,text,song_title,lyric_excerpt,the_last_five_years,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0423,general,text,"Name the musical theatre song from these lyrics:
+
+I will not be the girl stuck at home in the 'burbs
+With the baby, the dog, and the garden of herbs",,,,,,Climbing Uphill,,"""Climbing Uphill"" is from The Last Five Years.",,,text,song_title,lyric_excerpt,the_last_five_years,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0424,general,text,"Name the musical theatre song from these lyrics:
+
+And I guess he was cute
+And I guess he was sweet
+And I guess he was good in bed",,,,,,I Can Do Better Than That,,"""I Can Do Better Than That"" is from The Last Five Years.",,,text,song_title,lyric_excerpt,the_last_five_years,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0425,general,text,"Name the musical theatre song from these lyrics:
+
+Think of what's great about me and you
+Think of the bullshit we've both been through
+Think of what's past because we can do better!",,,,,,I Can Do Better Than That,,"""I Can Do Better Than That"" is from The Last Five Years.",,,text,song_title,lyric_excerpt,the_last_five_years,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0426,general,text,"Name the musical theatre song from these lyrics:
+
+And you say, ""Oh, no
+Step on the brakes
+Do whatever it takes
+But stop this train",,,,,,Moving Too Fast,,"""Moving Too Fast"" is from The Last Five Years.",,,text,song_title,lyric_excerpt,the_last_five_years,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0427,general,text,"Name the musical theatre song from these lyrics:
+
+I stole this sweater from a costume shop
+It makes me look like Daisy Mae",,,,,,See I'm Smiling,,"""See I'm Smiling"" is from The Last Five Years.",,,text,song_title,lyric_excerpt,the_last_five_years,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0428,general,text,"Name the musical theatre song from these lyrics:
+
+No, Jamie, you do not have to go to another party
+With the same twenty jerks you already know",,,,,,See I'm Smiling,,"""See I'm Smiling"" is from The Last Five Years.",,,text,song_title,lyric_excerpt,the_last_five_years,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0429,general,text,"Name the musical theatre song from these lyrics:
+
+I'm breaking my mother's heart
+The longer I stand looking at you
+The more I hear it splinter and crack
+From ninety miles away",,,,,,Shiksa Goddess,,"""Shiksa Goddess"" is from The Last Five Years.",,,text,song_title,lyric_excerpt,the_last_five_years,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0430,general,text,"Name the musical theatre song from these lyrics:
+
+Jamie is over and Jamie is gone
+Jamie's decided it's time to move on",,,,,,Still Hurting,,"""Still Hurting"" is from The Last Five Years.",,,text,song_title,lyric_excerpt,the_last_five_years,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0431,general,text,"Name the musical theatre song from these lyrics:
+
+Go and hide and run away
+Run away, run and find something better",,,,,,Still Hurting,,"""Still Hurting"" is from The Last Five Years.",,,text,song_title,lyric_excerpt,the_last_five_years,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0432,general,text,"Name the musical theatre song from these lyrics:
+
+And the dress he made on that endless night
+Was a dress that would make any soul take flight
+Not a swatch, not a skein had gone to waste
+Every ribbon and button ideally placed",,,,,,The Schmuel Song,,"""The Schmuel Song"" is from The Last Five Years.",,,text,song_title,lyric_excerpt,the_last_five_years,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0433,general,text,"Name the musical theatre song from these lyrics:
+
+From the day we arrive on the planet
+And blinking, step into the sun
+There's more to see than can ever be seen
+More to do than can ever be done",,,,,,Circle of Life,,"""Circle of Life"" is from The Lion King.",,,text,song_title,lyric_excerpt,the_lion_king,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0434,general,text,"Name the musical theatre song from these lyrics:
+
+It means no worries
+For the rest of your days",,,,,,Hakuna Matata,,"""Hakuna Matata"" is from The Lion King.",,,text,song_title,lyric_excerpt,the_lion_king,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0435,general,text,"Name the musical theatre song from these lyrics:
+
+There you see her,
+sitting there across the way.
+She don't got a lot to say,
+But there's something about her.",,,,,,Kiss The Girl,,"""Kiss The Girl"" is from The Little Mermaid.",,,text,song_title,lyric_excerpt,the_little_mermaid,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0436,general,text,"Name the musical theatre song from these lyrics:
+
+Sacre bleu! What is this?
+How on earth could I miss
+Such a sweet little succulent crab?",,,,,,Les Poissons,,"""Les Poissons"" is from The Little Mermaid.",,,text,song_title,lyric_excerpt,the_little_mermaid,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0437,general,text,"Name the musical theatre song from these lyrics:
+
+Look at this trove
+Treasures untold
+How many wonders can one cavern hold?",,,,,,Part of Your World,,"""Part of Your World"" is from The Little Mermaid.",,,text,song_title,lyric_excerpt,the_little_mermaid,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0438,general,text,"Name the musical theatre song from these lyrics:
+
+Now, it's happened once or twice
+Someone couldn't pay the price
+And I'm afraid I had to rake 'em 'cross the coals",,,,,,Poor Unfortunate Souls,,"""Poor Unfortunate Souls"" is from The Little Mermaid.",,,text,song_title,lyric_excerpt,the_little_mermaid,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0439,general,text,"Name the musical theatre song from these lyrics:
+
+The lute play the flute
+The carp play the harp
+The plaice play the bass and they soundin' sharp",,,,,,Under the Sea,,"""Under the Sea"" is from The Little Mermaid.",,,text,song_title,lyric_excerpt,the_little_mermaid,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0440,general,text,"Name the musical theatre song from these lyrics:
+
+Darling its better down where its wetter
+Take it from me",,,,,,Under the Sea,,"""Under the Sea"" is from The Little Mermaid.",,,text,song_title,lyric_excerpt,the_little_mermaid,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0441,general,text,"Name the musical theatre song from these lyrics:
+
+They were followed by rows and rows
+Of the finest virtuosos,
+The cream of ev'ry famous band.",,,,,,Seventy Six Trombones,,"""Seventy Six Trombones"" is from The Music Man.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0442,general,text,"Name the musical theatre song from these lyrics:
+
+Right here in River City.
+Trouble with a capital ""T""
+And that rhymes with ""P"" and that stands for pool!",,,,,,Ya Got Trouble,,"""Ya Got Trouble"" is from The Music Man.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0443,general,text,"Name the musical theatre song from these lyrics:
+
+No more talk of darkness,
+Forget these wide-eyed fears",,,,,,All I Ask of You,,"""All I Ask of You"" is from The Phantom of the Opera.",,,text,song_title,lyric_excerpt,the_phantom_of_the_opera,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0444,general,text,"Name the musical theatre song from these lyrics:
+
+Say you love me every waking moment,
+turn my head with talk of summertime...",,,,,,All I Ask of You,,"""All I Ask of You"" is from The Phantom of the Opera.",,,text,song_title,lyric_excerpt,the_phantom_of_the_opera,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0445,general,text,"Name the musical theatre song from these lyrics:
+
+Father once spoke of an angel
+I used to dream he'd appear
+Now as I sing, I can sense him
+And I know he's here",,,,,,Angel of Music,,"""Angel of Music"" is from The Phantom of the Opera.",,,text,song_title,lyric_excerpt,the_phantom_of_the_opera,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0446,general,text,"Name the musical theatre song from these lyrics:
+
+Let your mind start a journey
+Through a strange new world
+Leave all thoughts of the world
+You knew before",,,,,,Music of the Night,,"""Music of the Night"" is from The Phantom of the Opera.",,,text,song_title,lyric_excerpt,the_phantom_of_the_opera,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0447,general,text,"Name the musical theatre song from these lyrics:
+
+In all your fantasies, you always knew
+That man and mystery were both in you",,,,,,The Phantom of the Opera,,"""The Phantom of the Opera"" is from The Phantom of the Opera.",,,text,song_title,lyric_excerpt,the_phantom_of_the_opera,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0448,general,text,"Name the musical theatre song from these lyrics:
+
+Recall those days, look back on all those times
+Think of the things we'll never do",,,,,,Think of Me,,"""Think of Me"" is from The Phantom of the Opera.",,,text,song_title,lyric_excerpt,the_phantom_of_the_opera,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0449,general,text,"Name the musical theatre song from these lyrics:
+
+You were once my one companion
+You were all that mattered
+You were once a friend and father
+Then my world was shattered",,,,,,Wishing You Were Somehow Here Again,,"""Wishing You Were Somehow Here Again"" is from The Phantom of the Opera.",,,text,song_title,lyric_excerpt,the_phantom_of_the_opera,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0450,general,text,"Name the musical theatre song from these lyrics:
+
+It's astounding, time is fleeting
+Madness takes its toll",,,,,,Time Warp,,"""Time Warp"" is from The Rocky Horror Show.",,,text,song_title,lyric_excerpt,the_rocky_horror_show,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0451,general,text,"Name the musical theatre song from these lyrics:
+
+Let's start at the very beginning
+A very good place to start",,,,,,Do-Re-Mi,,"""Do-Re-Mi"" is from The Sound of Music.",,,text,song_title,lyric_excerpt,the_sound_of_music,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0452,general,text,"Name the musical theatre song from these lyrics:
+
+Small and white, clean and bright
+You look happy to meet me",,,,,,Edelweiss,,"""Edelweiss"" is from The Sound of Music.",,,text,song_title,lyric_excerpt,the_sound_of_music,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0453,general,text,"Name the musical theatre song from these lyrics:
+
+Raindrops on roses and whiskers on kittens
+Bright copper kettles and warm woolen mittens",,,,,,My Favorite Things,,"""My Favorite Things"" is from The Sound of Music.",,,text,song_title,lyric_excerpt,the_sound_of_music,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0454,general,text,"Name the musical theatre song from these lyrics:
+
+When the dog bites
+When the bee stings
+When I'm feeling sad",,,,,,My Favorite Things,,"""My Favorite Things"" is from The Sound of Music.",,,text,song_title,lyric_excerpt,the_sound_of_music,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0455,general,text,"Name the musical theatre song from these lyrics:
+
+I go to the hills
+When my heart is lonely.",,,,,,Sound of Music,,"""Sound of Music"" is from The Sound of Music.",,,text,song_title,lyric_excerpt,the_sound_of_music,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0456,general,text,"Name the musical theatre song from these lyrics:
+
+Pick your left foot up
+When your right one's down,
+Come on legs keep movin'
+Don't you lose no ground",,,,,,Ease on Down the Road,,"""Ease on Down the Road"" is from The Wiz.",,,text,song_title,lyric_excerpt,the_wiz,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0457,general,text,"Name the musical theatre song from these lyrics:
+
+We represent the Lollipop Guild
+The Lollipop Guild, the Lollipop Guild",,,,,,Ding-Dong! The Witch Is Dead,,"""Ding-Dong! The Witch Is Dead"" is from The Wizard of Oz.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0458,general,text,"Name the musical theatre song from these lyrics:
+
+I could while away the hours,
+Conferrin' with the flowers
+Consultin' with the rain.",,,,,,If I Only Had A Brain,,"""If I Only Had A Brain"" is from The Wizard of Oz.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0459,general,text,"Name the musical theatre song from these lyrics:
+
+Someday I'll wish upon a star
+And wake up where the clouds are far behind me.",,,,,,Over The Rainbow,,"""Over The Rainbow"" is from The Wizard of Oz.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0460,general,text,"Name the musical theatre song from these lyrics:
+
+And the dreams that you dare to dream,
+Really do come true.",,,,,,Over The Rainbow,,"""Over The Rainbow"" is from The Wizard of Oz.",,,text,song_title,lyric_excerpt,,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0461,general,text,"Name the musical theatre song from these lyrics:
+
+I feel bad, that you feel bad
+About me feeling bad, about you feeling bad
+About what I said, about what you said
+About me not being able to share a feeling",,,,,,Therapy,,"""Therapy"" is from tick, tick... Boom!.",,,text,song_title,lyric_excerpt,tick_tick_boom,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0462,general,text,"Name the musical theatre song from these lyrics:
+
+Strolling down the avenue together
+Dressed in shoes of alligator leather
+Swapping smart remarks about the weather",,,,,,American Express,,"""American Express"" is from Two Strangers (Carry a Cake Across New York).",,,text,song_title,lyric_excerpt,two_strangers_carry_a_cake_across_new_york,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0463,general,text,"Name the musical theatre song from these lyrics:
+
+Feel the lightness,
+Feel the laughter,
+The rest will follow after",,,,,,Be Happy,,"""Be Happy"" is from Two Strangers (Carry a Cake Across New York).",,,text,song_title,lyric_excerpt,two_strangers_carry_a_cake_across_new_york,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0464,general,text,"Name the musical theatre song from these lyrics:
+
+Step outside, get some air
+Find a window, fix your hair",,,,,,If I Believed,,"""If I Believed"" is from Two Strangers (Carry a Cake Across New York).",,,text,song_title,lyric_excerpt,two_strangers_carry_a_cake_across_new_york,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0465,general,text,"Name the musical theatre song from these lyrics:
+
+There’s pizza for breakfast
+There’s steam in the air
+It’s candy, not sweets, and the streets are called sidewalks there",,,,,,New York,,"""New York"" is from Two Strangers (Carry a Cake Across New York).",,,text,song_title,lyric_excerpt,two_strangers_carry_a_cake_across_new_york,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0466,general,text,"Name the musical theatre song from these lyrics:
+
+My home, the city of stories where everything’s seventy stories high
+Where everyone kisses their blues goodbye
+The cinema city I’ve waited the whole of my life to see
+""Are you talkin’ to me?""",,,,,,New York,,"""New York"" is from Two Strangers (Carry a Cake Across New York).",,,text,song_title,lyric_excerpt,two_strangers_carry_a_cake_across_new_york,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0467,general,text,"Name the musical theatre song from these lyrics:
+
+It's too cold to go walking, believe me, I've tried
+So let's open our stockings and see what's inside",,,,,,Under the Mistletoe,,"""Under the Mistletoe"" is from Two Strangers (Carry a Cake Across New York).",,,text,song_title,lyric_excerpt,two_strangers_carry_a_cake_across_new_york,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0468,general,text,"Name the musical theatre song from these lyrics:
+
+I'm Robin
+I'll be serving you this morning
+Thanks for waiting
+I'll be right with you",,,,,,What’ll It Be,,"""What’ll It Be"" is from Two Strangers (Carry a Cake Across New York).",,,text,song_title,lyric_excerpt,two_strangers_carry_a_cake_across_new_york,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0469,general,text,"Name the musical theatre song from these lyrics:
+
+And everybody comes to you with all their dreams and blues
+Everybody says ""Hey girl, I wanna be in your shoes
+You've got it all figured out""
+But they don't see",,,,,,What’ll It Be,,"""What’ll It Be"" is from Two Strangers (Carry a Cake Across New York).",,,text,song_title,lyric_excerpt,two_strangers_carry_a_cake_across_new_york,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0470,general,text,"Name the musical theatre song from these lyrics:
+
+Hurry up, fill the coffee cup
+And then in a while
+Take a breath when you need to be reminded that with days like these
+We can only do the best we can, 'til we do it again",,,,,,Opening Up,,"""Opening Up"" is from Waitress.",,,text,song_title,lyric_excerpt,waitress,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0471,general,text,"Name the musical theatre song from these lyrics:
+
+She's imperfect but she tries
+She is good but she lies
+She is hard on herself
+She is broken and won't ask for help",,,,,,She Used to Be Mine,,"""She Used to Be Mine"" is from Waitress.",,,text,song_title,lyric_excerpt,waitress,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0472,general,text,"Name the musical theatre song from these lyrics:
+
+If I'm honest I know I would give it all back
+For a chance to start over
+And rewrite an ending or two
+For the girl that I knew",,,,,,She Used to Be Mine,,"""She Used to Be Mine"" is from Waitress.",,,text,song_title,lyric_excerpt,waitress,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0473,general,text,"Name the musical theatre song from these lyrics:
+
+Make it work, make it easy
+Make it clever, craft it into pieces
+Make it sweet, crimp the edges
+Or make it sour and serve with lemon wedges",,,,,,What Baking Can Do,,"""What Baking Can Do"" is from Waitress.",,,text,song_title,lyric_excerpt,waitress,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0474,general,text,"Name the musical theatre song from these lyrics:
+
+Puerto Rico, you lovely island,
+Island of tropical breezes.
+Always the pineapples growing,
+Always the coffee blossoms blowing.",,,,,,America,,"""America"" is from West Side Story.",,,text,song_title,lyric_excerpt,west_side_story,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0475,general,text,"Name the musical theatre song from these lyrics:
+
+Such a pretty face,
+Such a pretty dress,
+Such a pretty smile,
+Such a pretty me!",,,,,,I Feel Pretty,,"""I Feel Pretty"" is from West Side Story.",,,text,song_title,lyric_excerpt,west_side_story,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0476,general,text,"Name the musical theatre song from these lyrics:
+
+Say it loud and there's music playing,
+Say it soft and it's almost like praying.",,,,,,Maria,,"""Maria"" is from West Side Story.",,,text,song_title,lyric_excerpt,west_side_story,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0477,general,text,"Name the musical theatre song from these lyrics:
+
+It may come cannon-balling down through the sky,
+Gleam in its eye,
+Bright as a rose!",,,,,,Something's Coming,,"""Something's Coming"" is from West Side Story.",,,text,song_title,lyric_excerpt,west_side_story,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0478,general,text,"Name the musical theatre song from these lyrics:
+
+We'll find a new way of living,
+We'll find a way of forgiving",,,,,,Somewhere,,"""Somewhere"" is from West Side Story.",,,text,song_title,lyric_excerpt,west_side_story,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0479,general,text,"Name the musical theatre song from these lyrics:
+
+Kiss me too fiercely
+Hold me too tight
+I need help believing
+You're with me tonight",,,,,,As Long as You're Mine,,"""As Long as You're Mine"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0480,general,text,"Name the musical theatre song from these lyrics:
+
+Life is fraught-less
+When you're thoughtless
+Those who don't try
+Never look foolish",,,,,,Dancing Through Life,,"""Dancing Through Life"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0481,general,text,"Name the musical theatre song from these lyrics:
+
+I hope you're happy
+I hope you're happy, too",,,,,,Defying Gravity,,"""Defying Gravity"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0482,general,text,"Name the musical theatre song from these lyrics:
+
+I'm through accepting limits
+'Cause someone says they're so",,,,,,Defying Gravity,,"""Defying Gravity"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0483,general,text,"Name the musical theatre song from these lyrics:
+
+Like a stream that meets a boulder
+Halfway through the wood",,,,,,For Good,,"""For Good"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0484,general,text,"Name the musical theatre song from these lyrics:
+
+I've heard it said
+That people come into our lives for a reason
+Bringing something we must learn",,,,,,For Good,,"""For Good"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0485,general,text,"Name the musical theatre song from these lyrics:
+
+Blithe smile, lithe limb
+She who's winsome, she wins him",,,,,,I'm Not That Girl,,"""I'm Not That Girl"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0486,general,text,"Name the musical theatre song from these lyrics:
+
+Was I really seeking good
+Or just seeking attention?",,,,,,No Good Deed,,"""No Good Deed"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0487,general,text,"Name the musical theatre song from these lyrics:
+
+Let his flesh not be torn
+Let his blood leave no stain
+Though they beat him
+Let him feel no pain",,,,,,No Good Deed,,"""No Good Deed"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0488,general,text,"Name the musical theatre song from these lyrics:
+
+Isn't it nice to know
+That good will conquer evil?",,,,,,No One Mourns the Wicked,,"""No One Mourns the Wicked"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0489,general,text,"Name the musical theatre song from these lyrics:
+
+Have another drink, my dark-eyed beauty
+I've got one more night left, here in town",,,,,,No One Mourns the Wicked,,"""No One Mourns the Wicked"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0490,general,text,"Name the musical theatre song from these lyrics:
+
+There are wonders like I've never seen
+It's all grand
+And it's all green!",,,,,,One Short Day,,"""One Short Day"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0491,general,text,"Name the musical theatre song from these lyrics:
+
+We're just two friends
+Two good friends
+Two best friends",,,,,,One Short Day,,"""One Short Day"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0492,general,text,"Name the musical theatre song from these lyrics:
+
+I'll show you what shoes to wear
+How to fix your hair
+Everything that really counts",,,,,,Popular,,"""Popular"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0493,general,text,"Name the musical theatre song from these lyrics:
+
+Did they have brains or knowledge?
+Don't make me laugh!",,,,,,Popular,,"""Popular"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0494,general,text,"Name the musical theatre song from these lyrics:
+
+'Cause getting your dreams
+It's strange, but it seems
+A little - well - complicated",,,,,,Thank Goodness,,"""Thank Goodness"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0495,general,text,"Name the musical theatre song from these lyrics:
+
+Did that really just happen?
+Have I actually understood?",,,,,,The Wizard and I,,"""The Wizard and I"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0496,general,text,"Name the musical theatre song from these lyrics:
+
+Unlimited
+My future is unlimited
+And I've just had a vision
+Almost like a prophecy",,,,,,The Wizard and I,,"""The Wizard and I"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0497,general,text,"Name the musical theatre song from these lyrics:
+
+Loathing, unadulterated loathing
+For your face
+Your voice
+Your clothing",,,,,,What Is This Feeling,,"""What Is This Feeling"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
+waxing_lyrical_text,Waxing Lyrical (Text),general,0,WaxingT-0498,general,text,"Name the musical theatre song from these lyrics:
+
+Unusually and exceedingly peculiar
+And altogether quite impossible to describe.",,,,,,What Is This Feeling,,"""What Is This Feeling"" is from Wicked.",,,text,song_title,lyric_excerpt,wicked,,
