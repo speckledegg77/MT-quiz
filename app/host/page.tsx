@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
 import HostJoinedTeamsPanel from "@/components/HostJoinedTeamsPanel"
+import HostAnswerReviewPanel from "@/components/host/HostAnswerReviewPanel"
 import PageShell from "@/components/PageShell"
 import RoundSummaryCard from "@/components/RoundSummaryCard"
 
@@ -3450,6 +3451,7 @@ export default function HostPage() {
                 </CardContent>
               </Card>
               <HostJoinedTeamsPanel code={roomCode ?? ""} />
+              <HostAnswerReviewPanel roomCode={roomCode ?? ""} roomPhase={roomPhase} />
             </>
           )}
         </div>

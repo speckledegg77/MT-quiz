@@ -4,8 +4,8 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Current priority
 
+- [ ] Add host-side answer adjudication so disputed text answers can be reviewed and corrected safely during a live room.
 - [ ] Build better answer-audit tools into the admin questions page so text-answer cleanup is faster and safer.
-- [x] Add host-side round feasibility checks so the host can see whether a round has enough eligible questions before starting a game.
 - [ ] Keep consolidating the round-plan model so packs stay content sources and rounds stay gameplay definitions.
 
 ## Next feature candidates
@@ -29,6 +29,7 @@ This file tracks the live plan. Keep it short and practical.
 - [x] Canonicalise Tailwind theme-token classes where useful so IntelliSense suggestions are reduced.
 - [x] Do a shared cleanup pass on repeated timer and state-handling logic across Host, Player, and Display.
 - [ ] Review whether any host controls still feel duplicated or unclear.
+- [ ] Add a compact host review view for disputed answers, including raw submissions, normalised text, and room-only score overrides.
 - [ ] Tighten template and round-builder labels so Quickfire, Standard, and future round types feel clearly different.
 - [ ] Add stronger answer-audit filters, previews, and bulk helpers to the admin questions screen.
 
@@ -37,12 +38,14 @@ This file tracks the live plan. Keep it short and practical.
 - [x] Seed a broader canonical `shows` list and keep `docs/shows-reference.md` in sync.
 - [ ] Expand the question bank, especially for rounds that need larger eligible pools.
 - [x] Build out the `Waxing Lyrical` text and MCQ packs.
-- [ ] Validate and import the final `Waxing Lyrical (MCQ)` master.
+- [x] Validate and import the final `Waxing Lyrical (MCQ)` master.
+- [ ] Build beta-friendly round content next, starting with decade packs and stronger intro-led audio rounds.
 - [ ] Add pack-side Heads Up curation tools so packs can add and remove large numbers of existing items quickly.
 - [ ] Polish Heads Up turn review and correction flow after live playtesting.
 - [ ] Decide whether Heads Up should support host-selected team order and turn order overrides.
 - [ ] Add more images in Supabase Storage for picture rounds.
 - [ ] Add more audio clips in Supabase Storage once audio rules are clearer.
+- [ ] Define and build specialist audio sets such as intros, overtures, and entr'actes once the main intro format feels solid.
 - [ ] Keep pack naming, metadata, and show links consistent.
 - [ ] Build enough Quickfire-safe questions to support reliable testing and hosting.
 

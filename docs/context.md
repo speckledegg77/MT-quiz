@@ -141,7 +141,8 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Curated `accepted_answers` still matter and are preferred to very loose fuzzy matching.
 - The admin questions dashboard lets the user review and edit `answer_text` and `accepted_answers` for text-answer questions.
 - `Waxing Lyrical (Text)` is complete and imported.
-- `Waxing Lyrical (MCQ)` has a final master CSV and is ready for validate-only and import.
+- `Waxing Lyrical (MCQ)` has been validated and imported.
+- Host-side room review is now the next live-host priority, starting with text-answer adjudication.
 
 ### Admin questions page
 - The admin questions list no longer depends on stale caps.
@@ -157,12 +158,14 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - The fastest correct player on each question gets an extra `+1`.
 - Quickfire skips the per-question reveal.
 - Quickfire uses an end-of-round review that shows the correct answer and exactly who got it right, with `⚡` on the fastest correct player.
+- Host answer disputes should be handled through a room-only review panel rather than by editing the question bank mid-game.
 - Default timings are now per round type rather than one shared room default.
 
 ### End of game
 - Final summary shows nested team and player breakdowns.
 - Mobile layout is card-based and no longer relies on a wide round matrix.
 - The completed screen shows the winning player or team.
+- Beta-facing content priorities after lyric import are decade packs, intro-led audio rounds, then more specialist audio such as overtures and entr'actes.
 
 ---
 

@@ -30,6 +30,8 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - End-of-round summaries stay. The host sets how long they remain visible.
 - The host can still skip the round review early.
 - The final summary should be mobile-friendly and should show the winner.
+- Host adjudication should be room-only. The live host flow can review submitted answers and apply score overrides for that room without editing the question bank.
+- Host adjudication v1 should focus on text answers first. MCQ answers can still be visible for audit, but room-side overrides should start with free-text disputes.
 
 ## Audio and media
 
@@ -92,6 +94,8 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Shared round-flow helpers should decide derived client stage and whether stale questions stay hidden between rounds.
 - Multiline lyric and excerpt-based question text must preserve real line breaks on player, display, admin list, and admin detail screens. Flattening those blocks counts as a regression unless replaced by an equivalent newline-preserving approach.
 - Admin answer editing for text-answer questions should sit in the questions dashboard rather than living only in CSV workflows.
+- Host answer review should stay hidden behind an explicit openable panel rather than taking over the main live host controls.
+- Host review should show the raw submission, a normalised text preview, the effective score result, and whether a room-only override is active.
 - The admin questions page should not depend on `questions.is_active` or stale database views such as `packs_with_counts`.
 - Round templates now use alphabetical ordering by name, and sort order is no longer used in template selection or admin editing.
 
@@ -107,6 +111,7 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - `accepted_answers` should be used for fair human variants, not as a dumping ground for every imaginable misspelling.
 - For lyric question wording, varied stems are fine, but the clue must stay clear that the answer target is the song title.
 - British spelling should be preferred in generated content unless the changed spelling would alter a proper noun or the exact intended title.
+- Decade packs and intro-led audio rounds are the next beta-friendly content formats to prioritise before more specialist audio rounds.
 - For lyric MCQ distractors, keep all options as song titles.
 - For lyric MCQ distractors, use same-show options first when they are strong.
 - If same-show options are weak, use songs with the same dramatic function, deeper theme, or motif, even if they are outside the current database.
