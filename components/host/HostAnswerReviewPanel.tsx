@@ -107,6 +107,7 @@ export default function HostAnswerReviewPanel({ roomCode, roomPhase }: Props) {
   const [reasons, setReasons] = useState<Record<string, string>>({})
   const [savingIds, setSavingIds] = useState<Record<string, boolean>>({})
   const [selectedRoundIndex, setSelectedRoundIndex] = useState<string>("")
+  const [hideMcq, setHideMcq] = useState(false)
 
   const reviewRounds = data?.review?.rounds ?? []
   const totalQuestions = Math.max(0, Number(data?.review?.totalAnsweredQuestions ?? 0) || 0)
@@ -177,6 +178,11 @@ export default function HostAnswerReviewPanel({ roomCode, roomPhase }: Props) {
     return reviewRounds.find((round) => String(round.roundIndex) === selectedRoundIndex) ?? null
   }, [reviewRounds, selectedRoundIndex])
 
+  const visibleQuestions = useMemo(() => {
+    if (!selectedRound) return []
+    return selectedRound.questions.filter((question) => (hideMcq ? question.answerType === "text" : true))
+  }, [hideMcq, selectedRound])
+
   async function applyOverride(answerId: string, resolution: "accept" | "reject" | "restore") {
     if (!roomCode) return
     setSavingIds((prev) => ({ ...prev, [answerId]: true }))
@@ -219,14 +225,19 @@ export default function HostAnswerReviewPanel({ roomCode, roomPhase }: Props) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <CardTitle>Answer review</CardTitle>
             <div className="mt-1 text-sm text-muted-foreground">
               Open this when you need to review challenged answers. Text answers can be accepted, rejected, or restored for this room only.
             </div>
           </div>
-          <Button variant="secondary" size="sm" onClick={() => setIsOpen((prev) => !prev)}>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-full sm:w-auto"
+            onClick={() => setIsOpen((prev) => !prev)}
+          >
             {isOpen ? "Hide review" : "Open review"}
           </Button>
         </div>
@@ -234,14 +245,30 @@ export default function HostAnswerReviewPanel({ roomCode, roomPhase }: Props) {
 
       {isOpen ? (
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <div className="rounded-full border border-border px-3 py-1">
-              {totalQuestions} question{totalQuestions === 1 ? "" : "s"} with answers
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-center">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <div className="rounded-full border border-border px-3 py-1">
+                {totalQuestions} question{totalQuestions === 1 ? "" : "s"} with answers
+              </div>
+              {currentRoundNumber ? (
+                <div className="rounded-full border border-border px-3 py-1">Current round: {currentRoundNumber}</div>
+              ) : null}
             </div>
-            {currentRoundNumber ? (
-              <div className="rounded-full border border-border px-3 py-1">Current round: {currentRoundNumber}</div>
-            ) : null}
-            <Button variant="ghost" size="sm" onClick={() => loadReview()} disabled={isLoading || isRefreshing}>
+            <Button
+              variant={hideMcq ? "primary" : "secondary"}
+              size="sm"
+              className="w-full lg:w-auto"
+              onClick={() => setHideMcq((prev) => !prev)}
+            >
+              {hideMcq ? "Showing text only" : "Hide MCQ questions"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full lg:w-auto"
+              onClick={() => loadReview()}
+              disabled={isLoading || isRefreshing}
+            >
               {isLoading || isRefreshing ? "Refreshing..." : "Refresh"}
             </Button>
           </div>
@@ -295,8 +322,9 @@ export default function HostAnswerReviewPanel({ roomCode, roomPhase }: Props) {
                       <div>
                         <div className="text-sm font-medium text-foreground">{roundOptionLabel(selectedRound)}</div>
                         <div className="mt-1 text-xs text-muted-foreground">
-                          {selectedRound.questions.length} answered question{selectedRound.questions.length === 1 ? "" : "s"}
-                          {selectedRound.isCurrentRound ? " in the current round." : "."}
+                          {visibleQuestions.length} visible question{visibleQuestions.length === 1 ? "" : "s"}
+                          {hideMcq ? " after hiding MCQ." : "."}
+                          {selectedRound.isCurrentRound ? " Current round." : ""}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -313,7 +341,13 @@ export default function HostAnswerReviewPanel({ roomCode, roomPhase }: Props) {
                   </summary>
 
                   <div className="space-y-3 border-t border-border px-4 py-4">
-                    {selectedRound.questions.map((question) => (
+                    {visibleQuestions.length === 0 ? (
+                      <div className="rounded-xl border border-border bg-background p-4 text-sm text-muted-foreground">
+                        There are no visible questions in this round with the current filter.
+                      </div>
+                    ) : null}
+
+                    {visibleQuestions.map((question) => (
                       <div key={question.questionId} className="rounded-xl border border-border bg-background p-3">
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
@@ -373,7 +407,9 @@ export default function HostAnswerReviewPanel({ roomCode, roomPhase }: Props) {
                                       <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">Joker</span>
                                     ) : null}
                                     {isOverridden ? (
-                                      <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-200">Overridden</span>
+                                      <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-200">
+                                        Overridden
+                                      </span>
                                     ) : null}
                                     <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
                                       Score {answer.effective.scoreDelta >= 0 ? `+${answer.effective.scoreDelta}` : String(answer.effective.scoreDelta)}
@@ -396,15 +432,33 @@ export default function HostAnswerReviewPanel({ roomCode, roomPhase }: Props) {
                                       placeholder="Optional reason for this override"
                                       className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
                                     />
-                                    <div className="flex flex-wrap gap-2">
-                                      <Button variant="secondary" size="sm" onClick={() => applyOverride(answer.answerId, "accept")} disabled={busy || answer.effective.isCorrect}>
-                                        {busy ? "Saving..." : "Accept answer"}
+                                    <div className="grid gap-2 sm:grid-cols-3">
+                                      <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        className="w-full"
+                                        onClick={() => applyOverride(answer.answerId, "accept")}
+                                        disabled={busy || answer.effective.isCorrect}
+                                      >
+                                        {busy ? "Saving..." : "Accept"}
                                       </Button>
-                                      <Button variant="secondary" size="sm" onClick={() => applyOverride(answer.answerId, "reject")} disabled={busy || !answer.effective.isCorrect}>
-                                        {busy ? "Saving..." : "Reject answer"}
+                                      <Button
+                                        variant="danger"
+                                        size="sm"
+                                        className="w-full"
+                                        onClick={() => applyOverride(answer.answerId, "reject")}
+                                        disabled={busy || !answer.effective.isCorrect}
+                                      >
+                                        {busy ? "Saving..." : "Reject"}
                                       </Button>
-                                      <Button variant="ghost" size="sm" onClick={() => applyOverride(answer.answerId, "restore")} disabled={busy || !isOverridden}>
-                                        {busy ? "Saving..." : "Restore original"}
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="w-full"
+                                        onClick={() => applyOverride(answer.answerId, "restore")}
+                                        disabled={busy || !isOverridden}
+                                      >
+                                        {busy ? "Saving..." : "Restore"}
                                       </Button>
                                     </div>
                                   </div>
