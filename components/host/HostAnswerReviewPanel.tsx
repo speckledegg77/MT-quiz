@@ -94,6 +94,10 @@ function statusClasses(isCorrect: boolean) {
     : "border-red-500/40 bg-red-600/10 text-red-200"
 }
 
+function roundOptionLabel(round: ReviewRoundRow) {
+  return `Round ${round.roundNumber}: ${round.roundName}`
+}
+
 export default function HostAnswerReviewPanel({ roomCode, roomPhase }: Props) {
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -102,6 +106,7 @@ export default function HostAnswerReviewPanel({ roomCode, roomPhase }: Props) {
   const [data, setData] = useState<ReviewResponse | null>(null)
   const [reasons, setReasons] = useState<Record<string, string>>({})
   const [savingIds, setSavingIds] = useState<Record<string, boolean>>({})
+  const [selectedRoundIndex, setSelectedRoundIndex] = useState<string>("")
 
   const reviewRounds = data?.review?.rounds ?? []
   const totalQuestions = Math.max(0, Number(data?.review?.totalAnsweredQuestions ?? 0) || 0)
@@ -148,10 +153,29 @@ export default function HostAnswerReviewPanel({ roomCode, roomPhase }: Props) {
     return () => window.clearInterval(id)
   }, [isOpen, roomCode, roomPhase])
 
+  useEffect(() => {
+    if (reviewRounds.length === 0) {
+      setSelectedRoundIndex("")
+      return
+    }
+
+    const stillExists = reviewRounds.some((round) => String(round.roundIndex) === selectedRoundIndex)
+    if (stillExists) return
+
+    const currentRound = reviewRounds.find((round) => round.isCurrentRound)
+    const fallbackRound = currentRound ?? reviewRounds[reviewRounds.length - 1]
+    setSelectedRoundIndex(String(fallbackRound.roundIndex))
+  }, [reviewRounds, selectedRoundIndex])
+
   const currentRoundNumber = useMemo(() => {
     const current = reviewRounds.find((round) => round.isCurrentRound)
     return current?.roundNumber ?? null
   }, [reviewRounds])
+
+  const selectedRound = useMemo(() => {
+    if (!selectedRoundIndex) return null
+    return reviewRounds.find((round) => String(round.roundIndex) === selectedRoundIndex) ?? null
+  }, [reviewRounds, selectedRoundIndex])
 
   async function applyOverride(answerId: string, resolution: "accept" | "reject" | "restore") {
     if (!roomCode) return
@@ -199,7 +223,7 @@ export default function HostAnswerReviewPanel({ roomCode, roomPhase }: Props) {
           <div>
             <CardTitle>Answer review</CardTitle>
             <div className="mt-1 text-sm text-muted-foreground">
-              Open the host review when you need to check disputed answers. Text answers can be accepted, rejected, or restored for this room only.
+              Open this when you need to review challenged answers. Text answers can be accepted, rejected, or restored for this room only.
             </div>
           </div>
           <Button variant="secondary" size="sm" onClick={() => setIsOpen((prev) => !prev)}>
@@ -233,7 +257,7 @@ export default function HostAnswerReviewPanel({ roomCode, roomPhase }: Props) {
           ) : null}
 
           {isLoading && !data ? (
-            <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">Loading answer review…</div>
+            <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">Loading answer review...</div>
           ) : null}
 
           {!isLoading && data && reviewRounds.length === 0 ? (
@@ -242,128 +266,164 @@ export default function HostAnswerReviewPanel({ roomCode, roomPhase }: Props) {
             </div>
           ) : null}
 
-          <div className="space-y-3">
-            {reviewRounds.map((round) => (
-              <details key={round.roundIndex} className="rounded-xl border border-border bg-card" open={Boolean(round.isCurrentRound || roomPhase === "finished") || undefined}>
-                <summary className="cursor-pointer list-none px-4 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-medium text-foreground">Round {round.roundNumber}: {round.roundName}</div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {round.questions.length} answered question{round.questions.length === 1 ? "" : "s"}
-                        {round.isCurrentRound ? " in the current round." : "."}
-                      </div>
-                    </div>
-                    <div className="rounded-full border border-border px-3 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                      {String(round.behaviourType ?? "standard").replace(/_/g, " ")}
-                    </div>
-                  </div>
-                </summary>
-
-                <div className="space-y-3 border-t border-border px-4 py-4">
-                  {round.questions.map((question) => (
-                    <div key={question.questionId} className="rounded-xl border border-border bg-background p-3">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-semibold text-foreground">
-                            Q{question.questionNumber}. {question.questionText}
-                          </div>
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            Round position: {question.questionNumberInRound}. Correct answer: {question.correctAnswer || "No answer stored."}
-                          </div>
-                          {question.answerType === "text" && question.acceptedAnswers.length > 0 ? (
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              Accepted alternatives: {question.acceptedAnswers.join(", ")}
-                            </div>
-                          ) : null}
-                        </div>
-                        <div className="rounded-full border border-border px-3 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                          {question.answerType === "text" ? "Text" : "MCQ"}
-                        </div>
-                      </div>
-
-                      <div className="mt-3 space-y-3">
-                        {question.answers.map((answer) => {
-                          const busy = Boolean(savingIds[answer.answerId])
-                          const isOverridden = Boolean(answer.override)
-                          return (
-                            <div key={answer.answerId} className="rounded-xl border border-border bg-card p-3">
-                              <div className="flex flex-wrap items-start justify-between gap-3">
-                                <div>
-                                  <div className="text-sm font-medium text-foreground">
-                                    {answer.playerName}
-                                    {answer.teamName ? <span className="text-muted-foreground"> · {answer.teamName}</span> : null}
-                                  </div>
-                                  <div className="mt-1 text-sm text-foreground">
-                                    Submitted: {answer.submission.displayText || "No answer text stored."}
-                                  </div>
-                                  {question.answerType === "text" ? (
-                                    <div className="mt-1 text-xs text-muted-foreground">
-                                      Normalised: {answer.submission.normalisedAnswerText || "Blank"}
-                                    </div>
-                                  ) : null}
-                                  {answer.receivedAt ? (
-                                    <div className="mt-1 text-xs text-muted-foreground">Sent at {formatWhen(answer.receivedAt)}</div>
-                                  ) : null}
-                                </div>
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className={`rounded-full border px-2 py-0.5 text-xs ${statusClasses(answer.effective.isCorrect)}`}>
-                                    {answer.effective.isCorrect ? "Correct" : "Wrong"}
-                                  </span>
-                                  {answer.jokerActive ? (
-                                    <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">Joker</span>
-                                  ) : null}
-                                  {isOverridden ? (
-                                    <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-200">Overridden</span>
-                                  ) : null}
-                                  <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
-                                    Score {answer.effective.scoreDelta >= 0 ? `+${answer.effective.scoreDelta}` : String(answer.effective.scoreDelta)}
-                                  </span>
-                                </div>
-                              </div>
-
-                              {isOverridden ? (
-                                <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-muted-foreground">
-                                  Originally {answer.original.isCorrect ? "correct" : "wrong"} with {answer.original.scoreDelta >= 0 ? `+${answer.original.scoreDelta}` : String(answer.original.scoreDelta)}.
-                                  {answer.override?.reason ? ` Reason: ${answer.override.reason}` : ""}
-                                </div>
-                              ) : null}
-
-                              {question.answerType === "text" ? (
-                                <div className="mt-3 space-y-2">
-                                  <input
-                                    value={reasons[answer.answerId] ?? answer.override?.reason ?? ""}
-                                    onChange={(event) => setReasons((prev) => ({ ...prev, [answer.answerId]: event.target.value }))}
-                                    placeholder="Optional reason for this override"
-                                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-                                  />
-                                  <div className="flex flex-wrap gap-2">
-                                    <Button variant="secondary" size="sm" onClick={() => applyOverride(answer.answerId, "accept")} disabled={busy || answer.effective.isCorrect}>
-                                      {busy ? "Saving..." : "Accept answer"}
-                                    </Button>
-                                    <Button variant="secondary" size="sm" onClick={() => applyOverride(answer.answerId, "reject")} disabled={busy || !answer.effective.isCorrect}>
-                                      {busy ? "Saving..." : "Reject answer"}
-                                    </Button>
-                                    <Button variant="ghost" size="sm" onClick={() => applyOverride(answer.answerId, "restore")} disabled={busy || !isOverridden}>
-                                      {busy ? "Saving..." : "Restore original"}
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="mt-3 text-xs text-muted-foreground">
-                                  MCQ answers are shown for review only in this version.
-                                </div>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  ))}
+          {reviewRounds.length > 0 ? (
+            <div className="space-y-3">
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                <div>
+                  <div className="text-sm font-medium text-foreground">Round</div>
+                  <select
+                    value={selectedRoundIndex}
+                    onChange={(event) => setSelectedRoundIndex(event.target.value)}
+                    className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground"
+                  >
+                    {reviewRounds.map((round) => (
+                      <option key={round.roundIndex} value={String(round.roundIndex)}>
+                        {roundOptionLabel(round)}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </details>
-            ))}
-          </div>
+                <div className="text-xs text-muted-foreground md:text-right">
+                  Review one round at a time so the host screen stays easier to scan.
+                </div>
+              </div>
+
+              {selectedRound ? (
+                <details className="rounded-xl border border-border bg-card" open>
+                  <summary className="cursor-pointer list-none px-4 py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-medium text-foreground">{roundOptionLabel(selectedRound)}</div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {selectedRound.questions.length} answered question{selectedRound.questions.length === 1 ? "" : "s"}
+                          {selectedRound.isCurrentRound ? " in the current round." : "."}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {selectedRound.isCurrentRound ? (
+                          <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[11px] uppercase tracking-wide text-sky-200">
+                            Current
+                          </span>
+                        ) : null}
+                        <div className="rounded-full border border-border px-3 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                          {String(selectedRound.behaviourType ?? "standard").replace(/_/g, " ")}
+                        </div>
+                      </div>
+                    </div>
+                  </summary>
+
+                  <div className="space-y-3 border-t border-border px-4 py-4">
+                    {selectedRound.questions.map((question) => (
+                      <div key={question.questionId} className="rounded-xl border border-border bg-background p-3">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-semibold text-foreground">
+                              Q{question.questionNumber}. {question.questionText}
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              Round position: {question.questionNumberInRound}. Correct answer: {question.correctAnswer || "No answer stored."}
+                            </div>
+                            {question.answerType === "text" && question.acceptedAnswers.length > 0 ? (
+                              <div className="mt-1 text-xs text-muted-foreground">
+                                Accepted alternatives: {question.acceptedAnswers.join(", ")}
+                              </div>
+                            ) : null}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {question.isCurrentQuestion ? (
+                              <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[11px] uppercase tracking-wide text-sky-200">
+                                Live
+                              </span>
+                            ) : null}
+                            <div className="rounded-full border border-border px-3 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                              {question.answerType === "text" ? "Text" : "MCQ"}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 space-y-3">
+                          {question.answers.map((answer) => {
+                            const busy = Boolean(savingIds[answer.answerId])
+                            const isOverridden = Boolean(answer.override)
+                            return (
+                              <div key={answer.answerId} className="rounded-xl border border-border bg-card p-3">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div>
+                                    <div className="text-sm font-medium text-foreground">
+                                      {answer.playerName}
+                                      {answer.teamName ? <span className="text-muted-foreground"> · {answer.teamName}</span> : null}
+                                    </div>
+                                    <div className="mt-1 text-sm text-foreground">
+                                      Submitted: {answer.submission.displayText || "No answer text stored."}
+                                    </div>
+                                    {question.answerType === "text" ? (
+                                      <div className="mt-1 text-xs text-muted-foreground">
+                                        Normalised: {answer.submission.normalisedAnswerText || "Blank"}
+                                      </div>
+                                    ) : null}
+                                    {answer.receivedAt ? (
+                                      <div className="mt-1 text-xs text-muted-foreground">Sent at {formatWhen(answer.receivedAt)}</div>
+                                    ) : null}
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className={`rounded-full border px-2 py-0.5 text-xs ${statusClasses(answer.effective.isCorrect)}`}>
+                                      {answer.effective.isCorrect ? "Correct" : "Wrong"}
+                                    </span>
+                                    {answer.jokerActive ? (
+                                      <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">Joker</span>
+                                    ) : null}
+                                    {isOverridden ? (
+                                      <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs text-amber-200">Overridden</span>
+                                    ) : null}
+                                    <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
+                                      Score {answer.effective.scoreDelta >= 0 ? `+${answer.effective.scoreDelta}` : String(answer.effective.scoreDelta)}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {isOverridden ? (
+                                  <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-muted-foreground">
+                                    Originally {answer.original.isCorrect ? "correct" : "wrong"} with {answer.original.scoreDelta >= 0 ? `+${answer.original.scoreDelta}` : String(answer.original.scoreDelta)}.
+                                    {answer.override?.reason ? ` Reason: ${answer.override.reason}` : ""}
+                                  </div>
+                                ) : null}
+
+                                {question.answerType === "text" ? (
+                                  <div className="mt-3 space-y-2">
+                                    <input
+                                      value={reasons[answer.answerId] ?? answer.override?.reason ?? ""}
+                                      onChange={(event) => setReasons((prev) => ({ ...prev, [answer.answerId]: event.target.value }))}
+                                      placeholder="Optional reason for this override"
+                                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+                                    />
+                                    <div className="flex flex-wrap gap-2">
+                                      <Button variant="secondary" size="sm" onClick={() => applyOverride(answer.answerId, "accept")} disabled={busy || answer.effective.isCorrect}>
+                                        {busy ? "Saving..." : "Accept answer"}
+                                      </Button>
+                                      <Button variant="secondary" size="sm" onClick={() => applyOverride(answer.answerId, "reject")} disabled={busy || !answer.effective.isCorrect}>
+                                        {busy ? "Saving..." : "Reject answer"}
+                                      </Button>
+                                      <Button variant="ghost" size="sm" onClick={() => applyOverride(answer.answerId, "restore")} disabled={busy || !isOverridden}>
+                                        {busy ? "Saving..." : "Restore original"}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="mt-3 text-xs text-muted-foreground">
+                                    MCQ answers are shown for review only in this version.
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ) : null}
+            </div>
+          ) : null}
         </CardContent>
       ) : null}
     </Card>

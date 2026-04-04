@@ -3342,6 +3342,8 @@ export default function HostPage() {
             </Card>
           )}
 
+          {hasRoom ? <HostAnswerReviewPanel roomCode={roomCode ?? ""} roomPhase={roomPhase} /> : null}
+
           {packsError ? <Card><CardHeader><CardTitle>Packs</CardTitle></CardHeader><CardContent><div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{packsError}</div></CardContent></Card> : null}
         </div>
 
@@ -3451,7 +3453,6 @@ export default function HostPage() {
                 </CardContent>
               </Card>
               <HostJoinedTeamsPanel code={roomCode ?? ""} />
-              <HostAnswerReviewPanel roomCode={roomCode ?? ""} roomPhase={roomPhase} />
             </>
           )}
         </div>
