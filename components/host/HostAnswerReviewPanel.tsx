@@ -235,7 +235,7 @@ export default function HostAnswerReviewPanel({ roomCode, roomPhase }: Props) {
           <Button
             variant="secondary"
             size="sm"
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto sm:shrink-0 whitespace-nowrap px-4 text-center"
             onClick={() => setIsOpen((prev) => !prev)}
           >
             {isOpen ? "Hide review" : "Open review"}
