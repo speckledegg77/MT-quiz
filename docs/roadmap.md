@@ -76,6 +76,7 @@ This file tracks the live plan. Keep it short and practical.
 - [x] Add admin editing for canonical text answers and accepted alternatives.
 - [x] Remove stale admin question list caps.
 - [x] Stop admin questions loading from depending on `questions.is_active` and stale count views.
+- [x] Keep room progression working when the host page refreshes or the tab is backgrounded, plus auto-restore the last hosted room after refresh.
 - [x] Preserve lyric question line breaks on player, display, admin list, and admin detail screens.
 - [x] Complete and import `Waxing Lyrical (Text)`.
 - [x] Produce the final `Waxing Lyrical (MCQ)` master.

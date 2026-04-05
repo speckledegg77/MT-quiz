@@ -17,6 +17,7 @@ import { shuffleMcqForRoom } from "@/lib/mcqShuffle"
 import { applyQuickfireFastestBonus, buildQuickfireRoundReview } from "@/lib/quickfire"
 import { getConfiguredAnswerSecondsForRound, getEffectiveRoundReviewSecondsForRound, isHeadsUpRound, isQuickfireRound, stageFromTimes } from "@/lib/roundFlow"
 import { deriveHeadsUpStage, getHeadsUpReadyTurnMeta, getHeadsUpRole, getHeadsUpTvDisplayMode, getHeadsUpTurnSeconds, normaliseHeadsUpRoomState } from "@/lib/headsUpGameplay"
+import { advanceRoomIfReady } from "@/lib/roomProgress"
 
 type TeamPlayerRow = {
   id: string
@@ -447,6 +448,16 @@ export async function GET(req: Request) {
   const code = String(searchParams.get("code") ?? "").trim().toUpperCase()
 
   if (!code) return NextResponse.json({ error: "Missing code" }, { status: 400 })
+
+  const progressResult = await advanceRoomIfReady({
+    code,
+    allowRoundSummaryAdvance: false,
+    allowHeadsUpReviewAutoConfirm: true,
+  })
+
+  if (!progressResult.ok && progressResult.status && progressResult.status !== 404) {
+    return NextResponse.json({ error: progressResult.error ?? "Could not load room state" }, { status: progressResult.status })
+  }
 
   const roomRes = await supabaseAdmin.from("rooms").select("*").eq("code", code).single()
   if (roomRes.error) return NextResponse.json({ error: "Room not found" }, { status: 404 })

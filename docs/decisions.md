@@ -29,6 +29,8 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - The question should close early once every player has submitted.
 - End-of-round summaries stay. The host sets how long they remain visible.
 - The host can still skip the round review early.
+- Room progression must not depend on the host tab staying open. State polling should be able to move the room on when a question timer has elapsed.
+- The host page should restore the most recently hosted room after refresh when possible.
 - The final summary should be mobile-friendly and should show the winner.
 - Host adjudication should be room-only. The live host flow can review submitted answers and apply score overrides for that room without editing the question bank.
 - Host adjudication v1 should focus on text answers first. MCQ answers can still be visible for audit, but room-side overrides should start with free-text disputes.

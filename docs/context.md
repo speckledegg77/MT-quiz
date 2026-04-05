@@ -133,6 +133,8 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Player and display pages show the correct answer on reveal.
 - End-of-round summary screens stay in place and can auto-advance.
 - The host can still skip the round review early.
+- Room progression no longer depends on the host page staying open. State polling can move the room on after timers expire, which protects live games if the host refreshes or backgrounds the tab.
+- The host page now auto-restores the most recently hosted room after refresh when that room still exists.
 
 ### Text answers and lyric packs
 - Text-answer matching normalises case, punctuation, apostrophes, and spacing before comparison.

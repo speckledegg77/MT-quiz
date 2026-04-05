@@ -688,11 +688,35 @@ export default function HostPage() {
   }, [roundCountStr])
 
   useEffect(() => {
-    try {
-      const last = localStorage.getItem(LAST_HOST_CODE_KEY)
-      if (last) setRehostCode(cleanRoomCode(last))
-    } catch {
-      // ignore
+    let cancelled = false
+
+    async function restoreLastHostedRoom() {
+      try {
+        const last = localStorage.getItem(LAST_HOST_CODE_KEY)
+        if (!last) return
+        const cleanCode = cleanRoomCode(last)
+        if (!cleanCode) return
+        setRehostCode(cleanCode)
+
+        const res = await fetch(`/api/room/state?code=${encodeURIComponent(cleanCode)}`, { cache: "no-store" })
+        if (cancelled) return
+        if (!res.ok) return
+
+        const data = await res.json().catch(() => ({}))
+        if (cancelled) return
+
+        setRoomCode(cleanCode)
+        setRoomState(data)
+        setRoomPhase(String(data?.phase ?? "lobby"))
+        setRoomStage(String(data?.stage ?? "lobby"))
+      } catch {
+        // ignore
+      }
+    }
+
+    restoreLastHostedRoom()
+    return () => {
+      cancelled = true
     }
   }, [])
 
@@ -1648,36 +1672,46 @@ export default function HostPage() {
     }
   }
 
-  async function rehostRoom() {
-    setRehostBusy(true)
-    setRehostError(null)
-    setCreateError(null)
+  async function loadHostedRoom(code: string, options?: { showBusy?: boolean; reportErrors?: boolean }) {
+    const safeCode = cleanRoomCode(code)
+    const showBusy = Boolean(options?.showBusy)
+    const reportErrors = Boolean(options?.reportErrors)
 
-    const code = cleanRoomCode(rehostCode)
-    if (!code) {
-      setRehostError("Enter a room code.")
-      setRehostBusy(false)
-      return
+    if (!safeCode) {
+      if (reportErrors) setRehostError("Enter a room code.")
+      return false
+    }
+
+    if (showBusy) setRehostBusy(true)
+    if (reportErrors) {
+      setRehostError(null)
+      setCreateError(null)
     }
 
     try {
-      const res = await fetch(`/api/room/state?code=${encodeURIComponent(code)}`, { cache: "no-store" })
+      const res = await fetch(`/api/room/state?code=${encodeURIComponent(safeCode)}`, { cache: "no-store" })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setRehostError(String(data?.error ?? "Room not found."))
-        setRehostBusy(false)
-        return
+        if (reportErrors) setRehostError(String(data?.error ?? "Room not found."))
+        return false
       }
-      setRoomCode(code)
+
+      setRoomCode(safeCode)
       setRoomState(data)
       setRoomPhase(String(data?.phase ?? "lobby"))
       setRoomStage(String(data?.stage ?? "lobby"))
-      rememberHostCode(code)
+      rememberHostCode(safeCode)
+      return true
     } catch {
-      setRehostError("Could not load that room.")
+      if (reportErrors) setRehostError("Could not load that room.")
+      return false
     } finally {
-      setRehostBusy(false)
+      if (showBusy) setRehostBusy(false)
     }
+  }
+
+  async function rehostRoom() {
+    await loadHostedRoom(rehostCode, { showBusy: true, reportErrors: true })
   }
 
   async function startGame() {
