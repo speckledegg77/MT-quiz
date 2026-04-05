@@ -286,7 +286,7 @@ export function QuestionAnswerAuditPanel({ item, adminToken, onSaved }: Props) {
     <Card className="overflow-hidden">
       <CardHeader className="border-b border-border/70 pb-3">
         <div className="flex items-center justify-between gap-3">
-          <CardTitle>Answer audit and editing</CardTitle>
+          <CardTitle>Answer editing</CardTitle>
           {item?.audit?.summaryBadges?.length ? (
             <div className="flex flex-wrap justify-end gap-1.5">
               {item.audit.summaryBadges.map((badge) => (
@@ -300,7 +300,7 @@ export function QuestionAnswerAuditPanel({ item, adminToken, onSaved }: Props) {
       </CardHeader>
       <CardContent className="space-y-4 pt-4">
         {!item ? (
-          <div className="text-sm text-muted-foreground">Select a question to review its answer setup.</div>
+          <div className="text-sm text-muted-foreground">Select a question to review and edit its answer setup.</div>
         ) : (
           <>
             <div className={fieldCardClass()}>

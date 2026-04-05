@@ -257,12 +257,12 @@ const ANSWER_TYPE_OPTIONS = [
 ]
 
 const ANSWER_AUDIT_FILTER_OPTIONS = [
-  { value: "", label: "Any answer audit state" },
-  { value: "likely_answer_issues", label: "Any likely answer issues" },
-  { value: "text_likely_problems", label: "Text likely problems" },
-  { value: "text_needs_accepted_review", label: "Text needs accepted-answer review" },
-  { value: "mcq_review", label: "MCQ review mode" },
-  { value: "mcq_has_issues", label: "MCQ issues only" },
+  { value: "", label: "Any answer review state" },
+  { value: "likely_answer_issues", label: "Likely answer clean-up" },
+  { value: "text_likely_problems", label: "Text answer clean-up" },
+  { value: "text_needs_accepted_review", label: "Needs accepted-answer review" },
+  { value: "mcq_review", label: "MCQ distractor review" },
+  { value: "mcq_has_issues", label: "MCQ distractor issues" },
 ]
 
 const BULK_MEDIA_TYPE_OPTIONS = [
