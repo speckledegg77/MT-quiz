@@ -141,6 +141,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Text-answer matching tolerates omission of a leading `a`, `an`, or `the` at the start of the answer.
 - Text-answer matching is mildly typo-tolerant for longer titles.
 - Curated `accepted_answers` still matter and are preferred to very loose fuzzy matching.
+- Question selection now prefers least-recently-used questions across recent games when creating rooms or resetting a stored pack-based room.
 - The admin questions dashboard lets the user review and edit `answer_text` and `accepted_answers` for text-answer questions.
 - `Waxing Lyrical (Text)` is complete and imported.
 - `Waxing Lyrical (MCQ)` has been validated and imported.

@@ -7,6 +7,7 @@ This file tracks the live plan. Keep it short and practical.
 - [ ] Add host-side answer adjudication so disputed text answers can be reviewed and corrected safely during a live room.
 - [ ] Build better answer-audit tools into the admin questions page so text-answer cleanup is faster and safer.
 - [ ] Keep consolidating the round-plan model so packs stay content sources and rounds stay gameplay definitions.
+- [x] Add cross-game question anti-repetition so rounds draw from recent history more intelligently.
 
 ## Next feature candidates
 
@@ -80,6 +81,7 @@ This file tracks the live plan. Keep it short and practical.
 - [x] Keep room progression working when the host page refreshes or the tab is backgrounded, plus auto-restore the last hosted room after refresh.
 - [x] Preserve lyric question line breaks on player, display, admin list, and admin detail screens.
 - [x] Complete and import `Waxing Lyrical (Text)`.
+- [x] Add cross-game question selection history and least-recently-used preference for new rooms and resets.
 - [x] Produce the final `Waxing Lyrical (MCQ)` master.
 - [x] Teams mode and solo mode.
 - [x] Unique team names with random musical-pun suggestions.

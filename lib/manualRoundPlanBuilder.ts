@@ -7,6 +7,7 @@ import {
   type RoundSelectionRules,
   type RoundSourceMode,
 } from "@/lib/roomRoundPlan"
+import { prioritiseItemsByRecentUsage, type QuestionUsageInfo } from "@/lib/questionRecency"
 import { isQuickfireBehaviour } from "@/lib/roundFlow"
 import { isQuickfireEligibleItem, normaliseMediaDurationMs } from "@/lib/quickfireEligibility"
 
@@ -38,15 +39,6 @@ export type QuestionCandidate = {
   audioClipType: string | null
   packIds: string[]
   headsUpDifficulty?: string | null
-}
-
-function shuffleInPlace<T>(items: T[]) {
-  for (let i = items.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    const tmp = items[i]
-    items[i] = items[j]
-    items[j] = tmp
-  }
 }
 
 function cleanStringArray(raw: unknown) {
@@ -153,8 +145,10 @@ export function buildManualRoomRoundPlan(params: {
   allPackIds: string[]
   candidates: QuestionCandidate[]
   buildMode?: RoomRoundPlan["buildMode"]
+  recentUsageById?: Record<string, QuestionUsageInfo>
 }): RoomRoundPlan {
   const { roundsInput, selectedPackIds, allPackIds, candidates } = params
+  const recentUsageById = params.recentUsageById ?? {}
 
   if (!Array.isArray(roundsInput) || roundsInput.length === 0) {
     throw new Error("Add at least one round.")
@@ -230,9 +224,7 @@ export function buildManualRoomRoundPlan(params: {
       )
     }
 
-    const shuffled = [...available]
-    shuffleInPlace(shuffled)
-    const chosen = shuffled.slice(0, requestedCount)
+    const chosen = prioritiseItemsByRecentUsage(available, recentUsageById).slice(0, requestedCount)
     for (const candidate of chosen) usedIds.add(candidate.id)
 
     rounds.push({

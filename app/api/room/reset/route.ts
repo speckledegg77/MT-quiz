@@ -11,6 +11,11 @@ import {
   type RoundFilter,
   type SelectionStrategy,
 } from "../../../../lib/questionSelection";
+import {
+  createQuestionSelectionGroupId,
+  loadRecentQuestionUsage,
+  logQuestionSelectionHistory,
+} from "../../../../lib/questionRecency";
 import { buildLegacyRoomRoundPlan, getLegacyFieldsFromRoundPlan } from "../../../../lib/roomRoundPlan";
 
 function normaliseRoundFilter(raw: any): RoundFilter {
@@ -102,14 +107,20 @@ export async function POST(req: Request) {
   }
 
   let pickedIds: string[] = [];
+  const selectionGroupId = createQuestionSelectionGroupId();
 
   try {
+    const recentUsageById = await loadRecentQuestionUsage({
+      questionIds: Object.values(packQuestionsById).flat().map((question) => question.id),
+    });
+
     const result = buildQuestionIdList({
       packs: selectionPacks,
       packQuestionsById,
       strategy,
       totalQuestions,
       roundFilter,
+      recentUsageById,
     });
 
     pickedIds = result.questionIds;
@@ -175,6 +186,12 @@ export async function POST(req: Request) {
   if (resetRoom.error) {
     return NextResponse.json({ error: resetRoom.error.message }, { status: 500 });
   }
+
+  await logQuestionSelectionHistory({
+    roomId: String(room.id ?? "").trim(),
+    selectionGroupId,
+    roundPlan,
+  });
 
   return NextResponse.json({ ok: true, code });
 }

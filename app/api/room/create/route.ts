@@ -27,6 +27,11 @@ import {
   type QuestionCandidate,
 } from "../../../../lib/manualRoundPlanBuilder"
 import { buildHeadsUpSyntheticQuestionId, cleanHeadsUpDifficulty } from "../../../../lib/headsUp"
+import {
+  createQuestionSelectionGroupId,
+  loadRecentQuestionUsage,
+  logQuestionSelectionHistory,
+} from "../../../../lib/questionRecency"
 import { normaliseMediaDurationMs } from "../../../../lib/quickfireEligibility"
 
 type LegacyRoundRequest = { packId: string; count: number }
@@ -373,6 +378,7 @@ export async function POST(req: Request) {
   let roundFilterToStore: RoundFilter = roundFilter
   let roundsToStore: PackSelectionInput[] | null = null
   let effectiveTotalQuestions = totalQuestions
+  const selectionGroupId = createQuestionSelectionGroupId()
 
   try {
     if (buildMode === "manual_rounds") {
@@ -381,6 +387,9 @@ export async function POST(req: Request) {
         selectedPackIds: selectedPacks,
         manualRounds,
       })
+      const recentUsageById = await loadRecentQuestionUsage({
+        questionIds: candidates.map((candidate) => candidate.id),
+      })
 
       roundPlan = buildManualRoomRoundPlan({
         roundsInput: manualRounds,
@@ -388,6 +397,7 @@ export async function POST(req: Request) {
         allPackIds: allActivePackIds,
         candidates,
         buildMode,
+        recentUsageById,
       })
 
       legacyFields = getLegacyFieldsFromRoundPlan(roundPlan)
@@ -436,6 +446,9 @@ export async function POST(req: Request) {
           selectedPackIds: packIds,
           manualRounds: quickRandomRounds,
         })
+        const recentUsageById = await loadRecentQuestionUsage({
+          questionIds: candidates.map((candidate) => candidate.id),
+        })
 
         roundPlan = buildManualRoomRoundPlan({
           roundsInput: quickRandomRounds,
@@ -443,6 +456,7 @@ export async function POST(req: Request) {
           allPackIds: allActivePackIds,
           candidates,
           buildMode,
+          recentUsageById,
         })
 
         legacyFields = getLegacyFieldsFromRoundPlan(roundPlan)
@@ -490,12 +504,17 @@ export async function POST(req: Request) {
           packQuestionsById[pid].push({ id: qid, round_type })
         }
 
+        const recentUsageById = await loadRecentQuestionUsage({
+          questionIds: Object.values(packQuestionsById).flat().map((question) => question.id),
+        })
+
         const result = buildQuestionIdList({
           packs: selectionPacks,
           packQuestionsById,
           strategy,
           totalQuestions,
           roundFilter,
+          recentUsageById,
         })
 
         const pickedIds = result.questionIds
@@ -550,10 +569,17 @@ export async function POST(req: Request) {
         build_mode: buildMode,
         round_plan: roundPlan,
       })
-      .select("code")
+      .select("id, code")
       .single()
 
-    if (!ins.error) return NextResponse.json({ code: ins.data.code })
+    if (!ins.error) {
+      await logQuestionSelectionHistory({
+        roomId: String(ins.data.id ?? "").trim(),
+        selectionGroupId,
+        roundPlan,
+      })
+      return NextResponse.json({ code: ins.data.code })
+    }
   }
 
   return NextResponse.json({ error: "Could not create room" }, { status: 500 })

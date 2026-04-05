@@ -1,4 +1,4 @@
-// lib/questionSelection.ts
+import { prioritiseItemsByRecentUsage, type QuestionUsageInfo } from "@/lib/questionRecency"
 
 export type QuestionRoundType = "general" | "audio" | "picture";
 
@@ -68,8 +68,12 @@ function applyRoundFilter(items: QuestionMeta[], filter: RoundFilter): QuestionM
   return items;
 }
 
-function takeRandom(items: QuestionMeta[], n: number): QuestionMeta[] {
-  return shuffle(items).slice(0, n);
+function takePreferred(
+  items: QuestionMeta[],
+  n: number,
+  recentUsageById: Record<string, QuestionUsageInfo>
+): QuestionMeta[] {
+  return prioritiseItemsByRecentUsage(items, recentUsageById).slice(0, n);
 }
 
 export function buildQuestionIdList(params: {
@@ -78,9 +82,11 @@ export function buildQuestionIdList(params: {
   strategy: SelectionStrategy;
   totalQuestions?: number;
   roundFilter: RoundFilter;
+  recentUsageById?: Record<string, QuestionUsageInfo>;
 }): { questionIds: string[]; warnings: string[] } {
   const { packs, packQuestionsById } = params;
   let { strategy, totalQuestions, roundFilter } = params;
+  const recentUsageById = params.recentUsageById ?? {};
 
   if (!packs || packs.length === 0) {
     throw new SelectionError("Pick at least one pack.");
@@ -120,7 +126,7 @@ export function buildQuestionIdList(params: {
         );
       }
 
-      const picked = takeRandom(available, count);
+      const picked = takePreferred(available, count, recentUsageById);
 
       for (const q of picked) {
         selectedIds.add(q.id);
@@ -153,6 +159,6 @@ export function buildQuestionIdList(params: {
     );
   }
 
-  const picked = takeRandom(pool, total).map((q) => q.id);
+  const picked = takePreferred(pool, total, recentUsageById).map((q) => q.id);
   return { questionIds: picked, warnings };
 }

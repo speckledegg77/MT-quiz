@@ -50,6 +50,7 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Round templates are reusable gameplay definitions.
 - Room round plans are the actual rounds chosen for one game.
 - Even Quick Random should still build real rounds under the hood.
+- Question selection should avoid repeats within a game and should now prefer least-recently-used questions across recent games when the pool allows, with graceful fallback for thin pools.
 - Legacy pack-based rooms stay supported through a compatibility layer while the round-plan model beds in.
 - Infinite simple games run as one continuous standard round under the hood, so they skip round setup without creating a separate game engine.
 - Infinite mode keeps Joker hidden, shows question progress as a continuous run, and gives the host an explicit End game control.
