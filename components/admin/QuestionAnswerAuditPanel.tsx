@@ -19,6 +19,7 @@ type HelperSuggestion = {
 type DetailItem = {
   question: {
     id: string
+    text: string
     answer_type: string
     answer_text: string | null
     accepted_answers: unknown
@@ -124,6 +125,7 @@ function buildAdminHeaders(token: string) {
 }
 
 export function QuestionAnswerAuditPanel({ item, adminToken, onSaved }: Props) {
+  const [questionText, setQuestionText] = useState("")
   const [textAnswer, setTextAnswer] = useState("")
   const [acceptedAnswersText, setAcceptedAnswersText] = useState("")
   const [mcqOptions, setMcqOptions] = useState(["", "", "", ""])
@@ -135,6 +137,7 @@ export function QuestionAnswerAuditPanel({ item, adminToken, onSaved }: Props) {
     setSaveResult("")
 
     if (!item) {
+      setQuestionText("")
       setTextAnswer("")
       setAcceptedAnswersText("")
       setMcqOptions(["", "", "", ""])
@@ -142,6 +145,7 @@ export function QuestionAnswerAuditPanel({ item, adminToken, onSaved }: Props) {
       return
     }
 
+    setQuestionText(String(item.question.text ?? ""))
     setTextAnswer(String(item.question.answer_text ?? item.audit.text?.canonicalRaw ?? ""))
     setAcceptedAnswersText(joinAcceptedAnswersForEditor(item.audit.text?.acceptedAnswers ?? []))
     setMcqOptions(
@@ -152,6 +156,47 @@ export function QuestionAnswerAuditPanel({ item, adminToken, onSaved }: Props) {
   }, [item])
 
   const parsedAcceptedAnswers = useMemo(() => parseAcceptedAnswersEditorValue(acceptedAnswersText), [acceptedAnswersText])
+
+  async function saveQuestionText() {
+    if (!item || !adminToken.trim()) {
+      setSaveResult("Enter your admin token first.")
+      return
+    }
+
+    if (!questionText.trim()) {
+      setSaveResult("Question text is required.")
+      return
+    }
+
+    setSaveBusy(true)
+    setSaveResult("")
+
+    try {
+      const res = await fetch(`/api/admin/questions/${item.question.id}`, {
+        method: "PATCH",
+        headers: {
+          ...buildAdminHeaders(adminToken),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: questionText.trim(),
+        }),
+      })
+
+      const json = (await res.json()) as { error?: string }
+      if (!res.ok) {
+        setSaveResult(json.error || "Could not save question text.")
+        return
+      }
+
+      setSaveResult("Saved question text.")
+      await onSaved(item.question.id)
+    } catch (error: any) {
+      setSaveResult(error?.message || "Could not save question text.")
+    } finally {
+      setSaveBusy(false)
+    }
+  }
 
   async function saveTextAnswer() {
     if (!item || !adminToken.trim()) {
@@ -251,212 +296,243 @@ export function QuestionAnswerAuditPanel({ item, adminToken, onSaved }: Props) {
       <CardContent className="space-y-4 pt-4">
         {!item ? (
           <div className="text-sm text-muted-foreground">Select a question to review its answer setup.</div>
-        ) : item.question.answer_type === "text" ? (
+        ) : (
           <>
-            <div className="grid gap-3 md:grid-cols-2">
-              <label className={fieldCardClass()}>
-                <div className={metadataFieldNameClass()}>Canonical answer</div>
-                <input
-                  value={textAnswer}
-                  onChange={(event) => setTextAnswer(event.target.value)}
-                  className={cx(metadataInputClass(), "mt-2 w-full")}
-                  placeholder="Enter the main accepted title or answer"
-                />
-                <div className="mt-2 text-xs text-muted-foreground">
-                  This is the answer shown to the host and used as the main matcher target.
-                </div>
-              </label>
-
-              <label className={fieldCardClass()}>
-                <div className={metadataFieldNameClass()}>Accepted answers</div>
-                <textarea
-                  value={acceptedAnswersText}
-                  onChange={(event) => setAcceptedAnswersText(event.target.value)}
-                  className={cx(metadataTextAreaClass(), "mt-2 w-full")}
-                  placeholder="One fair variant per line"
-                />
-                <div className="mt-2 text-xs text-muted-foreground">
-                  Use one line per fair human variant. Keep this tight and intentional.
-                </div>
-              </label>
+            <div className={fieldCardClass()}>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-medium text-foreground">Question text</div>
+                <span className={pillClass(questionText.trim() ? "default" : "warning")}>
+                  {questionText.trim() ? `${questionText.trim().length} chars` : "blank"}
+                </span>
+              </div>
+              <textarea
+                value={questionText}
+                onChange={(event) => setQuestionText(event.target.value)}
+                className={cx(metadataTextAreaClass(), "mt-3 min-h-[120px] w-full whitespace-pre-wrap")}
+                placeholder="Edit the question stem here"
+              />
+              <div className="mt-2 text-xs text-muted-foreground">
+                Use real line breaks where needed. Lyric and excerpt formatting should stay multiline where appropriate.
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={saveQuestionText} disabled={saveBusy || !questionText.trim()}>
+                  {saveBusy ? "Saving…" : "Save question text"}
+                </Button>
+              </div>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className={fieldCardClass()}>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-medium text-foreground">Normalised preview</div>
-                  <span className={pillClass(item.audit.text?.needsAcceptedAnswersReview ? "warning" : "default")}>
-                    {item.audit.text?.needsAcceptedAnswersReview ? "review suggested" : "looks fine"}
-                  </span>
+            {item.question.answer_type === "text" ? (
+              <>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className={fieldCardClass()}>
+                    <div className={metadataFieldNameClass()}>Canonical answer</div>
+                    <input
+                      value={textAnswer}
+                      onChange={(event) => setTextAnswer(event.target.value)}
+                      className={cx(metadataInputClass(), "mt-2 w-full")}
+                      placeholder="Enter the main accepted title or answer"
+                    />
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      This is the answer shown to the host and used as the main matcher target.
+                    </div>
+                  </label>
+
+                  <label className={fieldCardClass()}>
+                    <div className={metadataFieldNameClass()}>Accepted answers</div>
+                    <textarea
+                      value={acceptedAnswersText}
+                      onChange={(event) => setAcceptedAnswersText(event.target.value)}
+                      className={cx(metadataTextAreaClass(), "mt-2 w-full")}
+                      placeholder="One fair variant per line"
+                    />
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Use one line per fair human variant. Keep this tight and intentional.
+                    </div>
+                  </label>
                 </div>
-                <div className="mt-3 grid gap-2">
-                  <div className="rounded-md border border-border bg-background/70 px-2.5 py-2">
-                    <div className={metadataFieldNameClass()}>Canonical normalised</div>
-                    <div className="mt-1 text-sm text-foreground">
-                      {item.audit.text?.canonicalNormalised || "Blank"}
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className={fieldCardClass()}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-medium text-foreground">Normalised preview</div>
+                      <span className={pillClass(item.audit.text?.needsAcceptedAnswersReview ? "warning" : "default")}>
+                        {item.audit.text?.needsAcceptedAnswersReview ? "review suggested" : "looks fine"}
+                      </span>
+                    </div>
+                    <div className="mt-3 grid gap-2">
+                      <div className="rounded-md border border-border bg-background/70 px-2.5 py-2">
+                        <div className={metadataFieldNameClass()}>Canonical normalised</div>
+                        <div className="mt-1 text-sm text-foreground">
+                          {item.audit.text?.canonicalNormalised || "Blank"}
+                        </div>
+                      </div>
+                      <div className="rounded-md border border-border bg-background/70 px-2.5 py-2">
+                        <div className={metadataFieldNameClass()}>Accepted normalised</div>
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          {item.audit.text?.acceptedNormalised?.length ? (
+                            item.audit.text?.acceptedNormalised?.map((value) => (
+                              <span key={value} className={pillClass()}>
+                                {value}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-sm text-muted-foreground">No accepted variants saved.</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 text-xs text-muted-foreground">
+                      Case, punctuation, apostrophes, spacing, and leading articles already normalise in live matching.
                     </div>
                   </div>
-                  <div className="rounded-md border border-border bg-background/70 px-2.5 py-2">
-                    <div className={metadataFieldNameClass()}>Accepted normalised</div>
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {item.audit.text?.acceptedNormalised?.length ? (
-                        item.audit.text?.acceptedNormalised?.map((value) => (
-                          <span key={value} className={pillClass()}>
-                            {value}
-                          </span>
+
+                  <div className={fieldCardClass()}>
+                    <div className="text-sm font-medium text-foreground">Safe helper suggestions</div>
+                    <div className="mt-2 space-y-2">
+                      {item.audit.text?.helperSuggestions?.length ? (
+                        item.audit.text?.helperSuggestions?.map((suggestion) => (
+                          <div key={suggestion.value} className="rounded-md border border-border bg-background/70 px-2.5 py-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div>
+                                <div className="text-sm font-medium text-foreground">{suggestion.value}</div>
+                                <div className="mt-1 text-xs text-muted-foreground">{suggestion.reason}</div>
+                              </div>
+                              <Button size="sm" variant="secondary" onClick={() => addAcceptedAnswerSuggestion(suggestion.value)}>
+                                {suggestion.label}
+                              </Button>
+                            </div>
+                          </div>
                         ))
                       ) : (
-                        <span className="text-sm text-muted-foreground">No accepted variants saved.</span>
+                        <div className="rounded-md border border-border bg-background/70 px-2.5 py-2 text-sm text-muted-foreground">
+                          No safe automatic suggestions for this answer.
+                        </div>
                       )}
                     </div>
                   </div>
                 </div>
-                <div className="mt-3 text-xs text-muted-foreground">
-                  Case, punctuation, apostrophes, spacing, and leading articles already normalise in live matching.
-                </div>
-              </div>
 
-              <div className={fieldCardClass()}>
-                <div className="text-sm font-medium text-foreground">Safe helper suggestions</div>
-                <div className="mt-2 space-y-2">
-                  {item.audit.text?.helperSuggestions?.length ? (
-                    item.audit.text?.helperSuggestions?.map((suggestion) => (
-                      <div key={suggestion.value} className="rounded-md border border-border bg-background/70 px-2.5 py-2">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div>
-                            <div className="text-sm font-medium text-foreground">{suggestion.value}</div>
-                            <div className="mt-1 text-xs text-muted-foreground">{suggestion.reason}</div>
-                          </div>
-                          <Button size="sm" variant="secondary" onClick={() => addAcceptedAnswerSuggestion(suggestion.value)}>
-                            {suggestion.label}
-                          </Button>
+                <div className={fieldCardClass()}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-sm font-medium text-foreground">Audit flags</div>
+                    <span className={pillClass(item.audit.text?.issues.length ? "warning" : "success")}>
+                      {item.audit.text?.issues?.length
+                        ? `${item.audit.text?.issues?.length ?? 0} flag${(item.audit.text?.issues?.length ?? 0) === 1 ? "" : "s"}`
+                        : "No flags"}
+                    </span>
+                  </div>
+                  {item.audit.text?.issues?.length ? (
+                    <div className="mt-3 space-y-2">
+                      {item.audit.text?.issues?.map((issue) => (
+                        <div key={issue.code} className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                          {issue.message}
                         </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="rounded-md border border-border bg-background/70 px-2.5 py-2 text-sm text-muted-foreground">
-                      No safe automatic suggestions for this answer.
+                      ))}
                     </div>
+                  ) : (
+                    <div className="mt-3 text-sm text-muted-foreground">No obvious text-answer issues surfaced for this question.</div>
                   )}
                 </div>
-              </div>
-            </div>
 
-            <div className={fieldCardClass()}>
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-sm font-medium text-foreground">Audit flags</div>
-                <span className={pillClass(item.audit.text?.issues.length ? "warning" : "success")}>
-                  {item.audit.text?.issues?.length ? `${item.audit.text?.issues?.length ?? 0} flag${(item.audit.text?.issues?.length ?? 0) === 1 ? "" : "s"}` : "No flags"}
-                </span>
-              </div>
-              {item.audit.text?.issues?.length ? (
-                <div className="mt-3 space-y-2">
-                  {item.audit.text?.issues?.map((issue) => (
-                    <div key={issue.code} className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                      {issue.message}
-                    </div>
-                  ))}
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={saveTextAnswer} disabled={saveBusy}>
+                    {saveBusy ? "Saving…" : "Save answer settings"}
+                  </Button>
                 </div>
-              ) : (
-                <div className="mt-3 text-sm text-muted-foreground">No obvious text-answer issues surfaced for this question.</div>
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" onClick={saveTextAnswer} disabled={saveBusy}>
-                {saveBusy ? "Saving…" : "Save answer settings"}
-              </Button>
-            </div>
-          </>
-        ) : item.question.answer_type === "mcq" ? (
-          <>
-            <div className={fieldCardClass()}>
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-sm font-medium text-foreground">MCQ distractor editor</div>
-                <span className={pillClass(item.audit.mcqHasIssues ? "warning" : "default")}>
-                  {item.audit.mcqHasIssues ? "needs review" : "ready to refine"}
-                </span>
-              </div>
-              <div className="mt-3 space-y-2">
-                {mcqOptions.map((option, index) => {
-                  const optionLabel = String.fromCharCode(65 + index)
-                  return (
-                    <div key={optionLabel} className="grid gap-2 rounded-md border border-border bg-background/70 p-2 md:grid-cols-[auto_minmax(0,1fr)] md:items-center">
-                      <label className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
-                        <input
-                          type="radio"
-                          name="mcq-correct-answer"
-                          checked={mcqAnswerIndex === index}
-                          onChange={() => setMcqAnswerIndex(index)}
-                        />
-                        Correct {optionLabel}
-                      </label>
-                      <input
-                        value={option}
-                        onChange={(event) => {
-                          const next = [...mcqOptions]
-                          next[index] = event.target.value
-                          setMcqOptions(next)
-                        }}
-                        className={metadataInputClass()}
-                        placeholder={`Option ${optionLabel}`}
-                      />
-                    </div>
-                  )
-                })}
-              </div>
-              <div className="mt-3 text-xs text-muted-foreground">
-                Use this when playtesting shows a distractor is too obvious, too weak, or too close to another option.
-              </div>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className={fieldCardClass()}>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-medium text-foreground">MCQ audit flags</div>
-                  <span className={pillClass(item.audit.mcq?.issues.length ? "warning" : "success")}>
-                    {item.audit.mcq?.issues?.length ? `${item.audit.mcq?.issues?.length ?? 0} flag${(item.audit.mcq?.issues?.length ?? 0) === 1 ? "" : "s"}` : "No flags"}
-                  </span>
-                </div>
-                {item.audit.mcq?.issues?.length ? (
-                  <div className="mt-3 space-y-2">
-                    {item.audit.mcq?.issues?.map((issue) => (
-                      <div key={issue.code} className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                        {issue.message}
-                      </div>
-                    ))}
+              </>
+            ) : item.question.answer_type === "mcq" ? (
+              <>
+                <div className={fieldCardClass()}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-sm font-medium text-foreground">MCQ distractor editor</div>
+                    <span className={pillClass(item.audit.mcqHasIssues ? "warning" : "default")}>
+                      {item.audit.mcqHasIssues ? "needs review" : "ready to refine"}
+                    </span>
                   </div>
-                ) : (
-                  <div className="mt-3 text-sm text-muted-foreground">No obvious MCQ structure issues surfaced for this question.</div>
-                )}
-              </div>
-
-              <div className={fieldCardClass()}>
-                <div className="text-sm font-medium text-foreground">Normalised option preview</div>
-                <div className="mt-3 space-y-2">
-                  {item.audit.mcq?.options?.map((option) => (
-                    <div key={option.label} className="rounded-md border border-border bg-background/70 px-2.5 py-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={pillClass(option.index === item.question.answer_index ? "accent" : "default")}>
-                          {option.label}
-                        </span>
-                        <span className="text-xs text-muted-foreground">{option.normalised || "Blank"}</span>
-                      </div>
-                      <div className="mt-1 text-sm text-foreground">{option.value || "Blank"}</div>
-                    </div>
-                  ))}
+                  <div className="mt-3 space-y-2">
+                    {mcqOptions.map((option, index) => {
+                      const optionLabel = String.fromCharCode(65 + index)
+                      return (
+                        <div key={optionLabel} className="grid gap-2 rounded-md border border-border bg-background/70 p-2 md:grid-cols-[auto_minmax(0,1fr)] md:items-center">
+                          <label className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
+                            <input
+                              type="radio"
+                              name="mcq-correct-answer"
+                              checked={mcqAnswerIndex === index}
+                              onChange={() => setMcqAnswerIndex(index)}
+                            />
+                            Correct {optionLabel}
+                          </label>
+                          <input
+                            value={option}
+                            onChange={(event) => {
+                              const next = [...mcqOptions]
+                              next[index] = event.target.value
+                              setMcqOptions(next)
+                            }}
+                            className={metadataInputClass()}
+                            placeholder={`Option ${optionLabel}`}
+                          />
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div className="mt-3 text-xs text-muted-foreground">
+                    Use this when playtesting shows a distractor is too obvious, too weak, or too close to another option.
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" onClick={saveMcqAnswer} disabled={saveBusy}>
-                {saveBusy ? "Saving…" : "Save MCQ options"}
-              </Button>
-            </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className={fieldCardClass()}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-medium text-foreground">MCQ audit flags</div>
+                      <span className={pillClass(item.audit.mcq?.issues.length ? "warning" : "success")}>
+                        {item.audit.mcq?.issues?.length
+                          ? `${item.audit.mcq?.issues?.length ?? 0} flag${(item.audit.mcq?.issues?.length ?? 0) === 1 ? "" : "s"}`
+                          : "No flags"}
+                      </span>
+                    </div>
+                    {item.audit.mcq?.issues?.length ? (
+                      <div className="mt-3 space-y-2">
+                        {item.audit.mcq?.issues?.map((issue) => (
+                          <div key={issue.code} className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                            {issue.message}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="mt-3 text-sm text-muted-foreground">No obvious MCQ structure issues surfaced for this question.</div>
+                    )}
+                  </div>
+
+                  <div className={fieldCardClass()}>
+                    <div className="text-sm font-medium text-foreground">Normalised option preview</div>
+                    <div className="mt-3 space-y-2">
+                      {item.audit.mcq?.options?.map((option) => (
+                        <div key={option.label} className="rounded-md border border-border bg-background/70 px-2.5 py-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className={pillClass(option.index === item.question.answer_index ? "accent" : "default")}>
+                              {option.label}
+                            </span>
+                            <span className="text-xs text-muted-foreground">{option.normalised || "Blank"}</span>
+                          </div>
+                          <div className="mt-1 text-sm text-foreground">{option.value || "Blank"}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={saveMcqAnswer} disabled={saveBusy}>
+                    {saveBusy ? "Saving…" : "Save MCQ options"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="text-sm text-muted-foreground">This answer type does not have an editor here.</div>
+            )}
           </>
-        ) : (
-          <div className="text-sm text-muted-foreground">This answer type does not have an editor here.</div>
         )}
 
         {saveResult ? (

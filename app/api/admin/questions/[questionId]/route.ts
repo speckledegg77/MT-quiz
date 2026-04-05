@@ -1,6 +1,7 @@
 export const runtime = "nodejs"
 
 import { NextResponse } from "next/server"
+import { z } from "zod"
 
 import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/adminAuth"
 import { analyseQuestionAnswerAudit } from "@/lib/questionAudit"
@@ -31,6 +32,14 @@ type PackQuestionRow = {
 }
 
 type PackRow = PackRowForMetadata
+
+const questionPatchSchema = z
+  .object({
+    text: z.string().trim().min(1, "Question text is required.").optional(),
+  })
+  .refine((value) => value.text !== undefined, {
+    message: "At least one editable question field must be provided.",
+  })
 
 export async function GET(req: Request, context: RouteContext) {
   if (!isAuthorisedAdminRequest(req)) return unauthorisedAdminResponse()
@@ -106,4 +115,47 @@ export async function GET(req: Request, context: RouteContext) {
       audit,
     },
   })
+}
+
+export async function PATCH(req: Request, context: RouteContext) {
+  if (!isAuthorisedAdminRequest(req)) return unauthorisedAdminResponse()
+
+  const { questionId } = await context.params
+
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 })
+  }
+
+  const parsed = questionPatchSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid question payload." }, { status: 400 })
+  }
+
+  const update: Record<string, unknown> = {}
+
+  if (parsed.data.text !== undefined) {
+    update.text = parsed.data.text.trim()
+  }
+
+  const updateRes = await supabaseAdmin
+    .from("questions")
+    .update(update)
+    .eq("id", questionId)
+    .select(
+      "id, text, round_type, answer_type, options, answer_index, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, audio_clip_type, created_at, updated_at"
+    )
+    .maybeSingle()
+
+  if (updateRes.error) {
+    return NextResponse.json({ error: updateRes.error.message }, { status: 500 })
+  }
+
+  if (!updateRes.data) {
+    return NextResponse.json({ error: "Question not found." }, { status: 404 })
+  }
+
+  return NextResponse.json({ ok: true, question: updateRes.data })
 }
