@@ -656,6 +656,7 @@ export default function HostPage() {
   const [endingGame, setEndingGame] = useState(false)
 
   const [rehostCode, setRehostCode] = useState("")
+  const [lastHostedRoomCode, setLastHostedRoomCode] = useState("")
   const [rehostBusy, setRehostBusy] = useState(false)
   const [rehostError, setRehostError] = useState<string | null>(null)
 
@@ -688,35 +689,15 @@ export default function HostPage() {
   }, [roundCountStr])
 
   useEffect(() => {
-    let cancelled = false
-
-    async function restoreLastHostedRoom() {
-      try {
-        const last = localStorage.getItem(LAST_HOST_CODE_KEY)
-        if (!last) return
-        const cleanCode = cleanRoomCode(last)
-        if (!cleanCode) return
-        setRehostCode(cleanCode)
-
-        const res = await fetch(`/api/room/state?code=${encodeURIComponent(cleanCode)}`, { cache: "no-store" })
-        if (cancelled) return
-        if (!res.ok) return
-
-        const data = await res.json().catch(() => ({}))
-        if (cancelled) return
-
-        setRoomCode(cleanCode)
-        setRoomState(data)
-        setRoomPhase(String(data?.phase ?? "lobby"))
-        setRoomStage(String(data?.stage ?? "lobby"))
-      } catch {
-        // ignore
-      }
-    }
-
-    restoreLastHostedRoom()
-    return () => {
-      cancelled = true
+    try {
+      const last = localStorage.getItem(LAST_HOST_CODE_KEY)
+      if (!last) return
+      const cleanCode = cleanRoomCode(last)
+      if (!cleanCode) return
+      setLastHostedRoomCode(cleanCode)
+      setRehostCode((current) => (current.trim() ? current : cleanCode))
+    } catch {
+      // ignore
     }
   }, [])
 
@@ -887,8 +868,11 @@ export default function HostPage() {
   }, [roomCode, roomPhase, roomStage])
 
   function rememberHostCode(code: string) {
+    const cleanCode = cleanRoomCode(code)
+    if (!cleanCode) return
+    setLastHostedRoomCode(cleanCode)
     try {
-      localStorage.setItem(LAST_HOST_CODE_KEY, code)
+      localStorage.setItem(LAST_HOST_CODE_KEY, cleanCode)
     } catch {
       // ignore
     }
@@ -3386,7 +3370,25 @@ export default function HostPage() {
             <>
               <Card>
                 <CardHeader><CardTitle>Re-host room</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-4">
+                  {lastHostedRoomCode ? (
+                    <div className="space-y-3 rounded-xl border border-border bg-muted/40 p-3">
+                      <div>
+                        <div className="text-sm font-medium text-foreground">Previous game</div>
+                        <div className="mt-1 text-sm text-muted-foreground">
+                          Resume the last hosted room without making it the default when you open this page.
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => loadHostedRoom(lastHostedRoomCode, { showBusy: true, reportErrors: true })}
+                        disabled={rehostBusy}
+                        className="w-full sm:w-auto"
+                      >
+                        {rehostBusy ? "Loading..." : `Resume previous game (${lastHostedRoomCode})`}
+                      </Button>
+                    </div>
+                  ) : null}
+
                   <div className="text-sm text-muted-foreground">Enter a room code to continue hosting an existing room.</div>
                   <div>
                     <div className="text-sm font-medium text-foreground">Room code</div>
