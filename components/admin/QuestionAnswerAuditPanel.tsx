@@ -22,6 +22,7 @@ type DetailItem = {
     text: string
     answer_type: string
     answer_text: string | null
+    explanation: string | null
     accepted_answers: unknown
     options?: unknown
     answer_index?: number | null
@@ -126,6 +127,7 @@ function buildAdminHeaders(token: string) {
 
 export function QuestionAnswerAuditPanel({ item, adminToken, onSaved }: Props) {
   const [questionText, setQuestionText] = useState("")
+  const [explanationText, setExplanationText] = useState("")
   const [textAnswer, setTextAnswer] = useState("")
   const [acceptedAnswersText, setAcceptedAnswersText] = useState("")
   const [mcqOptions, setMcqOptions] = useState(["", "", "", ""])
@@ -138,6 +140,7 @@ export function QuestionAnswerAuditPanel({ item, adminToken, onSaved }: Props) {
 
     if (!item) {
       setQuestionText("")
+      setExplanationText("")
       setTextAnswer("")
       setAcceptedAnswersText("")
       setMcqOptions(["", "", "", ""])
@@ -146,6 +149,7 @@ export function QuestionAnswerAuditPanel({ item, adminToken, onSaved }: Props) {
     }
 
     setQuestionText(String(item.question.text ?? ""))
+    setExplanationText(String(item.question.explanation ?? ""))
     setTextAnswer(String(item.question.answer_text ?? item.audit.text?.canonicalRaw ?? ""))
     setAcceptedAnswersText(joinAcceptedAnswersForEditor(item.audit.text?.acceptedAnswers ?? []))
     setMcqOptions(
@@ -157,7 +161,7 @@ export function QuestionAnswerAuditPanel({ item, adminToken, onSaved }: Props) {
 
   const parsedAcceptedAnswers = useMemo(() => parseAcceptedAnswersEditorValue(acceptedAnswersText), [acceptedAnswersText])
 
-  async function saveQuestionText() {
+  async function saveQuestionContent() {
     if (!item || !adminToken.trim()) {
       setSaveResult("Enter your admin token first.")
       return
@@ -180,19 +184,20 @@ export function QuestionAnswerAuditPanel({ item, adminToken, onSaved }: Props) {
         },
         body: JSON.stringify({
           text: questionText.trim(),
+          explanation: explanationText.trim(),
         }),
       })
 
       const json = (await res.json()) as { error?: string }
       if (!res.ok) {
-        setSaveResult(json.error || "Could not save question text.")
+        setSaveResult(json.error || "Could not save question content.")
         return
       }
 
-      setSaveResult("Saved question text.")
+      setSaveResult("Saved question content.")
       await onSaved(item.question.id)
     } catch (error: any) {
-      setSaveResult(error?.message || "Could not save question text.")
+      setSaveResult(error?.message || "Could not save question content.")
     } finally {
       setSaveBusy(false)
     }
@@ -300,23 +305,53 @@ export function QuestionAnswerAuditPanel({ item, adminToken, onSaved }: Props) {
           <>
             <div className={fieldCardClass()}>
               <div className="flex items-center justify-between gap-2">
-                <div className="text-sm font-medium text-foreground">Question text</div>
-                <span className={pillClass(questionText.trim() ? "default" : "warning")}>
-                  {questionText.trim() ? `${questionText.trim().length} chars` : "blank"}
-                </span>
+                <div className="text-sm font-medium text-foreground">Question content</div>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className={pillClass(questionText.trim() ? "default" : "warning")}>
+                    stem {questionText.trim() ? `${questionText.trim().length} chars` : "blank"}
+                  </span>
+                  <span className={pillClass(explanationText.trim() ? "default" : "warning")}>
+                    explanation {explanationText.trim() ? `${explanationText.trim().length} chars` : "blank"}
+                  </span>
+                </div>
               </div>
-              <textarea
-                value={questionText}
-                onChange={(event) => setQuestionText(event.target.value)}
-                className={cx(metadataTextAreaClass(), "mt-3 min-h-[120px] w-full whitespace-pre-wrap")}
-                placeholder="Edit the question stem here"
-              />
-              <div className="mt-2 text-xs text-muted-foreground">
-                Use real line breaks where needed. Lyric and excerpt formatting should stay multiline where appropriate.
+
+              <div className="mt-3 grid gap-3">
+                <label>
+                  <div className={metadataFieldNameClass()}>Question text</div>
+                  <textarea
+                    value={questionText}
+                    onChange={(event) => setQuestionText(event.target.value)}
+                    className={cx(metadataTextAreaClass(), "mt-2 min-h-[120px] w-full whitespace-pre-wrap")}
+                    placeholder="Edit the question stem here"
+                  />
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Use real line breaks where needed. Lyric and excerpt formatting should stay multiline where appropriate.
+                  </div>
+                </label>
+
+                <label>
+                  <div className={metadataFieldNameClass()}>Explanation</div>
+                  <textarea
+                    value={explanationText}
+                    onChange={(event) => setExplanationText(event.target.value)}
+                    className={cx(metadataTextAreaClass(), "mt-2 min-h-[96px] w-full whitespace-pre-wrap")}
+                    placeholder="Edit the explanation shown on reveal and in admin"
+                  />
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Keep it short and useful. Confirm the answer and add just enough context to support the host.
+                  </div>
+                </label>
               </div>
+
               <div className="mt-3 flex flex-wrap gap-2">
-                <Button size="sm" variant="secondary" onClick={saveQuestionText} disabled={saveBusy || !questionText.trim()}>
-                  {saveBusy ? "Saving…" : "Save question text"}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={saveQuestionContent}
+                  disabled={saveBusy || !questionText.trim()}
+                >
+                  {saveBusy ? "Saving…" : "Save question content"}
                 </Button>
               </div>
             </div>

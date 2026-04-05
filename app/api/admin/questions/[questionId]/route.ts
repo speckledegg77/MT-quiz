@@ -36,8 +36,9 @@ type PackRow = PackRowForMetadata
 const questionPatchSchema = z
   .object({
     text: z.string().trim().min(1, "Question text is required.").optional(),
+    explanation: z.string().optional(),
   })
-  .refine((value) => value.text !== undefined, {
+  .refine((value) => value.text !== undefined || value.explanation !== undefined, {
     message: "At least one editable question field must be provided.",
   })
 
@@ -138,6 +139,11 @@ export async function PATCH(req: Request, context: RouteContext) {
 
   if (parsed.data.text !== undefined) {
     update.text = parsed.data.text.trim()
+  }
+
+  if (parsed.data.explanation !== undefined) {
+    const trimmedExplanation = parsed.data.explanation.trim()
+    update.explanation = trimmedExplanation || null
   }
 
   const updateRes = await supabaseAdmin
