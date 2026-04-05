@@ -460,8 +460,10 @@ export default function DisplayPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {isPictureQ && q.imageUrl ? (
-                  <div className="overflow-hidden rounded-xl border border-border">
-                    <img src={q.imageUrl} alt="" className="block w-full" />
+                  <div className="rounded-xl border border-border bg-muted/30 p-4 sm:p-6">
+                    <div className="flex items-center justify-center overflow-hidden rounded-lg">
+                      <img src={q.imageUrl} alt="" className="max-h-[60vh] w-full object-contain" />
+                    </div>
                   </div>
                 ) : null}
 
