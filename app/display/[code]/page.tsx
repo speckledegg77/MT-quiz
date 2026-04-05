@@ -462,7 +462,7 @@ export default function DisplayPage() {
                 {isPictureQ && q.imageUrl ? (
                   <div className="rounded-xl border border-border bg-muted/30 p-4 sm:p-6">
                     <div className="flex items-center justify-center overflow-hidden rounded-lg">
-                      <img src={q.imageUrl} alt="" className="max-h-[60vh] w-full object-contain" />
+                      <img src={q.imageUrl} alt="" className="max-h-[40vh] w-full object-contain" />
                     </div>
                   </div>
                 ) : null}
