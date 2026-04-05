@@ -3,6 +3,7 @@ export const runtime = "nodejs"
 import { NextResponse } from "next/server"
 
 import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/adminAuth"
+import { analyseQuestionAnswerAudit } from "@/lib/questionAudit"
 import {
   analyseQuestionMetadata,
   type PackRowForMetadata,
@@ -20,6 +21,8 @@ type RouteContext = {
 type QuestionRow = QuestionRowForMetadata & {
   created_at: string
   updated_at: string
+  options: unknown
+  answer_index: number | null
 }
 
 type PackQuestionRow = {
@@ -38,7 +41,7 @@ export async function GET(req: Request, context: RouteContext) {
     supabaseAdmin
       .from("questions")
       .select(
-        "id, text, round_type, answer_type, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, audio_clip_type, created_at, updated_at"
+        "id, text, round_type, answer_type, options, answer_index, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, audio_clip_type, created_at, updated_at"
       )
       .eq("id", questionId)
       .maybeSingle(),
@@ -78,7 +81,8 @@ export async function GET(req: Request, context: RouteContext) {
   const question = questionRes.data as QuestionRow
   const shows = (showsRes.data ?? []) as ShowRow[]
   const packs = ((packsRes.data ?? []) as PackRow[]).sort((a, b) => a.display_name.localeCompare(b.display_name))
-  const analysis = analyseQuestionMetadata(question, shows, packs)
+  const metadataAnalysis = analyseQuestionMetadata(question, shows, packs)
+  const audit = analyseQuestionAnswerAudit(question)
 
   return NextResponse.json({
     ok: true,
@@ -95,10 +99,11 @@ export async function GET(req: Request, context: RouteContext) {
           mediaDurationMs: question.media_duration_ms ?? null,
           audioClipType: question.audio_clip_type ?? null,
         },
-        suggested: analysis.suggested,
-        reasons: analysis.reasons,
-        warnings: analysis.warnings,
+        suggested: metadataAnalysis.suggested,
+        reasons: metadataAnalysis.reasons,
+        warnings: metadataAnalysis.warnings,
       },
+      audit,
     },
   })
 }

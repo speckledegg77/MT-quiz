@@ -201,6 +201,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Metadata fields include `media_type`, `prompt_target`, `clue_source`, `primary_show_key`, and `metadata_review_state`.
 - The dashboard includes warnings, suggestions, bulk apply, bulk apply suggested values, filters for missing metadata, and a sticky detail panel.
 - Text-answer questions can be reviewed and edited for canonical answer and accepted alternatives from the admin detail panel.
+- The admin questions dashboard now includes answer-audit tools: likely-problem answer filters, normalised preview for text answers, safe accepted-answer helper buttons, and direct MCQ distractor editing with correct-option control.
 
 ### Import tools
 - The admin import page supports validate-only and real import modes for the main question bank CSV.

@@ -56,6 +56,7 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Recently completed
 
+- [x] Add admin answer-audit step 1 with likely-problem text filters, normalised answer preview, safe accepted-answer helpers, and MCQ distractor editing.
 - [x] Add importer guidance for quoted CSV fields, show-key discipline, and a regression checklist.
 - [x] Review and tidy the main question CSV import format, plus add Heads Up CSV import and validate-only checks.
 - [x] Heads Up v1 data model and admin workflow with separate items and pack management.

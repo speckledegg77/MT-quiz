@@ -96,6 +96,8 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Shared round-flow helpers should decide derived client stage and whether stale questions stay hidden between rounds.
 - Multiline lyric and excerpt-based question text must preserve real line breaks on player, display, admin list, and admin detail screens. Flattening those blocks counts as a regression unless replaced by an equivalent newline-preserving approach.
 - Admin answer editing for text-answer questions should sit in the questions dashboard rather than living only in CSV workflows.
+- The admin questions dashboard should expose answer-audit tools as part of the same workflow, including normalised preview for text answers and direct MCQ distractor editing.
+- Safe accepted-answer helpers should stay conservative, for example leading-article and and-versus-ampersand variants, rather than generating broad loose variants automatically.
 - Host answer review should stay hidden behind an explicit openable panel rather than taking over the main live host controls.
 - Host review should show the raw submission, a normalised text preview, the effective score result, and whether a room-only override is active.
 - The admin questions page should not depend on `questions.is_active` or stale database views such as `packs_with_counts`.

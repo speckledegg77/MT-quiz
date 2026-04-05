@@ -3,6 +3,7 @@ export const runtime = "nodejs"
 import { NextResponse } from "next/server"
 
 import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/adminAuth"
+import { analyseQuestionAnswerAudit, matchesAuditFilter } from "@/lib/questionAudit"
 import {
   analyseQuestionMetadata,
   type PackRowForMetadata,
@@ -14,6 +15,8 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin"
 type QuestionRow = QuestionRowForMetadata & {
   created_at: string
   updated_at: string
+  options: unknown
+  answer_index: number | null
 }
 
 type PackQuestionRow = {
@@ -102,6 +105,7 @@ export async function GET(req: Request) {
   const reviewState = url.searchParams.get("reviewState")?.trim() || null
   const warningState = url.searchParams.get("warningState")?.trim() || null
   const metadataGap = url.searchParams.get("metadataGap")?.trim() || null
+  const auditFilter = url.searchParams.get("auditFilter")?.trim() || null
   const search = url.searchParams.get("search")?.trim() || null
   const hasAudio = parseBooleanParam(url.searchParams.get("hasAudio"))
   const hasImage = parseBooleanParam(url.searchParams.get("hasImage"))
@@ -131,7 +135,7 @@ export async function GET(req: Request) {
   let dataQuery = supabaseAdmin
     .from("questions")
     .select(
-      "id, text, round_type, answer_type, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, audio_clip_type, created_at, updated_at"
+      "id, text, round_type, answer_type, options, answer_index, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, audio_clip_type, created_at, updated_at"
     )
     .order("id", { ascending: true })
 
@@ -248,6 +252,7 @@ export async function GET(req: Request) {
     .map((question) => {
       const packs = packRowsByQuestionId.get(question.id) ?? []
       const analysis = analyseQuestionMetadata(question, shows, packs)
+      const audit = analyseQuestionAnswerAudit(question)
 
       return {
         question,
@@ -266,12 +271,14 @@ export async function GET(req: Request) {
           reasons: analysis.reasons,
           warnings: analysis.warnings,
         },
+        audit,
       }
     })
     .filter((item) => warningMatchesFilter(warningState, item.metadata.warnings.length))
     .filter((item) => itemMatchesMetadataGap(item, metadataGap))
+    .filter((item) => matchesAuditFilter(item.audit, item.question.answer_type, auditFilter))
 
-  const filteredTotal = warningState || metadataGap ? items.length : countRes.count ?? items.length
+  const filteredTotal = warningState || metadataGap || auditFilter ? items.length : countRes.count ?? items.length
 
   return NextResponse.json({
     ok: true,

@@ -13,7 +13,7 @@ export default function AdminQuestionsPage() {
         <div>
           <div className="text-2xl font-semibold">Admin Questions</div>
           <div className="text-sm text-muted-foreground">
-            Review suggested metadata, confirm values, and save updates to Supabase.
+            Review metadata, audit answer setup, and refine text answers or MCQ distractors without leaving the page.
           </div>
         </div>
 

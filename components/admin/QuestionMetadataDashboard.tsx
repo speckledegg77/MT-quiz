@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 
+import { QuestionAnswerAuditPanel } from "@/components/admin/QuestionAnswerAuditPanel"
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 
@@ -46,6 +47,44 @@ type MetadataWarning = {
   message: string
 }
 
+type AuditIssue = {
+  code: string
+  message: string
+}
+
+type HelperSuggestion = {
+  label: string
+  value: string
+  reason: string
+}
+
+type QuestionAnswerAudit = {
+  codes: string[]
+  likelyProblem: boolean
+  summaryBadges: string[]
+  textNeedsAcceptedAnswersReview: boolean
+  mcqHasIssues: boolean
+  text: {
+    canonicalRaw: string
+    canonicalNormalised: string
+    acceptedAnswers: string[]
+    acceptedNormalised: string[]
+    helperSuggestions: HelperSuggestion[]
+    issues: AuditIssue[]
+    needsAcceptedAnswersReview: boolean
+  } | null
+  mcq: {
+    options: Array<{
+      index: number
+      label: string
+      value: string
+      normalised: string
+    }>
+    issues: AuditIssue[]
+    duplicateOptionGroups: string[][]
+  } | null
+}
+
 type QuestionSummaryItem = {
   question: {
     id: string
@@ -53,6 +92,8 @@ type QuestionSummaryItem = {
     round_type: string
     answer_type: string
     answer_text: string | null
+    options?: unknown
+    answer_index?: number | null
     explanation: string | null
     audio_path: string | null
     image_path: string | null
@@ -78,6 +119,7 @@ type QuestionSummaryItem = {
     reasons: MetadataReasons
     warnings: MetadataWarning[]
   }
+  audit: QuestionAnswerAudit
 }
 
 type QuestionDetailResponse = {
@@ -212,6 +254,15 @@ const ANSWER_TYPE_OPTIONS = [
   { value: "", label: "Any answer type" },
   { value: "mcq", label: "mcq" },
   { value: "text", label: "text" },
+]
+
+const ANSWER_AUDIT_FILTER_OPTIONS = [
+  { value: "", label: "Any answer audit state" },
+  { value: "likely_answer_issues", label: "Any likely answer issues" },
+  { value: "text_likely_problems", label: "Text likely problems" },
+  { value: "text_needs_accepted_review", label: "Text needs accepted-answer review" },
+  { value: "mcq_review", label: "MCQ review mode" },
+  { value: "mcq_has_issues", label: "MCQ issues only" },
 ]
 
 const BULK_MEDIA_TYPE_OPTIONS = [
@@ -411,6 +462,7 @@ export function QuestionMetadataDashboard() {
   const [packId, setPackId] = useState("")
   const [legacyRoundType, setLegacyRoundType] = useState("")
   const [answerType, setAnswerType] = useState("")
+  const [auditFilter, setAuditFilter] = useState("")
   const [reviewState, setReviewState] = useState("")
   const [warningState, setWarningState] = useState("")
   const [metadataGap, setMetadataGap] = useState("")
@@ -553,6 +605,7 @@ export function QuestionMetadataDashboard() {
       if (packId) params.set("packId", packId)
       if (legacyRoundType) params.set("legacyRoundType", legacyRoundType)
       if (answerType) params.set("answerType", answerType)
+      if (auditFilter) params.set("auditFilter", auditFilter)
       if (reviewState) params.set("reviewState", reviewState)
       if (warningState) params.set("warningState", warningState)
       if (metadataGap) params.set("metadataGap", metadataGap)
@@ -945,6 +998,18 @@ export function QuestionMetadataDashboard() {
               </select>
 
               <select
+                value={auditFilter}
+                onChange={(event) => setAuditFilter(event.target.value)}
+                className={metadataSelectClass()}
+              >
+                {ANSWER_AUDIT_FILTER_OPTIONS.map((option) => (
+                  <option key={option.value || "blank"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
                 value={reviewState}
                 onChange={(event) => setReviewState(event.target.value)}
                 className={metadataSelectClass()}
@@ -994,6 +1059,7 @@ export function QuestionMetadataDashboard() {
                   setPackId("")
                   setLegacyRoundType("")
                   setAnswerType("")
+                  setAuditFilter("")
                   setReviewState("")
                   setWarningState("")
                   setMetadataGap("")
@@ -1264,6 +1330,11 @@ export function QuestionMetadataDashboard() {
                                   {warningCount} warning{warningCount === 1 ? "" : "s"}
                                 </span>
                               ) : null}
+                              {item.audit.summaryBadges.map((badge) => (
+                                <span key={badge} className={pillClass(item.audit.likelyProblem ? "warning" : "accent")}>
+                                  {badge}
+                                </span>
+                              ))}
                             </div>
                           </div>
 
@@ -1509,6 +1580,14 @@ export function QuestionMetadataDashboard() {
             )}
           </CardContent>
         </Card>
+
+        <QuestionAnswerAuditPanel
+          item={detailItem}
+          adminToken={cleanToken}
+          onSaved={async (questionId) => {
+            await loadQuestions(questionId)
+          }}
+        />
 
         <Card className="overflow-hidden">
           <CardHeader className="border-b border-border/70 pb-3">

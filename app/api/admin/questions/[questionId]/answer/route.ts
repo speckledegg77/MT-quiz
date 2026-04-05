@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 
 import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/adminAuth"
+import { parseAcceptedAnswers } from "@/lib/questionAudit"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 type RouteContext = {
@@ -16,28 +17,31 @@ const answerSchema = z
   .object({
     answerText: z.string().trim().min(1, "answerText is required.").optional(),
     acceptedAnswers: z.array(z.string().trim().min(1)).nullable().optional(),
+    options: z.array(z.string()).length(4, "MCQ questions need exactly four options.").optional(),
+    answerIndex: z.number().int().min(0).max(3).optional(),
   })
-  .refine((value) => value.answerText !== undefined || value.acceptedAnswers !== undefined, {
-    message: "At least one answer field must be provided.",
-  })
+  .refine(
+    (value) =>
+      value.answerText !== undefined ||
+      value.acceptedAnswers !== undefined ||
+      value.options !== undefined ||
+      value.answerIndex !== undefined,
+    {
+      message: "At least one answer field must be provided.",
+    }
+  )
 
 function normaliseAcceptedAnswers(value: string[] | null | undefined) {
   if (value === undefined) return undefined
   if (value === null) return null
+  const parsed = parseAcceptedAnswers(value)
+  return parsed.length ? parsed : null
+}
 
-  const seen = new Set<string>()
-  const out: string[] = []
+function normaliseMcqOptions(value: string[] | undefined) {
+  if (value === undefined) return undefined
 
-  for (const item of value) {
-    const cleaned = String(item ?? "").trim()
-    if (!cleaned) continue
-    const key = cleaned.toLowerCase()
-    if (seen.has(key)) continue
-    seen.add(key)
-    out.push(cleaned)
-  }
-
-  return out.length ? out : null
+  return value.map((item) => String(item ?? "").trim())
 }
 
 export async function PATCH(req: Request, context: RouteContext) {
@@ -59,7 +63,7 @@ export async function PATCH(req: Request, context: RouteContext) {
 
   const existingRes = await supabaseAdmin
     .from("questions")
-    .select("id, answer_type, answer_text, accepted_answers")
+    .select("id, answer_type, answer_text, accepted_answers, options, answer_index")
     .eq("id", questionId)
     .maybeSingle()
 
@@ -71,25 +75,51 @@ export async function PATCH(req: Request, context: RouteContext) {
     return NextResponse.json({ error: "Question not found." }, { status: 404 })
   }
 
-  if (String(existingRes.data.answer_type ?? "") !== "text") {
-    return NextResponse.json({ error: "Only text-answer questions can edit canonical answers here." }, { status: 400 })
-  }
-
+  const answerType = String(existingRes.data.answer_type ?? "")
   const update: Record<string, unknown> = {}
 
-  if (parsed.data.answerText !== undefined) {
-    update.answer_text = parsed.data.answerText.trim()
+  if (answerType === "text") {
+    if (parsed.data.options !== undefined || parsed.data.answerIndex !== undefined) {
+      return NextResponse.json({ error: "MCQ option editing is only available for MCQ questions." }, { status: 400 })
+    }
+
+    if (parsed.data.answerText !== undefined) {
+      update.answer_text = parsed.data.answerText.trim()
+    }
+
+    if (parsed.data.acceptedAnswers !== undefined) {
+      update.accepted_answers = normaliseAcceptedAnswers(parsed.data.acceptedAnswers)
+    }
+  } else if (answerType === "mcq") {
+    if (parsed.data.answerText !== undefined || parsed.data.acceptedAnswers !== undefined) {
+      return NextResponse.json({ error: "Canonical text-answer editing is only available for text-answer questions." }, { status: 400 })
+    }
+
+    const nextOptions = normaliseMcqOptions(parsed.data.options)
+    if (nextOptions !== undefined && nextOptions.some((option) => !option)) {
+      return NextResponse.json({ error: "All four MCQ options must be filled in." }, { status: 400 })
+    }
+
+    if (nextOptions !== undefined) {
+      update.options = nextOptions
+    }
+
+    if (parsed.data.answerIndex !== undefined) {
+      update.answer_index = parsed.data.answerIndex
+    }
+  } else {
+    return NextResponse.json({ error: "This question type cannot be edited here." }, { status: 400 })
   }
 
-  if (parsed.data.acceptedAnswers !== undefined) {
-    update.accepted_answers = normaliseAcceptedAnswers(parsed.data.acceptedAnswers)
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: "Nothing to update." }, { status: 400 })
   }
 
   const updateRes = await supabaseAdmin
     .from("questions")
     .update(update)
     .eq("id", questionId)
-    .select("id, answer_text, accepted_answers")
+    .select("id, answer_type, answer_text, accepted_answers, options, answer_index")
     .maybeSingle()
 
   if (updateRes.error) {
