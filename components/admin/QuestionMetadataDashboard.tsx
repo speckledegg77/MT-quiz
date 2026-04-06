@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react"
 
-import { QuestionAnswerAuditPanel } from "@/components/admin/QuestionAnswerAuditPanel"
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 
@@ -47,44 +46,6 @@ type MetadataWarning = {
   message: string
 }
 
-type AuditIssue = {
-  code: string
-  message: string
-}
-
-type HelperSuggestion = {
-  label: string
-  value: string
-  reason: string
-}
-
-type QuestionAnswerAudit = {
-  codes: string[]
-  likelyProblem: boolean
-  summaryBadges: string[]
-  textNeedsAcceptedAnswersReview: boolean
-  mcqHasIssues: boolean
-  text: {
-    canonicalRaw: string
-    canonicalNormalised: string
-    acceptedAnswers: string[]
-    acceptedNormalised: string[]
-    helperSuggestions: HelperSuggestion[]
-    issues: AuditIssue[]
-    needsAcceptedAnswersReview: boolean
-  } | null
-  mcq: {
-    options: Array<{
-      index: number
-      label: string
-      value: string
-      normalised: string
-    }>
-    issues: AuditIssue[]
-    duplicateOptionGroups: string[][]
-  } | null
-}
-
 type QuestionSummaryItem = {
   question: {
     id: string
@@ -92,8 +53,6 @@ type QuestionSummaryItem = {
     round_type: string
     answer_type: string
     answer_text: string | null
-    options?: unknown
-    answer_index?: number | null
     explanation: string | null
     audio_path: string | null
     image_path: string | null
@@ -119,7 +78,6 @@ type QuestionSummaryItem = {
     reasons: MetadataReasons
     warnings: MetadataWarning[]
   }
-  audit: QuestionAnswerAudit
 }
 
 type QuestionDetailResponse = {
@@ -167,6 +125,7 @@ type BulkEditorState = {
 }
 
 const UNCHANGED_VALUE = "__UNCHANGED__"
+const ARCHIVED_PACK_NAME = "Archived Questions"
 
 const MEDIA_TYPE_OPTIONS = [
   { value: "", label: "Blank" },
@@ -254,15 +213,6 @@ const ANSWER_TYPE_OPTIONS = [
   { value: "", label: "Any answer type" },
   { value: "mcq", label: "mcq" },
   { value: "text", label: "text" },
-]
-
-const ANSWER_AUDIT_FILTER_OPTIONS = [
-  { value: "", label: "Any answer review state" },
-  { value: "likely_answer_issues", label: "Likely answer clean-up" },
-  { value: "text_likely_problems", label: "Text answer clean-up" },
-  { value: "text_needs_accepted_review", label: "Needs accepted-answer review" },
-  { value: "mcq_review", label: "MCQ distractor review" },
-  { value: "mcq_has_issues", label: "MCQ distractor issues" },
 ]
 
 const BULK_MEDIA_TYPE_OPTIONS = [
@@ -462,7 +412,6 @@ export function QuestionMetadataDashboard() {
   const [packId, setPackId] = useState("")
   const [legacyRoundType, setLegacyRoundType] = useState("")
   const [answerType, setAnswerType] = useState("")
-  const [auditFilter, setAuditFilter] = useState("")
   const [reviewState, setReviewState] = useState("")
   const [warningState, setWarningState] = useState("")
   const [metadataGap, setMetadataGap] = useState("")
@@ -479,6 +428,8 @@ export function QuestionMetadataDashboard() {
 
   const [saveBusy, setSaveBusy] = useState(false)
   const [saveResult, setSaveResult] = useState("")
+  const [questionActionBusy, setQuestionActionBusy] = useState(false)
+  const [questionActionResult, setQuestionActionResult] = useState("")
 
   const [bulkBusy, setBulkBusy] = useState(false)
   const [bulkResult, setBulkResult] = useState("")
@@ -590,6 +541,7 @@ export function QuestionMetadataDashboard() {
     setListBusy(true)
     setListError("")
     setSaveResult("")
+    setQuestionActionResult("")
     setBulkResult("")
     setApplySuggestedResult("")
 
@@ -605,7 +557,6 @@ export function QuestionMetadataDashboard() {
       if (packId) params.set("packId", packId)
       if (legacyRoundType) params.set("legacyRoundType", legacyRoundType)
       if (answerType) params.set("answerType", answerType)
-      if (auditFilter) params.set("auditFilter", auditFilter)
       if (reviewState) params.set("reviewState", reviewState)
       if (warningState) params.set("warningState", warningState)
       if (metadataGap) params.set("metadataGap", metadataGap)
@@ -656,6 +607,7 @@ export function QuestionMetadataDashboard() {
     setDetailBusy(true)
     setDetailError("")
     setSaveResult("")
+    setQuestionActionResult("")
 
     try {
       const res = await fetch(`/api/admin/questions/${questionId}`, {
@@ -742,6 +694,86 @@ export function QuestionMetadataDashboard() {
       setSaveResult(error?.message || "Save failed.")
     } finally {
       setSaveBusy(false)
+    }
+  }
+
+
+  async function archiveQuestion() {
+    if (!cleanToken || !detailItem || questionActionBusy) return
+
+    const confirmed = window.confirm(
+      "Archive this question? It will be removed from active packs and moved into Archived Questions."
+    )
+
+    if (!confirmed) return
+
+    setQuestionActionBusy(true)
+    setQuestionActionResult("")
+    setSaveResult("")
+
+    try {
+      const res = await fetch(`/api/admin/questions/${detailItem.question.id}`, {
+        method: "POST",
+        headers: {
+          ...buildAdminHeaders(cleanToken),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "archive" }),
+      })
+
+      const json = (await res.json()) as { error?: string; message?: string }
+
+      if (!res.ok) {
+        setQuestionActionResult(json.error || "Archive failed.")
+        return
+      }
+
+      await loadQuestions(detailItem.question.id)
+      setQuestionActionResult(json.message || "Archived.")
+    } catch (error: any) {
+      setQuestionActionResult(error?.message || "Archive failed.")
+    } finally {
+      setQuestionActionBusy(false)
+    }
+  }
+
+  async function deleteQuestion() {
+    if (!cleanToken || !detailItem || questionActionBusy) return
+
+    const confirmed = window.confirm(
+      "Delete this question permanently? This cannot be undone."
+    )
+
+    if (!confirmed) return
+
+    setQuestionActionBusy(true)
+    setQuestionActionResult("")
+    setSaveResult("")
+
+    try {
+      const res = await fetch(`/api/admin/questions/${detailItem.question.id}`, {
+        method: "DELETE",
+        headers: buildAdminHeaders(cleanToken),
+      })
+
+      const json = (await res.json()) as { error?: string; message?: string }
+
+      if (!res.ok) {
+        setQuestionActionResult(json.error || "Delete failed.")
+        return
+      }
+
+      const nextId =
+        items.find((item) => item.question.id !== detailItem.question.id)?.question.id || ""
+
+      setSelectedQuestionId(nextId)
+      setDetailItem(null)
+      await loadQuestions(nextId)
+      setQuestionActionResult(json.message || "Deleted.")
+    } catch (error: any) {
+      setQuestionActionResult(error?.message || "Delete failed.")
+    } finally {
+      setQuestionActionBusy(false)
     }
   }
 
@@ -998,18 +1030,6 @@ export function QuestionMetadataDashboard() {
               </select>
 
               <select
-                value={auditFilter}
-                onChange={(event) => setAuditFilter(event.target.value)}
-                className={metadataSelectClass()}
-              >
-                {ANSWER_AUDIT_FILTER_OPTIONS.map((option) => (
-                  <option key={option.value || "blank"} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-
-              <select
                 value={reviewState}
                 onChange={(event) => setReviewState(event.target.value)}
                 className={metadataSelectClass()}
@@ -1059,7 +1079,6 @@ export function QuestionMetadataDashboard() {
                   setPackId("")
                   setLegacyRoundType("")
                   setAnswerType("")
-                  setAuditFilter("")
                   setReviewState("")
                   setWarningState("")
                   setMetadataGap("")
@@ -1330,11 +1349,6 @@ export function QuestionMetadataDashboard() {
                                   {warningCount} warning{warningCount === 1 ? "" : "s"}
                                 </span>
                               ) : null}
-                              {item.audit.summaryBadges.map((badge) => (
-                                <span key={badge} className={pillClass(item.audit.likelyProblem ? "warning" : "accent")}>
-                                  {badge}
-                                </span>
-                              ))}
                             </div>
                           </div>
 
@@ -1420,6 +1434,40 @@ export function QuestionMetadataDashboard() {
                   {detailItem.question.image_path ? (
                     <div className="mt-2 text-xs text-muted-foreground break-all">
                       image_path: {detailItem.question.image_path}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={archiveQuestion}
+                      disabled={
+                        questionActionBusy ||
+                        (detailItem.packs.length === 1 && detailItem.packs[0]?.display_name === ARCHIVED_PACK_NAME)
+                      }
+                    >
+                      {questionActionBusy ? "Working…" : "Archive question"}
+                    </Button>
+                    <Button size="sm" variant="danger" onClick={deleteQuestion} disabled={questionActionBusy}>
+                      {questionActionBusy ? "Working…" : "Delete question"}
+                    </Button>
+                  </div>
+
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Archive removes the question from active packs and moves it into {ARCHIVED_PACK_NAME}.
+                  </div>
+
+                  {questionActionResult ? (
+                    <div
+                      className={cx(
+                        "mt-3 rounded-lg px-3 py-2 text-sm",
+                        questionActionResult.includes("Archived") || questionActionResult.includes("Deleted")
+                          ? "border border-green-300 bg-green-50 text-green-700"
+                          : "border border-red-300 bg-red-50 text-red-700"
+                      )}
+                    >
+                      {questionActionResult}
                     </div>
                   ) : null}
                 </div>
@@ -1580,14 +1628,6 @@ export function QuestionMetadataDashboard() {
             )}
           </CardContent>
         </Card>
-
-        <QuestionAnswerAuditPanel
-          item={detailItem}
-          adminToken={cleanToken}
-          onSaved={async (questionId) => {
-            await loadQuestions(questionId)
-          }}
-        />
 
         <Card className="overflow-hidden">
           <CardHeader className="border-b border-border/70 pb-3">
