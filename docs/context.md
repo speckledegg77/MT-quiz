@@ -119,6 +119,8 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Round templates are reusable gameplay definitions.
 - Room round plans are the actual rounds selected for one game.
 - Legacy pack-led rooms still work through a compatibility layer.
+- The host pack chooser now keeps core packs and specialist round-source packs visible first.
+- Single-show packs can stay in the data model as source packs, but the host UI should treat them as secondary to metadata-led round building.
 
 ### Question flow
 - No “Get ready” countdown. Questions open straight away.
@@ -133,15 +135,12 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Player and display pages show the correct answer on reveal.
 - End-of-round summary screens stay in place and can auto-advance.
 - The host can still skip the round review early.
-- Room progression no longer depends on the host page staying open. State polling can move the room on after timers expire, which protects live games if the host refreshes or backgrounds the tab.
-- The host page now auto-restores the most recently hosted room after refresh when that room still exists.
 
 ### Text answers and lyric packs
 - Text-answer matching normalises case, punctuation, apostrophes, and spacing before comparison.
 - Text-answer matching tolerates omission of a leading `a`, `an`, or `the` at the start of the answer.
 - Text-answer matching is mildly typo-tolerant for longer titles.
 - Curated `accepted_answers` still matter and are preferred to very loose fuzzy matching.
-- Question selection now prefers least-recently-used questions across recent games when creating rooms or resetting a stored pack-based room.
 - The admin questions dashboard lets the user review and edit `answer_text` and `accepted_answers` for text-answer questions.
 - `Waxing Lyrical (Text)` is complete and imported.
 - `Waxing Lyrical (MCQ)` has been validated and imported.
@@ -202,7 +201,6 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Metadata fields include `media_type`, `prompt_target`, `clue_source`, `primary_show_key`, and `metadata_review_state`.
 - The dashboard includes warnings, suggestions, bulk apply, bulk apply suggested values, filters for missing metadata, and a sticky detail panel.
 - Text-answer questions can be reviewed and edited for canonical answer and accepted alternatives from the admin detail panel.
-- The admin questions dashboard now includes answer-audit tools: likely-problem answer filters, normalised preview for text answers, safe accepted-answer helper buttons, and direct MCQ distractor editing with correct-option control.
 
 ### Import tools
 - The admin import page supports validate-only and real import modes for the main question bank CSV.
@@ -218,10 +216,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 ### Round templates
 - There is a `round_templates` table.
 - Templates can be created and edited in the UI.
-- The round templates admin screen now keeps Add round template and Edit selected template collapsed by default.
-- Round template selection rules now support multi-select metadata filters in the admin editor, with OR logic within a field and AND logic across different fields.
 - Host setup can add rounds from templates.
-- Manual round creation now supports multi-select metadata filters within a field, especially for `primary_show_key`, so show-led rounds no longer need to rely on one-pack-per-show.
 - Manual rounds can be saved back as templates.
 - Quick Random can build rounds from selected active templates.
 

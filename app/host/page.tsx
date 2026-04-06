@@ -6,7 +6,7 @@ import QRTile from "@/components/ui/QRTile"
 
 import { supabase } from "@/lib/supabaseClient"
 import { randomTeamName } from "@/lib/teamNameSuggestions"
-import { normaliseSelectionRules, type RoundTemplateRow } from "@/lib/roundTemplates"
+import { firstRuleValue, type RoundTemplateRow } from "@/lib/roundTemplates"
 import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour } from "@/lib/roomRoundPlan"
 import { getRoomStagePillLabel, getRunModeSummaryLabel } from "@/lib/gameMode"
 
@@ -115,11 +115,11 @@ type ManualRoundDraft = {
   countsTowardsScore: boolean
   sourceMode: RoundSourceMode
   packIds: string[]
-  mediaTypes: Array<"text" | "audio" | "image">
-  promptTargets: string[]
-  clueSources: string[]
-  primaryShowKeys: string[]
-  audioClipTypes: string[]
+  mediaType: "" | "text" | "audio" | "image"
+  promptTarget: string
+  clueSource: string
+  primaryShowKey: string
+  audioClipType: string
   headsUpDifficulty: "" | "easy" | "medium" | "hard"
   headsUpTvDisplayMode: "show_clue" | "timer_only"
   headsUpTurnSeconds: 60 | 90
@@ -212,103 +212,63 @@ const SIMPLE_PRESET_OPTIONS: Array<{
   },
 ]
 
-type ToggleOption<T extends string = string> = {
-  value: T
-  label: string
+const CORE_GENERAL_PACK_ORDER = [
+  "Opening Night",
+  "General Show Knowledge",
+  "Disney Musicals",
+  "Modern Musicals",
+  "Sondheim",
+]
+
+const SPECIALIST_PACK_ORDER = [
+  "From Song to Show: Standard",
+  "From Song to Show: Hard",
+  "Waxing Lyrical (Text)",
+  "Waxing Lyrical (MCQ)",
+]
+
+const CORE_TEMPLATE_ORDER = [
+  "Opening Night",
+  "Facts and Figures",
+  "Show Spotlight",
+  "Production Pics",
+  "Song Intros",
+  "Lyric Song Titles",
+  "Waxing Lyrical",
+  "Waxing Lyrical (Easy Mode)",
+  "From Song to Show",
+  "From Song to Show: Hard Mode",
+  "Quickfire",
+  "Heads Up",
+]
+
+const CORE_GENERAL_PACK_NAME_SET = new Set(CORE_GENERAL_PACK_ORDER.map((value) => value.trim().toLowerCase()))
+const SPECIALIST_PACK_NAME_SET = new Set(SPECIALIST_PACK_ORDER.map((value) => value.trim().toLowerCase()))
+const CORE_TEMPLATE_NAME_SET = new Set(CORE_TEMPLATE_ORDER.map((value) => value.trim().toLowerCase()))
+
+function normaliseLibraryName(value: string) {
+  return value.trim().toLowerCase()
 }
 
-function toggleChipClasses(selected: boolean, disabled = false) {
-  if (disabled) {
-    return "rounded-lg border px-3 py-2 text-left text-sm opacity-50 " +
-      (selected
-        ? "border-foreground bg-muted text-foreground"
-        : "border-border bg-card text-muted-foreground")
-  }
-
-  return "rounded-lg border px-3 py-2 text-left text-sm transition-colors " +
-    (selected
-      ? "border-foreground bg-muted text-foreground"
-      : "border-border bg-card text-foreground hover:bg-muted/40")
+function packOrderValue(packName: string, orderedNames: string[]) {
+  const index = orderedNames.findIndex((value) => normaliseLibraryName(value) === normaliseLibraryName(packName))
+  return index >= 0 ? index : Number.MAX_SAFE_INTEGER
 }
 
-function MultiSelectChipGroup<T extends string>({
-  label,
-  hint,
-  options,
-  selectedValues,
-  onToggle,
-  disabled = false,
-}: {
-  label: string
-  hint?: string
-  options: Array<ToggleOption<T>>
-  selectedValues: T[]
-  onToggle: (value: T) => void
-  disabled?: boolean
-}) {
-  return (
-    <div>
-      <div className="text-sm font-medium text-foreground">{label}</div>
-      {hint ? <div className="mt-1 text-xs text-muted-foreground">{hint}</div> : null}
-      <div className="mt-2 grid gap-2 sm:grid-cols-2">
-        {options.map((option) => {
-          const selected = selectedValues.includes(option.value)
-          return (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => {
-                if (disabled) return
-                onToggle(option.value)
-              }}
-              disabled={disabled}
-              className={toggleChipClasses(selected, disabled)}
-            >
-              {option.label}
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
+function sortPackGroup(packs: PackRow[], orderedNames: string[] = []) {
+  return [...packs].sort((a, b) => {
+    const orderDelta = packOrderValue(a.display_name, orderedNames) - packOrderValue(b.display_name, orderedNames)
+    if (orderDelta !== 0) return orderDelta
+    return a.display_name.localeCompare(b.display_name)
+  })
 }
 
-function MultiSelectShowGroup({
-  label,
-  hint,
-  shows,
-  selectedValues,
-  onToggle,
-}: {
-  label: string
-  hint?: string
-  shows: ShowRow[]
-  selectedValues: string[]
-  onToggle: (value: string) => void
-}) {
-  return (
-    <div>
-      <div className="text-sm font-medium text-foreground">{label}</div>
-      {hint ? <div className="mt-1 text-xs text-muted-foreground">{hint}</div> : null}
-      <div className="mt-2 max-h-48 overflow-y-auto rounded-xl border border-border bg-card p-2">
-        <div className="grid gap-2 sm:grid-cols-2">
-          {shows.map((show) => {
-            const selected = selectedValues.includes(show.show_key)
-            return (
-              <button
-                key={show.show_key}
-                type="button"
-                onClick={() => onToggle(show.show_key)}
-                className={toggleChipClasses(selected)}
-              >
-                {show.display_name}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
+function sortTemplateGroup(templates: RoundTemplateRow[], orderedNames: string[] = []) {
+  return [...templates].sort((a, b) => {
+    const orderDelta = packOrderValue(a.name, orderedNames) - packOrderValue(b.name, orderedNames)
+    if (orderDelta !== 0) return orderDelta
+    return a.name.localeCompare(b.name)
+  })
 }
 
 function audioModeLabel(mode: AudioMode) {
@@ -344,40 +304,19 @@ function makeRoundId() {
   return `round_${Math.random().toString(36).slice(2, 10)}`
 }
 
-function uniqueStringArray(values: string[]) {
-  return [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))]
-}
-
-function uniqueMediaTypeArray(values: Array<"text" | "audio" | "image">) {
-  return [...new Set(values.filter((value): value is "text" | "audio" | "image" => value === "text" || value === "audio" || value === "image"))]
-}
-
-function toggleValueInArray<T extends string>(values: T[], value: T) {
-  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value]
-}
-
-
 function normaliseManualRoundDraft(draft: ManualRoundDraft): ManualRoundDraft {
   const behaviourType: RoundBehaviourType =
     draft.behaviourType === "quickfire" ? "quickfire" : draft.behaviourType === "heads_up" ? "heads_up" : "standard"
-
-  const mediaTypes = behaviourType === "heads_up" ? [] : uniqueMediaTypeArray(draft.mediaTypes)
-  const promptTargets = behaviourType === "heads_up" ? [] : uniqueStringArray(draft.promptTargets)
-  const clueSources = behaviourType === "heads_up" ? [] : uniqueStringArray(draft.clueSources)
-  const primaryShowKeys = uniqueStringArray(draft.primaryShowKeys)
-  const audioClipTypes = mediaTypes.includes("audio") ? uniqueStringArray(draft.audioClipTypes) : []
-
   return {
     ...draft,
     behaviourType,
     jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : draft.jokerEligible,
     countsTowardsScore: behaviourType === "heads_up" ? false : draft.countsTowardsScore,
     sourceMode: behaviourType === "heads_up" ? "specific_packs" : draft.sourceMode,
-    mediaTypes,
-    promptTargets,
-    clueSources,
-    primaryShowKeys,
-    audioClipTypes,
+    mediaType: behaviourType === "heads_up" ? "" : draft.mediaType,
+    promptTarget: behaviourType === "heads_up" ? "" : draft.promptTarget,
+    clueSource: behaviourType === "heads_up" ? "" : draft.clueSource,
+    audioClipType: behaviourType === "heads_up" ? "" : draft.audioClipType,
     headsUpTvDisplayMode: behaviourType === "heads_up" ? draft.headsUpTvDisplayMode : "timer_only",
     headsUpTurnSeconds: behaviourType === "heads_up" ? draft.headsUpTurnSeconds : 60,
   }
@@ -393,11 +332,11 @@ function makeManualRound(index: number): ManualRoundDraft {
     countsTowardsScore: true,
     sourceMode: "selected_packs",
     packIds: [],
-    mediaTypes: [],
-    promptTargets: [],
-    clueSources: [],
-    primaryShowKeys: [],
-    audioClipTypes: [],
+    mediaType: "",
+    promptTarget: "",
+    clueSource: "",
+    primaryShowKey: "",
+    audioClipType: "",
     headsUpDifficulty: "",
     headsUpTvDisplayMode: "timer_only",
     headsUpTurnSeconds: 60,
@@ -409,11 +348,11 @@ function makeManualRound(index: number): ManualRoundDraft {
 
 function buildSelectionRulesFromDraft(round: ManualRoundDraft) {
   return {
-    mediaTypes: round.mediaTypes,
-    promptTargets: round.promptTargets,
-    clueSources: round.clueSources,
-    primaryShowKeys: round.primaryShowKeys,
-    audioClipTypes: round.audioClipTypes,
+    mediaTypes: round.mediaType ? [round.mediaType] : [],
+    promptTargets: round.promptTarget ? [round.promptTarget] : [],
+    clueSources: round.clueSource ? [round.clueSource] : [],
+    primaryShowKeys: round.primaryShowKey ? [round.primaryShowKey] : [],
+    audioClipTypes: round.audioClipType ? [round.audioClipType] : [],
     headsUpDifficulties: round.behaviourType === "heads_up" && round.headsUpDifficulty ? [round.headsUpDifficulty] : [],
   }
 }
@@ -442,7 +381,11 @@ function normaliseTemplateTiming(raw: unknown, fallback: number) {
 }
 
 function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
-  const rules = normaliseSelectionRules(template.selection_rules)
+  const mediaType = firstRuleValue(template.selection_rules, "mediaTypes")
+  const promptTarget = firstRuleValue(template.selection_rules, "promptTargets")
+  const clueSource = firstRuleValue(template.selection_rules, "clueSources")
+  const primaryShowKey = firstRuleValue(template.selection_rules, "primaryShowKeys")
+  const audioClipType = firstRuleValue(template.selection_rules, "audioClipTypes")
   const defaultPackIds = Array.isArray(template.default_pack_ids)
     ? template.default_pack_ids.map((value) => String(value ?? "").trim()).filter(Boolean)
     : []
@@ -463,7 +406,13 @@ function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
     countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(template.counts_towards_score ?? true),
     sourceMode,
     packIds: sourceMode === "specific_packs" ? defaultPackIds : [],
-    selectionRules: rules,
+    selectionRules: {
+      mediaTypes: mediaType ? [mediaType as "text" | "audio" | "image"] : [],
+      promptTargets: promptTarget ? [promptTarget] : [],
+      clueSources: clueSource ? [clueSource] : [],
+      primaryShowKeys: primaryShowKey ? [primaryShowKey] : [],
+      audioClipTypes: audioClipType ? [audioClipType] : [],
+    },
     answerSeconds: normaliseTemplateTiming(
       template.default_answer_seconds,
       getDefaultAnswerSecondsForBehaviour(behaviourType)
@@ -723,6 +672,8 @@ export default function HostPage() {
   const [templateToAddId, setTemplateToAddId] = useState("")
   const [quickRandomUseTemplates, setQuickRandomUseTemplates] = useState(true)
   const [quickRandomTemplateIds, setQuickRandomTemplateIds] = useState<string[]>([])
+  const [showSourcePacksInLibrary, setShowSourcePacksInLibrary] = useState(false)
+  const [showOtherTemplatesInLibrary, setShowOtherTemplatesInLibrary] = useState(false)
 
   const [gameMode, setGameMode] = useState<GameMode>("solo")
   const [teamNames, setTeamNames] = useState<string[]>(() => {
@@ -766,7 +717,6 @@ export default function HostPage() {
   const [endingGame, setEndingGame] = useState(false)
 
   const [rehostCode, setRehostCode] = useState("")
-  const [lastHostedRoomCode, setLastHostedRoomCode] = useState("")
   const [rehostBusy, setRehostBusy] = useState(false)
   const [rehostError, setRehostError] = useState<string | null>(null)
 
@@ -801,11 +751,7 @@ export default function HostPage() {
   useEffect(() => {
     try {
       const last = localStorage.getItem(LAST_HOST_CODE_KEY)
-      if (!last) return
-      const cleanCode = cleanRoomCode(last)
-      if (!cleanCode) return
-      setLastHostedRoomCode(cleanCode)
-      setRehostCode((current) => (current.trim() ? current : cleanCode))
+      if (last) setRehostCode(cleanRoomCode(last))
     } catch {
       // ignore
     }
@@ -978,11 +924,8 @@ export default function HostPage() {
   }, [roomCode, roomPhase, roomStage])
 
   function rememberHostCode(code: string) {
-    const cleanCode = cleanRoomCode(code)
-    if (!cleanCode) return
-    setLastHostedRoomCode(cleanCode)
     try {
-      localStorage.setItem(LAST_HOST_CODE_KEY, cleanCode)
+      localStorage.setItem(LAST_HOST_CODE_KEY, code)
     } catch {
       // ignore
     }
@@ -1003,10 +946,19 @@ export default function HostPage() {
     }
   }
 
-  function setAllSelected(value: boolean) {
+  function setSelectedPackIds(ids: string[]) {
+    const selected = new Set(ids)
     const next: Record<string, boolean> = {}
-    for (const p of packs) next[p.id] = value
+    for (const pack of packs) next[pack.id] = selected.has(pack.id)
     setSelectedPacks(next)
+  }
+
+  function setAllSelected(value: boolean) {
+    setSelectedPackIds(value ? packs.map((pack) => pack.id) : [])
+  }
+
+  function setCoreSelected() {
+    setSelectedPackIds(packLibrary.coreIds)
   }
 
   function togglePack(id: string) {
@@ -1058,7 +1010,11 @@ export default function HostPage() {
   }
 
   function addManualRoundFromTemplate(template: RoundTemplateRow) {
-    const rules = normaliseSelectionRules(template.selection_rules)
+    const mediaType = firstRuleValue(template.selection_rules, "mediaTypes")
+    const promptTarget = firstRuleValue(template.selection_rules, "promptTargets")
+    const clueSource = firstRuleValue(template.selection_rules, "clueSources")
+    const primaryShowKey = firstRuleValue(template.selection_rules, "primaryShowKeys")
+    const audioClipType = firstRuleValue(template.selection_rules, "audioClipTypes")
     const defaultPackIds = Array.isArray(template.default_pack_ids)
       ? template.default_pack_ids.map((value) => String(value ?? "").trim()).filter(Boolean)
       : []
@@ -1086,11 +1042,11 @@ export default function HostPage() {
         countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(template.counts_towards_score ?? true),
         sourceMode,
         packIds: sourceMode === "specific_packs" ? defaultPackIds : [],
-        mediaTypes: rules.mediaTypes ?? [],
-        promptTargets: rules.promptTargets ?? [],
-        clueSources: rules.clueSources ?? [],
-        primaryShowKeys: rules.primaryShowKeys ?? [],
-        audioClipTypes: rules.audioClipTypes ?? [],
+        mediaType: mediaType === "text" || mediaType === "audio" || mediaType === "image" ? mediaType : "",
+        promptTarget,
+        clueSource,
+        primaryShowKey,
+        audioClipType,
         headsUpDifficulty: "",
         headsUpTvDisplayMode: "timer_only",
         headsUpTurnSeconds: 60,
@@ -1100,6 +1056,34 @@ export default function HostPage() {
       }),
     ])
   }
+
+  const templateLibrary = useMemo(() => {
+    const core = sortTemplateGroup(
+      templates.filter((template) => CORE_TEMPLATE_NAME_SET.has(normaliseLibraryName(template.name))),
+      CORE_TEMPLATE_ORDER
+    )
+    const other = sortTemplateGroup(
+      templates.filter((template) => !CORE_TEMPLATE_NAME_SET.has(normaliseLibraryName(template.name)))
+    )
+
+    return {
+      core,
+      other,
+      coreIds: core.map((template) => template.id),
+    }
+  }, [templates])
+
+
+  useEffect(() => {
+    if (templates.length === 0) {
+      if (templateToAddId) setTemplateToAddId("")
+      return
+    }
+
+    if (templateToAddId && templates.some((template) => template.id === templateToAddId)) return
+
+    setTemplateToAddId(templateLibrary.core[0]?.id ?? templates[0]?.id ?? "")
+  }, [templateLibrary.core, templateToAddId, templates])
 
   const selectedTemplateToAdd = useMemo(
     () => templates.find((template) => template.id === templateToAddId) ?? null,
@@ -1146,6 +1130,10 @@ export default function HostPage() {
 
   function setAllQuickRandomTemplates(value: boolean) {
     setQuickRandomTemplateIds(value ? templates.map((template) => template.id) : [])
+  }
+
+  function setCoreQuickRandomTemplates() {
+    setQuickRandomTemplateIds(templateLibrary.coreIds)
   }
 
   const manualRoundsTotal = useMemo(() => {
@@ -1762,46 +1750,36 @@ export default function HostPage() {
     }
   }
 
-  async function loadHostedRoom(code: string, options?: { showBusy?: boolean; reportErrors?: boolean }) {
-    const safeCode = cleanRoomCode(code)
-    const showBusy = Boolean(options?.showBusy)
-    const reportErrors = Boolean(options?.reportErrors)
+  async function rehostRoom() {
+    setRehostBusy(true)
+    setRehostError(null)
+    setCreateError(null)
 
-    if (!safeCode) {
-      if (reportErrors) setRehostError("Enter a room code.")
-      return false
-    }
-
-    if (showBusy) setRehostBusy(true)
-    if (reportErrors) {
-      setRehostError(null)
-      setCreateError(null)
+    const code = cleanRoomCode(rehostCode)
+    if (!code) {
+      setRehostError("Enter a room code.")
+      setRehostBusy(false)
+      return
     }
 
     try {
-      const res = await fetch(`/api/room/state?code=${encodeURIComponent(safeCode)}`, { cache: "no-store" })
+      const res = await fetch(`/api/room/state?code=${encodeURIComponent(code)}`, { cache: "no-store" })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        if (reportErrors) setRehostError(String(data?.error ?? "Room not found."))
-        return false
+        setRehostError(String(data?.error ?? "Room not found."))
+        setRehostBusy(false)
+        return
       }
-
-      setRoomCode(safeCode)
+      setRoomCode(code)
       setRoomState(data)
       setRoomPhase(String(data?.phase ?? "lobby"))
       setRoomStage(String(data?.stage ?? "lobby"))
-      rememberHostCode(safeCode)
-      return true
+      rememberHostCode(code)
     } catch {
-      if (reportErrors) setRehostError("Could not load that room.")
-      return false
+      setRehostError("Could not load that room.")
     } finally {
-      if (showBusy) setRehostBusy(false)
+      setRehostBusy(false)
     }
-  }
-
-  async function rehostRoom() {
-    await loadHostedRoom(rehostCode, { showBusy: true, reportErrors: true })
   }
 
   async function startGame() {
@@ -1956,7 +1934,52 @@ export default function HostPage() {
   }, [roomIsInfinite, roomPhase, roomStage, roomState?.flow?.isLastQuestionOverall])
 
   const hasRoom = Boolean(roomCode)
+
+  const showPackNameSet = useMemo(
+    () => new Set(shows.map((show) => normaliseLibraryName(show.display_name))),
+    [shows]
+  )
+
+  const packLibrary = useMemo(() => {
+    const general: PackRow[] = []
+    const specialist: PackRow[] = []
+    const showSource: PackRow[] = []
+    const other: PackRow[] = []
+
+    for (const pack of packs) {
+      const name = normaliseLibraryName(pack.display_name)
+      if (CORE_GENERAL_PACK_NAME_SET.has(name)) {
+        general.push(pack)
+      } else if (SPECIALIST_PACK_NAME_SET.has(name)) {
+        specialist.push(pack)
+      } else if (showPackNameSet.has(name)) {
+        showSource.push(pack)
+      } else {
+        other.push(pack)
+      }
+    }
+
+    const sortedGeneral = sortPackGroup(general, CORE_GENERAL_PACK_ORDER)
+    const sortedSpecialist = sortPackGroup(specialist, SPECIALIST_PACK_ORDER)
+    const sortedShowSource = sortPackGroup(showSource)
+    const sortedOther = sortPackGroup(other)
+    const core = [...sortedGeneral, ...sortedSpecialist]
+
+    return {
+      general: sortedGeneral,
+      specialist: sortedSpecialist,
+      showSource: sortedShowSource,
+      other: sortedOther,
+      core,
+      coreIds: core.map((pack) => pack.id),
+      hiddenSourceIds: [...sortedShowSource, ...sortedOther].map((pack) => pack.id),
+    }
+  }, [packs, showPackNameSet])
+
   const selectedPackCount = packs.filter((p) => selectedPacks[p.id]).length
+  const selectedHiddenPackCount = packLibrary.hiddenSourceIds.filter((id) => selectedPacks[id]).length
+  const selectedQuickRandomOtherTemplateCount = templateLibrary.other.filter((template) => quickRandomTemplateIds.includes(template.id)).length
+
   const canStart = hasRoom && roomPhase === "lobby" && !starting
   const canContinue =
     hasRoom &&
@@ -2433,25 +2456,99 @@ export default function HostPage() {
 
                       {!selectPacks ? (
                         <div className="mt-3 rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">
-                          Using all active packs.
+                          Using all active packs. The picker below now keeps core packs and specialist round-source packs at the top when you want a narrower game.
                         </div>
                       ) : (
                         <div className="mt-3 space-y-3">
                           <div className="flex flex-wrap gap-2">
-                            <Button variant="secondary" size="sm" onClick={() => setAllSelected(true)} disabled={!packs.length}>Select all</Button>
+                            <Button variant="secondary" size="sm" onClick={setCoreSelected} disabled={!packLibrary.core.length}>Select core</Button>
+                            <Button variant="secondary" size="sm" onClick={() => setAllSelected(true)} disabled={!packs.length}>Select all active</Button>
                             <Button variant="secondary" size="sm" onClick={() => setAllSelected(false)} disabled={!selectedPackCount}>Clear</Button>
                             <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
                               {selectedPackCount} selected
                             </div>
+                            {selectedHiddenPackCount > 0 ? (
+                              <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+                                {selectedHiddenPackCount} in hidden source packs
+                              </div>
+                            ) : null}
                           </div>
-                          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                            {packs.map((pack) => (
-                              <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-muted">
-                                <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
-                                <span className="min-w-0 flex-1 truncate">{pack.display_name}</span>
-                              </label>
-                            ))}
-                          </div>
+
+                          {packLibrary.general.length ? (
+                            <div className="space-y-2">
+                              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Core packs</div>
+                              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                                {packLibrary.general.map((pack) => (
+                                  <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-muted">
+                                    <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
+                                    <span className="min-w-0 flex-1 truncate">{pack.display_name}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {packLibrary.specialist.length ? (
+                            <div className="space-y-2">
+                              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Specialist round-source packs</div>
+                              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                                {packLibrary.specialist.map((pack) => (
+                                  <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-muted">
+                                    <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
+                                    <span className="min-w-0 flex-1 truncate">{pack.display_name}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {packLibrary.showSource.length || packLibrary.other.length ? (
+                            <div className="rounded-xl border border-border bg-card">
+                              <button
+                                type="button"
+                                className="flex w-full items-center justify-between gap-3 p-3 text-left"
+                                onClick={() => setShowSourcePacksInLibrary((prev) => !prev)}
+                              >
+                                <div>
+                                  <div className="text-sm font-medium text-foreground">Single-show and source packs</div>
+                                  <div className="mt-1 text-xs text-muted-foreground">Keep these available for admin curation and special cases without crowding the main pack picker.</div>
+                                </div>
+                                <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+                                  {showSourcePacksInLibrary ? 'Hide' : `Show ${packLibrary.showSource.length + packLibrary.other.length}`}
+                                </div>
+                              </button>
+                              {showSourcePacksInLibrary ? (
+                                <div className="border-t border-border p-3 space-y-3">
+                                  {packLibrary.showSource.length ? (
+                                    <div className="space-y-2">
+                                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Single-show source packs</div>
+                                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                                        {packLibrary.showSource.map((pack) => (
+                                          <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground hover:bg-muted">
+                                            <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
+                                            <span className="min-w-0 flex-1 truncate">{pack.display_name}</span>
+                                          </label>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ) : null}
+                                  {packLibrary.other.length ? (
+                                    <div className="space-y-2">
+                                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Other active packs</div>
+                                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                                        {packLibrary.other.map((pack) => (
+                                          <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground hover:bg-muted">
+                                            <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
+                                            <span className="min-w-0 flex-1 truncate">{pack.display_name}</span>
+                                          </label>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
                         </div>
                       )}
                     </div>
@@ -2743,12 +2840,28 @@ export default function HostPage() {
                         >
                           {templates.length === 0 ? (
                             <option value="">No active templates</option>
-                          ) : null}
-                          {templates.map((template) => (
-                            <option key={template.id} value={template.id}>
-                              {template.name}
-                            </option>
-                          ))}
+                          ) : (
+                            <>
+                              {templateLibrary.core.length ? (
+                                <optgroup label="Core round templates">
+                                  {templateLibrary.core.map((template) => (
+                                    <option key={template.id} value={template.id}>
+                                      {template.name}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              ) : null}
+                              {templateLibrary.other.length ? (
+                                <optgroup label="Other active templates">
+                                  {templateLibrary.other.map((template) => (
+                                    <option key={template.id} value={template.id}>
+                                      {template.name}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              ) : null}
+                            </>
+                          )}
                         </select>
                         <Button
                           variant="secondary"
@@ -2765,6 +2878,7 @@ export default function HostPage() {
 
                     <div className="mt-3 space-y-1 text-xs text-muted-foreground">
                       <div>Total questions from rounds: {manualRoundsTotal}. {manualJokerNote}</div>
+                      <div>Core round templates stay at the top. Metadata-led show selection now means you do not need a visible template for every individual show.</div>
                       {quickfireCount > 0 ? <div>Quickfire skips Joker, skips per-question reveals, and only pulls MCQ questions. Audio is allowed only when media_duration_ms is set and the clip is 5 seconds or shorter.</div> : null}
                       {selectedTemplateToAdd?.description ? <div>Template: {selectedTemplateToAdd.description}</div> : null}
                     </div>
@@ -2966,73 +3080,50 @@ export default function HostPage() {
                                   {HEADS_UP_TV_DISPLAY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                                 </select>
                               </div>
-                              <div className="sm:col-span-2 xl:col-span-4">
-                                <MultiSelectShowGroup
-                                  label="primary_show_key"
-                                  hint="Select one or more shows. Selections inside this field are treated as OR."
-                                  shows={shows}
-                                  selectedValues={round.primaryShowKeys}
-                                  onToggle={(value) => updateManualRound(round.id, { primaryShowKeys: toggleValueInArray(round.primaryShowKeys, value) })}
-                                />
+                              <div>
+                                <div className="text-sm font-medium text-foreground">primary_show_key</div>
+                                <select value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  <option value="">Any show</option>
+                                  {shows.map((show) => <option key={show.show_key} value={show.show_key}>{show.display_name}</option>)}
+                                </select>
                               </div>
                             </div>
                           ) : (
                             <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                              <div className="sm:col-span-2 xl:col-span-2">
-                                <MultiSelectChipGroup
-                                  label="media_type"
-                                  hint="Use one or more media types for this round."
-                                  options={[
-                                    { value: "text", label: "text" },
-                                    { value: "audio", label: "audio" },
-                                    { value: "image", label: "image" },
-                                  ]}
-                                  selectedValues={round.mediaTypes}
-                                  onToggle={(value) => {
-                                    const nextMediaTypes = toggleValueInArray(round.mediaTypes, value)
-                                    updateManualRound(round.id, {
-                                      mediaTypes: nextMediaTypes,
-                                      audioClipTypes: nextMediaTypes.includes("audio") ? round.audioClipTypes : [],
-                                    })
-                                  }}
-                                />
+                              <div>
+                                <div className="text-sm font-medium text-foreground">media_type</div>
+                                <select value={round.mediaType} onChange={(e) => updateManualRound(round.id, { mediaType: e.target.value as ManualRoundDraft["mediaType"] })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  <option value="">Any media</option>
+                                  <option value="text">text</option>
+                                  <option value="audio">audio</option>
+                                  <option value="image">image</option>
+                                </select>
                               </div>
-                              <div className="sm:col-span-2 xl:col-span-2">
-                                <MultiSelectChipGroup
-                                  label="audio_clip_type"
-                                  hint="Optional extra filter for audio rounds."
-                                  options={AUDIO_CLIP_TYPE_OPTIONS.filter((option) => option.value).map((option) => ({ value: option.value, label: option.label }))}
-                                  selectedValues={round.audioClipTypes}
-                                  onToggle={(value) => updateManualRound(round.id, { audioClipTypes: toggleValueInArray(round.audioClipTypes, value) })}
-                                  disabled={!round.mediaTypes.includes("audio")}
-                                />
+                              <div>
+                                <div className="text-sm font-medium text-foreground">prompt_target</div>
+                                <select value={round.promptTarget} onChange={(e) => updateManualRound(round.id, { promptTarget: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  {PROMPT_TARGET_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
+                                </select>
                               </div>
-                              <div className="sm:col-span-2 xl:col-span-2">
-                                <MultiSelectChipGroup
-                                  label="prompt_target"
-                                  hint="Select one or more answer targets."
-                                  options={PROMPT_TARGET_OPTIONS.filter((option) => option.value).map((option) => ({ value: option.value, label: option.label }))}
-                                  selectedValues={round.promptTargets}
-                                  onToggle={(value) => updateManualRound(round.id, { promptTargets: toggleValueInArray(round.promptTargets, value) })}
-                                />
+                              <div>
+                                <div className="text-sm font-medium text-foreground">clue_source</div>
+                                <select value={round.clueSource} onChange={(e) => updateManualRound(round.id, { clueSource: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  {CLUE_SOURCE_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
+                                </select>
                               </div>
-                              <div className="sm:col-span-2 xl:col-span-2">
-                                <MultiSelectChipGroup
-                                  label="clue_source"
-                                  hint="Select one or more clue sources."
-                                  options={CLUE_SOURCE_OPTIONS.filter((option) => option.value).map((option) => ({ value: option.value, label: option.label }))}
-                                  selectedValues={round.clueSources}
-                                  onToggle={(value) => updateManualRound(round.id, { clueSources: toggleValueInArray(round.clueSources, value) })}
-                                />
+                              <div>
+                                <div className="text-sm font-medium text-foreground">primary_show_key</div>
+                                <select value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  <option value="">Any show</option>
+                                  {shows.map((show) => <option key={show.show_key} value={show.show_key}>{show.display_name}</option>)}
+                                </select>
                               </div>
-                              <div className="sm:col-span-2 xl:col-span-4">
-                                <MultiSelectShowGroup
-                                  label="primary_show_key"
-                                  hint="Select one or more shows for metadata-led show rounds."
-                                  shows={shows}
-                                  selectedValues={round.primaryShowKeys}
-                                  onToggle={(value) => updateManualRound(round.id, { primaryShowKeys: toggleValueInArray(round.primaryShowKeys, value) })}
-                                />
+
+                              <div>
+                                <div className="text-sm font-medium text-foreground">audio_clip_type</div>
+                                <select value={round.audioClipType} onChange={(e) => updateManualRound(round.id, { audioClipType: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" disabled={round.mediaType !== "audio"}>
+                                  {AUDIO_CLIP_TYPE_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
+                                </select>
                               </div>
                             </div>
                           )}
@@ -3085,16 +3176,84 @@ export default function HostPage() {
                           ) : round.sourceMode === "all_questions" ? (
                             <div className="mt-3 text-xs text-muted-foreground">This round can draw from any question linked to an active pack.</div>
                           ) : (
-                            <div className="mt-3 space-y-2">
-                              <div className="text-xs text-muted-foreground">Choose packs for this round.</div>
-                              <div className="grid gap-2 sm:grid-cols-2">
-                                {packs.map((pack) => (
-                                  <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm">
-                                    <input type="checkbox" checked={round.packIds.includes(pack.id)} onChange={() => toggleManualRoundPack(round.id, pack.id)} />
-                                    <span className="min-w-0 flex-1">{pack.display_name}</span>
-                                  </label>
-                                ))}
-                              </div>
+                            <div className="mt-3 space-y-3">
+                              <div className="text-xs text-muted-foreground">Choose packs for this round. Core packs stay visible first, while single-show source packs stay tucked away unless you need them.</div>
+
+                              {packLibrary.general.length ? (
+                                <div className="space-y-2">
+                                  <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Core packs</div>
+                                  <div className="grid gap-2 sm:grid-cols-2">
+                                    {packLibrary.general.map((pack) => (
+                                      <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm">
+                                        <input type="checkbox" checked={round.packIds.includes(pack.id)} onChange={() => toggleManualRoundPack(round.id, pack.id)} />
+                                        <span className="min-w-0 flex-1">{pack.display_name}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : null}
+
+                              {packLibrary.specialist.length ? (
+                                <div className="space-y-2">
+                                  <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Specialist round-source packs</div>
+                                  <div className="grid gap-2 sm:grid-cols-2">
+                                    {packLibrary.specialist.map((pack) => (
+                                      <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm">
+                                        <input type="checkbox" checked={round.packIds.includes(pack.id)} onChange={() => toggleManualRoundPack(round.id, pack.id)} />
+                                        <span className="min-w-0 flex-1">{pack.display_name}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : null}
+
+                              {packLibrary.showSource.length || packLibrary.other.length ? (
+                                <div className="rounded-xl border border-border bg-background">
+                                  <button
+                                    type="button"
+                                    className="flex w-full items-center justify-between gap-3 p-3 text-left"
+                                    onClick={() => setShowSourcePacksInLibrary((prev) => !prev)}
+                                  >
+                                    <div>
+                                      <div className="text-sm font-medium text-foreground">Single-show and source packs</div>
+                                      <div className="mt-1 text-xs text-muted-foreground">Use these when you want direct pack control rather than metadata-led round building.</div>
+                                    </div>
+                                    <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+                                      {showSourcePacksInLibrary ? 'Hide' : `Show ${packLibrary.showSource.length + packLibrary.other.length}`}
+                                    </div>
+                                  </button>
+                                  {showSourcePacksInLibrary ? (
+                                    <div className="border-t border-border p-3 space-y-3">
+                                      {packLibrary.showSource.length ? (
+                                        <div className="space-y-2">
+                                          <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Single-show source packs</div>
+                                          <div className="grid gap-2 sm:grid-cols-2">
+                                            {packLibrary.showSource.map((pack) => (
+                                              <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm">
+                                                <input type="checkbox" checked={round.packIds.includes(pack.id)} onChange={() => toggleManualRoundPack(round.id, pack.id)} />
+                                                <span className="min-w-0 flex-1">{pack.display_name}</span>
+                                              </label>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ) : null}
+                                      {packLibrary.other.length ? (
+                                        <div className="space-y-2">
+                                          <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Other active packs</div>
+                                          <div className="grid gap-2 sm:grid-cols-2">
+                                            {packLibrary.other.map((pack) => (
+                                              <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm">
+                                                <input type="checkbox" checked={round.packIds.includes(pack.id)} onChange={() => toggleManualRoundPack(round.id, pack.id)} />
+                                                <span className="min-w-0 flex-1">{pack.display_name}</span>
+                                              </label>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              ) : null}
                             </div>
                           )}
                         </div>
@@ -3166,6 +3325,7 @@ export default function HostPage() {
                               </div>
                             </div>
                             <div className="flex flex-wrap gap-2">
+                              <Button variant="secondary" onClick={setCoreQuickRandomTemplates} disabled={!templateLibrary.core.length}>Select core</Button>
                               <Button variant="secondary" onClick={() => setAllQuickRandomTemplates(true)} disabled={!templates.length}>Select all</Button>
                               <Button variant="secondary" onClick={() => setAllQuickRandomTemplates(false)} disabled={!quickRandomTemplateIds.length}>Clear</Button>
                             </div>
@@ -3193,43 +3353,110 @@ export default function HostPage() {
                               )}
                             </div>
                           ) : null}
-                          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                            {templates.length === 0 ? (
-                              <div className="text-sm text-muted-foreground">No active round templates are available yet.</div>
-                            ) : (
-                              templates.map((template) => {
-                                const selected = quickRandomTemplateIds.includes(template.id)
-                                const feasibility = templateFeasibilityById.get(template.id)
-                                const tone = feasibility ? feasibilityTone(feasibility) : null
-                                return (
-                                  <label key={template.id} className="rounded-xl border border-border bg-background px-3 py-2 text-sm">
-                                    <div className="flex items-center gap-2">
-                                      <input
-                                        type="checkbox"
-                                        checked={selected}
-                                        onChange={() => toggleQuickRandomTemplate(template.id)}
-                                      />
-                                      <span className="min-w-0 flex-1">{template.name}</span>
-                                      <span className="text-xs text-muted-foreground">{template.default_question_count}</span>
+
+                          {templates.length === 0 ? (
+                            <div className="mt-3 text-sm text-muted-foreground">No active round templates are available yet.</div>
+                          ) : (
+                            <div className="mt-3 space-y-3">
+                              {templateLibrary.core.length ? (
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Core round templates</div>
+                                    <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{templateLibrary.core.filter((template) => quickRandomTemplateIds.includes(template.id)).length} selected</div>
+                                  </div>
+                                  <div className="grid gap-2 sm:grid-cols-2">
+                                    {templateLibrary.core.map((template) => {
+                                      const selected = quickRandomTemplateIds.includes(template.id)
+                                      const feasibility = templateFeasibilityById.get(template.id)
+                                      const tone = feasibility ? feasibilityTone(feasibility) : null
+                                      return (
+                                        <label key={template.id} className="rounded-xl border border-border bg-background px-3 py-2 text-sm">
+                                          <div className="flex items-center gap-2">
+                                            <input
+                                              type="checkbox"
+                                              checked={selected}
+                                              onChange={() => toggleQuickRandomTemplate(template.id)}
+                                            />
+                                            <span className="min-w-0 flex-1">{template.name}</span>
+                                            <span className="text-xs text-muted-foreground">{template.default_question_count}</span>
+                                          </div>
+                                          {feasibility ? (
+                                            <div className="mt-2 pl-6 text-xs">
+                                              <div className={tone === "error" ? "text-red-700 dark:text-red-200" : tone === "warning" ? "text-amber-700 dark:text-amber-200" : "text-emerald-700 dark:text-emerald-200"}>
+                                                {feasibility.explanation.summary}
+                                              </div>
+                                              {feasibility.explanation.detail ? (
+                                                <div className="mt-1 text-muted-foreground">{feasibility.explanation.detail}</div>
+                                              ) : null}
+                                              {selected && feasibility.explanation.fallback ? (
+                                                <div className="mt-1 text-muted-foreground">{feasibility.explanation.fallback}</div>
+                                              ) : null}
+                                            </div>
+                                          ) : null}
+                                        </label>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              ) : null}
+
+                              {templateLibrary.other.length ? (
+                                <div className="rounded-xl border border-border bg-background">
+                                  <button
+                                    type="button"
+                                    className="flex w-full items-center justify-between gap-3 p-3 text-left"
+                                    onClick={() => setShowOtherTemplatesInLibrary((prev) => !prev)}
+                                  >
+                                    <div>
+                                      <div className="text-sm font-medium text-foreground">Other active templates</div>
+                                      <div className="mt-1 text-xs text-muted-foreground">Keep the everyday round list short, but leave specialist or test templates available when you need them.</div>
                                     </div>
-                                    {feasibility ? (
-                                      <div className="mt-2 pl-6 text-xs">
-                                        <div className={tone === "error" ? "text-red-700 dark:text-red-200" : tone === "warning" ? "text-amber-700 dark:text-amber-200" : "text-emerald-700 dark:text-emerald-200"}>
-                                          {feasibility.explanation.summary}
-                                        </div>
-                                        {feasibility.explanation.detail ? (
-                                          <div className="mt-1 text-muted-foreground">{feasibility.explanation.detail}</div>
-                                        ) : null}
-                                        {selected && feasibility.explanation.fallback ? (
-                                          <div className="mt-1 text-muted-foreground">{feasibility.explanation.fallback}</div>
-                                        ) : null}
-                                      </div>
-                                    ) : null}
-                                  </label>
-                                )
-                              })
-                            )}
-                          </div>
+                                    <div className="flex items-center gap-2">
+                                      {selectedQuickRandomOtherTemplateCount > 0 ? (
+                                        <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedQuickRandomOtherTemplateCount} selected</div>
+                                      ) : null}
+                                      <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{showOtherTemplatesInLibrary ? 'Hide' : `Show ${templateLibrary.other.length}`}</div>
+                                    </div>
+                                  </button>
+                                  {showOtherTemplatesInLibrary ? (
+                                    <div className="border-t border-border p-3 grid gap-2 sm:grid-cols-2">
+                                      {templateLibrary.other.map((template) => {
+                                        const selected = quickRandomTemplateIds.includes(template.id)
+                                        const feasibility = templateFeasibilityById.get(template.id)
+                                        const tone = feasibility ? feasibilityTone(feasibility) : null
+                                        return (
+                                          <label key={template.id} className="rounded-xl border border-border bg-background px-3 py-2 text-sm">
+                                            <div className="flex items-center gap-2">
+                                              <input
+                                                type="checkbox"
+                                                checked={selected}
+                                                onChange={() => toggleQuickRandomTemplate(template.id)}
+                                              />
+                                              <span className="min-w-0 flex-1">{template.name}</span>
+                                              <span className="text-xs text-muted-foreground">{template.default_question_count}</span>
+                                            </div>
+                                            {feasibility ? (
+                                              <div className="mt-2 pl-6 text-xs">
+                                                <div className={tone === "error" ? "text-red-700 dark:text-red-200" : tone === "warning" ? "text-amber-700 dark:text-amber-200" : "text-emerald-700 dark:text-emerald-200"}>
+                                                  {feasibility.explanation.summary}
+                                                </div>
+                                                {feasibility.explanation.detail ? (
+                                                  <div className="mt-1 text-muted-foreground">{feasibility.explanation.detail}</div>
+                                                ) : null}
+                                                {selected && feasibility.explanation.fallback ? (
+                                                  <div className="mt-1 text-muted-foreground">{feasibility.explanation.fallback}</div>
+                                                ) : null}
+                                              </div>
+                                            ) : null}
+                                          </label>
+                                        )
+                                      })}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </div>
+                          )}
                         </div>
                       ) : null}
                     </div>
@@ -3499,25 +3726,7 @@ export default function HostPage() {
             <>
               <Card>
                 <CardHeader><CardTitle>Re-host room</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  {lastHostedRoomCode ? (
-                    <div className="space-y-3 rounded-xl border border-border bg-muted/40 p-3">
-                      <div>
-                        <div className="text-sm font-medium text-foreground">Previous game</div>
-                        <div className="mt-1 text-sm text-muted-foreground">
-                          Resume the last hosted room without making it the default when you open this page.
-                        </div>
-                      </div>
-                      <Button
-                        onClick={() => loadHostedRoom(lastHostedRoomCode, { showBusy: true, reportErrors: true })}
-                        disabled={rehostBusy}
-                        className="w-full sm:w-auto"
-                      >
-                        {rehostBusy ? "Loading..." : `Resume previous game (${lastHostedRoomCode})`}
-                      </Button>
-                    </div>
-                  ) : null}
-
+                <CardContent className="space-y-3">
                   <div className="text-sm text-muted-foreground">Enter a room code to continue hosting an existing room.</div>
                   <div>
                     <div className="text-sm font-medium text-foreground">Room code</div>
@@ -3534,24 +3743,91 @@ export default function HostPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <CardTitle>Selected packs</CardTitle>
-                        <div className="mt-1 text-sm text-muted-foreground">Rounds using Selected packs will draw from these packs.</div>
+                        <div className="mt-1 text-sm text-muted-foreground">Rounds using Selected packs will draw from these packs. Core and specialist packs stay visible first.</div>
                       </div>
-                      <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedPackCount} selected</div>
+                      <div className="space-y-2 text-right">
+                        <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedPackCount} selected</div>
+                        {selectedHiddenPackCount > 0 ? <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedHiddenPackCount} hidden source pack{selectedHiddenPackCount === 1 ? '' : 's'}</div> : null}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3 max-h-[70vh] overflow-y-auto">
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="secondary" onClick={() => setAllSelected(true)}>Select all</Button>
+                      <Button variant="secondary" onClick={setCoreSelected}>Select core</Button>
+                      <Button variant="secondary" onClick={() => setAllSelected(true)}>Select all active</Button>
                       <Button variant="secondary" onClick={() => setAllSelected(false)}>Clear</Button>
                     </div>
-                    <div className="grid gap-2">
-                      {packs.map((pack) => (
-                        <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
-                          <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
-                          <span className="min-w-0 flex-1 text-sm">{pack.display_name}</span>
-                        </label>
-                      ))}
-                    </div>
+                    {packLibrary.general.length ? (
+                      <div className="space-y-2">
+                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Core packs</div>
+                        <div className="grid gap-2">
+                          {packLibrary.general.map((pack) => (
+                            <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+                              <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
+                              <span className="min-w-0 flex-1 text-sm">{pack.display_name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                    {packLibrary.specialist.length ? (
+                      <div className="space-y-2">
+                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Specialist round-source packs</div>
+                        <div className="grid gap-2">
+                          {packLibrary.specialist.map((pack) => (
+                            <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+                              <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
+                              <span className="min-w-0 flex-1 text-sm">{pack.display_name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                    {packLibrary.showSource.length || packLibrary.other.length ? (
+                      <div className="rounded-xl border border-border bg-card">
+                        <button
+                          type="button"
+                          className="flex w-full items-center justify-between gap-3 p-3 text-left"
+                          onClick={() => setShowSourcePacksInLibrary((prev) => !prev)}
+                        >
+                          <div>
+                            <div className="text-sm font-medium text-foreground">Single-show and source packs</div>
+                            <div className="mt-1 text-xs text-muted-foreground">Keep these available without crowding the main host list.</div>
+                          </div>
+                          <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{showSourcePacksInLibrary ? 'Hide' : `Show ${packLibrary.showSource.length + packLibrary.other.length}`}</div>
+                        </button>
+                        {showSourcePacksInLibrary ? (
+                          <div className="border-t border-border p-3 space-y-3">
+                            {packLibrary.showSource.length ? (
+                              <div className="space-y-2">
+                                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Single-show source packs</div>
+                                <div className="grid gap-2">
+                                  {packLibrary.showSource.map((pack) => (
+                                    <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+                                      <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
+                                      <span className="min-w-0 flex-1 text-sm">{pack.display_name}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null}
+                            {packLibrary.other.length ? (
+                              <div className="space-y-2">
+                                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Other active packs</div>
+                                <div className="grid gap-2">
+                                  {packLibrary.other.map((pack) => (
+                                    <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+                                      <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
+                                      <span className="min-w-0 flex-1 text-sm">{pack.display_name}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </CardContent>
                 </Card>
               ) : selectPacks ? (
@@ -3560,14 +3836,18 @@ export default function HostPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <CardTitle>Packs</CardTitle>
-                        <div className="mt-1 text-sm text-muted-foreground">Choose which packs to include.</div>
+                        <div className="mt-1 text-sm text-muted-foreground">Choose which packs to include. Core packs and specialist round-source packs stay at the top.</div>
                       </div>
-                      <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedPackCount} selected</div>
+                      <div className="space-y-2 text-right">
+                        <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedPackCount} selected</div>
+                        {selectedHiddenPackCount > 0 ? <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedHiddenPackCount} hidden source pack{selectedHiddenPackCount === 1 ? '' : 's'}</div> : null}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3 max-h-[70vh] overflow-y-auto">
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="secondary" onClick={() => setAllSelected(true)}>Select all</Button>
+                      <Button variant="secondary" onClick={setCoreSelected}>Select core</Button>
+                      <Button variant="secondary" onClick={() => setAllSelected(true)}>Select all active</Button>
                       <Button variant="secondary" onClick={() => setAllSelected(false)}>Clear</Button>
                       {buildMode === "legacy_pack_mode" ? (
                         <div className="ml-auto flex items-center gap-2">
@@ -3579,17 +3859,92 @@ export default function HostPage() {
                         </div>
                       ) : null}
                     </div>
-                    <div className="grid gap-2">
-                      {packs.map((pack) => (
-                        <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
-                          <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
-                          <span className="min-w-0 flex-1 text-sm">{pack.display_name}</span>
-                          {buildMode === "legacy_pack_mode" && selectionStrategy === "per_pack" && selectedPacks[pack.id] ? (
-                            <input value={perPackCounts[pack.id] ?? ""} onChange={(e) => setPerPackCounts((prev) => ({ ...prev, [pack.id]: e.target.value }))} inputMode="numeric" placeholder="Count" className="w-24 rounded-xl border border-border bg-card px-3 py-2 text-sm" />
-                          ) : null}
-                        </label>
-                      ))}
-                    </div>
+
+                    {packLibrary.general.length ? (
+                      <div className="space-y-2">
+                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Core packs</div>
+                        <div className="grid gap-2">
+                          {packLibrary.general.map((pack) => (
+                            <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+                              <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
+                              <span className="min-w-0 flex-1 text-sm">{pack.display_name}</span>
+                              {buildMode === "legacy_pack_mode" && selectionStrategy === "per_pack" && selectedPacks[pack.id] ? (
+                                <input value={perPackCounts[pack.id] ?? ""} onChange={(e) => setPerPackCounts((prev) => ({ ...prev, [pack.id]: e.target.value }))} inputMode="numeric" placeholder="Count" className="w-24 rounded-xl border border-border bg-card px-3 py-2 text-sm" />
+                              ) : null}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {packLibrary.specialist.length ? (
+                      <div className="space-y-2">
+                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Specialist round-source packs</div>
+                        <div className="grid gap-2">
+                          {packLibrary.specialist.map((pack) => (
+                            <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+                              <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
+                              <span className="min-w-0 flex-1 text-sm">{pack.display_name}</span>
+                              {buildMode === "legacy_pack_mode" && selectionStrategy === "per_pack" && selectedPacks[pack.id] ? (
+                                <input value={perPackCounts[pack.id] ?? ""} onChange={(e) => setPerPackCounts((prev) => ({ ...prev, [pack.id]: e.target.value }))} inputMode="numeric" placeholder="Count" className="w-24 rounded-xl border border-border bg-card px-3 py-2 text-sm" />
+                              ) : null}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {packLibrary.showSource.length || packLibrary.other.length ? (
+                      <div className="rounded-xl border border-border bg-card">
+                        <button
+                          type="button"
+                          className="flex w-full items-center justify-between gap-3 p-3 text-left"
+                          onClick={() => setShowSourcePacksInLibrary((prev) => !prev)}
+                        >
+                          <div>
+                            <div className="text-sm font-medium text-foreground">Single-show and source packs</div>
+                            <div className="mt-1 text-xs text-muted-foreground">Reveal these when you want direct show-pack control rather than metadata-led building.</div>
+                          </div>
+                          <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{showSourcePacksInLibrary ? 'Hide' : `Show ${packLibrary.showSource.length + packLibrary.other.length}`}</div>
+                        </button>
+                        {showSourcePacksInLibrary ? (
+                          <div className="border-t border-border p-3 space-y-3">
+                            {packLibrary.showSource.length ? (
+                              <div className="space-y-2">
+                                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Single-show source packs</div>
+                                <div className="grid gap-2">
+                                  {packLibrary.showSource.map((pack) => (
+                                    <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+                                      <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
+                                      <span className="min-w-0 flex-1 text-sm">{pack.display_name}</span>
+                                      {buildMode === "legacy_pack_mode" && selectionStrategy === "per_pack" && selectedPacks[pack.id] ? (
+                                        <input value={perPackCounts[pack.id] ?? ""} onChange={(e) => setPerPackCounts((prev) => ({ ...prev, [pack.id]: e.target.value }))} inputMode="numeric" placeholder="Count" className="w-24 rounded-xl border border-border bg-card px-3 py-2 text-sm" />
+                                      ) : null}
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null}
+                            {packLibrary.other.length ? (
+                              <div className="space-y-2">
+                                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Other active packs</div>
+                                <div className="grid gap-2">
+                                  {packLibrary.other.map((pack) => (
+                                    <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+                                      <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
+                                      <span className="min-w-0 flex-1 text-sm">{pack.display_name}</span>
+                                      {buildMode === "legacy_pack_mode" && selectionStrategy === "per_pack" && selectedPacks[pack.id] ? (
+                                        <input value={perPackCounts[pack.id] ?? ""} onChange={(e) => setPerPackCounts((prev) => ({ ...prev, [pack.id]: e.target.value }))} inputMode="numeric" placeholder="Count" className="w-24 rounded-xl border border-border bg-card px-3 py-2 text-sm" />
+                                      ) : null}
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </CardContent>
                 </Card>
               ) : (

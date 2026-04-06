@@ -7,7 +7,6 @@ This file tracks the live plan. Keep it short and practical.
 - [ ] Add host-side answer adjudication so disputed text answers can be reviewed and corrected safely during a live room.
 - [ ] Build better answer-audit tools into the admin questions page so text-answer cleanup is faster and safer.
 - [ ] Keep consolidating the round-plan model so packs stay content sources and rounds stay gameplay definitions.
-- [x] Add cross-game question anti-repetition so rounds draw from recent history more intelligently.
 
 ## Next feature candidates
 
@@ -20,8 +19,9 @@ This file tracks the live plan. Keep it short and practical.
 ## Structural and content model work
 
 - [ ] Keep moving room creation away from pack-led setup towards explicit round types and round rules.
-- [ ] Revisit whether single-show packs should keep shrinking as multi-select metadata-led round creation improves.
+- [x] Add multi-select metadata filters to host round creation and round-template editing.
 - [ ] Revisit question tagging so questions can be selected into suitable round types more flexibly.
+- [ ] Review which single-show packs still need to stay visible now that metadata-led show selection is stronger.
 - [ ] Decide the minimum tagging model needed for round selection, for example: round type, media type, show, difficulty, era, performer, character.
 - [ ] Keep tagging simple enough that question writing and import do not become painful.
 - [ ] Review whether Quickfire-safe content should stay limited to MCQ and picture until audio duration is handled properly.
@@ -33,7 +33,6 @@ This file tracks the live plan. Keep it short and practical.
 - [ ] Review whether any host controls still feel duplicated or unclear.
 - [ ] Add a compact host review view for disputed answers, including raw submissions, normalised text, and room-only score overrides.
 - [ ] Tighten template and round-builder labels so Quickfire, Standard, and future round types feel clearly different.
-- [x] Add multi-select metadata filters to manual round creation and round template editing, plus collapse create and edit cards on the round templates admin screen by default.
 - [ ] Add stronger answer-audit filters, previews, and bulk helpers to the admin questions screen.
 
 ## Content building
@@ -59,7 +58,8 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Recently completed
 
-- [x] Add admin answer-audit step 1 with likely-problem text filters, normalised answer preview, safe accepted-answer helpers, and MCQ distractor editing.
+- [x] Tidy the visible host pack and round library so core items stay visible first and single-show source packs are tucked behind an explicit reveal.
+- [x] Make Add round template and Edit selected template collapsible on the admin round-templates page.
 - [x] Add importer guidance for quoted CSV fields, show-key discipline, and a regression checklist.
 - [x] Review and tidy the main question CSV import format, plus add Heads Up CSV import and validate-only checks.
 - [x] Heads Up v1 data model and admin workflow with separate items and pack management.
@@ -80,10 +80,8 @@ This file tracks the live plan. Keep it short and practical.
 - [x] Add admin editing for canonical text answers and accepted alternatives.
 - [x] Remove stale admin question list caps.
 - [x] Stop admin questions loading from depending on `questions.is_active` and stale count views.
-- [x] Keep room progression working when the host page refreshes or the tab is backgrounded, plus auto-restore the last hosted room after refresh.
 - [x] Preserve lyric question line breaks on player, display, admin list, and admin detail screens.
 - [x] Complete and import `Waxing Lyrical (Text)`.
-- [x] Add cross-game question selection history and least-recently-used preference for new rooms and resets.
 - [x] Produce the final `Waxing Lyrical (MCQ)` master.
 - [x] Teams mode and solo mode.
 - [x] Unique team names with random musical-pun suggestions.

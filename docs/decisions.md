@@ -29,8 +29,6 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - The question should close early once every player has submitted.
 - End-of-round summaries stay. The host sets how long they remain visible.
 - The host can still skip the round review early.
-- Room progression must not depend on the host tab staying open. State polling should be able to move the room on when a question timer has elapsed.
-- The host page should restore the most recently hosted room after refresh when possible.
 - The final summary should be mobile-friendly and should show the winner.
 - Host adjudication should be room-only. The live host flow can review submitted answers and apply score overrides for that room without editing the question bank.
 - Host adjudication v1 should focus on text answers first. MCQ answers can still be visible for audit, but room-side overrides should start with free-text disputes.
@@ -48,11 +46,8 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Packs are content sources.
 - Metadata defines question eligibility.
 - Round templates are reusable gameplay definitions.
-- Single-show standard rounds should prefer metadata-led selection, especially `primary_show_key`, rather than requiring one pack per show by default.
-- Within round selection rules, multiple values inside one field use OR logic, while different fields combine with AND logic.
 - Room round plans are the actual rounds chosen for one game.
 - Even Quick Random should still build real rounds under the hood.
-- Question selection should avoid repeats within a game and should now prefer least-recently-used questions across recent games when the pool allows, with graceful fallback for thin pools.
 - Legacy pack-based rooms stay supported through a compatibility layer while the round-plan model beds in.
 - Infinite simple games run as one continuous standard round under the hood, so they skip round setup without creating a separate game engine.
 - Infinite mode keeps Joker hidden, shows question progress as a continuous run, and gives the host an explicit End game control.
@@ -89,7 +84,9 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Host setup should default to a Simple path for quick game creation, with Advanced setup hidden behind an explicit button.
 - Simple host setup is a UI layer only. It still builds a real `round_plan` under the hood, rather than creating a separate game engine.
 - Advanced setup keeps the full round builder, template tools, metadata filters, timing overrides, and legacy compatibility options.
-- Manual round creation and round template editing should support multi-select metadata filters where that improves round utility, especially for show-led rounds.
+- For standard show-based rounds, metadata-led selection should be preferred over keeping one visible host pack per show.
+- Single-show packs may stay in the database as source packs or admin-side curation aids, but the host UI should de-emphasise them.
+- Host pack and round pickers should keep the everyday library short, with core items visible first and specialist or source items behind an explicit reveal.
 - The player and display pages should avoid repeated or cluttered labels where the same detail already appears elsewhere.
 - Shared theme surface tokens live in `app/globals.css` and should be used consistently.
 - Use the `JokerBadge` component instead of pasting the Joker symbol inline.
@@ -100,8 +97,6 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Shared round-flow helpers should decide derived client stage and whether stale questions stay hidden between rounds.
 - Multiline lyric and excerpt-based question text must preserve real line breaks on player, display, admin list, and admin detail screens. Flattening those blocks counts as a regression unless replaced by an equivalent newline-preserving approach.
 - Admin answer editing for text-answer questions should sit in the questions dashboard rather than living only in CSV workflows.
-- The admin questions dashboard should expose answer-audit tools as part of the same workflow, including normalised preview for text answers and direct MCQ distractor editing.
-- Safe accepted-answer helpers should stay conservative, for example leading-article and and-versus-ampersand variants, rather than generating broad loose variants automatically.
 - Host answer review should stay hidden behind an explicit openable panel rather than taking over the main live host controls.
 - Host review should show the raw submission, a normalised text preview, the effective score result, and whether a room-only override is active.
 - The admin questions page should not depend on `questions.is_active` or stale database views such as `packs_with_counts`.
