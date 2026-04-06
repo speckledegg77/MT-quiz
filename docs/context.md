@@ -218,7 +218,10 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 ### Round templates
 - There is a `round_templates` table.
 - Templates can be created and edited in the UI.
+- The round templates admin screen now keeps Add round template and Edit selected template collapsed by default.
+- Round template selection rules now support multi-select metadata filters in the admin editor, with OR logic within a field and AND logic across different fields.
 - Host setup can add rounds from templates.
+- Manual round creation now supports multi-select metadata filters within a field, especially for `primary_show_key`, so show-led rounds no longer need to rely on one-pack-per-show.
 - Manual rounds can be saved back as templates.
 - Quick Random can build rounds from selected active templates.
 

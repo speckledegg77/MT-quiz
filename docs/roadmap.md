@@ -20,6 +20,7 @@ This file tracks the live plan. Keep it short and practical.
 ## Structural and content model work
 
 - [ ] Keep moving room creation away from pack-led setup towards explicit round types and round rules.
+- [ ] Revisit whether single-show packs should keep shrinking as multi-select metadata-led round creation improves.
 - [ ] Revisit question tagging so questions can be selected into suitable round types more flexibly.
 - [ ] Decide the minimum tagging model needed for round selection, for example: round type, media type, show, difficulty, era, performer, character.
 - [ ] Keep tagging simple enough that question writing and import do not become painful.
@@ -32,6 +33,7 @@ This file tracks the live plan. Keep it short and practical.
 - [ ] Review whether any host controls still feel duplicated or unclear.
 - [ ] Add a compact host review view for disputed answers, including raw submissions, normalised text, and room-only score overrides.
 - [ ] Tighten template and round-builder labels so Quickfire, Standard, and future round types feel clearly different.
+- [x] Add multi-select metadata filters to manual round creation and round template editing, plus collapse create and edit cards on the round templates admin screen by default.
 - [ ] Add stronger answer-audit filters, previews, and bulk helpers to the admin questions screen.
 
 ## Content building

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import {
-  firstRuleValue,
+  normaliseSelectionRules,
   type RoundTemplateBehaviourType,
   type RoundTemplateRow,
   type RoundTemplateSourceMode,
@@ -52,11 +52,11 @@ type TemplateEditorState = {
   countsTowardsScore: boolean
   sourceMode: RoundTemplateSourceMode
   defaultPackIds: string[]
-  mediaType: string
-  promptTarget: string
-  clueSource: string
-  primaryShowKey: string
-  audioClipType: string
+  mediaTypes: Array<"text" | "audio" | "image">
+  promptTargets: string[]
+  clueSources: string[]
+  primaryShowKeys: string[]
+  audioClipTypes: string[]
   isActive: boolean
 }
 
@@ -124,14 +124,41 @@ function toggleInArray(values: string[], value: string) {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value]
 }
 
+function uniqueStringArray(values: string[]) {
+  return [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))]
+}
+
+function uniqueMediaTypeArray(values: Array<"text" | "audio" | "image">) {
+  return [...new Set(values.filter((value): value is "text" | "audio" | "image" => value === "text" || value === "audio" || value === "image"))]
+}
+
+function toggleValueInArray<T extends string>(values: T[], value: T) {
+  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value]
+}
+
+function toggleChipClasses(selected: boolean, disabled = false) {
+  if (disabled) {
+    return "rounded-lg border px-3 py-2 text-left text-sm opacity-50 " +
+      (selected
+        ? "border-foreground bg-muted text-foreground"
+        : "border-border bg-card text-muted-foreground")
+  }
+
+  return "rounded-lg border px-3 py-2 text-left text-sm transition-colors " +
+    (selected
+      ? "border-foreground bg-muted text-foreground"
+      : "border-border bg-card text-foreground hover:bg-muted/40")
+}
+
+
 function buildSelectionRulesFromEditor(editor: TemplateEditorState) {
   const rules: Record<string, string[]> = {}
 
-  if (editor.mediaType) rules.mediaTypes = [editor.mediaType]
-  if (editor.promptTarget) rules.promptTargets = [editor.promptTarget]
-  if (editor.clueSource) rules.clueSources = [editor.clueSource]
-  if (editor.primaryShowKey) rules.primaryShowKeys = [editor.primaryShowKey]
-  if (editor.audioClipType) rules.audioClipTypes = [editor.audioClipType]
+  if (editor.mediaTypes.length) rules.mediaTypes = editor.mediaTypes
+  if (editor.promptTargets.length) rules.promptTargets = editor.promptTargets
+  if (editor.clueSources.length) rules.clueSources = editor.clueSources
+  if (editor.primaryShowKeys.length) rules.primaryShowKeys = editor.primaryShowKeys
+  if (editor.audioClipTypes.length) rules.audioClipTypes = editor.audioClipTypes
 
   return rules
 }
@@ -173,11 +200,11 @@ function createBlankEditor(): TemplateEditorState {
     countsTowardsScore: true,
     sourceMode: "selected_packs",
     defaultPackIds: [],
-    mediaType: "",
-    promptTarget: "",
-    clueSource: "",
-    primaryShowKey: "",
-    audioClipType: "",
+    mediaTypes: [],
+    promptTargets: [],
+    clueSources: [],
+    primaryShowKeys: [],
+    audioClipTypes: [],
     isActive: true,
   }
 }
@@ -186,6 +213,7 @@ function editorFromTemplate(template: RoundTemplateRow): TemplateEditorState {
   const defaultPackIds = Array.isArray(template.default_pack_ids)
     ? template.default_pack_ids.map((value) => String(value ?? "").trim()).filter(Boolean)
     : []
+  const rules = normaliseSelectionRules(template.selection_rules)
 
   return {
     name: template.name,
@@ -200,11 +228,11 @@ function editorFromTemplate(template: RoundTemplateRow): TemplateEditorState {
     countsTowardsScore: !!template.counts_towards_score,
     sourceMode: (template.source_mode ?? "selected_packs") as RoundTemplateSourceMode,
     defaultPackIds,
-    mediaType: firstRuleValue(template.selection_rules, "mediaTypes"),
-    promptTarget: firstRuleValue(template.selection_rules, "promptTargets"),
-    clueSource: firstRuleValue(template.selection_rules, "clueSources"),
-    primaryShowKey: firstRuleValue(template.selection_rules, "primaryShowKeys"),
-    audioClipType: firstRuleValue(template.selection_rules, "audioClipTypes"),
+    mediaTypes: rules.mediaTypes ?? [],
+    promptTargets: rules.promptTargets ?? [],
+    clueSources: rules.clueSources ?? [],
+    primaryShowKeys: rules.primaryShowKeys ?? [],
+    audioClipTypes: rules.audioClipTypes ?? [],
     isActive: !!template.is_active,
   }
 }
@@ -229,6 +257,8 @@ export function RoundTemplatesDashboard() {
 
   const [createEditor, setCreateEditor] = useState<TemplateEditorState>(createBlankEditor())
   const [editEditor, setEditEditor] = useState<TemplateEditorState>(createBlankEditor())
+  const [createOpen, setCreateOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
 
   useEffect(() => {
     try {
@@ -571,6 +601,7 @@ export function RoundTemplatesDashboard() {
                         setSelectedTemplateId(template.id)
                         setEditEditor(editorFromTemplate(template))
                         setSaveResult("")
+                        setEditOpen(true)
                       }}
                       className={`block w-full rounded-lg border px-3 py-3 text-left transition-colors ${
                         isSelected
@@ -613,72 +644,177 @@ export function RoundTemplatesDashboard() {
 
       <div className="space-y-4 xl:sticky xl:top-4 xl:self-start xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1">
         <Card>
-          <CardHeader>
-            <CardTitle>Add round template</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <TemplateFields
-              editor={createEditor}
-              setEditor={setCreateEditor}
-              packs={packs}
-              shows={shows}
-            />
-
-            <Button onClick={createTemplate} disabled={createBusy}>
-              {createBusy ? "Creating…" : "Create round template"}
-            </Button>
-
-            {createResult ? (
-              <div
-                className={`rounded-lg px-3 py-2 text-sm ${
-                  createResult === "Round template created."
-                    ? "border border-green-300 bg-green-50 text-green-700"
-                    : "border border-red-300 bg-red-50 text-red-700"
-                }`}
-              >
-                {createResult}
+          <CardHeader className="pb-3">
+            <button
+              type="button"
+              onClick={() => setCreateOpen((current) => !current)}
+              className="flex w-full items-center justify-between gap-3 text-left"
+            >
+              <CardTitle>Add round template</CardTitle>
+              <span className="text-xs text-muted-foreground">{createOpen ? "Hide" : "Show"}</span>
+            </button>
+            {!createOpen ? (
+              <div className="text-sm text-muted-foreground">
+                Closed by default to keep this screen tidy.
               </div>
             ) : null}
-          </CardContent>
+          </CardHeader>
+          {createOpen ? (
+            <CardContent className="space-y-3">
+              <TemplateFields
+                editor={createEditor}
+                setEditor={setCreateEditor}
+                packs={packs}
+                shows={shows}
+              />
+
+              <Button onClick={createTemplate} disabled={createBusy}>
+                {createBusy ? "Creating…" : "Create round template"}
+              </Button>
+
+              {createResult ? (
+                <div
+                  className={`rounded-lg px-3 py-2 text-sm ${
+                    createResult === "Round template created."
+                      ? "border border-green-300 bg-green-50 text-green-700"
+                      : "border border-red-300 bg-red-50 text-red-700"
+                  }`}
+                >
+                  {createResult}
+                </div>
+              ) : null}
+            </CardContent>
+          ) : null}
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Edit selected template</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+          <CardHeader className="pb-3">
+            <button
+              type="button"
+              onClick={() => setEditOpen((current) => !current)}
+              className="flex w-full items-center justify-between gap-3 text-left"
+            >
+              <CardTitle>Edit selected template</CardTitle>
+              <span className="text-xs text-muted-foreground">{editOpen ? "Hide" : "Show"}</span>
+            </button>
             {!selectedTemplateId ? (
               <div className="text-sm text-muted-foreground">
                 Select a round template from the list to edit it.
               </div>
-            ) : (
-              <>
-                <TemplateFields
-                  editor={editEditor}
-                  setEditor={setEditEditor}
-                  packs={packs}
-                  shows={shows}
-                />
+            ) : !editOpen ? (
+              <div className="text-sm text-muted-foreground">
+                {editEditor.name ? `Ready to edit ${editEditor.name}.` : "Closed by default to keep this screen tidy."}
+              </div>
+            ) : null}
+          </CardHeader>
+          {editOpen ? (
+            <CardContent className="space-y-3">
+              {!selectedTemplateId ? (
+                <div className="text-sm text-muted-foreground">
+                  Select a round template from the list to edit it.
+                </div>
+              ) : (
+                <>
+                  <TemplateFields
+                    editor={editEditor}
+                    setEditor={setEditEditor}
+                    packs={packs}
+                    shows={shows}
+                  />
 
-                <Button onClick={saveTemplate} disabled={saveBusy}>
-                  {saveBusy ? "Saving…" : "Save changes"}
-                </Button>
+                  <Button onClick={saveTemplate} disabled={saveBusy}>
+                    {saveBusy ? "Saving…" : "Save changes"}
+                  </Button>
 
-                {saveResult ? (
-                  <div
-                    className={`rounded-lg px-3 py-2 text-sm ${
-                      saveResult === "Saved."
-                        ? "border border-green-300 bg-green-50 text-green-700"
-                        : "border border-red-300 bg-red-50 text-red-700"
-                    }`}
-                  >
-                    {saveResult}
-                  </div>
-                ) : null}
-              </>
-            )}
-          </CardContent>
+                  {saveResult ? (
+                    <div
+                      className={`rounded-lg px-3 py-2 text-sm ${
+                        saveResult === "Saved."
+                          ? "border border-green-300 bg-green-50 text-green-700"
+                          : "border border-red-300 bg-red-50 text-red-700"
+                      }`}
+                    >
+                      {saveResult}
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </CardContent>
+          ) : null}
         </Card>
+      </div>
+    </div>
+  )
+}
+
+function MultiSelectChipGroup<T extends string>({
+  label,
+  hint,
+  options,
+  selectedValues,
+  onToggle,
+  disabled = false,
+}: {
+  label: string
+  hint?: string
+  options: Array<{ value: T; label: string; disabled?: boolean }>
+  selectedValues: T[]
+  onToggle: (value: T) => void
+  disabled?: boolean
+}) {
+  return (
+    <div>
+      <div className="text-sm font-medium">{label}</div>
+      {hint ? <div className="mt-1 text-xs text-muted-foreground">{hint}</div> : null}
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+        {options.map((option) => {
+          const selected = selectedValues.includes(option.value)
+          const optionDisabled = disabled || !!option.disabled
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                if (optionDisabled) return
+                onToggle(option.value)
+              }}
+              disabled={optionDisabled}
+              className={toggleChipClasses(selected, optionDisabled)}
+            >
+              {option.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function MultiSelectShowGroup({
+  shows,
+  selectedValues,
+  onToggle,
+}: {
+  shows: ShowOption[]
+  selectedValues: string[]
+  onToggle: (value: string) => void
+}) {
+  return (
+    <div className="max-h-48 overflow-y-auto rounded-xl border border-border bg-card p-2">
+      <div className="grid gap-2 sm:grid-cols-2">
+        {shows.map((show) => {
+          const selected = selectedValues.includes(show.show_key)
+          return (
+            <button
+              key={show.show_key}
+              type="button"
+              onClick={() => onToggle(show.show_key)}
+              className={toggleChipClasses(selected)}
+            >
+              {show.display_name}
+            </button>
+          )
+        })}
       </div>
     </div>
   )
@@ -728,7 +864,14 @@ function TemplateFields({
                 ...current,
                 behaviourType: event.target.value as RoundTemplateBehaviourType,
                 jokerEligible: event.target.value === "quickfire" ? false : current.jokerEligible,
-                mediaType: event.target.value === "quickfire" && current.mediaType === "audio" ? "" : current.mediaType,
+                mediaTypes:
+                  event.target.value === "quickfire"
+                    ? current.mediaTypes.filter((value) => value !== "audio")
+                    : current.mediaTypes,
+                audioClipTypes:
+                  event.target.value === "quickfire"
+                    ? []
+                    : current.audioClipTypes,
                 defaultAnswerSeconds:
                   current.defaultAnswerSeconds.trim() === ""
                     ? current.defaultAnswerSeconds
@@ -869,86 +1012,87 @@ function TemplateFields({
       <div className="rounded-lg border border-border bg-muted/30 p-3">
         <div className="text-sm font-medium">Selection rules</div>
         <div className="mt-1 text-xs text-muted-foreground">
-          v1 supports one value per rule type. More complex combinations can come later.
+          Selections inside one field are treated as OR. Different fields combine together as AND.
         </div>
 
         <div className="mt-3 grid gap-3">
-          <label className="grid gap-1">
-            <span className="text-sm font-medium">media_type</span>
-            <select
-              value={editor.mediaType}
-              onChange={(event) => setEditor((current) => ({ ...current, mediaType: event.target.value }))}
-              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
-            >
-              {MEDIA_TYPE_OPTIONS.map((option) => (
-                <option key={option.value || "blank"} value={option.value} disabled={option.value === "audio" && editor.behaviourType === "quickfire"}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <MultiSelectChipGroup
+            label="media_type"
+            hint="Choose one or more media types."
+            options={MEDIA_TYPE_OPTIONS.filter((option) => option.value).map((option) => ({
+              value: option.value as "text" | "audio" | "image",
+              label: option.label,
+              disabled: option.value === "audio" && editor.behaviourType === "quickfire",
+            }))}
+            selectedValues={editor.mediaTypes}
+            onToggle={(value) =>
+              setEditor((current) => {
+                const nextMediaTypes = toggleValueInArray(current.mediaTypes, value)
+                return {
+                  ...current,
+                  mediaTypes: uniqueMediaTypeArray(nextMediaTypes),
+                  audioClipTypes: nextMediaTypes.includes("audio") ? current.audioClipTypes : [],
+                }
+              })
+            }
+          />
 
-          <label className="grid gap-1">
-            <span className="text-sm font-medium">prompt_target</span>
-            <select
-              value={editor.promptTarget}
-              onChange={(event) => setEditor((current) => ({ ...current, promptTarget: event.target.value }))}
-              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
-            >
-              {PROMPT_TARGET_OPTIONS.map((option) => (
-                <option key={option.value || "blank"} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <MultiSelectChipGroup
+            label="prompt_target"
+            hint="Choose one or more answer targets."
+            options={PROMPT_TARGET_OPTIONS.filter((option) => option.value).map((option) => ({ value: option.value, label: option.label }))}
+            selectedValues={editor.promptTargets}
+            onToggle={(value) =>
+              setEditor((current) => ({
+                ...current,
+                promptTargets: uniqueStringArray(toggleValueInArray(current.promptTargets, value)),
+              }))
+            }
+          />
 
-          <label className="grid gap-1">
-            <span className="text-sm font-medium">clue_source</span>
-            <select
-              value={editor.clueSource}
-              onChange={(event) => setEditor((current) => ({ ...current, clueSource: event.target.value }))}
-              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
-            >
-              {CLUE_SOURCE_OPTIONS.map((option) => (
-                <option key={option.value || "blank"} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <MultiSelectChipGroup
+            label="clue_source"
+            hint="Choose one or more clue sources."
+            options={CLUE_SOURCE_OPTIONS.filter((option) => option.value).map((option) => ({ value: option.value, label: option.label }))}
+            selectedValues={editor.clueSources}
+            onToggle={(value) =>
+              setEditor((current) => ({
+                ...current,
+                clueSources: uniqueStringArray(toggleValueInArray(current.clueSources, value)),
+              }))
+            }
+          />
 
-          <label className="grid gap-1">
-            <span className="text-sm font-medium">primary_show_key</span>
-            <select
-              value={editor.primaryShowKey}
-              onChange={(event) => setEditor((current) => ({ ...current, primaryShowKey: event.target.value }))}
-              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
-            >
-              <option value="">No filter</option>
-              {shows.map((show) => (
-                <option key={show.show_key} value={show.show_key}>
-                  {show.display_name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div>
+            <div className="text-sm font-medium">primary_show_key</div>
+            <div className="mt-1 text-xs text-muted-foreground">Choose one or more shows for metadata-led show rounds.</div>
+            <div className="mt-2">
+              <MultiSelectShowGroup
+                shows={shows}
+                selectedValues={editor.primaryShowKeys}
+                onToggle={(value) =>
+                  setEditor((current) => ({
+                    ...current,
+                    primaryShowKeys: uniqueStringArray(toggleValueInArray(current.primaryShowKeys, value)),
+                  }))
+                }
+              />
+            </div>
+          </div>
 
-          <label className="grid gap-1">
-            <span className="text-sm font-medium">audio_clip_type</span>
-            <select
-              value={editor.audioClipType}
-              onChange={(event) => setEditor((current) => ({ ...current, audioClipType: event.target.value }))}
-              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
-              disabled={editor.mediaType !== "audio"}
-            >
-              {AUDIO_CLIP_TYPE_OPTIONS.map((option) => (
-                <option key={option.value || "blank"} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <MultiSelectChipGroup
+            label="audio_clip_type"
+            hint="Optional extra filter for audio rounds."
+            options={AUDIO_CLIP_TYPE_OPTIONS.filter((option) => option.value).map((option) => ({ value: option.value, label: option.label }))}
+            selectedValues={editor.audioClipTypes}
+            onToggle={(value) =>
+              setEditor((current) => ({
+                ...current,
+                audioClipTypes: uniqueStringArray(toggleValueInArray(current.audioClipTypes, value)),
+              }))
+            }
+            disabled={!editor.mediaTypes.includes("audio")}
+          />
         </div>
       </div>
 

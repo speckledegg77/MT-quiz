@@ -29,6 +29,7 @@ const selectionRulesSchema = z
     promptTargets: z.array(z.string()).optional(),
     clueSources: z.array(z.string()).optional(),
     primaryShowKeys: z.array(z.string()).optional(),
+    audioClipTypes: z.array(z.string()).optional(),
   })
   .optional()
 

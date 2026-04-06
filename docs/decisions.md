@@ -48,6 +48,8 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Packs are content sources.
 - Metadata defines question eligibility.
 - Round templates are reusable gameplay definitions.
+- Single-show standard rounds should prefer metadata-led selection, especially `primary_show_key`, rather than requiring one pack per show by default.
+- Within round selection rules, multiple values inside one field use OR logic, while different fields combine with AND logic.
 - Room round plans are the actual rounds chosen for one game.
 - Even Quick Random should still build real rounds under the hood.
 - Question selection should avoid repeats within a game and should now prefer least-recently-used questions across recent games when the pool allows, with graceful fallback for thin pools.
@@ -87,6 +89,7 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Host setup should default to a Simple path for quick game creation, with Advanced setup hidden behind an explicit button.
 - Simple host setup is a UI layer only. It still builds a real `round_plan` under the hood, rather than creating a separate game engine.
 - Advanced setup keeps the full round builder, template tools, metadata filters, timing overrides, and legacy compatibility options.
+- Manual round creation and round template editing should support multi-select metadata filters where that improves round utility, especially for show-led rounds.
 - The player and display pages should avoid repeated or cluttered labels where the same detail already appears elsewhere.
 - Shared theme surface tokens live in `app/globals.css` and should be used consistently.
 - Use the `JokerBadge` component instead of pasting the Joker symbol inline.

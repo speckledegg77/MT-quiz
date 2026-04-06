@@ -6,7 +6,7 @@ import QRTile from "@/components/ui/QRTile"
 
 import { supabase } from "@/lib/supabaseClient"
 import { randomTeamName } from "@/lib/teamNameSuggestions"
-import { firstRuleValue, type RoundTemplateRow } from "@/lib/roundTemplates"
+import { normaliseSelectionRules, type RoundTemplateRow } from "@/lib/roundTemplates"
 import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour } from "@/lib/roomRoundPlan"
 import { getRoomStagePillLabel, getRunModeSummaryLabel } from "@/lib/gameMode"
 
@@ -115,11 +115,11 @@ type ManualRoundDraft = {
   countsTowardsScore: boolean
   sourceMode: RoundSourceMode
   packIds: string[]
-  mediaType: "" | "text" | "audio" | "image"
-  promptTarget: string
-  clueSource: string
-  primaryShowKey: string
-  audioClipType: string
+  mediaTypes: Array<"text" | "audio" | "image">
+  promptTargets: string[]
+  clueSources: string[]
+  primaryShowKeys: string[]
+  audioClipTypes: string[]
   headsUpDifficulty: "" | "easy" | "medium" | "hard"
   headsUpTvDisplayMode: "show_clue" | "timer_only"
   headsUpTurnSeconds: 60 | 90
@@ -212,6 +212,105 @@ const SIMPLE_PRESET_OPTIONS: Array<{
   },
 ]
 
+type ToggleOption<T extends string = string> = {
+  value: T
+  label: string
+}
+
+function toggleChipClasses(selected: boolean, disabled = false) {
+  if (disabled) {
+    return "rounded-lg border px-3 py-2 text-left text-sm opacity-50 " +
+      (selected
+        ? "border-foreground bg-muted text-foreground"
+        : "border-border bg-card text-muted-foreground")
+  }
+
+  return "rounded-lg border px-3 py-2 text-left text-sm transition-colors " +
+    (selected
+      ? "border-foreground bg-muted text-foreground"
+      : "border-border bg-card text-foreground hover:bg-muted/40")
+}
+
+function MultiSelectChipGroup<T extends string>({
+  label,
+  hint,
+  options,
+  selectedValues,
+  onToggle,
+  disabled = false,
+}: {
+  label: string
+  hint?: string
+  options: Array<ToggleOption<T>>
+  selectedValues: T[]
+  onToggle: (value: T) => void
+  disabled?: boolean
+}) {
+  return (
+    <div>
+      <div className="text-sm font-medium text-foreground">{label}</div>
+      {hint ? <div className="mt-1 text-xs text-muted-foreground">{hint}</div> : null}
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+        {options.map((option) => {
+          const selected = selectedValues.includes(option.value)
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                if (disabled) return
+                onToggle(option.value)
+              }}
+              disabled={disabled}
+              className={toggleChipClasses(selected, disabled)}
+            >
+              {option.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function MultiSelectShowGroup({
+  label,
+  hint,
+  shows,
+  selectedValues,
+  onToggle,
+}: {
+  label: string
+  hint?: string
+  shows: ShowRow[]
+  selectedValues: string[]
+  onToggle: (value: string) => void
+}) {
+  return (
+    <div>
+      <div className="text-sm font-medium text-foreground">{label}</div>
+      {hint ? <div className="mt-1 text-xs text-muted-foreground">{hint}</div> : null}
+      <div className="mt-2 max-h-48 overflow-y-auto rounded-xl border border-border bg-card p-2">
+        <div className="grid gap-2 sm:grid-cols-2">
+          {shows.map((show) => {
+            const selected = selectedValues.includes(show.show_key)
+            return (
+              <button
+                key={show.show_key}
+                type="button"
+                onClick={() => onToggle(show.show_key)}
+                className={toggleChipClasses(selected)}
+              >
+                {show.display_name}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function audioModeLabel(mode: AudioMode) {
   if (mode === "phones") return "phone"
   if (mode === "both") return "TV and phone"
@@ -245,19 +344,40 @@ function makeRoundId() {
   return `round_${Math.random().toString(36).slice(2, 10)}`
 }
 
+function uniqueStringArray(values: string[]) {
+  return [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))]
+}
+
+function uniqueMediaTypeArray(values: Array<"text" | "audio" | "image">) {
+  return [...new Set(values.filter((value): value is "text" | "audio" | "image" => value === "text" || value === "audio" || value === "image"))]
+}
+
+function toggleValueInArray<T extends string>(values: T[], value: T) {
+  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value]
+}
+
+
 function normaliseManualRoundDraft(draft: ManualRoundDraft): ManualRoundDraft {
   const behaviourType: RoundBehaviourType =
     draft.behaviourType === "quickfire" ? "quickfire" : draft.behaviourType === "heads_up" ? "heads_up" : "standard"
+
+  const mediaTypes = behaviourType === "heads_up" ? [] : uniqueMediaTypeArray(draft.mediaTypes)
+  const promptTargets = behaviourType === "heads_up" ? [] : uniqueStringArray(draft.promptTargets)
+  const clueSources = behaviourType === "heads_up" ? [] : uniqueStringArray(draft.clueSources)
+  const primaryShowKeys = uniqueStringArray(draft.primaryShowKeys)
+  const audioClipTypes = mediaTypes.includes("audio") ? uniqueStringArray(draft.audioClipTypes) : []
+
   return {
     ...draft,
     behaviourType,
     jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : draft.jokerEligible,
     countsTowardsScore: behaviourType === "heads_up" ? false : draft.countsTowardsScore,
     sourceMode: behaviourType === "heads_up" ? "specific_packs" : draft.sourceMode,
-    mediaType: behaviourType === "heads_up" ? "" : draft.mediaType,
-    promptTarget: behaviourType === "heads_up" ? "" : draft.promptTarget,
-    clueSource: behaviourType === "heads_up" ? "" : draft.clueSource,
-    audioClipType: behaviourType === "heads_up" ? "" : draft.audioClipType,
+    mediaTypes,
+    promptTargets,
+    clueSources,
+    primaryShowKeys,
+    audioClipTypes,
     headsUpTvDisplayMode: behaviourType === "heads_up" ? draft.headsUpTvDisplayMode : "timer_only",
     headsUpTurnSeconds: behaviourType === "heads_up" ? draft.headsUpTurnSeconds : 60,
   }
@@ -273,11 +393,11 @@ function makeManualRound(index: number): ManualRoundDraft {
     countsTowardsScore: true,
     sourceMode: "selected_packs",
     packIds: [],
-    mediaType: "",
-    promptTarget: "",
-    clueSource: "",
-    primaryShowKey: "",
-    audioClipType: "",
+    mediaTypes: [],
+    promptTargets: [],
+    clueSources: [],
+    primaryShowKeys: [],
+    audioClipTypes: [],
     headsUpDifficulty: "",
     headsUpTvDisplayMode: "timer_only",
     headsUpTurnSeconds: 60,
@@ -289,11 +409,11 @@ function makeManualRound(index: number): ManualRoundDraft {
 
 function buildSelectionRulesFromDraft(round: ManualRoundDraft) {
   return {
-    mediaTypes: round.mediaType ? [round.mediaType] : [],
-    promptTargets: round.promptTarget ? [round.promptTarget] : [],
-    clueSources: round.clueSource ? [round.clueSource] : [],
-    primaryShowKeys: round.primaryShowKey ? [round.primaryShowKey] : [],
-    audioClipTypes: round.audioClipType ? [round.audioClipType] : [],
+    mediaTypes: round.mediaTypes,
+    promptTargets: round.promptTargets,
+    clueSources: round.clueSources,
+    primaryShowKeys: round.primaryShowKeys,
+    audioClipTypes: round.audioClipTypes,
     headsUpDifficulties: round.behaviourType === "heads_up" && round.headsUpDifficulty ? [round.headsUpDifficulty] : [],
   }
 }
@@ -322,11 +442,7 @@ function normaliseTemplateTiming(raw: unknown, fallback: number) {
 }
 
 function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
-  const mediaType = firstRuleValue(template.selection_rules, "mediaTypes")
-  const promptTarget = firstRuleValue(template.selection_rules, "promptTargets")
-  const clueSource = firstRuleValue(template.selection_rules, "clueSources")
-  const primaryShowKey = firstRuleValue(template.selection_rules, "primaryShowKeys")
-  const audioClipType = firstRuleValue(template.selection_rules, "audioClipTypes")
+  const rules = normaliseSelectionRules(template.selection_rules)
   const defaultPackIds = Array.isArray(template.default_pack_ids)
     ? template.default_pack_ids.map((value) => String(value ?? "").trim()).filter(Boolean)
     : []
@@ -347,13 +463,7 @@ function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
     countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(template.counts_towards_score ?? true),
     sourceMode,
     packIds: sourceMode === "specific_packs" ? defaultPackIds : [],
-    selectionRules: {
-      mediaTypes: mediaType ? [mediaType as "text" | "audio" | "image"] : [],
-      promptTargets: promptTarget ? [promptTarget] : [],
-      clueSources: clueSource ? [clueSource] : [],
-      primaryShowKeys: primaryShowKey ? [primaryShowKey] : [],
-      audioClipTypes: audioClipType ? [audioClipType] : [],
-    },
+    selectionRules: rules,
     answerSeconds: normaliseTemplateTiming(
       template.default_answer_seconds,
       getDefaultAnswerSecondsForBehaviour(behaviourType)
@@ -948,11 +1058,7 @@ export default function HostPage() {
   }
 
   function addManualRoundFromTemplate(template: RoundTemplateRow) {
-    const mediaType = firstRuleValue(template.selection_rules, "mediaTypes")
-    const promptTarget = firstRuleValue(template.selection_rules, "promptTargets")
-    const clueSource = firstRuleValue(template.selection_rules, "clueSources")
-    const primaryShowKey = firstRuleValue(template.selection_rules, "primaryShowKeys")
-    const audioClipType = firstRuleValue(template.selection_rules, "audioClipTypes")
+    const rules = normaliseSelectionRules(template.selection_rules)
     const defaultPackIds = Array.isArray(template.default_pack_ids)
       ? template.default_pack_ids.map((value) => String(value ?? "").trim()).filter(Boolean)
       : []
@@ -980,11 +1086,11 @@ export default function HostPage() {
         countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(template.counts_towards_score ?? true),
         sourceMode,
         packIds: sourceMode === "specific_packs" ? defaultPackIds : [],
-        mediaType: mediaType === "text" || mediaType === "audio" || mediaType === "image" ? mediaType : "",
-        promptTarget,
-        clueSource,
-        primaryShowKey,
-        audioClipType,
+        mediaTypes: rules.mediaTypes ?? [],
+        promptTargets: rules.promptTargets ?? [],
+        clueSources: rules.clueSources ?? [],
+        primaryShowKeys: rules.primaryShowKeys ?? [],
+        audioClipTypes: rules.audioClipTypes ?? [],
         headsUpDifficulty: "",
         headsUpTvDisplayMode: "timer_only",
         headsUpTurnSeconds: 60,
@@ -2860,50 +2966,73 @@ export default function HostPage() {
                                   {HEADS_UP_TV_DISPLAY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                                 </select>
                               </div>
-                              <div>
-                                <div className="text-sm font-medium text-foreground">primary_show_key</div>
-                                <select value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                  <option value="">Any show</option>
-                                  {shows.map((show) => <option key={show.show_key} value={show.show_key}>{show.display_name}</option>)}
-                                </select>
+                              <div className="sm:col-span-2 xl:col-span-4">
+                                <MultiSelectShowGroup
+                                  label="primary_show_key"
+                                  hint="Select one or more shows. Selections inside this field are treated as OR."
+                                  shows={shows}
+                                  selectedValues={round.primaryShowKeys}
+                                  onToggle={(value) => updateManualRound(round.id, { primaryShowKeys: toggleValueInArray(round.primaryShowKeys, value) })}
+                                />
                               </div>
                             </div>
                           ) : (
                             <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                              <div>
-                                <div className="text-sm font-medium text-foreground">media_type</div>
-                                <select value={round.mediaType} onChange={(e) => updateManualRound(round.id, { mediaType: e.target.value as ManualRoundDraft["mediaType"] })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                  <option value="">Any media</option>
-                                  <option value="text">text</option>
-                                  <option value="audio">audio</option>
-                                  <option value="image">image</option>
-                                </select>
+                              <div className="sm:col-span-2 xl:col-span-2">
+                                <MultiSelectChipGroup
+                                  label="media_type"
+                                  hint="Use one or more media types for this round."
+                                  options={[
+                                    { value: "text", label: "text" },
+                                    { value: "audio", label: "audio" },
+                                    { value: "image", label: "image" },
+                                  ]}
+                                  selectedValues={round.mediaTypes}
+                                  onToggle={(value) => {
+                                    const nextMediaTypes = toggleValueInArray(round.mediaTypes, value)
+                                    updateManualRound(round.id, {
+                                      mediaTypes: nextMediaTypes,
+                                      audioClipTypes: nextMediaTypes.includes("audio") ? round.audioClipTypes : [],
+                                    })
+                                  }}
+                                />
                               </div>
-                              <div>
-                                <div className="text-sm font-medium text-foreground">prompt_target</div>
-                                <select value={round.promptTarget} onChange={(e) => updateManualRound(round.id, { promptTarget: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                  {PROMPT_TARGET_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
-                                </select>
+                              <div className="sm:col-span-2 xl:col-span-2">
+                                <MultiSelectChipGroup
+                                  label="audio_clip_type"
+                                  hint="Optional extra filter for audio rounds."
+                                  options={AUDIO_CLIP_TYPE_OPTIONS.filter((option) => option.value).map((option) => ({ value: option.value, label: option.label }))}
+                                  selectedValues={round.audioClipTypes}
+                                  onToggle={(value) => updateManualRound(round.id, { audioClipTypes: toggleValueInArray(round.audioClipTypes, value) })}
+                                  disabled={!round.mediaTypes.includes("audio")}
+                                />
                               </div>
-                              <div>
-                                <div className="text-sm font-medium text-foreground">clue_source</div>
-                                <select value={round.clueSource} onChange={(e) => updateManualRound(round.id, { clueSource: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                  {CLUE_SOURCE_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
-                                </select>
+                              <div className="sm:col-span-2 xl:col-span-2">
+                                <MultiSelectChipGroup
+                                  label="prompt_target"
+                                  hint="Select one or more answer targets."
+                                  options={PROMPT_TARGET_OPTIONS.filter((option) => option.value).map((option) => ({ value: option.value, label: option.label }))}
+                                  selectedValues={round.promptTargets}
+                                  onToggle={(value) => updateManualRound(round.id, { promptTargets: toggleValueInArray(round.promptTargets, value) })}
+                                />
                               </div>
-                              <div>
-                                <div className="text-sm font-medium text-foreground">primary_show_key</div>
-                                <select value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                  <option value="">Any show</option>
-                                  {shows.map((show) => <option key={show.show_key} value={show.show_key}>{show.display_name}</option>)}
-                                </select>
+                              <div className="sm:col-span-2 xl:col-span-2">
+                                <MultiSelectChipGroup
+                                  label="clue_source"
+                                  hint="Select one or more clue sources."
+                                  options={CLUE_SOURCE_OPTIONS.filter((option) => option.value).map((option) => ({ value: option.value, label: option.label }))}
+                                  selectedValues={round.clueSources}
+                                  onToggle={(value) => updateManualRound(round.id, { clueSources: toggleValueInArray(round.clueSources, value) })}
+                                />
                               </div>
-
-                              <div>
-                                <div className="text-sm font-medium text-foreground">audio_clip_type</div>
-                                <select value={round.audioClipType} onChange={(e) => updateManualRound(round.id, { audioClipType: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" disabled={round.mediaType !== "audio"}>
-                                  {AUDIO_CLIP_TYPE_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
-                                </select>
+                              <div className="sm:col-span-2 xl:col-span-4">
+                                <MultiSelectShowGroup
+                                  label="primary_show_key"
+                                  hint="Select one or more shows for metadata-led show rounds."
+                                  shows={shows}
+                                  selectedValues={round.primaryShowKeys}
+                                  onToggle={(value) => updateManualRound(round.id, { primaryShowKeys: toggleValueInArray(round.primaryShowKeys, value) })}
+                                />
                               </div>
                             </div>
                           )}
