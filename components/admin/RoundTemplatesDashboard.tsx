@@ -236,6 +236,21 @@ function packSummary(editor: TemplateEditorState, packs: PackOption[]) {
   return remaining > 0 ? `${preview} +${remaining}` : preview
 }
 
+function multiSelectSummary(
+  values: string[],
+  options: Array<{ value: string; label: string }>,
+  emptyLabel = "No filter",
+) {
+  if (!values.length) return emptyLabel
+  const labels = options
+    .filter((option) => values.includes(option.value))
+    .map((option) => option.label)
+  if (!labels.length) return `${values.length} selected`
+  const preview = labels.slice(0, 2).join(" · ")
+  const remaining = labels.length - 2
+  return remaining > 0 ? `${preview} +${remaining}` : preview
+}
+
 function SectionCard({
   title,
   subtitle,
@@ -1019,7 +1034,7 @@ function TemplateFields({
         {showRuleSection ? (
           <div className="border-t border-border px-3 py-3">
             <div className="grid gap-3 lg:grid-cols-2">
-              <MultiCheckboxField
+              <InlineChipMultiSelectField
                 title="media_type"
                 values={editor.mediaTypes}
                 options={MEDIA_TYPE_OPTIONS.map((option) => ({ ...option, disabled: option.value === "audio" && editor.behaviourType === "quickfire" }))}
@@ -1036,10 +1051,11 @@ function TemplateFields({
                 onClear={() => setEditor((current) => ({ ...current, mediaTypes: [], audioClipTypes: [] }))}
               />
 
-              <MultiCheckboxField
+              <SearchableMultiSelectField
                 title="prompt_target"
                 values={editor.promptTargets}
                 options={PROMPT_TARGET_OPTIONS}
+                searchPlaceholder="Search prompt targets"
                 onToggle={(value) =>
                   setEditor((current) => ({
                     ...current,
@@ -1049,10 +1065,11 @@ function TemplateFields({
                 onClear={() => setEditor((current) => ({ ...current, promptTargets: [] }))}
               />
 
-              <MultiCheckboxField
+              <SearchableMultiSelectField
                 title="clue_source"
                 values={editor.clueSources}
                 options={CLUE_SOURCE_OPTIONS}
+                searchPlaceholder="Search clue sources"
                 onToggle={(value) =>
                   setEditor((current) => ({
                     ...current,
@@ -1062,10 +1079,11 @@ function TemplateFields({
                 onClear={() => setEditor((current) => ({ ...current, clueSources: [] }))}
               />
 
-              <MultiCheckboxField
+              <SearchableMultiSelectField
                 title="primary_show_key"
                 values={editor.primaryShowKeys}
                 options={shows.map((show) => ({ value: show.show_key, label: show.display_name }))}
+                searchPlaceholder="Search shows"
                 onToggle={(value) =>
                   setEditor((current) => ({
                     ...current,
@@ -1075,11 +1093,12 @@ function TemplateFields({
                 onClear={() => setEditor((current) => ({ ...current, primaryShowKeys: [] }))}
               />
 
-              <MultiCheckboxField
+              <SearchableMultiSelectField
                 title="audio_clip_type"
                 description="Available when media_type includes audio."
                 values={editor.audioClipTypes}
                 options={AUDIO_CLIP_TYPE_OPTIONS.map((option) => ({ ...option, disabled: !editor.mediaTypes.includes("audio") }))}
+                searchPlaceholder="Search audio clip types"
                 onToggle={(value) =>
                   setEditor((current) => ({
                     ...current,
@@ -1127,9 +1146,8 @@ function TemplateFields({
   )
 }
 
-function MultiCheckboxField({
+function InlineChipMultiSelectField({
   title,
-  description,
   values,
   options,
   onToggle,
@@ -1137,7 +1155,6 @@ function MultiCheckboxField({
   className = "",
 }: {
   title: string
-  description?: string
   values: string[]
   options: Array<{ value: string; label: string; disabled?: boolean }>
   onToggle: (value: string) => void
@@ -1147,7 +1164,10 @@ function MultiCheckboxField({
   return (
     <div className={`rounded-lg border border-border bg-background p-3 ${className}`.trim()}>
       <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-medium">{title}</span>
+        <div>
+          <div className="text-sm font-medium">{title}</div>
+          <div className="mt-1 text-xs text-muted-foreground">{multiSelectSummary(values, options)}</div>
+        </div>
         {values.length ? (
           <button
             type="button"
@@ -1158,24 +1178,152 @@ function MultiCheckboxField({
           </button>
         ) : null}
       </div>
-      {description ? <div className="mt-1 text-xs text-muted-foreground">{description}</div> : null}
-      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {options.map((option) => (
-          <label
-            key={option.value}
-            className={`flex items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm ${option.disabled ? "opacity-50" : ""}`}
-          >
-            <input
-              type="checkbox"
-              checked={values.includes(option.value)}
-              onChange={() => onToggle(option.value)}
-              className="mt-0.5"
+      <div className="mt-3 flex flex-wrap gap-2">
+        {options.map((option) => {
+          const selected = values.includes(option.value)
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onToggle(option.value)}
               disabled={option.disabled}
-            />
-            <span>{option.label}</span>
-          </label>
-        ))}
+              className={`rounded-full border px-3 py-1.5 text-sm transition ${selected ? "border-foreground bg-foreground text-background" : "border-border bg-card text-foreground hover:bg-muted/60"} ${option.disabled ? "cursor-not-allowed opacity-50" : ""}`.trim()}
+            >
+              {option.label}
+            </button>
+          )
+        })}
       </div>
+    </div>
+  )
+}
+
+function SearchableMultiSelectField({
+  title,
+  description,
+  values,
+  options,
+  onToggle,
+  onClear,
+  className = "",
+  searchPlaceholder = "Search",
+}: {
+  title: string
+  description?: string
+  values: string[]
+  options: Array<{ value: string; label: string; disabled?: boolean }>
+  onToggle: (value: string) => void
+  onClear: () => void
+  className?: string
+  searchPlaceholder?: string
+}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
+
+  const filteredOptions = useMemo(() => {
+    const trimmed = query.trim().toLowerCase()
+    return [...options]
+      .filter((option) => {
+        if (!trimmed) return true
+        return option.label.toLowerCase().includes(trimmed) || option.value.toLowerCase().includes(trimmed)
+      })
+      .sort((a, b) => {
+        const aSelected = values.includes(a.value) ? 1 : 0
+        const bSelected = values.includes(b.value) ? 1 : 0
+        if (aSelected !== bSelected) return bSelected - aSelected
+        return a.label.localeCompare(b.label)
+      })
+  }, [options, query, values])
+
+  const summary = multiSelectSummary(values, options)
+
+  return (
+    <div className={`rounded-lg border border-border bg-background p-3 ${className}`.trim()}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium">{title}</div>
+          <div className="mt-1 text-xs text-muted-foreground">{summary}</div>
+          {description ? <div className="mt-1 text-xs text-muted-foreground">{description}</div> : null}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {values.length ? (
+            <button
+              type="button"
+              onClick={onClear}
+              className="text-xs text-muted-foreground underline underline-offset-2"
+            >
+              Clear
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setOpen((current) => !current)}
+            className="rounded-md border border-border bg-card px-2.5 py-1 text-xs text-foreground"
+          >
+            {open ? "Hide" : "Choose"}
+          </button>
+        </div>
+      </div>
+
+      {values.length ? (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {options
+            .filter((option) => values.includes(option.value))
+            .slice(0, 6)
+            .map((option) => (
+              <span key={option.value} className="rounded-full bg-muted px-2 py-0.5 text-xs text-foreground">
+                {option.label}
+              </span>
+            ))}
+          {values.length > 6 ? (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              +{values.length - 6} more
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
+      {open ? (
+        <div className="mt-3 space-y-3 border-t border-border pt-3">
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={searchPlaceholder}
+            className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
+          />
+          <div className="max-h-64 overflow-y-auto rounded-lg border border-border bg-card">
+            {filteredOptions.length ? (
+              <div className="divide-y divide-border">
+                {filteredOptions.map((option) => {
+                  const selected = values.includes(option.value)
+                  return (
+                    <label
+                      key={option.value}
+                      className={`flex cursor-pointer items-start gap-3 px-3 py-2 text-sm ${option.disabled ? "cursor-not-allowed opacity-50" : "hover:bg-muted/40"}`.trim()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => onToggle(option.value)}
+                        className="mt-0.5"
+                        disabled={option.disabled}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="break-words text-foreground">{option.label}</div>
+                        {option.label !== option.value ? (
+                          <div className="text-xs text-muted-foreground">{option.value}</div>
+                        ) : null}
+                      </div>
+                    </label>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="px-3 py-4 text-sm text-muted-foreground">No matches</div>
+            )}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
