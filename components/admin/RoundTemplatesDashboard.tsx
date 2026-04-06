@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import {
-  firstRuleValue,
+  normaliseSelectionRules,
   type RoundTemplateBehaviourType,
   type RoundTemplateRow,
   type RoundTemplateSourceMode,
@@ -52,11 +52,11 @@ type TemplateEditorState = {
   countsTowardsScore: boolean
   sourceMode: RoundTemplateSourceMode
   defaultPackIds: string[]
-  mediaType: string
-  promptTarget: string
-  clueSource: string
-  primaryShowKey: string
-  audioClipType: string
+  mediaTypes: string[]
+  promptTargets: string[]
+  clueSources: string[]
+  primaryShowKeys: string[]
+  audioClipTypes: string[]
   isActive: boolean
 }
 
@@ -114,30 +114,6 @@ const CLUE_SOURCE_OPTIONS = [
   { value: "prop_image", label: "prop_image" },
 ]
 
-const CORE_TEMPLATE_ORDER = [
-  "Opening Night",
-  "Facts and Figures",
-  "Show Spotlight",
-  "Production Pics",
-  "Song Intros",
-  "Lyric Song Titles",
-  "Waxing Lyrical",
-  "Waxing Lyrical (Easy Mode)",
-  "From Song to Show",
-  "From Song to Show: Hard Mode",
-  "Quickfire",
-  "Heads Up",
-]
-
-function normaliseTemplateName(value: string) {
-  return value.trim().toLowerCase()
-}
-
-function templateSortValue(name: string) {
-  const index = CORE_TEMPLATE_ORDER.findIndex((value) => normaliseTemplateName(value) === normaliseTemplateName(name))
-  return index >= 0 ? index : Number.MAX_SAFE_INTEGER
-}
-
 function buildAdminHeaders(token: string) {
   return {
     "x-admin-token": token.trim(),
@@ -151,11 +127,11 @@ function toggleInArray(values: string[], value: string) {
 function buildSelectionRulesFromEditor(editor: TemplateEditorState) {
   const rules: Record<string, string[]> = {}
 
-  if (editor.mediaType) rules.mediaTypes = [editor.mediaType]
-  if (editor.promptTarget) rules.promptTargets = [editor.promptTarget]
-  if (editor.clueSource) rules.clueSources = [editor.clueSource]
-  if (editor.primaryShowKey) rules.primaryShowKeys = [editor.primaryShowKey]
-  if (editor.audioClipType) rules.audioClipTypes = [editor.audioClipType]
+  if (editor.mediaTypes.length) rules.mediaTypes = editor.mediaTypes
+  if (editor.promptTargets.length) rules.promptTargets = editor.promptTargets
+  if (editor.clueSources.length) rules.clueSources = editor.clueSources
+  if (editor.primaryShowKeys.length) rules.primaryShowKeys = editor.primaryShowKeys
+  if (editor.audioClipTypes.length) rules.audioClipTypes = editor.audioClipTypes
 
   return rules
 }
@@ -197,11 +173,11 @@ function createBlankEditor(): TemplateEditorState {
     countsTowardsScore: true,
     sourceMode: "selected_packs",
     defaultPackIds: [],
-    mediaType: "",
-    promptTarget: "",
-    clueSource: "",
-    primaryShowKey: "",
-    audioClipType: "",
+    mediaTypes: [],
+    promptTargets: [],
+    clueSources: [],
+    primaryShowKeys: [],
+    audioClipTypes: [],
     isActive: true,
   }
 }
@@ -210,6 +186,7 @@ function editorFromTemplate(template: RoundTemplateRow): TemplateEditorState {
   const defaultPackIds = Array.isArray(template.default_pack_ids)
     ? template.default_pack_ids.map((value) => String(value ?? "").trim()).filter(Boolean)
     : []
+  const selectionRules = normaliseSelectionRules(template.selection_rules)
 
   return {
     name: template.name,
@@ -224,12 +201,12 @@ function editorFromTemplate(template: RoundTemplateRow): TemplateEditorState {
     countsTowardsScore: !!template.counts_towards_score,
     sourceMode: (template.source_mode ?? "selected_packs") as RoundTemplateSourceMode,
     defaultPackIds,
-    mediaType: firstRuleValue(template.selection_rules, "mediaTypes"),
-    promptTarget: firstRuleValue(template.selection_rules, "promptTargets"),
-    clueSource: firstRuleValue(template.selection_rules, "clueSources"),
-    primaryShowKey: firstRuleValue(template.selection_rules, "primaryShowKeys"),
-    audioClipType: firstRuleValue(template.selection_rules, "audioClipTypes"),
-    isActive: !!template.is_active,
+    mediaTypes: selectionRules.mediaTypes ?? [],
+    promptTargets: selectionRules.promptTargets ?? [],
+    clueSources: selectionRules.clueSources ?? [],
+    primaryShowKeys: selectionRules.primaryShowKeys ?? [],
+    audioClipTypes: selectionRules.audioClipTypes ?? [],
+    isActive: template.is_active !== false,
   }
 }
 
@@ -253,8 +230,6 @@ export function RoundTemplatesDashboard() {
 
   const [createEditor, setCreateEditor] = useState<TemplateEditorState>(createBlankEditor())
   const [editEditor, setEditEditor] = useState<TemplateEditorState>(createBlankEditor())
-  const [showCreateEditor, setShowCreateEditor] = useState(false)
-  const [showEditEditor, setShowEditEditor] = useState(false)
 
   useEffect(() => {
     try {
@@ -515,24 +490,18 @@ export function RoundTemplatesDashboard() {
 
   const filteredTemplates = useMemo(() => {
     const needle = search.trim().toLowerCase()
-    const base = !needle
-      ? templates
-      : templates.filter((template) => {
-          const defaultPackIds = Array.isArray(template.default_pack_ids)
-            ? template.default_pack_ids.map((value) => String(value ?? "")).join(" ").toLowerCase()
-            : ""
+    if (!needle) return templates
 
-          return (
-            template.name.toLowerCase().includes(needle) ||
-            String(template.description ?? "").toLowerCase().includes(needle) ||
-            defaultPackIds.includes(needle)
-          )
-        })
+    return templates.filter((template) => {
+      const defaultPackIds = Array.isArray(template.default_pack_ids)
+        ? template.default_pack_ids.map((value) => String(value ?? "")).join(" ").toLowerCase()
+        : ""
 
-    return [...base].sort((a, b) => {
-      const orderDelta = templateSortValue(a.name) - templateSortValue(b.name)
-      if (orderDelta !== 0) return orderDelta
-      return a.name.localeCompare(b.name)
+      return (
+        template.name.toLowerCase().includes(needle) ||
+        String(template.description ?? "").toLowerCase().includes(needle) ||
+        defaultPackIds.includes(needle)
+      )
     })
   }, [templates, search])
 
@@ -645,99 +614,71 @@ export function RoundTemplatesDashboard() {
 
       <div className="space-y-4 xl:sticky xl:top-4 xl:self-start xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto xl:pr-1">
         <Card>
-          <CardHeader className="p-0">
-            <button
-              type="button"
-              className="flex w-full items-start justify-between gap-3 p-6 text-left"
-              onClick={() => setShowCreateEditor((prev) => !prev)}
-            >
-              <div>
-                <CardTitle>Add round template</CardTitle>
-                <div className="mt-1 text-sm text-muted-foreground">Closed by default to keep the template admin screen tidier.</div>
-              </div>
-              <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
-                {showCreateEditor ? "Hide" : "Show"}
-              </div>
-            </button>
+          <CardHeader>
+            <CardTitle>Add round template</CardTitle>
           </CardHeader>
-          {showCreateEditor ? (
-            <CardContent className="space-y-3 border-t border-border pt-6">
-              <TemplateFields
-                editor={createEditor}
-                setEditor={setCreateEditor}
-                packs={packs}
-                shows={shows}
-              />
+          <CardContent className="space-y-3">
+            <TemplateFields
+              editor={createEditor}
+              setEditor={setCreateEditor}
+              packs={packs}
+              shows={shows}
+            />
 
-              <Button onClick={createTemplate} disabled={createBusy}>
-                {createBusy ? "Creating…" : "Create round template"}
-              </Button>
+            <Button onClick={createTemplate} disabled={createBusy}>
+              {createBusy ? "Creating…" : "Create round template"}
+            </Button>
 
-              {createResult ? (
-                <div
-                  className={`rounded-lg px-3 py-2 text-sm ${
-                    createResult === "Round template created."
-                      ? "border border-green-300 bg-green-50 text-green-700"
-                      : "border border-red-300 bg-red-50 text-red-700"
-                  }`}
-                >
-                  {createResult}
-                </div>
-              ) : null}
-            </CardContent>
-          ) : null}
+            {createResult ? (
+              <div
+                className={`rounded-lg px-3 py-2 text-sm ${
+                  createResult === "Round template created."
+                    ? "border border-green-300 bg-green-50 text-green-700"
+                    : "border border-red-300 bg-red-50 text-red-700"
+                }`}
+              >
+                {createResult}
+              </div>
+            ) : null}
+          </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="p-0">
-            <button
-              type="button"
-              className="flex w-full items-start justify-between gap-3 p-6 text-left"
-              onClick={() => setShowEditEditor((prev) => !prev)}
-            >
-              <div>
-                <CardTitle>Edit selected template</CardTitle>
-                <div className="mt-1 text-sm text-muted-foreground">Open this only when you need to change the highlighted template.</div>
-              </div>
-              <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
-                {showEditEditor ? "Hide" : "Show"}
-              </div>
-            </button>
+          <CardHeader>
+            <CardTitle>Edit selected template</CardTitle>
           </CardHeader>
-          {showEditEditor ? (
-            <CardContent className="space-y-3 border-t border-border pt-6">
-              {!selectedTemplateId ? (
-                <div className="text-sm text-muted-foreground">
-                  Select a round template from the list to edit it.
-                </div>
-              ) : (
-                <>
-                  <TemplateFields
-                    editor={editEditor}
-                    setEditor={setEditEditor}
-                    packs={packs}
-                    shows={shows}
-                  />
+          <CardContent className="space-y-3">
+            {!selectedTemplateId ? (
+              <div className="text-sm text-muted-foreground">
+                Select a round template from the list to edit it.
+              </div>
+            ) : (
+              <>
+                <TemplateFields
+                  editor={editEditor}
+                  setEditor={setEditEditor}
+                  packs={packs}
+                  shows={shows}
+                />
 
-                  <Button onClick={saveTemplate} disabled={saveBusy}>
-                    {saveBusy ? "Saving…" : "Save changes"}
-                  </Button>
+                <Button onClick={saveTemplate} disabled={saveBusy}>
+                  {saveBusy ? "Saving…" : "Save changes"}
+                </Button>
 
-                  {saveResult ? (
-                    <div
-                      className={`rounded-lg px-3 py-2 text-sm ${
-                        saveResult === "Saved."
-                          ? "border border-green-300 bg-green-50 text-green-700"
-                          : "border border-red-300 bg-red-50 text-red-700"
-                      }`}
-                    >
-                      {saveResult}
-                    </div>
-                  ) : null}
-                </>
-              )}
-            </CardContent>
-          ) : null}
+                {saveResult ? (
+                  <div
+                    className={`rounded-lg px-3 py-2 text-sm ${
+                      saveResult === "Saved."
+                        ? "border border-green-300 bg-green-50 text-green-700"
+                        : "border border-red-300 bg-red-50 text-red-700"
+                    }`}
+                  >
+                    {saveResult}
+                  </div>
+                ) : null}
+              </>
+            )}
+          </CardContent>
         </Card>
       </div>
     </div>
@@ -788,7 +729,6 @@ function TemplateFields({
                 ...current,
                 behaviourType: event.target.value as RoundTemplateBehaviourType,
                 jokerEligible: event.target.value === "quickfire" ? false : current.jokerEligible,
-                mediaType: event.target.value === "quickfire" && current.mediaType === "audio" ? "" : current.mediaType,
                 defaultAnswerSeconds:
                   current.defaultAnswerSeconds.trim() === ""
                     ? current.defaultAnswerSeconds
@@ -929,86 +869,112 @@ function TemplateFields({
       <div className="rounded-lg border border-border bg-muted/30 p-3">
         <div className="text-sm font-medium">Selection rules</div>
         <div className="mt-1 text-xs text-muted-foreground">
-          v1 supports one value per rule type. More complex combinations can come later.
+          Select one or more values within each rule type. Within a field, choices behave as OR. Across different fields, rules still combine as AND.
         </div>
 
-        <div className="mt-3 grid gap-3">
-          <label className="grid gap-1">
-            <span className="text-sm font-medium">media_type</span>
-            <select
-              value={editor.mediaType}
-              onChange={(event) => setEditor((current) => ({ ...current, mediaType: event.target.value }))}
-              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
-            >
-              {MEDIA_TYPE_OPTIONS.map((option) => (
-                <option key={option.value || "blank"} value={option.value} disabled={option.value === "audio" && editor.behaviourType === "quickfire"}>
-                  {option.label}
-                </option>
+        <div className="mt-3 grid gap-3 lg:grid-cols-2">
+          <div className="rounded-lg border border-border bg-background p-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium">media_type</span>
+              {editor.mediaTypes.length ? (
+                <button type="button" onClick={() => setEditor((current) => ({ ...current, mediaTypes: [], audioClipTypes: [] }))} className="text-xs text-muted-foreground underline underline-offset-2">Clear</button>
+              ) : null}
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {MEDIA_TYPE_OPTIONS.filter((option) => option.value).map((option) => (
+                <label key={option.value} className="flex items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={editor.mediaTypes.includes(option.value)}
+                    onChange={() =>
+                      setEditor((current) => {
+                        const mediaTypes = toggleInArray(current.mediaTypes, option.value)
+                        return {
+                          ...current,
+                          mediaTypes,
+                          audioClipTypes: mediaTypes.includes("audio") ? current.audioClipTypes : [],
+                        }
+                      })
+                    }
+                    className="mt-0.5"
+                  />
+                  <span>{option.label}</span>
+                </label>
               ))}
-            </select>
-          </label>
+            </div>
+          </div>
 
-          <label className="grid gap-1">
-            <span className="text-sm font-medium">prompt_target</span>
-            <select
-              value={editor.promptTarget}
-              onChange={(event) => setEditor((current) => ({ ...current, promptTarget: event.target.value }))}
-              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
-            >
-              {PROMPT_TARGET_OPTIONS.map((option) => (
-                <option key={option.value || "blank"} value={option.value}>
-                  {option.label}
-                </option>
+          <div className="rounded-lg border border-border bg-background p-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium">prompt_target</span>
+              {editor.promptTargets.length ? (
+                <button type="button" onClick={() => setEditor((current) => ({ ...current, promptTargets: [] }))} className="text-xs text-muted-foreground underline underline-offset-2">Clear</button>
+              ) : null}
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {PROMPT_TARGET_OPTIONS.filter((option) => option.value).map((option) => (
+                <label key={option.value} className="flex items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+                  <input type="checkbox" checked={editor.promptTargets.includes(option.value)} onChange={() => setEditor((current) => ({ ...current, promptTargets: toggleInArray(current.promptTargets, option.value) }))} className="mt-0.5" />
+                  <span>{option.label}</span>
+                </label>
               ))}
-            </select>
-          </label>
+            </div>
+          </div>
 
-          <label className="grid gap-1">
-            <span className="text-sm font-medium">clue_source</span>
-            <select
-              value={editor.clueSource}
-              onChange={(event) => setEditor((current) => ({ ...current, clueSource: event.target.value }))}
-              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
-            >
-              {CLUE_SOURCE_OPTIONS.map((option) => (
-                <option key={option.value || "blank"} value={option.value}>
-                  {option.label}
-                </option>
+          <div className="rounded-lg border border-border bg-background p-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium">clue_source</span>
+              {editor.clueSources.length ? (
+                <button type="button" onClick={() => setEditor((current) => ({ ...current, clueSources: [] }))} className="text-xs text-muted-foreground underline underline-offset-2">Clear</button>
+              ) : null}
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {CLUE_SOURCE_OPTIONS.filter((option) => option.value).map((option) => (
+                <label key={option.value} className="flex items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+                  <input type="checkbox" checked={editor.clueSources.includes(option.value)} onChange={() => setEditor((current) => ({ ...current, clueSources: toggleInArray(current.clueSources, option.value) }))} className="mt-0.5" />
+                  <span>{option.label}</span>
+                </label>
               ))}
-            </select>
-          </label>
+            </div>
+          </div>
 
-          <label className="grid gap-1">
-            <span className="text-sm font-medium">primary_show_key</span>
-            <select
-              value={editor.primaryShowKey}
-              onChange={(event) => setEditor((current) => ({ ...current, primaryShowKey: event.target.value }))}
-              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
-            >
-              <option value="">No filter</option>
+          <div className="rounded-lg border border-border bg-background p-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium">primary_show_key</span>
+              {editor.primaryShowKeys.length ? (
+                <button type="button" onClick={() => setEditor((current) => ({ ...current, primaryShowKeys: [] }))} className="text-xs text-muted-foreground underline underline-offset-2">Clear</button>
+              ) : null}
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {shows.map((show) => (
-                <option key={show.show_key} value={show.show_key}>
-                  {show.display_name}
-                </option>
+                <label key={show.show_key} className="flex items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+                  <input type="checkbox" checked={editor.primaryShowKeys.includes(show.show_key)} onChange={() => setEditor((current) => ({ ...current, primaryShowKeys: toggleInArray(current.primaryShowKeys, show.show_key) }))} className="mt-0.5" />
+                  <span>{show.display_name}</span>
+                </label>
               ))}
-            </select>
-          </label>
+            </div>
+          </div>
 
-          <label className="grid gap-1">
-            <span className="text-sm font-medium">audio_clip_type</span>
-            <select
-              value={editor.audioClipType}
-              onChange={(event) => setEditor((current) => ({ ...current, audioClipType: event.target.value }))}
-              className="h-10 rounded-lg border border-border bg-background px-3 text-sm"
-              disabled={editor.mediaType !== "audio"}
-            >
-              {AUDIO_CLIP_TYPE_OPTIONS.map((option) => (
-                <option key={option.value || "blank"} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="rounded-lg border border-border bg-background p-3 lg:col-span-2">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium">audio_clip_type</span>
+              {editor.audioClipTypes.length ? (
+                <button type="button" onClick={() => setEditor((current) => ({ ...current, audioClipTypes: [] }))} className="text-xs text-muted-foreground underline underline-offset-2">Clear</button>
+              ) : null}
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">Available when media_type includes audio.</div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {AUDIO_CLIP_TYPE_OPTIONS.filter((option) => option.value).map((option) => {
+                const disabled = !editor.mediaTypes.includes("audio")
+                return (
+                  <label key={option.value} className={`flex items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm ${disabled ? "opacity-50" : ""}`}>
+                    <input type="checkbox" checked={editor.audioClipTypes.includes(option.value)} onChange={() => setEditor((current) => ({ ...current, audioClipTypes: toggleInArray(current.audioClipTypes, option.value) }))} className="mt-0.5" disabled={disabled} />
+                    <span>{option.label}</span>
+                  </label>
+                )
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
