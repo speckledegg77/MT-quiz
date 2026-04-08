@@ -171,38 +171,19 @@ export async function POST(req: Request) {
     let selectedCandidates: QuestionCandidate[] = []
 
     if (selectedPackIds.length > 0) {
-      const selectedLinksRes = await supabaseAdmin
-        .from("pack_questions")
-        .select(
-          "pack_id, question_id, questions(round_type, answer_type, media_type, prompt_target, clue_source, primary_show_key, media_duration_ms, audio_clip_type)"
-        )
-        .in("pack_id", selectedPackIds)
-
-      if (selectedLinksRes.error) return NextResponse.json({ error: selectedLinksRes.error.message }, { status: 500 })
-      selectedCandidates = buildQuestionCandidatesFromPackRows((selectedLinksRes.data ?? []) as Array<Record<string, unknown>>)
+      const selectedLinks = await fetchAllPackQuestionRows(selectedPackIds)
+      selectedCandidates = buildQuestionCandidatesFromPackRows(selectedLinks)
     }
 
     if (scopeQuestionPackIds.length > 0) {
-      const linksRes = await supabaseAdmin
-        .from("pack_questions")
-        .select(
-          "pack_id, question_id, questions(round_type, answer_type, media_type, prompt_target, clue_source, primary_show_key, media_duration_ms, audio_clip_type)"
-        )
-        .in("pack_id", scopeQuestionPackIds)
-
-      if (linksRes.error) return NextResponse.json({ error: linksRes.error.message }, { status: 500 })
-      candidates = candidates.concat(buildQuestionCandidatesFromPackRows((linksRes.data ?? []) as Array<Record<string, unknown>>))
+      const links = await fetchAllPackQuestionRows(scopeQuestionPackIds)
+      candidates = candidates.concat(buildQuestionCandidatesFromPackRows(links))
     }
 
     if (specificHeadsUpPackIds.length > 0) {
-      const headsUpLinksRes = await supabaseAdmin
-        .from("heads_up_pack_items")
-        .select("pack_id, item_id, heads_up_items(id, difficulty, primary_show_key, is_active)")
-        .in("pack_id", specificHeadsUpPackIds)
+      const headsUpLinks = await fetchAllHeadsUpPackItemRows(specificHeadsUpPackIds)
 
-      if (headsUpLinksRes.error) return NextResponse.json({ error: headsUpLinksRes.error.message }, { status: 500 })
-
-      const activeRows = ((headsUpLinksRes.data ?? []) as Array<Record<string, unknown>>).filter((row) => {
+      const activeRows = (headsUpLinks as Array<Record<string, unknown>>).filter((row) => {
         const item = row?.heads_up_items
         const value = Array.isArray(item) ? item[0] : item
         return Boolean(value && (value as Record<string, unknown>).is_active !== false)

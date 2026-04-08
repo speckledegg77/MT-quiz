@@ -282,16 +282,9 @@ async function loadCandidatePoolForManualRounds(params: {
   const candidatesById = new Map<string, QuestionCandidate>()
 
   if (scopeQuestionPackIds.length > 0) {
-    const linksRes = await supabaseAdmin
-      .from("pack_questions")
-      .select(
-        "pack_id, question_id, questions(round_type, answer_type, media_type, prompt_target, clue_source, primary_show_key, media_duration_ms, audio_clip_type)"
-      )
-      .in("pack_id", scopeQuestionPackIds)
+    const links = await fetchAllPackQuestionRows(scopeQuestionPackIds)
 
-    if (linksRes.error) throw new Error(linksRes.error.message)
-
-    for (const row of (linksRes.data ?? []) as any[]) {
+    for (const row of links as any[]) {
       const packId = String(row.pack_id ?? "").trim()
       const questionId = String(row.question_id ?? "").trim()
       if (!packId || !questionId) continue
@@ -323,14 +316,9 @@ async function loadCandidatePoolForManualRounds(params: {
   }
 
   if (specificHeadsUpPackIds.length > 0) {
-    const headsUpLinksRes = await supabaseAdmin
-      .from("heads_up_pack_items")
-      .select("pack_id, item_id, heads_up_items(id, difficulty, primary_show_key, is_active)")
-      .in("pack_id", specificHeadsUpPackIds)
+    const headsUpLinks = await fetchAllHeadsUpPackItemRows(specificHeadsUpPackIds)
 
-    if (headsUpLinksRes.error) throw new Error(headsUpLinksRes.error.message)
-
-    for (const row of (headsUpLinksRes.data ?? []) as any[]) {
+    for (const row of headsUpLinks as any[]) {
       const packId = String(row.pack_id ?? "").trim()
       const itemId = String(row.item_id ?? "").trim()
       const itemRaw = Array.isArray(row.heads_up_items) ? row.heads_up_items[0] : row.heads_up_items
@@ -524,16 +512,9 @@ export async function POST(req: Request) {
         const packQuestionsById: Record<string, Array<{ id: string; round_type: "general" | "audio" | "picture" }>> = {}
         for (const pid of packIds) packQuestionsById[pid] = []
 
-        const linksRes = await supabaseAdmin
-          .from("pack_questions")
-          .select("pack_id, question_id, questions(round_type)")
-          .in("pack_id", packIds)
+        const links = await fetchAllPackQuestionRows(packIds)
 
-        if (linksRes.error) {
-          return NextResponse.json({ error: linksRes.error.message }, { status: 500 })
-        }
-
-        for (const row of (linksRes.data ?? []) as any[]) {
+        for (const row of links as any[]) {
           const pid = String(row.pack_id ?? "").trim()
           const qid = String(row.question_id ?? "").trim()
           const rt = row.questions?.round_type

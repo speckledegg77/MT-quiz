@@ -18,6 +18,32 @@ import {
 } from "../../../../lib/questionRecency";
 import { buildLegacyRoomRoundPlan, getLegacyFieldsFromRoundPlan } from "../../../../lib/roomRoundPlan";
 
+async function fetchAllPackQuestionRows(packIds: string[]) {
+  const cleanedPackIds = [...new Set((Array.isArray(packIds) ? packIds : []).map((value) => String(value ?? "").trim()).filter(Boolean))];
+  if (cleanedPackIds.length === 0) return [] as Array<Record<string, unknown>>;
+
+  const pageSize = 1000;
+  const rows: Array<Record<string, unknown>> = [];
+
+  for (let from = 0; ; from += pageSize) {
+    const to = from + pageSize - 1;
+    const res = await supabaseAdmin
+      .from("pack_questions")
+      .select("pack_id, question_id, questions(round_type)")
+      .in("pack_id", cleanedPackIds)
+      .range(from, to);
+
+    if (res.error) throw new Error(res.error.message);
+
+    const batch = (res.data ?? []) as Array<Record<string, unknown>>;
+    rows.push(...batch);
+
+    if (batch.length < pageSize) break;
+  }
+
+  return rows;
+}
+
 function normaliseRoundFilter(raw: any): RoundFilter {
   const v = String(raw ?? "").toLowerCase();
 
@@ -83,16 +109,14 @@ export async function POST(req: Request) {
   const packQuestionsById: Record<string, QuestionMeta[]> = {};
   for (const pid of packIds) packQuestionsById[pid] = [];
 
-  const linksRes = await supabaseAdmin
-    .from("pack_questions")
-    .select("pack_id, question_id, questions(round_type)")
-    .in("pack_id", packIds);
-
-  if (linksRes.error) {
-    return NextResponse.json({ error: linksRes.error.message }, { status: 500 });
+  let links: Array<Record<string, unknown>> = [];
+  try {
+    links = await fetchAllPackQuestionRows(packIds);
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message ?? "Failed to load pack questions" }, { status: 500 });
   }
 
-  for (const row of (linksRes.data ?? []) as any[]) {
+  for (const row of links as any[]) {
     const pid = String(row.pack_id ?? "").trim();
     const qid = String(row.question_id ?? "").trim();
     const rt = row.questions?.round_type;

@@ -146,6 +146,27 @@ export async function getQuestionById(id: string): Promise<Question | null> {
   return q
 }
 
+async function fetchAllPackQuestionIds(packIds: string[]): Promise<string[]> {
+  const cleanedPackIds = [...new Set((Array.isArray(packIds) ? packIds : []).map((value) => String(value ?? "").trim()).filter(Boolean))]
+  if (cleanedPackIds.length === 0) return []
+
+  const pageSize = 1000
+  const ids: string[] = []
+
+  for (let from = 0; ; from += pageSize) {
+    const to = from + pageSize - 1
+    const linksRes = await supabaseAdmin.from("pack_questions").select("question_id").in("pack_id", cleanedPackIds).range(from, to)
+    if (linksRes.error) return []
+
+    const batch = (linksRes.data ?? []).map((r) => String((r as any).question_id ?? "")).filter(Boolean)
+    ids.push(...batch)
+
+    if (batch.length < pageSize) break
+  }
+
+  return [...new Set(ids)]
+}
+
 export async function pickQuestionIdsForPacks(count: number, packIds: string[]): Promise<string[]> {
   const n = Math.max(0, Math.floor(Number(count)))
   if (n <= 0) return []
@@ -155,11 +176,7 @@ export async function pickQuestionIdsForPacks(count: number, packIds: string[]):
   let ids: string[] = []
 
   if (packs.length > 0) {
-    const linksRes = await supabaseAdmin.from("pack_questions").select("question_id").in("pack_id", packs)
-    if (linksRes.error) return []
-
-    const raw = (linksRes.data ?? []).map((r) => String((r as any).question_id ?? "")).filter(Boolean)
-    ids = [...new Set(raw)]
+    ids = await fetchAllPackQuestionIds(packs)
   } else {
     const allRes = await supabaseAdmin.from("questions").select("id")
     if (allRes.error) return []
