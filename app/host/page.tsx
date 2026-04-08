@@ -6,7 +6,7 @@ import QRTile from "@/components/ui/QRTile"
 
 import { supabase } from "@/lib/supabaseClient"
 import { randomTeamName } from "@/lib/teamNameSuggestions"
-import { normaliseSelectionRules, type RoundTemplateRow } from "@/lib/roundTemplates"
+import { cleanSourceMode, normalisePackIds, normaliseSelectionRules, type RoundTemplateRow } from "@/lib/roundTemplates"
 import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour } from "@/lib/roomRoundPlan"
 import { getRoomStagePillLabel, getRunModeSummaryLabel } from "@/lib/gameMode"
 
@@ -331,16 +331,9 @@ function normaliseTemplateTiming(raw: unknown, fallback: number) {
 
 function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
   const selectionRules = normaliseSelectionRules(template.selection_rules)
-  const defaultPackIds = Array.isArray(template.default_pack_ids)
-    ? template.default_pack_ids.map((value) => String(value ?? "").trim()).filter(Boolean)
-    : []
+  const defaultPackIds = normalisePackIds(template.default_pack_ids)
   const behaviourType: RoundBehaviourType = String(template.behaviour_type ?? "standard") === "quickfire" ? "quickfire" : String(template.behaviour_type ?? "standard") === "heads_up" ? "heads_up" : "standard"
-  const sourceMode: RoundSourceMode =
-    String(template.source_mode ?? "selected_packs") === "specific_packs"
-      ? "specific_packs"
-      : String(template.source_mode ?? "selected_packs") === "all_questions"
-        ? "all_questions"
-        : "selected_packs"
+  const sourceMode: RoundSourceMode = cleanSourceMode(template.source_mode)
 
   return {
     id: String(template.id ?? `template_${index + 1}`),
@@ -750,9 +743,23 @@ export default function HostPage() {
       setPacksLoading(false)
     }
 
-    loadData()
+    function handleVisibilityRefresh() {
+      if (document.visibilityState === "visible") {
+        void loadData()
+      }
+    }
+
+    function handleWindowFocus() {
+      void loadData()
+    }
+
+    void loadData()
+    window.addEventListener("focus", handleWindowFocus)
+    document.addEventListener("visibilitychange", handleVisibilityRefresh)
     return () => {
       cancelled = true
+      window.removeEventListener("focus", handleWindowFocus)
+      document.removeEventListener("visibilitychange", handleVisibilityRefresh)
     }
   }, [])
 
@@ -976,11 +983,9 @@ export default function HostPage() {
 
   function addManualRoundFromTemplate(template: RoundTemplateRow) {
     const selectionRules = normaliseSelectionRules(template.selection_rules)
-    const defaultPackIds = Array.isArray(template.default_pack_ids)
-      ? template.default_pack_ids.map((value) => String(value ?? "").trim()).filter(Boolean)
-      : []
+    const defaultPackIds = normalisePackIds(template.default_pack_ids)
 
-    const sourceMode = String(template.source_mode ?? "selected_packs") as RoundSourceMode
+    const sourceMode = cleanSourceMode(template.source_mode) as RoundSourceMode
     const behaviourType: RoundBehaviourType = String(template.behaviour_type ?? "standard") === "quickfire" ? "quickfire" : String(template.behaviour_type ?? "standard") === "heads_up" ? "heads_up" : "standard"
 
     if (sourceMode === "selected_packs" && defaultPackIds.length) {

@@ -38,9 +38,22 @@ export type RoundTemplateRow = {
   updated_at?: string
 }
 
+function parseJsonLikeValue(raw: unknown) {
+  if (typeof raw !== "string") return raw
+  const value = raw.trim()
+  if (!value) return raw
+  if (!(value.startsWith("[") || value.startsWith("{"))) return raw
+  try {
+    return JSON.parse(value)
+  } catch {
+    return raw
+  }
+}
+
 export function cleanStringArray(raw: unknown) {
-  if (!Array.isArray(raw)) return [] as string[]
-  return raw.map((value) => String(value ?? "").trim()).filter(Boolean)
+  const parsed = parseJsonLikeValue(raw)
+  if (!Array.isArray(parsed)) return [] as string[]
+  return parsed.map((value) => String(value ?? "").trim()).filter(Boolean)
 }
 
 export function cleanMediaTypes(raw: unknown): Array<"text" | "audio" | "image"> {
@@ -50,9 +63,14 @@ export function cleanMediaTypes(raw: unknown): Array<"text" | "audio" | "image">
   )
 }
 
+export function normalisePackIds(raw: unknown) {
+  return [...new Set(cleanStringArray(raw))]
+}
+
 export function normaliseSelectionRules(raw: unknown): RoundTemplateSelectionRules {
+  const parsed = parseJsonLikeValue(raw)
   const value =
-    raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {}
+    parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {}
 
   const mediaTypes = cleanMediaTypes(value.mediaTypes)
   const promptTargets = cleanStringArray(value.promptTargets)
