@@ -1,7 +1,5 @@
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-export const revalidate = 0
-
 
 import { NextResponse } from "next/server"
 import { z } from "zod"
@@ -10,8 +8,8 @@ import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/admin
 import {
   cleanBehaviourType,
   cleanSourceMode,
+  normaliseRoundTemplateRow,
   normaliseSelectionRules,
-  normalisePackIds,
   ROUND_TEMPLATE_BEHAVIOUR_TYPE_VALUES,
   ROUND_TEMPLATE_SOURCE_MODE_VALUES,
 } from "@/lib/roundTemplates"
@@ -58,7 +56,10 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: templatesRes.error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, templates: (templatesRes.data ?? []).map((template: any) => ({ ...template, source_mode: cleanSourceMode(template?.source_mode), default_pack_ids: normalisePackIds(template?.default_pack_ids), selection_rules: normaliseSelectionRules(template?.selection_rules) })) }, { headers: { "Cache-Control": "no-store" } })
+  return NextResponse.json(
+    { ok: true, templates: (templatesRes.data ?? []).map(normaliseRoundTemplateRow) },
+    { headers: { "Cache-Control": "no-store, max-age=0" } }
+  )
 }
 
 export async function POST(req: Request) {
@@ -92,7 +93,7 @@ export async function POST(req: Request) {
       joker_eligible: parsed.data.jokerEligible ?? true,
       counts_towards_score: parsed.data.countsTowardsScore ?? true,
       source_mode: cleanSourceMode(parsed.data.sourceMode),
-      default_pack_ids: normalisePackIds(parsed.data.defaultPackIds),
+      default_pack_ids: cleanPackIds(parsed.data.defaultPackIds),
       selection_rules: normaliseSelectionRules(parsed.data.selectionRules),
       is_active: parsed.data.isActive ?? true,
     })
@@ -103,5 +104,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: insertRes.error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, template: { ...insertRes.data, source_mode: cleanSourceMode(insertRes.data?.source_mode), default_pack_ids: normalisePackIds(insertRes.data?.default_pack_ids), selection_rules: normaliseSelectionRules(insertRes.data?.selection_rules) } }, { headers: { "Cache-Control": "no-store" } })
+  return NextResponse.json(
+    { ok: true, template: normaliseRoundTemplateRow(insertRes.data) },
+    { headers: { "Cache-Control": "no-store, max-age=0" } }
+  )
 }

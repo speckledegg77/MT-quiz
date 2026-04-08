@@ -1,7 +1,5 @@
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-export const revalidate = 0
-
 
 import { NextResponse } from "next/server"
 import { z } from "zod"
@@ -10,8 +8,8 @@ import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/admin
 import {
   cleanBehaviourType,
   cleanSourceMode,
+  normaliseRoundTemplateRow,
   normaliseSelectionRules,
-  normalisePackIds,
   ROUND_TEMPLATE_BEHAVIOUR_TYPE_VALUES,
   ROUND_TEMPLATE_SOURCE_MODE_VALUES,
 } from "@/lib/roundTemplates"
@@ -103,7 +101,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   if (parsed.data.jokerEligible !== undefined) update.joker_eligible = parsed.data.jokerEligible
   if (parsed.data.countsTowardsScore !== undefined) update.counts_towards_score = parsed.data.countsTowardsScore
   if (parsed.data.sourceMode !== undefined) update.source_mode = cleanSourceMode(parsed.data.sourceMode)
-  if (parsed.data.defaultPackIds !== undefined) update.default_pack_ids = normalisePackIds(parsed.data.defaultPackIds)
+  if (parsed.data.defaultPackIds !== undefined) update.default_pack_ids = cleanPackIds(parsed.data.defaultPackIds)
   if (parsed.data.selectionRules !== undefined) update.selection_rules = normaliseSelectionRules(parsed.data.selectionRules)
   if (parsed.data.isActive !== undefined) update.is_active = parsed.data.isActive
 
@@ -122,5 +120,8 @@ export async function PATCH(req: Request, context: RouteContext) {
     return NextResponse.json({ error: "Round template not found." }, { status: 404 })
   }
 
-  return NextResponse.json({ ok: true, template: { ...updateRes.data, source_mode: cleanSourceMode(updateRes.data?.source_mode), default_pack_ids: normalisePackIds(updateRes.data?.default_pack_ids), selection_rules: normaliseSelectionRules(updateRes.data?.selection_rules) } }, { headers: { "Cache-Control": "no-store" } })
+  return NextResponse.json(
+    { ok: true, template: normaliseRoundTemplateRow(updateRes.data) },
+    { headers: { "Cache-Control": "no-store, max-age=0" } }
+  )
 }

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetSt
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import {
-  normalisePackIds,
+  normaliseDefaultPackIds,
   normaliseSelectionRules,
   type RoundTemplateBehaviourType,
   type RoundTemplateRow,
@@ -179,7 +179,7 @@ function createBlankEditor(): TemplateEditorState {
 }
 
 function editorFromTemplate(template: RoundTemplateRow): TemplateEditorState {
-  const defaultPackIds = normalisePackIds(template.default_pack_ids)
+  const defaultPackIds = normaliseDefaultPackIds(template.default_pack_ids)
   const selectionRules = normaliseSelectionRules(template.selection_rules)
 
   return {
@@ -580,7 +580,7 @@ export function RoundTemplatesDashboard() {
     if (!needle) return sorted
 
     return sorted.filter((template) => {
-      const defaultPackIds = normalisePackIds(template.default_pack_ids).join(" ").toLowerCase()
+      const defaultPackIds = normaliseDefaultPackIds(template.default_pack_ids).join(" ").toLowerCase()
 
       return (
         template.name.toLowerCase().includes(needle) ||

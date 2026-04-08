@@ -6,7 +6,7 @@ import QRTile from "@/components/ui/QRTile"
 
 import { supabase } from "@/lib/supabaseClient"
 import { randomTeamName } from "@/lib/teamNameSuggestions"
-import { cleanSourceMode, normalisePackIds, normaliseSelectionRules, type RoundTemplateRow } from "@/lib/roundTemplates"
+import { normaliseDefaultPackIds, normaliseSelectionRules, type RoundTemplateRow } from "@/lib/roundTemplates"
 import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour } from "@/lib/roomRoundPlan"
 import { getRoomStagePillLabel, getRunModeSummaryLabel } from "@/lib/gameMode"
 
@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
 import HostJoinedTeamsPanel from "@/components/HostJoinedTeamsPanel"
-import HostAnswerReviewPanel from "@/components/host/HostAnswerReviewPanel"
 import PageShell from "@/components/PageShell"
 import RoundSummaryCard from "@/components/RoundSummaryCard"
 
@@ -115,11 +114,11 @@ type ManualRoundDraft = {
   countsTowardsScore: boolean
   sourceMode: RoundSourceMode
   packIds: string[]
-  mediaTypes: Array<"text" | "audio" | "image">
-  promptTargets: string[]
-  clueSources: string[]
-  primaryShowKeys: string[]
-  audioClipTypes: string[]
+  mediaType: "" | "text" | "audio" | "image"
+  promptTarget: string
+  clueSource: string
+  primaryShowKey: string
+  audioClipType: string
   headsUpDifficulty: "" | "easy" | "medium" | "hard"
   headsUpTvDisplayMode: "show_clue" | "timer_only"
   headsUpTurnSeconds: 60 | 90
@@ -230,10 +229,6 @@ function parseIntOr(value: string, fallback: number) {
   return Number.isFinite(n) ? Math.floor(n) : fallback
 }
 
-function toggleInArray<T extends string>(values: T[], value: T) {
-  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value]
-}
-
 function cleanRoomCode(input: string) {
   return String(input ?? "")
     .toUpperCase()
@@ -258,14 +253,10 @@ function normaliseManualRoundDraft(draft: ManualRoundDraft): ManualRoundDraft {
     jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : draft.jokerEligible,
     countsTowardsScore: behaviourType === "heads_up" ? false : draft.countsTowardsScore,
     sourceMode: behaviourType === "heads_up" ? "specific_packs" : draft.sourceMode,
-    mediaTypes: behaviourType === "heads_up" ? [] : draft.mediaTypes,
-    promptTargets: behaviourType === "heads_up" ? [] : draft.promptTargets,
-    clueSources: behaviourType === "heads_up" ? [] : draft.clueSources,
-    primaryShowKeys: draft.primaryShowKeys,
-    audioClipTypes:
-      behaviourType === "heads_up" || !draft.mediaTypes.includes("audio")
-        ? []
-        : draft.audioClipTypes,
+    mediaType: behaviourType === "heads_up" ? "" : draft.mediaType,
+    promptTarget: behaviourType === "heads_up" ? "" : draft.promptTarget,
+    clueSource: behaviourType === "heads_up" ? "" : draft.clueSource,
+    audioClipType: behaviourType === "heads_up" ? "" : draft.audioClipType,
     headsUpTvDisplayMode: behaviourType === "heads_up" ? draft.headsUpTvDisplayMode : "timer_only",
     headsUpTurnSeconds: behaviourType === "heads_up" ? draft.headsUpTurnSeconds : 60,
   }
@@ -281,11 +272,11 @@ function makeManualRound(index: number): ManualRoundDraft {
     countsTowardsScore: true,
     sourceMode: "selected_packs",
     packIds: [],
-    mediaTypes: [],
-    promptTargets: [],
-    clueSources: [],
-    primaryShowKeys: [],
-    audioClipTypes: [],
+    mediaType: "",
+    promptTarget: "",
+    clueSource: "",
+    primaryShowKey: "",
+    audioClipType: "",
     headsUpDifficulty: "",
     headsUpTvDisplayMode: "timer_only",
     headsUpTurnSeconds: 60,
@@ -297,11 +288,11 @@ function makeManualRound(index: number): ManualRoundDraft {
 
 function buildSelectionRulesFromDraft(round: ManualRoundDraft) {
   return {
-    mediaTypes: round.mediaTypes,
-    promptTargets: round.promptTargets,
-    clueSources: round.clueSources,
-    primaryShowKeys: round.primaryShowKeys,
-    audioClipTypes: round.audioClipTypes,
+    mediaTypes: round.mediaType ? [round.mediaType] : [],
+    promptTargets: round.promptTarget ? [round.promptTarget] : [],
+    clueSources: round.clueSource ? [round.clueSource] : [],
+    primaryShowKeys: round.primaryShowKey ? [round.primaryShowKey] : [],
+    audioClipTypes: round.audioClipType ? [round.audioClipType] : [],
     headsUpDifficulties: round.behaviourType === "heads_up" && round.headsUpDifficulty ? [round.headsUpDifficulty] : [],
   }
 }
@@ -331,9 +322,14 @@ function normaliseTemplateTiming(raw: unknown, fallback: number) {
 
 function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
   const selectionRules = normaliseSelectionRules(template.selection_rules)
-  const defaultPackIds = normalisePackIds(template.default_pack_ids)
+  const defaultPackIds = normaliseDefaultPackIds(template.default_pack_ids)
   const behaviourType: RoundBehaviourType = String(template.behaviour_type ?? "standard") === "quickfire" ? "quickfire" : String(template.behaviour_type ?? "standard") === "heads_up" ? "heads_up" : "standard"
-  const sourceMode: RoundSourceMode = cleanSourceMode(template.source_mode)
+  const sourceMode: RoundSourceMode =
+    String(template.source_mode ?? "selected_packs") === "specific_packs"
+      ? "specific_packs"
+      : String(template.source_mode ?? "selected_packs") === "all_questions"
+        ? "all_questions"
+        : "selected_packs"
 
   return {
     id: String(template.id ?? `template_${index + 1}`),
@@ -743,23 +739,9 @@ export default function HostPage() {
       setPacksLoading(false)
     }
 
-    function handleVisibilityRefresh() {
-      if (document.visibilityState === "visible") {
-        void loadData()
-      }
-    }
-
-    function handleWindowFocus() {
-      void loadData()
-    }
-
-    void loadData()
-    window.addEventListener("focus", handleWindowFocus)
-    document.addEventListener("visibilitychange", handleVisibilityRefresh)
+    loadData()
     return () => {
       cancelled = true
-      window.removeEventListener("focus", handleWindowFocus)
-      document.removeEventListener("visibilitychange", handleVisibilityRefresh)
     }
   }, [])
 
@@ -938,37 +920,6 @@ export default function HostPage() {
     )
   }
 
-  function toggleManualRoundRuleValue(
-    roundId: string,
-    key: "mediaTypes" | "promptTargets" | "clueSources" | "primaryShowKeys" | "audioClipTypes",
-    value: string
-  ) {
-    setManualRounds((prev) =>
-      prev.map((round) => {
-        if (round.id !== roundId) return round
-
-        const nextRound: ManualRoundDraft = { ...round }
-
-        if (key === "mediaTypes") {
-          nextRound.mediaTypes = toggleInArray(round.mediaTypes, value as "text" | "audio" | "image")
-          if (!nextRound.mediaTypes.includes("audio")) {
-            nextRound.audioClipTypes = []
-          }
-        } else if (key === "promptTargets") {
-          nextRound.promptTargets = toggleInArray(round.promptTargets, value)
-        } else if (key === "clueSources") {
-          nextRound.clueSources = toggleInArray(round.clueSources, value)
-        } else if (key === "primaryShowKeys") {
-          nextRound.primaryShowKeys = toggleInArray(round.primaryShowKeys, value)
-        } else if (key === "audioClipTypes") {
-          nextRound.audioClipTypes = toggleInArray(round.audioClipTypes, value)
-        }
-
-        return normaliseManualRoundDraft(nextRound)
-      })
-    )
-  }
-
   function toggleManualRoundPack(roundId: string, packId: string) {
     setManualRounds((prev) =>
       prev.map((round) => {
@@ -983,9 +934,9 @@ export default function HostPage() {
 
   function addManualRoundFromTemplate(template: RoundTemplateRow) {
     const selectionRules = normaliseSelectionRules(template.selection_rules)
-    const defaultPackIds = normalisePackIds(template.default_pack_ids)
+    const defaultPackIds = normaliseDefaultPackIds(template.default_pack_ids)
 
-    const sourceMode = cleanSourceMode(template.source_mode) as RoundSourceMode
+    const sourceMode = String(template.source_mode ?? "selected_packs") as RoundSourceMode
     const behaviourType: RoundBehaviourType = String(template.behaviour_type ?? "standard") === "quickfire" ? "quickfire" : String(template.behaviour_type ?? "standard") === "heads_up" ? "heads_up" : "standard"
 
     if (sourceMode === "selected_packs" && defaultPackIds.length) {
@@ -1008,11 +959,11 @@ export default function HostPage() {
         countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(template.counts_towards_score ?? true),
         sourceMode,
         packIds: sourceMode === "specific_packs" ? defaultPackIds : [],
-        mediaTypes: selectionRules.mediaTypes ?? [],
-        promptTargets: selectionRules.promptTargets ?? [],
-        clueSources: selectionRules.clueSources ?? [],
-        primaryShowKeys: selectionRules.primaryShowKeys ?? [],
-        audioClipTypes: selectionRules.audioClipTypes ?? [],
+        mediaType: selectionRules.mediaTypes?.[0] ?? "",
+        promptTarget: selectionRules.promptTargets?.[0] ?? "",
+        clueSource: selectionRules.clueSources?.[0] ?? "",
+        primaryShowKey: selectionRules.primaryShowKeys?.[0] ?? "",
+        audioClipType: selectionRules.audioClipTypes?.[0] ?? "",
         headsUpDifficulty: "",
         headsUpTvDisplayMode: "timer_only",
         headsUpTurnSeconds: 60,
@@ -2878,137 +2829,50 @@ export default function HostPage() {
                                   {HEADS_UP_TV_DISPLAY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                                 </select>
                               </div>
-                              <div className="sm:col-span-2 xl:col-span-4 rounded-xl border border-border bg-muted/30 p-3">
-                                <div className="flex items-center justify-between gap-3">
-                                  <div>
-                                    <div className="text-sm font-medium text-foreground">primary_show_key</div>
-                                    <div className="mt-1 text-xs text-muted-foreground">Choose one or more shows for this Heads Up round.</div>
-                                  </div>
-                                  {round.primaryShowKeys.length ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => updateManualRound(round.id, { primaryShowKeys: [] })}
-                                      className="text-xs text-muted-foreground underline underline-offset-2"
-                                    >
-                                      Clear
-                                    </button>
-                                  ) : null}
-                                </div>
-                                <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                                  {shows.map((show) => (
-                                    <label key={show.show_key} className="flex items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
-                                      <input
-                                        type="checkbox"
-                                        checked={round.primaryShowKeys.includes(show.show_key)}
-                                        onChange={() => toggleManualRoundRuleValue(round.id, "primaryShowKeys", show.show_key)}
-                                        className="mt-0.5"
-                                      />
-                                      <span>{show.display_name}</span>
-                                    </label>
-                                  ))}
-                                </div>
+                              <div>
+                                <div className="text-sm font-medium text-foreground">primary_show_key</div>
+                                <select value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  <option value="">Any show</option>
+                                  {shows.map((show) => <option key={show.show_key} value={show.show_key}>{show.display_name}</option>)}
+                                </select>
                               </div>
                             </div>
                           ) : (
-                            <div className="mt-3 grid gap-3 lg:grid-cols-2">
-                              <div className="rounded-xl border border-border bg-muted/30 p-3">
-                                <div className="flex items-center justify-between gap-3">
-                                  <div>
-                                    <div className="text-sm font-medium text-foreground">media_type</div>
-                                    <div className="mt-1 text-xs text-muted-foreground">Select one or more. Within this field, selections behave as OR.</div>
-                                  </div>
-                                  {round.mediaTypes.length ? (
-                                    <button type="button" onClick={() => updateManualRound(round.id, { mediaTypes: [], audioClipTypes: [] })} className="text-xs text-muted-foreground underline underline-offset-2">Clear</button>
-                                  ) : null}
-                                </div>
-                                <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                                  {[{ value: "text", label: "text" }, { value: "audio", label: "audio" }, { value: "image", label: "image" }].map((option) => (
-                                    <label key={option.value} className="flex items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
-                                      <input type="checkbox" checked={round.mediaTypes.includes(option.value as "text" | "audio" | "image")} onChange={() => toggleManualRoundRuleValue(round.id, "mediaTypes", option.value)} className="mt-0.5" />
-                                      <span>{option.label}</span>
-                                    </label>
-                                  ))}
-                                </div>
+                            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                              <div>
+                                <div className="text-sm font-medium text-foreground">media_type</div>
+                                <select value={round.mediaType} onChange={(e) => updateManualRound(round.id, { mediaType: e.target.value as ManualRoundDraft["mediaType"] })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  <option value="">Any media</option>
+                                  <option value="text">text</option>
+                                  <option value="audio">audio</option>
+                                  <option value="image">image</option>
+                                </select>
                               </div>
-                              <div className="rounded-xl border border-border bg-muted/30 p-3">
-                                <div className="flex items-center justify-between gap-3">
-                                  <div>
-                                    <div className="text-sm font-medium text-foreground">prompt_target</div>
-                                    <div className="mt-1 text-xs text-muted-foreground">Select one or more prompt targets.</div>
-                                  </div>
-                                  {round.promptTargets.length ? (
-                                    <button type="button" onClick={() => updateManualRound(round.id, { promptTargets: [] })} className="text-xs text-muted-foreground underline underline-offset-2">Clear</button>
-                                  ) : null}
-                                </div>
-                                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                                  {PROMPT_TARGET_OPTIONS.filter((option) => option.value).map((option) => (
-                                    <label key={option.value} className="flex items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
-                                      <input type="checkbox" checked={round.promptTargets.includes(option.value)} onChange={() => toggleManualRoundRuleValue(round.id, "promptTargets", option.value)} className="mt-0.5" />
-                                      <span>{option.label}</span>
-                                    </label>
-                                  ))}
-                                </div>
+                              <div>
+                                <div className="text-sm font-medium text-foreground">prompt_target</div>
+                                <select value={round.promptTarget} onChange={(e) => updateManualRound(round.id, { promptTarget: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  {PROMPT_TARGET_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
+                                </select>
                               </div>
-                              <div className="rounded-xl border border-border bg-muted/30 p-3">
-                                <div className="flex items-center justify-between gap-3">
-                                  <div>
-                                    <div className="text-sm font-medium text-foreground">clue_source</div>
-                                    <div className="mt-1 text-xs text-muted-foreground">Select one or more clue sources.</div>
-                                  </div>
-                                  {round.clueSources.length ? (
-                                    <button type="button" onClick={() => updateManualRound(round.id, { clueSources: [] })} className="text-xs text-muted-foreground underline underline-offset-2">Clear</button>
-                                  ) : null}
-                                </div>
-                                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                                  {CLUE_SOURCE_OPTIONS.filter((option) => option.value).map((option) => (
-                                    <label key={option.value} className="flex items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
-                                      <input type="checkbox" checked={round.clueSources.includes(option.value)} onChange={() => toggleManualRoundRuleValue(round.id, "clueSources", option.value)} className="mt-0.5" />
-                                      <span>{option.label}</span>
-                                    </label>
-                                  ))}
-                                </div>
+                              <div>
+                                <div className="text-sm font-medium text-foreground">clue_source</div>
+                                <select value={round.clueSource} onChange={(e) => updateManualRound(round.id, { clueSource: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  {CLUE_SOURCE_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
+                                </select>
                               </div>
-                              <div className="rounded-xl border border-border bg-muted/30 p-3">
-                                <div className="flex items-center justify-between gap-3">
-                                  <div>
-                                    <div className="text-sm font-medium text-foreground">primary_show_key</div>
-                                    <div className="mt-1 text-xs text-muted-foreground">Select one or more shows for a metadata-led spotlight round.</div>
-                                  </div>
-                                  {round.primaryShowKeys.length ? (
-                                    <button type="button" onClick={() => updateManualRound(round.id, { primaryShowKeys: [] })} className="text-xs text-muted-foreground underline underline-offset-2">Clear</button>
-                                  ) : null}
-                                </div>
-                                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                                  {shows.map((show) => (
-                                    <label key={show.show_key} className="flex items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
-                                      <input type="checkbox" checked={round.primaryShowKeys.includes(show.show_key)} onChange={() => toggleManualRoundRuleValue(round.id, "primaryShowKeys", show.show_key)} className="mt-0.5" />
-                                      <span>{show.display_name}</span>
-                                    </label>
-                                  ))}
-                                </div>
+                              <div>
+                                <div className="text-sm font-medium text-foreground">primary_show_key</div>
+                                <select value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                  <option value="">Any show</option>
+                                  {shows.map((show) => <option key={show.show_key} value={show.show_key}>{show.display_name}</option>)}
+                                </select>
                               </div>
 
-                              <div className="rounded-xl border border-border bg-muted/30 p-3 lg:col-span-2">
-                                <div className="flex items-center justify-between gap-3">
-                                  <div>
-                                    <div className="text-sm font-medium text-foreground">audio_clip_type</div>
-                                    <div className="mt-1 text-xs text-muted-foreground">Available when audio is included in media_type.</div>
-                                  </div>
-                                  {round.audioClipTypes.length ? (
-                                    <button type="button" onClick={() => updateManualRound(round.id, { audioClipTypes: [] })} className="text-xs text-muted-foreground underline underline-offset-2">Clear</button>
-                                  ) : null}
-                                </div>
-                                <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                                  {AUDIO_CLIP_TYPE_OPTIONS.filter((option) => option.value).map((option) => {
-                                    const disabled = !round.mediaTypes.includes("audio")
-                                    return (
-                                      <label key={option.value} className={`flex items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm ${disabled ? "opacity-50" : ""}`}>
-                                        <input type="checkbox" checked={round.audioClipTypes.includes(option.value)} onChange={() => toggleManualRoundRuleValue(round.id, "audioClipTypes", option.value)} className="mt-0.5" disabled={disabled} />
-                                        <span>{option.label}</span>
-                                      </label>
-                                    )
-                                  })}
-                                </div>
+                              <div>
+                                <div className="text-sm font-medium text-foreground">audio_clip_type</div>
+                                <select value={round.audioClipType} onChange={(e) => updateManualRound(round.id, { audioClipType: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" disabled={round.mediaType !== "audio"}>
+                                  {AUDIO_CLIP_TYPE_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
+                                </select>
                               </div>
                             </div>
                           )}
@@ -3464,8 +3328,6 @@ export default function HostPage() {
               </CardContent>
             </Card>
           )}
-
-          {hasRoom ? <HostAnswerReviewPanel roomCode={roomCode ?? ""} roomPhase={roomPhase} /> : null}
 
           {packsError ? <Card><CardHeader><CardTitle>Packs</CardTitle></CardHeader><CardContent><div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{packsError}</div></CardContent></Card> : null}
         </div>

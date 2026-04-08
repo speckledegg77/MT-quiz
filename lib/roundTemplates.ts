@@ -38,11 +38,10 @@ export type RoundTemplateRow = {
   updated_at?: string
 }
 
-function parseJsonLikeValue(raw: unknown) {
+function parseJsonLike(raw: unknown) {
   if (typeof raw !== "string") return raw
   const value = raw.trim()
   if (!value) return raw
-  if (!(value.startsWith("[") || value.startsWith("{"))) return raw
   try {
     return JSON.parse(value)
   } catch {
@@ -51,9 +50,9 @@ function parseJsonLikeValue(raw: unknown) {
 }
 
 export function cleanStringArray(raw: unknown) {
-  const parsed = parseJsonLikeValue(raw)
-  if (!Array.isArray(parsed)) return [] as string[]
-  return parsed.map((value) => String(value ?? "").trim()).filter(Boolean)
+  const value = parseJsonLike(raw)
+  if (!Array.isArray(value)) return [] as string[]
+  return value.map((item) => String(item ?? "").trim()).filter(Boolean)
 }
 
 export function cleanMediaTypes(raw: unknown): Array<"text" | "audio" | "image"> {
@@ -63,12 +62,8 @@ export function cleanMediaTypes(raw: unknown): Array<"text" | "audio" | "image">
   )
 }
 
-export function normalisePackIds(raw: unknown) {
-  return [...new Set(cleanStringArray(raw))]
-}
-
 export function normaliseSelectionRules(raw: unknown): RoundTemplateSelectionRules {
-  const parsed = parseJsonLikeValue(raw)
+  const parsed = parseJsonLike(raw)
   const value =
     parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {}
 
@@ -109,4 +104,30 @@ export function cleanBehaviourType(raw: unknown): RoundTemplateBehaviourType {
   const value = String(raw ?? "").trim().toLowerCase()
   if (value === "quickfire") return "quickfire"
   return "standard"
+}
+
+export function normaliseDefaultPackIds(raw: unknown) {
+  return cleanStringArray(raw)
+}
+
+export function normaliseRoundTemplateRow(raw: unknown): RoundTemplateRow {
+  const value = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {}
+  return {
+    id: String(value.id ?? "").trim(),
+    name: String(value.name ?? "").trim(),
+    description: String(value.description ?? ""),
+    behaviour_type: cleanBehaviourType(value.behaviour_type),
+    default_question_count: Math.max(1, Number(value.default_question_count ?? 1) || 1),
+    default_answer_seconds: value.default_answer_seconds == null ? null : Number(value.default_answer_seconds),
+    default_round_review_seconds: value.default_round_review_seconds == null ? null : Number(value.default_round_review_seconds),
+    joker_eligible: Boolean(value.joker_eligible ?? true),
+    counts_towards_score: Boolean(value.counts_towards_score ?? true),
+    source_mode: cleanSourceMode(value.source_mode),
+    default_pack_ids: normaliseDefaultPackIds(value.default_pack_ids),
+    selection_rules: normaliseSelectionRules(value.selection_rules),
+    is_active: Boolean(value.is_active ?? true),
+    sort_order: Number(value.sort_order ?? 0) || 0,
+    created_at: typeof value.created_at === 'string' ? value.created_at : undefined,
+    updated_at: typeof value.updated_at === 'string' ? value.updated_at : undefined,
+  }
 }
