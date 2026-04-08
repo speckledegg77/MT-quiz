@@ -27,11 +27,6 @@ import {
   type QuestionCandidate,
 } from "../../../../lib/manualRoundPlanBuilder"
 import { buildHeadsUpSyntheticQuestionId, cleanHeadsUpDifficulty } from "../../../../lib/headsUp"
-import {
-  createQuestionSelectionGroupId,
-  loadRecentQuestionUsage,
-  logQuestionSelectionHistory,
-} from "../../../../lib/questionRecency"
 import { normaliseMediaDurationMs } from "../../../../lib/quickfireEligibility"
 
 type LegacyRoundRequest = { packId: string; count: number }
@@ -42,6 +37,60 @@ function randomCode(len = 8) {
   let out = ""
   for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)]
   return out
+}
+
+async function fetchAllPackQuestionRows(packIds: string[]) {
+  const cleanedPackIds = [...new Set(cleanStringArray(packIds))]
+  if (cleanedPackIds.length === 0) return [] as Array<Record<string, unknown>>
+
+  const pageSize = 1000
+  const rows: Array<Record<string, unknown>> = []
+
+  for (let from = 0; ; from += pageSize) {
+    const to = from + pageSize - 1
+    const res = await supabaseAdmin
+      .from("pack_questions")
+      .select(
+        "pack_id, question_id, questions(round_type, answer_type, media_type, prompt_target, clue_source, primary_show_key, media_duration_ms, audio_clip_type)"
+      )
+      .in("pack_id", cleanedPackIds)
+      .range(from, to)
+
+    if (res.error) throw new Error(res.error.message)
+
+    const batch = (res.data ?? []) as Array<Record<string, unknown>>
+    rows.push(...batch)
+
+    if (batch.length < pageSize) break
+  }
+
+  return rows
+}
+
+async function fetchAllHeadsUpPackItemRows(packIds: string[]) {
+  const cleanedPackIds = [...new Set(cleanStringArray(packIds))]
+  if (cleanedPackIds.length === 0) return [] as Array<Record<string, unknown>>
+
+  const pageSize = 1000
+  const rows: Array<Record<string, unknown>> = []
+
+  for (let from = 0; ; from += pageSize) {
+    const to = from + pageSize - 1
+    const res = await supabaseAdmin
+      .from("heads_up_pack_items")
+      .select("pack_id, item_id, heads_up_items(id, difficulty, primary_show_key, is_active)")
+      .in("pack_id", cleanedPackIds)
+      .range(from, to)
+
+    if (res.error) throw new Error(res.error.message)
+
+    const batch = (res.data ?? []) as Array<Record<string, unknown>>
+    rows.push(...batch)
+
+    if (batch.length < pageSize) break
+  }
+
+  return rows
 }
 
 function clampInt(n: number, min: number, max: number) {
@@ -378,7 +427,6 @@ export async function POST(req: Request) {
   let roundFilterToStore: RoundFilter = roundFilter
   let roundsToStore: PackSelectionInput[] | null = null
   let effectiveTotalQuestions = totalQuestions
-  const selectionGroupId = createQuestionSelectionGroupId()
 
   try {
     if (buildMode === "manual_rounds") {
@@ -387,9 +435,6 @@ export async function POST(req: Request) {
         selectedPackIds: selectedPacks,
         manualRounds,
       })
-      const recentUsageById = await loadRecentQuestionUsage({
-        questionIds: candidates.map((candidate) => candidate.id),
-      })
 
       roundPlan = buildManualRoomRoundPlan({
         roundsInput: manualRounds,
@@ -397,7 +442,6 @@ export async function POST(req: Request) {
         allPackIds: allActivePackIds,
         candidates,
         buildMode,
-        recentUsageById,
       })
 
       legacyFields = getLegacyFieldsFromRoundPlan(roundPlan)
@@ -446,9 +490,6 @@ export async function POST(req: Request) {
           selectedPackIds: packIds,
           manualRounds: quickRandomRounds,
         })
-        const recentUsageById = await loadRecentQuestionUsage({
-          questionIds: candidates.map((candidate) => candidate.id),
-        })
 
         roundPlan = buildManualRoomRoundPlan({
           roundsInput: quickRandomRounds,
@@ -456,7 +497,6 @@ export async function POST(req: Request) {
           allPackIds: allActivePackIds,
           candidates,
           buildMode,
-          recentUsageById,
         })
 
         legacyFields = getLegacyFieldsFromRoundPlan(roundPlan)
@@ -504,17 +544,12 @@ export async function POST(req: Request) {
           packQuestionsById[pid].push({ id: qid, round_type })
         }
 
-        const recentUsageById = await loadRecentQuestionUsage({
-          questionIds: Object.values(packQuestionsById).flat().map((question) => question.id),
-        })
-
         const result = buildQuestionIdList({
           packs: selectionPacks,
           packQuestionsById,
           strategy,
           totalQuestions,
           roundFilter,
-          recentUsageById,
         })
 
         const pickedIds = result.questionIds
@@ -569,17 +604,10 @@ export async function POST(req: Request) {
         build_mode: buildMode,
         round_plan: roundPlan,
       })
-      .select("id, code")
+      .select("code")
       .single()
 
-    if (!ins.error) {
-      await logQuestionSelectionHistory({
-        roomId: String(ins.data.id ?? "").trim(),
-        selectionGroupId,
-        roundPlan,
-      })
-      return NextResponse.json({ code: ins.data.code })
-    }
+    if (!ins.error) return NextResponse.json({ code: ins.data.code })
   }
 
   return NextResponse.json({ error: "Could not create room" }, { status: 500 })
