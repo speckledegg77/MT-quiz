@@ -1070,6 +1070,7 @@ export default function HostPage() {
               : {
                   selectedPackIds: simpleSelectedPackIds,
                   manualRounds: [],
+                  templateIds: templates.map((template) => template.id),
                   templateRounds: allTemplateRoundsPayload,
                 }
           ),
@@ -1143,6 +1144,7 @@ export default function HostPage() {
           body: JSON.stringify({
             selectedPackIds: shouldCheckManual ? selectedPackIdsForManual : selectedPackIdsForQuickRandom,
             manualRounds: shouldCheckManual ? manualRoundsPayload : [],
+            templateIds: shouldCheckTemplates ? selectedQuickRandomTemplates.map((template) => template.id) : [],
             templateRounds: shouldCheckTemplates ? templateRoundsPayload : [],
           }),
         })

@@ -11,6 +11,7 @@ import type { QuestionCandidate } from "@/lib/manualRoundPlanBuilder"
 import type { RoundSelectionRules } from "@/lib/roomRoundPlan"
 import { buildHeadsUpSyntheticQuestionId, cleanHeadsUpDifficulty } from "@/lib/headsUp"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
+import { normaliseDefaultPackIds, normaliseSelectionRules as normaliseTemplateSelectionRules, normaliseRoundTemplateRow } from "@/lib/roundTemplates"
 
 function cleanStringArray(raw: unknown) {
   if (!Array.isArray(raw)) return [] as string[]
@@ -57,6 +58,32 @@ function cleanRounds(raw: unknown): RoundFeasibilityInput[] {
   })
 }
 
+
+function mapTemplateRowToFeasibilityInput(raw: unknown, index: number): RoundFeasibilityInput {
+  const template = normaliseRoundTemplateRow(raw)
+  const behaviourRaw = String(template.behaviour_type ?? "standard").trim().toLowerCase()
+  const behaviourType = behaviourRaw === "quickfire" ? "quickfire" : behaviourRaw === "heads_up" ? "heads_up" : "standard"
+  const sourceModeRaw = String(template.source_mode ?? "selected_packs").trim().toLowerCase()
+  const sourceMode = sourceModeRaw === "specific_packs" ? "specific_packs" : sourceModeRaw === "all_questions" ? "all_questions" : "selected_packs"
+  const selectionRules = normaliseTemplateSelectionRules(template.selection_rules)
+
+  return {
+    id: String(template.id ?? `template_${index + 1}`).trim() || `template_${index + 1}`,
+    name: String(template.name ?? "").trim(),
+    questionCount: Math.max(0, Math.floor(Number(template.default_question_count ?? 0)) || 0),
+    behaviourType,
+    sourceMode,
+    packIds: sourceMode === "specific_packs" ? normaliseDefaultPackIds(template.default_pack_ids) : [],
+    selectionRules: {
+      mediaTypes: selectionRules.mediaTypes ?? [],
+      promptTargets: selectionRules.promptTargets ?? [],
+      clueSources: selectionRules.clueSources ?? [],
+      primaryShowKeys: selectionRules.primaryShowKeys ?? [],
+      audioClipTypes: selectionRules.audioClipTypes ?? [],
+    },
+  } satisfies RoundFeasibilityInput
+}
+
 function buildHeadsUpCandidatesFromPackRows(rows: Array<Record<string, unknown>>): QuestionCandidate[] {
   const candidatesById = new Map<string, QuestionCandidate>()
   for (const row of rows) {
@@ -93,7 +120,30 @@ export async function POST(req: Request) {
 
     const selectedPackIds = [...new Set(cleanStringArray(body.selectedPackIds))]
     const manualRounds = cleanRounds(body.manualRounds)
-    const templateRounds = cleanRounds(body.templateRounds)
+
+    const templateIds = [...new Set(cleanStringArray(body.templateIds))]
+    let templateRounds = cleanRounds(body.templateRounds)
+
+    if (templateIds.length > 0) {
+      const templateRes = await supabaseAdmin
+        .from("round_templates")
+        .select("*")
+        .in("id", templateIds)
+        .eq("is_active", true)
+
+      if (templateRes.error) {
+        return NextResponse.json({ error: templateRes.error.message }, { status: 500 })
+      }
+
+      const byId = new Map((templateRes.data ?? []).map((row: Record<string, unknown>) => [String(row.id ?? ""), row]))
+      templateRounds = templateIds
+        .map((id, index) => {
+          const row = byId.get(id)
+          return row ? mapTemplateRowToFeasibilityInput(row, index) : null
+        })
+        .filter((value): value is RoundFeasibilityInput => value != null)
+    }
+
     const allRounds = [...manualRounds, ...templateRounds]
 
     const questionRounds = allRounds.filter((round) => round.behaviourType !== "heads_up")
