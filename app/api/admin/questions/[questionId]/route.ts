@@ -20,6 +20,8 @@ type RouteContext = {
 type QuestionRow = QuestionRowForMetadata & {
   created_at: string
   updated_at: string
+  options: unknown
+  answer_index: number | null
 }
 
 type PackQuestionRow = {
@@ -39,7 +41,7 @@ async function loadQuestionDetailPayload(questionId: string) {
     supabaseAdmin
       .from("questions")
       .select(
-        "id, text, round_type, answer_type, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, audio_clip_type, created_at, updated_at"
+        "id, text, round_type, answer_type, answer_text, options, answer_index, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, audio_clip_type, created_at, updated_at"
       )
       .eq("id", questionId)
       .maybeSingle(),
@@ -192,36 +194,6 @@ export async function GET(req: Request, context: RouteContext) {
   }
 
   return NextResponse.json(result.payload)
-}
-
-
-export async function PATCH(req: Request, context: RouteContext) {
-  if (!isAuthorisedAdminRequest(req)) return unauthorisedAdminResponse()
-
-  const { questionId } = await context.params
-  const body = (await req.json().catch(() => null)) as { text?: unknown } | null
-  const nextText = String(body?.text ?? "")
-
-  if (!nextText.trim()) {
-    return NextResponse.json({ error: "Question text cannot be blank." }, { status: 400 })
-  }
-
-  const updateRes = await supabaseAdmin
-    .from("questions")
-    .update({ text: nextText.trim() })
-    .eq("id", questionId)
-    .select("id")
-    .maybeSingle()
-
-  if (updateRes.error) {
-    return NextResponse.json({ error: updateRes.error.message }, { status: 500 })
-  }
-
-  if (!updateRes.data) {
-    return NextResponse.json({ error: "Question not found." }, { status: 404 })
-  }
-
-  return NextResponse.json({ ok: true, message: "Saved." })
 }
 
 export async function POST(req: Request, context: RouteContext) {

@@ -53,6 +53,8 @@ type QuestionSummaryItem = {
     round_type: string
     answer_type: string
     answer_text: string | null
+    options: string[] | null
+    answer_index: number | null
     explanation: string | null
     audio_path: string | null
     image_path: string | null
@@ -123,6 +125,17 @@ type BulkEditorState = {
   audioClipType: string
   metadataReviewState: string
 }
+
+
+
+type AnswerEditorState = {
+  answerText: string
+  acceptedAnswersText: string
+  options: [string, string, string, string]
+  answerIndex: string
+}
+
+const DEFAULT_LIST_LIMIT = 200
 
 const UNCHANGED_VALUE = "__UNCHANGED__"
 const ARCHIVED_PACK_NAME = "Archived Questions"
@@ -386,6 +399,49 @@ function formatDurationMs(value: number | null | undefined) {
   return `${parsed} ms (${seconds.toFixed(seconds % 1 === 0 ? 0 : 2)}s)`
 }
 
+
+
+function parseAcceptedAnswersValue(value: unknown) {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item ?? "").trim())
+      .filter(Boolean)
+  }
+
+  if (typeof value === "string") {
+    const cleaned = value.trim()
+    if (!cleaned) return []
+    return cleaned
+      .split("|")
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }
+
+  return []
+}
+
+function parseOptionsValue(value: unknown): [string, string, string, string] {
+  if (Array.isArray(value)) {
+    const cleaned = value.slice(0, 4).map((item) => String(item ?? "").trim())
+    while (cleaned.length < 4) cleaned.push("")
+    return cleaned as [string, string, string, string]
+  }
+
+  return ["", "", "", ""]
+}
+
+function buildAnswerEditorState(item: QuestionSummaryItem): AnswerEditorState {
+  return {
+    answerText: item.question.answer_text ?? "",
+    acceptedAnswersText: parseAcceptedAnswersValue(item.question.accepted_answers).join(" | "),
+    options: parseOptionsValue(item.question.options),
+    answerIndex:
+      item.question.answer_index === null || item.question.answer_index === undefined
+        ? ""
+        : String(item.question.answer_index),
+  }
+}
+
 function buildSummaryText(item: QuestionSummaryItem) {
   const parts = [
     item.metadata.saved.mediaType || item.metadata.suggested.mediaType || "media ?",
@@ -425,20 +481,19 @@ export function QuestionMetadataDashboard() {
   const [items, setItems] = useState<QuestionSummaryItem[]>([])
   const [listBusy, setListBusy] = useState(false)
   const [listError, setListError] = useState("")
-  const [listTotal, setListTotal] = useState(0)
-  const [listLimit] = useState(200)
   const [listOffset, setListOffset] = useState(0)
+  const [listLimit, setListLimit] = useState(DEFAULT_LIST_LIMIT)
+  const [listTotal, setListTotal] = useState(0)
   const [selectedQuestionId, setSelectedQuestionId] = useState("")
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([])
   const [detailBusy, setDetailBusy] = useState(false)
   const [detailError, setDetailError] = useState("")
   const [detailItem, setDetailItem] = useState<QuestionSummaryItem | null>(null)
-  const [questionText, setQuestionText] = useState("")
-  const [questionTextBusy, setQuestionTextBusy] = useState(false)
-  const [questionTextResult, setQuestionTextResult] = useState("")
 
   const [saveBusy, setSaveBusy] = useState(false)
   const [saveResult, setSaveResult] = useState("")
+  const [answerSaveBusy, setAnswerSaveBusy] = useState(false)
+  const [answerSaveResult, setAnswerSaveResult] = useState("")
   const [questionActionBusy, setQuestionActionBusy] = useState(false)
   const [questionActionResult, setQuestionActionResult] = useState("")
 
@@ -449,6 +504,13 @@ export function QuestionMetadataDashboard() {
   const [applySuggestedResult, setApplySuggestedResult] = useState("")
   const [bulkExpanded, setBulkExpanded] = useState(false)
   const [guideExpanded, setGuideExpanded] = useState(false)
+
+  const [answerEditor, setAnswerEditor] = useState<AnswerEditorState>({
+    answerText: "",
+    acceptedAnswersText: "",
+    options: ["", "", "", ""],
+    answerIndex: "",
+  })
 
   const [editor, setEditor] = useState<EditorState>({
     mediaType: "",
@@ -552,6 +614,7 @@ export function QuestionMetadataDashboard() {
     setListBusy(true)
     setListError("")
     setSaveResult("")
+    setAnswerSaveResult("")
     setQuestionActionResult("")
     setBulkResult("")
     setApplySuggestedResult("")
@@ -577,10 +640,9 @@ export function QuestionMetadataDashboard() {
       if (warningState) params.set("warningState", warningState)
       if (metadataGap) params.set("metadataGap", metadataGap)
       if (search.trim()) params.set("search", search.trim())
-
-      const targetOffset = nextOffset ?? listOffset
+      const effectiveOffset = nextOffset ?? listOffset
       params.set("limit", String(listLimit))
-      params.set("offset", String(targetOffset))
+      params.set("offset", String(effectiveOffset))
 
       const queryString = params.toString()
       const requestUrl = queryString ? `/api/admin/questions?${queryString}` : "/api/admin/questions"
@@ -594,16 +656,19 @@ export function QuestionMetadataDashboard() {
 
       if (!res.ok) {
         setItems([])
+        setListTotal(0)
         setListError((json as { error?: string }).error || "Could not load questions.")
         return
       }
 
-      const nextItems = (json as QuestionListResponse).items || []
+      const responsePayload = json as QuestionListResponse
+      const nextItems = responsePayload.items || []
       const visibleIds = new Set(nextItems.map((item) => item.question.id))
 
-      setListTotal((json as QuestionListResponse).total || 0)
-      setListOffset((json as QuestionListResponse).offset || targetOffset)
       setItems(nextItems)
+      setListTotal(responsePayload.total ?? 0)
+      setListLimit(responsePayload.limit ?? listLimit)
+      setListOffset(responsePayload.offset ?? effectiveOffset)
       setSelectedQuestionIds((current) => current.filter((id) => visibleIds.has(id)))
 
       const targetId =
@@ -620,6 +685,7 @@ export function QuestionMetadataDashboard() {
       }
     } catch (error: any) {
       setItems([])
+      setListTotal(0)
       setListError(error?.message || "Could not load questions.")
     } finally {
       setListBusy(false)
@@ -632,6 +698,7 @@ export function QuestionMetadataDashboard() {
     setDetailBusy(true)
     setDetailError("")
     setSaveResult("")
+    setAnswerSaveResult("")
     setQuestionActionResult("")
 
     try {
@@ -650,8 +717,7 @@ export function QuestionMetadataDashboard() {
 
       const nextItem = (json as QuestionDetailResponse).item
       setDetailItem(nextItem)
-      setQuestionText(nextItem.question.text || "")
-      setQuestionTextResult("")
+      setAnswerEditor(buildAnswerEditorState(nextItem))
       setEditor({
         mediaType: normaliseEditorValue(nextItem.metadata.saved.mediaType),
         promptTarget: normaliseEditorValue(nextItem.metadata.saved.promptTarget),
@@ -663,11 +729,61 @@ export function QuestionMetadataDashboard() {
       })
     } catch (error: any) {
       setDetailItem(null)
+      setAnswerEditor({ answerText: "", acceptedAnswersText: "", options: ["", "", "", ""], answerIndex: "" })
       setDetailError(error?.message || "Could not load question detail.")
     } finally {
       setDetailBusy(false)
     }
   }
+
+
+async function saveAnswerFields() {
+  if (!cleanToken || !detailItem) return
+
+  setAnswerSaveBusy(true)
+  setAnswerSaveResult("")
+
+  try {
+    const payload =
+      detailItem.question.answer_type === "text"
+        ? {
+            answerText: answerEditor.answerText.trim(),
+            acceptedAnswers: answerEditor.acceptedAnswersText.trim()
+              ? answerEditor.acceptedAnswersText
+                  .split("|")
+                  .map((item) => item.trim())
+                  .filter(Boolean)
+              : null,
+          }
+        : {
+            options: answerEditor.options.map((item) => item.trim()),
+            answerIndex: Number(answerEditor.answerIndex),
+          }
+
+    const res = await fetch(`/api/admin/questions/${detailItem.question.id}/answer`, {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+        ...buildAdminHeaders(cleanToken),
+      },
+      body: JSON.stringify(payload),
+    })
+
+    const json = (await res.json()) as { error?: string }
+
+    if (!res.ok) {
+      setAnswerSaveResult(json.error || "Could not save answers.")
+      return
+    }
+
+    setAnswerSaveResult("Saved.")
+    await loadQuestionDetail(detailItem.question.id)
+  } catch (error: any) {
+    setAnswerSaveResult(error?.message || "Could not save answers.")
+  } finally {
+    setAnswerSaveBusy(false)
+  }
+}
 
   function applySuggestedValues() {
     if (!detailItem) return
@@ -721,39 +837,6 @@ export function QuestionMetadataDashboard() {
       setSaveResult(error?.message || "Save failed.")
     } finally {
       setSaveBusy(false)
-    }
-  }
-
-
-  async function saveQuestionText() {
-    if (!cleanToken || !detailItem) return
-
-    setQuestionTextBusy(true)
-    setQuestionTextResult("")
-
-    try {
-      const res = await fetch(`/api/admin/questions/${detailItem.question.id}`, {
-        method: "PATCH",
-        headers: {
-          ...buildAdminHeaders(cleanToken),
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text: questionText }),
-      })
-
-      const json = (await res.json()) as { error?: string; message?: string }
-
-      if (!res.ok) {
-        setQuestionTextResult(json.error || "Save failed.")
-        return
-      }
-
-      setQuestionTextResult(json.message || "Saved.")
-      await loadQuestions(detailItem.question.id)
-    } catch (error: any) {
-      setQuestionTextResult(error?.message || "Save failed.")
-    } finally {
-      setQuestionTextBusy(false)
     }
   }
 
@@ -1014,6 +1097,10 @@ export function QuestionMetadataDashboard() {
   }, [detailItem])
 
   const selectedCount = selectedQuestionIds.length
+  const pageStart = items.length ? listOffset + 1 : 0
+  const pageEnd = items.length ? listOffset + items.length : 0
+  const hasPreviousPage = listOffset > 0
+  const hasNextPage = listOffset + items.length < listTotal
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.95fr)] xl:items-start">
@@ -1044,7 +1131,7 @@ export function QuestionMetadataDashboard() {
                 className={metadataInputClass()}
               />
               <div className="flex flex-wrap gap-2">
-                <Button size={metadataWorkspaceButtonSize()} onClick={() => loadQuestions()}>Load questions</Button>
+                <Button size={metadataWorkspaceButtonSize()} onClick={() => loadQuestions(undefined, 0)}>Load questions</Button>
                 <Button size={metadataWorkspaceButtonSize()} variant="secondary" onClick={clearToken}>
                   Clear token
                 </Button>
@@ -1413,7 +1500,33 @@ export function QuestionMetadataDashboard() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="pt-4">
+          <CardContent className="space-y-3 pt-4">
+            {!listError ? (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
+                <div className="text-sm text-muted-foreground">
+                  {listTotal ? `Showing ${pageStart}-${pageEnd} of ${listTotal}` : "No questions loaded yet."}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => loadQuestions(selectedQuestionId || undefined, Math.max(0, listOffset - listLimit))}
+                    disabled={listBusy || !hasPreviousPage}
+                  >
+                    Previous 200
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => loadQuestions(selectedQuestionId || undefined, listOffset + listLimit)}
+                    disabled={listBusy || !hasNextPage}
+                  >
+                    Next 200
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
             {listBusy ? (
               <div className="text-sm text-muted-foreground">Loading questions…</div>
             ) : items.length === 0 ? (
@@ -1532,30 +1645,6 @@ export function QuestionMetadataDashboard() {
                     </div>
                   </div>
                   <div className="mt-3 whitespace-pre-line text-sm leading-6 text-foreground">{detailItem.question.text}</div>
-                  <div className="mt-4 rounded-lg border border-border bg-background p-3">
-                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Edit question text</div>
-                    <textarea
-                      value={questionText}
-                      onChange={(event) => setQuestionText(event.target.value)}
-                      rows={5}
-                      className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:ring-2 focus:ring-border"
-                    />
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <Button size="sm" onClick={saveQuestionText} disabled={questionTextBusy}>
-                        {questionTextBusy ? "Saving…" : "Save question text"}
-                      </Button>
-                      {questionTextResult ? (
-                        <span className={cx(
-                          "rounded-lg px-3 py-2 text-sm",
-                          questionTextResult.includes("Saved")
-                            ? "border border-green-300 bg-green-50 text-green-700"
-                            : "border border-red-300 bg-red-50 text-red-700"
-                        )}>
-                          {questionTextResult}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
                   <div className="mt-3 text-xs text-muted-foreground">
                     Packs: {detailItem.packs.map((pack) => pack.display_name).join(", ") || "None"}
                   </div>
@@ -1626,7 +1715,146 @@ export function QuestionMetadataDashboard() {
                   ) : null}
                 </div>
 
-                <div className="grid gap-2 md:grid-cols-2">
+
+<div className={fieldCardClass()}>
+  <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className="text-sm font-medium">Answer editor</div>
+    <span className={pillClass()}>{detailItem.question.answer_type}</span>
+  </div>
+
+  {detailItem.question.answer_type === "text" ? (
+    <div className="mt-3 grid gap-3">
+      <label className={metadataFieldLabelClass()}>
+        <div className={metadataFieldHeaderClass()}>
+          <span className={metadataFieldNameClass()}>answer_text</span>
+          <MetadataHint label="answer_text" hint="Canonical answer used for text matching" />
+        </div>
+        <input
+          value={answerEditor.answerText}
+          onChange={(event) =>
+            setAnswerEditor((current) => ({
+              ...current,
+              answerText: event.target.value,
+            }))
+          }
+          className={metadataInputClass()}
+        />
+      </label>
+
+      <label className={metadataFieldLabelClass()}>
+        <div className={metadataFieldHeaderClass()}>
+          <span className={metadataFieldNameClass()}>accepted_answers</span>
+          <MetadataHint
+            label="accepted_answers"
+            hint="Use pipe separators, for example Diana Goodman | Diana"
+          />
+        </div>
+        <input
+          value={answerEditor.acceptedAnswersText}
+          onChange={(event) =>
+            setAnswerEditor((current) => ({
+              ...current,
+              acceptedAnswersText: event.target.value,
+            }))
+          }
+          placeholder="Alternative accepted answers separated by |"
+          className={metadataInputClass()}
+        />
+      </label>
+    </div>
+  ) : detailItem.question.answer_type === "mcq" ? (
+    <div className="mt-3 grid gap-3">
+      {answerEditor.options.map((optionValue, optionIndex) => (
+        <label key={`mcq-option-${optionIndex}`} className={metadataFieldLabelClass()}>
+          <div className={metadataFieldHeaderClass()}>
+            <span className={metadataFieldNameClass()}>{`option_${String.fromCharCode(97 + optionIndex)}`}</span>
+            <MetadataHint
+              label={`option ${optionIndex + 1}`}
+              hint={optionIndex === Number(answerEditor.answerIndex) ? "Current correct option" : "MCQ distractor"}
+            />
+          </div>
+          <input
+            value={optionValue}
+            onChange={(event) =>
+              setAnswerEditor((current) => {
+                const nextOptions = [...current.options] as [string, string, string, string]
+                nextOptions[optionIndex] = event.target.value
+                return {
+                  ...current,
+                  options: nextOptions,
+                }
+              })
+            }
+            className={metadataInputClass()}
+          />
+        </label>
+      ))}
+
+      <label className={metadataFieldLabelClass()}>
+        <div className={metadataFieldHeaderClass()}>
+          <span className={metadataFieldNameClass()}>answer_index</span>
+          <MetadataHint label="answer_index" hint="Zero-based index of the correct MCQ answer" />
+        </div>
+        <select
+          value={answerEditor.answerIndex}
+          onChange={(event) =>
+            setAnswerEditor((current) => ({
+              ...current,
+              answerIndex: event.target.value,
+            }))
+          }
+          className={metadataSelectClass()}
+        >
+          <option value="">Select correct option</option>
+          <option value="0">option_a</option>
+          <option value="1">option_b</option>
+          <option value="2">option_c</option>
+          <option value="3">option_d</option>
+        </select>
+      </label>
+    </div>
+  ) : (
+    <div className="mt-3 text-sm text-muted-foreground">
+      This question type cannot be edited in the answer editor.
+    </div>
+  )}
+
+  <div className="mt-3 flex flex-wrap gap-2">
+    <Button
+      size="sm"
+      variant="secondary"
+      onClick={() => detailItem && setAnswerEditor(buildAnswerEditorState(detailItem))}
+      disabled={answerSaveBusy}
+    >
+      Reset answer fields
+    </Button>
+    <Button
+      size="sm"
+      onClick={saveAnswerFields}
+      disabled={
+        answerSaveBusy ||
+        (detailItem.question.answer_type === "mcq" && answerEditor.answerIndex === "")
+      }
+    >
+      {answerSaveBusy ? "Saving…" : "Save answers"}
+    </Button>
+  </div>
+
+  {answerSaveResult ? (
+    <div
+      className={cx(
+        "mt-3 rounded-lg px-3 py-2 text-sm",
+        answerSaveResult === "Saved."
+          ? "border border-green-300 bg-green-50 text-green-700"
+          : "border border-red-300 bg-red-50 text-red-700"
+      )}
+    >
+      {answerSaveResult}
+    </div>
+  ) : null}
+</div>
+
+<div className="grid gap-2 md:grid-cols-2">
                   <label className={cx(metadataFieldLabelClass(), "md:col-span-1")}>
                     <div className={metadataFieldHeaderClass()}>
                       <span className={metadataFieldNameClass()}>media_type</span>
