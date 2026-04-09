@@ -572,6 +572,9 @@ export function QuestionMetadataDashboard() {
       if (metadataGap) params.set("metadataGap", metadataGap)
       if (search.trim()) params.set("search", search.trim())
 
+      params.set("limit", "200")
+      params.set("offset", "0")
+
       const queryString = params.toString()
       const requestUrl = queryString ? `/api/admin/questions?${queryString}` : "/api/admin/questions"
 
