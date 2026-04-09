@@ -39,7 +39,7 @@ async function loadQuestionDetailPayload(questionId: string) {
     supabaseAdmin
       .from("questions")
       .select(
-        "id, text, round_type, answer_type, options, answer_index, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, audio_clip_type, created_at, updated_at"
+        "id, text, round_type, answer_type, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, audio_clip_type, created_at, updated_at"
       )
       .eq("id", questionId)
       .maybeSingle(),
@@ -192,6 +192,42 @@ export async function GET(req: Request, context: RouteContext) {
   }
 
   return NextResponse.json(result.payload)
+}
+
+
+export async function PATCH(req: Request, context: RouteContext) {
+  if (!isAuthorisedAdminRequest(req)) return unauthorisedAdminResponse()
+
+  const { questionId } = await context.params
+
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 })
+  }
+
+  const nextText = String((body as { text?: unknown } | null)?.text ?? "")
+  if (!nextText.trim()) {
+    return NextResponse.json({ error: "Question text cannot be blank." }, { status: 400 })
+  }
+
+  const updateRes = await supabaseAdmin
+    .from("questions")
+    .update({ text: nextText })
+    .eq("id", questionId)
+    .select("id, text")
+    .maybeSingle()
+
+  if (updateRes.error) {
+    return NextResponse.json({ error: updateRes.error.message }, { status: 500 })
+  }
+
+  if (!updateRes.data) {
+    return NextResponse.json({ error: "Question not found." }, { status: 404 })
+  }
+
+  return NextResponse.json({ ok: true, question: updateRes.data })
 }
 
 export async function POST(req: Request, context: RouteContext) {
