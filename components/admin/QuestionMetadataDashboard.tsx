@@ -572,7 +572,10 @@ export function QuestionMetadataDashboard() {
       if (metadataGap) params.set("metadataGap", metadataGap)
       if (search.trim()) params.set("search", search.trim())
 
-      const res = await fetch(`/api/admin/questions?${params.toString()}`, {
+      const queryString = params.toString()
+      const requestUrl = queryString ? `/api/admin/questions?${queryString}` : "/api/admin/questions"
+
+      const res = await fetch(requestUrl, {
         headers: buildAdminHeaders(cleanToken),
         cache: "no-store",
       })
