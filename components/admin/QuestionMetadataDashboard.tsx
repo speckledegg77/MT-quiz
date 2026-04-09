@@ -57,6 +57,8 @@ type QuestionSummaryItem = {
     audio_path: string | null
     image_path: string | null
     accepted_answers: unknown
+    options: string[] | null
+    answer_index: number | null
     media_type: string | null
     prompt_target: string | null
     clue_source: string | null
@@ -124,8 +126,16 @@ type BulkEditorState = {
   metadataReviewState: string
 }
 
+type AnswerEditorState = {
+  answerText: string
+  acceptedAnswersText: string
+  options: [string, string, string, string]
+  answerIndex: string
+}
+
 const UNCHANGED_VALUE = "__UNCHANGED__"
 const ARCHIVED_PACK_NAME = "Archived Questions"
+const PAGE_SIZE = 200
 
 const MEDIA_TYPE_OPTIONS = [
   { value: "", label: "Blank" },
@@ -386,6 +396,45 @@ function formatDurationMs(value: number | null | undefined) {
   return `${parsed} ms (${seconds.toFixed(seconds % 1 === 0 ? 0 : 2)}s)`
 }
 
+function normaliseAcceptedAnswersText(value: unknown) {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item ?? "").trim())
+      .filter(Boolean)
+      .join("\n")
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim()
+    if (!trimmed) return ""
+    return trimmed
+      .split("|")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .join("\n")
+  }
+
+  return ""
+}
+
+function parseAcceptedAnswersEditorText(value: string) {
+  const items = value
+    .split(/\r?\n|\|/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+  return items.length ? items : null
+}
+
+function normaliseMcqOptions(value: unknown): [string, string, string, string] {
+  const source = Array.isArray(value) ? value : []
+  return [0, 1, 2, 3].map((index) => String(source[index] ?? "")) as [string, string, string, string]
+}
+
+function normaliseAnswerIndex(value: number | null | undefined) {
+  return Number.isInteger(value) && Number(value) >= 0 ? String(value) : "0"
+}
+
 function buildSummaryText(item: QuestionSummaryItem) {
   const parts = [
     item.metadata.saved.mediaType || item.metadata.suggested.mediaType || "media ?",
@@ -425,6 +474,9 @@ export function QuestionMetadataDashboard() {
   const [items, setItems] = useState<QuestionSummaryItem[]>([])
   const [listBusy, setListBusy] = useState(false)
   const [listError, setListError] = useState("")
+  const [listTotal, setListTotal] = useState(0)
+  const [listLimit, setListLimit] = useState(PAGE_SIZE)
+  const [listOffset, setListOffset] = useState(0)
   const [selectedQuestionId, setSelectedQuestionId] = useState("")
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([])
   const [detailBusy, setDetailBusy] = useState(false)
@@ -433,6 +485,8 @@ export function QuestionMetadataDashboard() {
 
   const [saveBusy, setSaveBusy] = useState(false)
   const [saveResult, setSaveResult] = useState("")
+  const [answerSaveBusy, setAnswerSaveBusy] = useState(false)
+  const [answerSaveResult, setAnswerSaveResult] = useState("")
   const [questionActionBusy, setQuestionActionBusy] = useState(false)
   const [questionActionResult, setQuestionActionResult] = useState("")
 
@@ -452,6 +506,13 @@ export function QuestionMetadataDashboard() {
     audioClipType: "",
     metadataReviewState: "unreviewed",
     mediaDurationMs: "",
+  })
+
+  const [answerEditor, setAnswerEditor] = useState<AnswerEditorState>({
+    answerText: "",
+    acceptedAnswersText: "",
+    options: ["", "", "", ""],
+    answerIndex: "0",
   })
 
   const [bulkEditor, setBulkEditor] = useState<BulkEditorState>({
@@ -536,16 +597,20 @@ export function QuestionMetadataDashboard() {
     }
   }, [cleanToken])
 
-  async function loadQuestions(nextSelectedQuestionId?: string) {
+  async function loadQuestions(nextSelectedQuestionId?: string, nextOffset?: number) {
     if (!cleanToken) {
       setListError("Enter your admin token first.")
       setItems([])
+      setListTotal(0)
       return
     }
+
+    const resolvedOffset = typeof nextOffset === "number" ? Math.max(0, nextOffset) : listOffset
 
     setListBusy(true)
     setListError("")
     setSaveResult("")
+    setAnswerSaveResult("")
     setQuestionActionResult("")
     setBulkResult("")
     setApplySuggestedResult("")
@@ -571,9 +636,8 @@ export function QuestionMetadataDashboard() {
       if (warningState) params.set("warningState", warningState)
       if (metadataGap) params.set("metadataGap", metadataGap)
       if (search.trim()) params.set("search", search.trim())
-
-      params.set("limit", "200")
-      params.set("offset", "0")
+      params.set("limit", String(PAGE_SIZE))
+      params.set("offset", String(resolvedOffset))
 
       const queryString = params.toString()
       const requestUrl = queryString ? `/api/admin/questions?${queryString}` : "/api/admin/questions"
@@ -587,14 +651,19 @@ export function QuestionMetadataDashboard() {
 
       if (!res.ok) {
         setItems([])
+        setListTotal(0)
         setListError((json as { error?: string }).error || "Could not load questions.")
         return
       }
 
-      const nextItems = (json as QuestionListResponse).items || []
+      const response = json as QuestionListResponse
+      const nextItems = response.items || []
       const visibleIds = new Set(nextItems.map((item) => item.question.id))
 
       setItems(nextItems)
+      setListTotal(response.total || 0)
+      setListLimit(response.limit ?? PAGE_SIZE)
+      setListOffset(response.offset ?? resolvedOffset)
       setSelectedQuestionIds((current) => current.filter((id) => visibleIds.has(id)))
 
       const targetId =
@@ -611,6 +680,7 @@ export function QuestionMetadataDashboard() {
       }
     } catch (error: any) {
       setItems([])
+      setListTotal(0)
       setListError(error?.message || "Could not load questions.")
     } finally {
       setListBusy(false)
@@ -623,6 +693,7 @@ export function QuestionMetadataDashboard() {
     setDetailBusy(true)
     setDetailError("")
     setSaveResult("")
+    setAnswerSaveResult("")
     setQuestionActionResult("")
 
     try {
@@ -649,6 +720,12 @@ export function QuestionMetadataDashboard() {
         audioClipType: normaliseEditorValue(nextItem.metadata.saved.audioClipType),
         metadataReviewState: normaliseEditorValue(nextItem.metadata.saved.metadataReviewState || "unreviewed"),
         mediaDurationMs: normaliseDurationEditorValue(nextItem.metadata.saved.mediaDurationMs),
+      })
+      setAnswerEditor({
+        answerText: String(nextItem.question.answer_text ?? ""),
+        acceptedAnswersText: normaliseAcceptedAnswersText(nextItem.question.accepted_answers),
+        options: normaliseMcqOptions(nextItem.question.options),
+        answerIndex: normaliseAnswerIndex(nextItem.question.answer_index),
       })
     } catch (error: any) {
       setDetailItem(null)
@@ -713,6 +790,49 @@ export function QuestionMetadataDashboard() {
     }
   }
 
+
+  async function saveAnswerSetup() {
+    if (!cleanToken || !detailItem) return
+
+    setAnswerSaveBusy(true)
+    setAnswerSaveResult("")
+
+    try {
+      const isTextQuestion = detailItem.question.answer_type === "text"
+      const payload = isTextQuestion
+        ? {
+            answerText: answerEditor.answerText.trim(),
+            acceptedAnswers: parseAcceptedAnswersEditorText(answerEditor.acceptedAnswersText),
+          }
+        : {
+            options: answerEditor.options.map((option) => option.trim()),
+            answerIndex: Math.max(0, Math.min(3, Number.parseInt(answerEditor.answerIndex || "0", 10) || 0)),
+          }
+
+      const res = await fetch(`/api/admin/questions/${detailItem.question.id}/answer`, {
+        method: "PATCH",
+        headers: {
+          ...buildAdminHeaders(cleanToken),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      })
+
+      const json = (await res.json()) as { error?: string }
+
+      if (!res.ok) {
+        setAnswerSaveResult(json.error || "Answer save failed.")
+        return
+      }
+
+      setAnswerSaveResult("Saved.")
+      await loadQuestions(detailItem.question.id, listOffset)
+    } catch (error: any) {
+      setAnswerSaveResult(error?.message || "Answer save failed.")
+    } finally {
+      setAnswerSaveBusy(false)
+    }
+  }
 
   async function archiveQuestion() {
     if (!cleanToken || !detailItem || questionActionBusy) return
@@ -929,6 +1049,8 @@ export function QuestionMetadataDashboard() {
   function clearToken() {
     setToken("")
     setItems([])
+    setListTotal(0)
+    setListOffset(0)
     setShows([])
     setSelectedQuestionId("")
     setSelectedQuestionIds([])
@@ -936,6 +1058,7 @@ export function QuestionMetadataDashboard() {
     setListError("")
     setDetailError("")
     setSaveResult("")
+    setAnswerSaveResult("")
     setBulkResult("")
     setApplySuggestedResult("")
     try {
@@ -970,6 +1093,10 @@ export function QuestionMetadataDashboard() {
   }, [detailItem])
 
   const selectedCount = selectedQuestionIds.length
+  const pageStart = items.length ? listOffset + 1 : 0
+  const pageEnd = items.length ? listOffset + items.length : 0
+  const hasPreviousPage = listOffset > 0
+  const hasNextPage = listOffset + items.length < listTotal
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.95fr)] xl:items-start">
@@ -984,8 +1111,9 @@ export function QuestionMetadataDashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className={pillClass()}>{items.length} visible</span>
+                <span className={pillClass()}>{pageEnd ? `${pageStart}-${pageEnd}` : 0} visible</span>
                 <span className={pillClass(selectedCount ? "accent" : "default")}>{selectedCount} selected</span>
+                <span className={pillClass()}>{listTotal} total</span>
               </div>
             </div>
           </CardHeader>
@@ -1000,7 +1128,7 @@ export function QuestionMetadataDashboard() {
                 className={metadataInputClass()}
               />
               <div className="flex flex-wrap gap-2">
-                <Button size={metadataWorkspaceButtonSize()} onClick={() => loadQuestions()}>Load questions</Button>
+                <Button size={metadataWorkspaceButtonSize()} onClick={() => loadQuestions(undefined, 0)}>Load questions</Button>
                 <Button size={metadataWorkspaceButtonSize()} variant="secondary" onClick={clearToken}>
                   Clear token
                 </Button>
@@ -1169,10 +1297,35 @@ export function QuestionMetadataDashboard() {
                   setWarningState("")
                   setMetadataGap("")
                   setSearch("")
+                  setListOffset(0)
                 }}
               >
                 Reset filters
               </Button>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+              <div>
+                Showing {pageEnd ? `${pageStart}-${pageEnd}` : "0"} of {listTotal} questions. Page size {listLimit}.
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => loadQuestions(selectedQuestionId || undefined, Math.max(0, listOffset - listLimit))}
+                  disabled={listBusy || !hasPreviousPage}
+                >
+                  Previous 200
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => loadQuestions(selectedQuestionId || undefined, listOffset + listLimit)}
+                  disabled={listBusy || !hasNextPage}
+                >
+                  Next 200
+                </Button>
+              </div>
             </div>
 
             <div className="rounded-lg border border-border bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground">
@@ -1712,6 +1865,129 @@ export function QuestionMetadataDashboard() {
                 ) : null}
               </>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b border-border/70 pb-3">
+            <CardTitle>Answer setup</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-4">
+            {!detailItem ? (
+              <div className="text-sm text-muted-foreground">Select a question to edit its answer setup.</div>
+            ) : detailItem.question.answer_type === "text" ? (
+              <>
+                <label className={metadataFieldLabelClass()}>
+                  <div className={metadataFieldHeaderClass()}>
+                    <span className={metadataFieldNameClass()}>answer_text</span>
+                    <MetadataHint label="answer_text" hint="Canonical answer used for text-answer matching" />
+                  </div>
+                  <input
+                    value={answerEditor.answerText}
+                    onChange={(event) =>
+                      setAnswerEditor((current) => ({
+                        ...current,
+                        answerText: event.target.value,
+                      }))
+                    }
+                    className={compactInputClass()}
+                    placeholder="Canonical answer"
+                  />
+                </label>
+
+                <label className={metadataFieldLabelClass()}>
+                  <div className={metadataFieldHeaderClass()}>
+                    <span className={metadataFieldNameClass()}>accepted_answers</span>
+                    <MetadataHint label="accepted_answers" hint="Enter one fair alternative per line" />
+                  </div>
+                  <textarea
+                    value={answerEditor.acceptedAnswersText}
+                    onChange={(event) =>
+                      setAnswerEditor((current) => ({
+                        ...current,
+                        acceptedAnswersText: event.target.value,
+                      }))
+                    }
+                    className="min-h-[110px] rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:ring-2 focus:ring-border"
+                    placeholder={`One accepted answer per line
+For example:
+Ballad of Booth
+The Ballad of Booth`}
+                  />
+                </label>
+              </>
+            ) : detailItem.question.answer_type === "mcq" ? (
+              <>
+                <div className="grid gap-3">
+                  {answerEditor.options.map((option, index) => (
+                    <label key={index} className={metadataFieldLabelClass()}>
+                      <div className={metadataFieldHeaderClass()}>
+                        <span className={metadataFieldNameClass()}>{`option_${String.fromCharCode(97 + index)}`}</span>
+                      </div>
+                      <input
+                        value={option}
+                        onChange={(event) =>
+                          setAnswerEditor((current) => {
+                            const nextOptions = [...current.options] as [string, string, string, string]
+                            nextOptions[index] = event.target.value
+                            return {
+                              ...current,
+                              options: nextOptions,
+                            }
+                          })
+                        }
+                        className={compactInputClass()}
+                        placeholder={`Option ${index + 1}`}
+                      />
+                    </label>
+                  ))}
+                </div>
+
+                <label className={metadataFieldLabelClass()}>
+                  <div className={metadataFieldHeaderClass()}>
+                    <span className={metadataFieldNameClass()}>correct_option</span>
+                  </div>
+                  <select
+                    value={answerEditor.answerIndex}
+                    onChange={(event) =>
+                      setAnswerEditor((current) => ({
+                        ...current,
+                        answerIndex: event.target.value,
+                      }))
+                    }
+                    className={compactSelectClass()}
+                  >
+                    <option value="0">Option A</option>
+                    <option value="1">Option B</option>
+                    <option value="2">Option C</option>
+                    <option value="3">Option D</option>
+                  </select>
+                </label>
+              </>
+            ) : (
+              <div className="text-sm text-muted-foreground">This question type cannot be edited here.</div>
+            )}
+
+            {detailItem && (detailItem.question.answer_type === "text" || detailItem.question.answer_type === "mcq") ? (
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={saveAnswerSetup} disabled={answerSaveBusy}>
+                  {answerSaveBusy ? "Saving…" : "Save answer setup"}
+                </Button>
+              </div>
+            ) : null}
+
+            {answerSaveResult ? (
+              <div
+                className={cx(
+                  "rounded-lg px-3 py-2 text-sm",
+                  answerSaveResult === "Saved."
+                    ? "border border-green-300 bg-green-50 text-green-700"
+                    : "border border-red-300 bg-red-50 text-red-700"
+                )}
+              >
+                {answerSaveResult}
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 

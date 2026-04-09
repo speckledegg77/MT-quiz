@@ -39,7 +39,7 @@ async function loadQuestionDetailPayload(questionId: string) {
     supabaseAdmin
       .from("questions")
       .select(
-        "id, text, round_type, answer_type, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, audio_clip_type, created_at, updated_at"
+        "id, text, round_type, answer_type, options, answer_index, answer_text, explanation, audio_path, image_path, accepted_answers, media_type, prompt_target, clue_source, primary_show_key, metadata_review_state, media_duration_ms, audio_clip_type, created_at, updated_at"
       )
       .eq("id", questionId)
       .maybeSingle(),
