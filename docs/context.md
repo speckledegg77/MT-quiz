@@ -199,7 +199,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 ### Question metadata
 - Question metadata dashboard exists.
 - Metadata fields include `media_type`, `prompt_target`, `clue_source`, `primary_show_key`, and `metadata_review_state`.
-- The dashboard includes warnings, suggestions, bulk apply, bulk apply suggested values, filters for missing metadata, and a sticky detail panel.
+- The dashboard includes warnings, suggestions, bulk apply, bulk apply suggested values, metadata filters, filters for missing metadata, and a sticky detail panel.
 - Text-answer questions can be reviewed and edited for canonical answer and accepted alternatives from the admin detail panel.
 
 ### Import tools
@@ -216,6 +216,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 ### Round templates
 - There is a `round_templates` table.
 - Templates can be created and edited in the UI.
+- Round templates now support answer-type filtering, so MCQ and text-only variants can be separated cleanly.
 - Host setup can add rounds from templates.
 - Manual rounds can be saved back as templates.
 - Quick Random can build rounds from selected active templates.

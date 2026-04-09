@@ -102,6 +102,11 @@ export async function GET(req: Request) {
   const packId = url.searchParams.get("packId")?.trim() || null
   const legacyRoundType = url.searchParams.get("legacyRoundType")?.trim() || null
   const answerType = url.searchParams.get("answerType")?.trim() || null
+  const mediaType = url.searchParams.get("mediaType")?.trim() || null
+  const promptTarget = url.searchParams.get("promptTarget")?.trim() || null
+  const clueSource = url.searchParams.get("clueSource")?.trim() || null
+  const primaryShowKey = url.searchParams.get("primaryShowKey")?.trim() || null
+  const audioClipType = url.searchParams.get("audioClipType")?.trim() || null
   const reviewState = url.searchParams.get("reviewState")?.trim() || null
   const warningState = url.searchParams.get("warningState")?.trim() || null
   const metadataGap = url.searchParams.get("metadataGap")?.trim() || null
@@ -156,6 +161,31 @@ export async function GET(req: Request) {
   if (answerType) {
     countQuery = countQuery.eq("answer_type", answerType)
     dataQuery = dataQuery.eq("answer_type", answerType)
+  }
+
+  if (mediaType) {
+    countQuery = countQuery.eq("media_type", mediaType)
+    dataQuery = dataQuery.eq("media_type", mediaType)
+  }
+
+  if (promptTarget) {
+    countQuery = countQuery.eq("prompt_target", promptTarget)
+    dataQuery = dataQuery.eq("prompt_target", promptTarget)
+  }
+
+  if (clueSource) {
+    countQuery = countQuery.eq("clue_source", clueSource)
+    dataQuery = dataQuery.eq("clue_source", clueSource)
+  }
+
+  if (primaryShowKey) {
+    countQuery = countQuery.eq("primary_show_key", primaryShowKey)
+    dataQuery = dataQuery.eq("primary_show_key", primaryShowKey)
+  }
+
+  if (audioClipType) {
+    countQuery = countQuery.eq("audio_clip_type", audioClipType)
+    dataQuery = dataQuery.eq("audio_clip_type", audioClipType)
   }
 
   if (reviewState) {

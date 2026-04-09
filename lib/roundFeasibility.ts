@@ -74,10 +74,17 @@ function cleanMediaTypeArray(raw: unknown): Array<"text" | "audio" | "image"> {
   })
 }
 
+function cleanAnswerTypeArray(raw: unknown): Array<"mcq" | "text"> {
+  return cleanStringArray(raw).filter((value): value is "mcq" | "text" => {
+    return value === "mcq" || value === "text"
+  })
+}
+
 function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
   const value = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {}
   return {
     mediaTypes: cleanMediaTypeArray(value.mediaTypes),
+    answerTypes: cleanAnswerTypeArray(value.answerTypes),
     promptTargets: cleanStringArray(value.promptTargets),
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
@@ -136,6 +143,7 @@ function candidateMatchesRules(candidate: QuestionCandidate, rules: RoundSelecti
 
   if (candidate.kind !== "question") return false
   if (rules.mediaTypes?.length && !rules.mediaTypes.includes(candidate.mediaType)) return false
+  if (rules.answerTypes?.length && !rules.answerTypes.includes(candidate.answerType)) return false
   if (rules.promptTargets?.length && !rules.promptTargets.includes(candidate.promptTarget ?? "")) return false
   if (rules.clueSources?.length && !rules.clueSources.includes(candidate.clueSource ?? "")) return false
   if (rules.audioClipTypes?.length && !rules.audioClipTypes.includes(candidate.audioClipType ?? "")) return false
@@ -160,6 +168,7 @@ function describeSelectionFilters(rules: RoundSelectionRules, behaviourType: Rou
     if (rules.headsUpDifficulties?.length) parts.push(`difficulty: ${rules.headsUpDifficulties.join(", ")}`)
   } else {
     if (rules.mediaTypes?.length) parts.push(`media: ${rules.mediaTypes.join(", ")}`)
+    if (rules.answerTypes?.length) parts.push(`answer: ${rules.answerTypes.join(", ")}`)
     if (rules.promptTargets?.length) parts.push(`prompt: ${rules.promptTargets.join(", ")}`)
     if (rules.clueSources?.length) parts.push(`clue: ${rules.clueSources.join(", ")}`)
     if (rules.audioClipTypes?.length) parts.push(`clip: ${rules.audioClipTypes.join(", ")}`)

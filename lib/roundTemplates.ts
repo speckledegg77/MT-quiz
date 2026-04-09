@@ -13,6 +13,7 @@ export type RoundTemplateSourceMode =
 
 export type RoundTemplateSelectionRules = {
   mediaTypes?: Array<"text" | "audio" | "image">
+  answerTypes?: Array<"mcq" | "text">
   promptTargets?: string[]
   clueSources?: string[]
   primaryShowKeys?: string[]
@@ -62,12 +63,19 @@ export function cleanMediaTypes(raw: unknown): Array<"text" | "audio" | "image">
   )
 }
 
+export function cleanAnswerTypeArray(raw: unknown): Array<"mcq" | "text"> {
+  return cleanStringArray(raw).filter(
+    (value): value is "mcq" | "text" => value === "mcq" || value === "text"
+  )
+}
+
 export function normaliseSelectionRules(raw: unknown): RoundTemplateSelectionRules {
   const parsed = parseJsonLike(raw)
   const value =
     parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {}
 
   const mediaTypes = cleanMediaTypes(value.mediaTypes)
+  const answerTypes = cleanAnswerTypeArray(value.answerTypes)
   const promptTargets = cleanStringArray(value.promptTargets)
   const clueSources = cleanStringArray(value.clueSources)
   const primaryShowKeys = cleanStringArray(value.primaryShowKeys)
@@ -76,6 +84,7 @@ export function normaliseSelectionRules(raw: unknown): RoundTemplateSelectionRul
   const result: RoundTemplateSelectionRules = {}
 
   if (mediaTypes.length) result.mediaTypes = mediaTypes
+  if (answerTypes.length) result.answerTypes = answerTypes
   if (promptTargets.length) result.promptTargets = promptTargets
   if (clueSources.length) result.clueSources = clueSources
   if (primaryShowKeys.length) result.primaryShowKeys = primaryShowKeys

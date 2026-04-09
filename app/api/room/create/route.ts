@@ -166,6 +166,9 @@ function cleanSelectionRules(raw: unknown): RoundSelectionRules {
     mediaTypes: cleanStringArray(value.mediaTypes).filter(
       (item): item is "text" | "audio" | "image" => item === "text" || item === "audio" || item === "image"
     ),
+    answerTypes: cleanStringArray(value.answerTypes).filter(
+      (item): item is "mcq" | "text" => item === "mcq" || item === "text"
+    ),
     promptTargets: cleanStringArray(value.promptTargets),
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),

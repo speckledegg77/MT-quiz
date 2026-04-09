@@ -34,6 +34,8 @@ This file tracks the live plan. Keep it short and practical.
 - [ ] Add a compact host review view for disputed answers, including raw submissions, normalised text, and room-only score overrides.
 - [ ] Tighten template and round-builder labels so Quickfire, Standard, and future round types feel clearly different.
 - [ ] Add stronger answer-audit filters, previews, and bulk helpers to the admin questions screen.
+- [x] Add light metadata filters to the admin questions screen.
+- [x] Add answer-type filtering to round templates so text and MCQ variants can be separated cleanly.
 
 ## Content building
 

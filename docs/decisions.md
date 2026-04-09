@@ -126,3 +126,6 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - New content-writing chats should use the current writing standards and CSV templates from the repo rather than inventing their own format.
 - Generated CSV rows should quote every text-like field, even when the current value does not contain a comma.
 - Question CSV generation should use the current full importer column order, including metadata fields after `image_path`.
+
+- Round templates can use answer-type filtering so template identity is not left to pack choice alone, for example separating text and MCQ variants of the same round family.
+- The admin questions page should support light metadata filtering for practical curation, including media type, prompt target, clue source, primary show key, and audio clip type.

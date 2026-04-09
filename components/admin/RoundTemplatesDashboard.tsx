@@ -54,6 +54,7 @@ type TemplateEditorState = {
   sourceMode: RoundTemplateSourceMode
   defaultPackIds: string[]
   mediaTypes: string[]
+  answerTypes: string[]
   promptTargets: string[]
   clueSources: string[]
   primaryShowKeys: string[]
@@ -76,6 +77,11 @@ const MEDIA_TYPE_OPTIONS = [
   { value: "text", label: "text" },
   { value: "audio", label: "audio" },
   { value: "image", label: "image" },
+]
+
+const ANSWER_TYPE_OPTIONS = [
+  { value: "mcq", label: "mcq" },
+  { value: "text", label: "text" },
 ]
 
 const PROMPT_TARGET_OPTIONS = [
@@ -125,6 +131,7 @@ function buildSelectionRulesFromEditor(editor: TemplateEditorState) {
   const rules: Record<string, string[]> = {}
 
   if (editor.mediaTypes.length) rules.mediaTypes = editor.mediaTypes
+  if (editor.answerTypes.length === 1) rules.answerTypes = editor.answerTypes
   if (editor.promptTargets.length) rules.promptTargets = editor.promptTargets
   if (editor.clueSources.length) rules.clueSources = editor.clueSources
   if (editor.primaryShowKeys.length) rules.primaryShowKeys = editor.primaryShowKeys
@@ -170,6 +177,7 @@ function createBlankEditor(): TemplateEditorState {
     sourceMode: "selected_packs",
     defaultPackIds: [],
     mediaTypes: [],
+    answerTypes: [],
     promptTargets: [],
     clueSources: [],
     primaryShowKeys: [],
@@ -196,6 +204,7 @@ function editorFromTemplate(template: RoundTemplateRow): TemplateEditorState {
     sourceMode: (template.source_mode ?? "selected_packs") as RoundTemplateSourceMode,
     defaultPackIds,
     mediaTypes: selectionRules.mediaTypes ?? [],
+    answerTypes: selectionRules.answerTypes ?? [],
     promptTargets: selectionRules.promptTargets ?? [],
     clueSources: selectionRules.clueSources ?? [],
     primaryShowKeys: selectionRules.primaryShowKeys ?? [],
@@ -207,6 +216,7 @@ function editorFromTemplate(template: RoundTemplateRow): TemplateEditorState {
 function ruleSummary(editor: TemplateEditorState) {
   const parts: string[] = []
   if (editor.mediaTypes.length) parts.push(`media ${editor.mediaTypes.length}`)
+  if (editor.answerTypes.length === 1) parts.push(`answer ${editor.answerTypes[0]}`)
   if (editor.promptTargets.length) parts.push(`prompt ${editor.promptTargets.length}`)
   if (editor.clueSources.length) parts.push(`clue ${editor.clueSources.length}`)
   if (editor.primaryShowKeys.length) parts.push(`shows ${editor.primaryShowKeys.length}`)
@@ -858,11 +868,15 @@ function TemplateFields({
               setEditor((current) => {
                 const nextBehaviour = event.target.value as RoundTemplateBehaviourType
                 const nextMediaTypes = nextBehaviour === "quickfire" ? current.mediaTypes.filter((value) => value !== "audio") : current.mediaTypes
+                const nextAnswerTypes = nextBehaviour === "quickfire"
+                  ? current.answerTypes.includes("mcq") ? ["mcq"] : ["mcq"]
+                  : current.answerTypes
                 return {
                   ...current,
                   behaviourType: nextBehaviour,
                   jokerEligible: nextBehaviour === "quickfire" ? false : current.jokerEligible,
                   mediaTypes: nextMediaTypes,
+                  answerTypes: nextAnswerTypes,
                   audioClipTypes: nextMediaTypes.includes("audio") ? current.audioClipTypes : [],
                   defaultAnswerSeconds:
                     current.defaultAnswerSeconds.trim() === ""
@@ -987,7 +1001,11 @@ function TemplateFields({
         {showPackSection ? (
           <div className="border-t border-border px-3 py-3">
             <div className="mb-3 text-xs text-muted-foreground">
-              These are saved with the template and can later prefill pack choices.
+              {editor.sourceMode === "specific_packs"
+                ? "These saved packs define the template pool."
+                : editor.sourceMode === "selected_packs"
+                  ? "These saved packs are optional reference defaults. The host-selected packs still control the pool."
+                  : "Saved packs are ignored when the template uses all_questions."}
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               {packs.map((pack) => {
@@ -1046,6 +1064,32 @@ function TemplateFields({
                   })
                 }
                 onClear={() => setEditor((current) => ({ ...current, mediaTypes: [], audioClipTypes: [] }))}
+              />
+
+              <InlineChipMultiSelectField
+                title="answer_type"
+                values={editor.answerTypes.length === 2 ? [] : editor.answerTypes}
+                options={ANSWER_TYPE_OPTIONS.map((option) => ({
+                  ...option,
+                  disabled: option.value === "text" && editor.behaviourType === "quickfire",
+                }))}
+                onToggle={(value) =>
+                  setEditor((current) => {
+                    const next = toggleInArray(current.answerTypes, value)
+                    const compact = next.includes("mcq") && next.includes("text") ? [] : next
+                    return {
+                      ...current,
+                      answerTypes: current.behaviourType === "quickfire" ? ["mcq"] : compact,
+                    }
+                  })
+                }
+                onClear={() =>
+                  setEditor((current) => ({
+                    ...current,
+                    answerTypes: current.behaviourType === "quickfire" ? ["mcq"] : [],
+                  }))
+                }
+                description={editor.behaviourType === "quickfire" ? "Quickfire is limited to MCQ." : undefined}
               />
 
               <SearchableMultiSelectField
@@ -1145,6 +1189,7 @@ function TemplateFields({
 
 function InlineChipMultiSelectField({
   title,
+  description,
   values,
   options,
   onToggle,
@@ -1152,6 +1197,7 @@ function InlineChipMultiSelectField({
   className = "",
 }: {
   title: string
+  description?: string
   values: string[]
   options: Array<{ value: string; label: string; disabled?: boolean }>
   onToggle: (value: string) => void
@@ -1164,6 +1210,7 @@ function InlineChipMultiSelectField({
         <div>
           <div className="text-sm font-medium">{title}</div>
           <div className="mt-1 text-xs text-muted-foreground">{multiSelectSummary(values, options)}</div>
+          {description ? <div className="mt-1 text-xs text-muted-foreground">{description}</div> : null}
         </div>
         {values.length ? (
           <button

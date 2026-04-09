@@ -412,6 +412,11 @@ export function QuestionMetadataDashboard() {
   const [packId, setPackId] = useState("")
   const [legacyRoundType, setLegacyRoundType] = useState("")
   const [answerType, setAnswerType] = useState("")
+  const [filterMediaType, setFilterMediaType] = useState("")
+  const [filterPromptTarget, setFilterPromptTarget] = useState("")
+  const [filterClueSource, setFilterClueSource] = useState("")
+  const [filterPrimaryShowKey, setFilterPrimaryShowKey] = useState("")
+  const [filterAudioClipType, setFilterAudioClipType] = useState("")
   const [reviewState, setReviewState] = useState("")
   const [warningState, setWarningState] = useState("")
   const [metadataGap, setMetadataGap] = useState("")
@@ -557,6 +562,11 @@ export function QuestionMetadataDashboard() {
       if (packId) params.set("packId", packId)
       if (legacyRoundType) params.set("legacyRoundType", legacyRoundType)
       if (answerType) params.set("answerType", answerType)
+      if (filterMediaType) params.set("mediaType", filterMediaType)
+      if (filterPromptTarget) params.set("promptTarget", filterPromptTarget)
+      if (filterClueSource) params.set("clueSource", filterClueSource)
+      if (filterPrimaryShowKey) params.set("primaryShowKey", filterPrimaryShowKey)
+      if (filterAudioClipType) params.set("audioClipType", filterAudioClipType)
       if (reviewState) params.set("reviewState", reviewState)
       if (warningState) params.set("warningState", warningState)
       if (metadataGap) params.set("metadataGap", metadataGap)
@@ -1030,6 +1040,71 @@ export function QuestionMetadataDashboard() {
               </select>
 
               <select
+                value={filterMediaType}
+                onChange={(event) => setFilterMediaType(event.target.value)}
+                className={metadataSelectClass()}
+              >
+                <option value="">Any media_type</option>
+                {MEDIA_TYPE_OPTIONS.filter((option) => option.value).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={filterPromptTarget}
+                onChange={(event) => setFilterPromptTarget(event.target.value)}
+                className={metadataSelectClass()}
+              >
+                <option value="">Any prompt_target</option>
+                {PROMPT_TARGET_OPTIONS.filter((option) => option.value).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={filterClueSource}
+                onChange={(event) => setFilterClueSource(event.target.value)}
+                className={metadataSelectClass()}
+              >
+                <option value="">Any clue_source</option>
+                {CLUE_SOURCE_OPTIONS.filter((option) => option.value).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={filterPrimaryShowKey}
+                onChange={(event) => setFilterPrimaryShowKey(event.target.value)}
+                className={metadataSelectClass()}
+              >
+                <option value="">Any primary_show_key</option>
+                {shows.map((show) => (
+                  <option key={show.show_key} value={show.show_key}>
+                    {show.display_name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={filterAudioClipType}
+                onChange={(event) => setFilterAudioClipType(event.target.value)}
+                className={metadataSelectClass()}
+              >
+                <option value="">Any audio_clip_type</option>
+                {AUDIO_CLIP_TYPE_OPTIONS.filter((option) => option.value).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
                 value={reviewState}
                 onChange={(event) => setReviewState(event.target.value)}
                 className={metadataSelectClass()}
@@ -1079,6 +1154,11 @@ export function QuestionMetadataDashboard() {
                   setPackId("")
                   setLegacyRoundType("")
                   setAnswerType("")
+                  setFilterMediaType("")
+                  setFilterPromptTarget("")
+                  setFilterClueSource("")
+                  setFilterPrimaryShowKey("")
+                  setFilterAudioClipType("")
                   setReviewState("")
                   setWarningState("")
                   setMetadataGap("")

@@ -27,6 +27,9 @@ function cleanSelectionRules(raw: unknown): RoundSelectionRules {
   const value = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {}
   return {
     mediaTypes: cleanMediaTypeArray(value.mediaTypes),
+    answerTypes: cleanStringArray(value.answerTypes).filter(
+      (item): item is "mcq" | "text" => item === "mcq" || item === "text"
+    ),
     promptTargets: cleanStringArray(value.promptTargets),
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),

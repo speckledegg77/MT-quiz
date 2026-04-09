@@ -4,6 +4,7 @@ export type RoundSourceMode = "selected_packs" | "specific_packs" | "all_questio
 
 export type RoundSelectionRules = {
   mediaTypes?: Array<"text" | "audio" | "image">
+  answerTypes?: Array<"mcq" | "text">
   promptTargets?: string[]
   clueSources?: string[]
   primaryShowKeys?: string[]
@@ -128,7 +129,12 @@ function normaliseBehaviourType(raw: unknown): RoundBehaviourType {
 function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
   const value = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {}
   return {
-    mediaTypes: cleanStringArray(value.mediaTypes) as Array<"text" | "audio" | "image">,
+    mediaTypes: cleanStringArray(value.mediaTypes).filter(
+      (item): item is "text" | "audio" | "image" => item === "text" || item === "audio" || item === "image"
+    ),
+    answerTypes: cleanStringArray(value.answerTypes).filter(
+      (item): item is "mcq" | "text" => item === "mcq" || item === "text"
+    ),
     promptTargets: cleanStringArray(value.promptTargets),
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),

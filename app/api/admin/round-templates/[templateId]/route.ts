@@ -28,6 +28,7 @@ function cleanPackIds(values: string[] | undefined) {
 const selectionRulesSchema = z
   .object({
     mediaTypes: z.array(z.enum(["text", "audio", "image"])).optional(),
+    answerTypes: z.array(z.enum(["mcq", "text"])).optional(),
     promptTargets: z.array(z.string()).optional(),
     clueSources: z.array(z.string()).optional(),
     primaryShowKeys: z.array(z.string()).optional(),
