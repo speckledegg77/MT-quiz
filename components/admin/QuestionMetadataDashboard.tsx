@@ -425,16 +425,19 @@ export function QuestionMetadataDashboard() {
   const [items, setItems] = useState<QuestionSummaryItem[]>([])
   const [listBusy, setListBusy] = useState(false)
   const [listError, setListError] = useState("")
+  const [listTotal, setListTotal] = useState(0)
+  const [listLimit] = useState(200)
+  const [listOffset, setListOffset] = useState(0)
   const [selectedQuestionId, setSelectedQuestionId] = useState("")
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([])
   const [detailBusy, setDetailBusy] = useState(false)
   const [detailError, setDetailError] = useState("")
   const [detailItem, setDetailItem] = useState<QuestionSummaryItem | null>(null)
-  const [questionTextDraft, setQuestionTextDraft] = useState("")
-
-  const [saveBusy, setSaveBusy] = useState(false)
+  const [questionText, setQuestionText] = useState("")
   const [questionTextBusy, setQuestionTextBusy] = useState(false)
   const [questionTextResult, setQuestionTextResult] = useState("")
+
+  const [saveBusy, setSaveBusy] = useState(false)
   const [saveResult, setSaveResult] = useState("")
   const [questionActionBusy, setQuestionActionBusy] = useState(false)
   const [questionActionResult, setQuestionActionResult] = useState("")
@@ -539,7 +542,7 @@ export function QuestionMetadataDashboard() {
     }
   }, [cleanToken])
 
-  async function loadQuestions(nextSelectedQuestionId?: string) {
+  async function loadQuestions(nextSelectedQuestionId?: string, nextOffset?: number) {
     if (!cleanToken) {
       setListError("Enter your admin token first.")
       setItems([])
@@ -549,7 +552,6 @@ export function QuestionMetadataDashboard() {
     setListBusy(true)
     setListError("")
     setSaveResult("")
-    setQuestionTextResult("")
     setQuestionActionResult("")
     setBulkResult("")
     setApplySuggestedResult("")
@@ -576,7 +578,14 @@ export function QuestionMetadataDashboard() {
       if (metadataGap) params.set("metadataGap", metadataGap)
       if (search.trim()) params.set("search", search.trim())
 
-      const res = await fetch(`/api/admin/questions?${params.toString()}`, {
+      const targetOffset = nextOffset ?? listOffset
+      params.set("limit", String(listLimit))
+      params.set("offset", String(targetOffset))
+
+      const queryString = params.toString()
+      const requestUrl = queryString ? `/api/admin/questions?${queryString}` : "/api/admin/questions"
+
+      const res = await fetch(requestUrl, {
         headers: buildAdminHeaders(cleanToken),
         cache: "no-store",
       })
@@ -592,6 +601,8 @@ export function QuestionMetadataDashboard() {
       const nextItems = (json as QuestionListResponse).items || []
       const visibleIds = new Set(nextItems.map((item) => item.question.id))
 
+      setListTotal((json as QuestionListResponse).total || 0)
+      setListOffset((json as QuestionListResponse).offset || targetOffset)
       setItems(nextItems)
       setSelectedQuestionIds((current) => current.filter((id) => visibleIds.has(id)))
 
@@ -606,7 +617,6 @@ export function QuestionMetadataDashboard() {
       } else {
         setSelectedQuestionId("")
         setDetailItem(null)
-        setQuestionTextDraft("")
       }
     } catch (error: any) {
       setItems([])
@@ -622,7 +632,6 @@ export function QuestionMetadataDashboard() {
     setDetailBusy(true)
     setDetailError("")
     setSaveResult("")
-    setQuestionTextResult("")
     setQuestionActionResult("")
 
     try {
@@ -641,7 +650,8 @@ export function QuestionMetadataDashboard() {
 
       const nextItem = (json as QuestionDetailResponse).item
       setDetailItem(nextItem)
-      setQuestionTextDraft(nextItem.question.text || "")
+      setQuestionText(nextItem.question.text || "")
+      setQuestionTextResult("")
       setEditor({
         mediaType: normaliseEditorValue(nextItem.metadata.saved.mediaType),
         promptTarget: normaliseEditorValue(nextItem.metadata.saved.promptTarget),
@@ -653,52 +663,9 @@ export function QuestionMetadataDashboard() {
       })
     } catch (error: any) {
       setDetailItem(null)
-      setQuestionTextDraft("")
       setDetailError(error?.message || "Could not load question detail.")
     } finally {
       setDetailBusy(false)
-    }
-  }
-
-
-  async function saveQuestionText() {
-    if (!cleanToken || !detailItem) return
-
-    const trimmed = questionTextDraft.trim()
-    if (!trimmed) {
-      setQuestionTextResult("Question text cannot be blank.")
-      return
-    }
-
-    setQuestionTextBusy(true)
-    setQuestionTextResult("")
-    setSaveResult("")
-
-    try {
-      const res = await fetch(`/api/admin/questions/${detailItem.question.id}`, {
-        method: "PATCH",
-        headers: {
-          ...buildAdminHeaders(cleanToken),
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: questionTextDraft,
-        }),
-      })
-
-      const json = (await res.json()) as { error?: string }
-
-      if (!res.ok) {
-        setQuestionTextResult(json.error || "Save failed.")
-        return
-      }
-
-      setQuestionTextResult("Saved.")
-      await loadQuestions(detailItem.question.id)
-    } catch (error: any) {
-      setQuestionTextResult(error?.message || "Save failed.")
-    } finally {
-      setQuestionTextBusy(false)
     }
   }
 
@@ -754,6 +721,39 @@ export function QuestionMetadataDashboard() {
       setSaveResult(error?.message || "Save failed.")
     } finally {
       setSaveBusy(false)
+    }
+  }
+
+
+  async function saveQuestionText() {
+    if (!cleanToken || !detailItem) return
+
+    setQuestionTextBusy(true)
+    setQuestionTextResult("")
+
+    try {
+      const res = await fetch(`/api/admin/questions/${detailItem.question.id}`, {
+        method: "PATCH",
+        headers: {
+          ...buildAdminHeaders(cleanToken),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: questionText }),
+      })
+
+      const json = (await res.json()) as { error?: string; message?: string }
+
+      if (!res.ok) {
+        setQuestionTextResult(json.error || "Save failed.")
+        return
+      }
+
+      setQuestionTextResult(json.message || "Saved.")
+      await loadQuestions(detailItem.question.id)
+    } catch (error: any) {
+      setQuestionTextResult(error?.message || "Save failed.")
+    } finally {
+      setQuestionTextBusy(false)
     }
   }
 
@@ -828,7 +828,6 @@ export function QuestionMetadataDashboard() {
 
       setSelectedQuestionId(nextId)
       setDetailItem(null)
-      setQuestionTextDraft("")
       await loadQuestions(nextId)
       setQuestionActionResult(json.message || "Deleted.")
     } catch (error: any) {
@@ -1532,38 +1531,32 @@ export function QuestionMetadataDashboard() {
                       </span>
                     </div>
                   </div>
-                  
-<div className="mt-4">
-  <div className={metadataFieldHeaderClass()}>
-    <span className={metadataFieldNameClass()}>question_text</span>
-    <MetadataHint label="question_text" hint="Edit the visible question wording shown in the app." />
-  </div>
-  <textarea
-    value={questionTextDraft}
-    onChange={(event) => setQuestionTextDraft(event.target.value)}
-    rows={6}
-    className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:ring-2 focus:ring-border"
-  />
-  <div className="mt-2 flex flex-wrap gap-2">
-    <Button size="sm" onClick={saveQuestionText} disabled={questionTextBusy}>
-      {questionTextBusy ? "Saving…" : "Save question text"}
-    </Button>
-  </div>
-  {questionTextResult ? (
-    <div
-      className={cx(
-        "mt-2 rounded-lg px-3 py-2 text-sm",
-        questionTextResult === "Saved."
-          ? "border border-green-300 bg-green-50 text-green-700"
-          : "border border-red-300 bg-red-50 text-red-700"
-      )}
-    >
-      {questionTextResult}
-    </div>
-  ) : null}
-</div>
-
-<div className="mt-3 text-xs text-muted-foreground">
+                  <div className="mt-3 whitespace-pre-line text-sm leading-6 text-foreground">{detailItem.question.text}</div>
+                  <div className="mt-4 rounded-lg border border-border bg-background p-3">
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Edit question text</div>
+                    <textarea
+                      value={questionText}
+                      onChange={(event) => setQuestionText(event.target.value)}
+                      rows={5}
+                      className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:ring-2 focus:ring-border"
+                    />
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <Button size="sm" onClick={saveQuestionText} disabled={questionTextBusy}>
+                        {questionTextBusy ? "Saving…" : "Save question text"}
+                      </Button>
+                      {questionTextResult ? (
+                        <span className={cx(
+                          "rounded-lg px-3 py-2 text-sm",
+                          questionTextResult.includes("Saved")
+                            ? "border border-green-300 bg-green-50 text-green-700"
+                            : "border border-red-300 bg-red-50 text-red-700"
+                        )}>
+                          {questionTextResult}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="mt-3 text-xs text-muted-foreground">
                     Packs: {detailItem.packs.map((pack) => pack.display_name).join(", ") || "None"}
                   </div>
                   {detailItem.question.audio_path ? (

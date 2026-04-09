@@ -199,24 +199,18 @@ export async function PATCH(req: Request, context: RouteContext) {
   if (!isAuthorisedAdminRequest(req)) return unauthorisedAdminResponse()
 
   const { questionId } = await context.params
+  const body = (await req.json().catch(() => null)) as { text?: unknown } | null
+  const nextText = String(body?.text ?? "")
 
-  let body: unknown
-  try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 })
-  }
-
-  const nextText = String((body as { text?: unknown } | null)?.text ?? "")
   if (!nextText.trim()) {
     return NextResponse.json({ error: "Question text cannot be blank." }, { status: 400 })
   }
 
   const updateRes = await supabaseAdmin
     .from("questions")
-    .update({ text: nextText })
+    .update({ text: nextText.trim() })
     .eq("id", questionId)
-    .select("id, text")
+    .select("id")
     .maybeSingle()
 
   if (updateRes.error) {
@@ -227,7 +221,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     return NextResponse.json({ error: "Question not found." }, { status: 404 })
   }
 
-  return NextResponse.json({ ok: true, question: updateRes.data })
+  return NextResponse.json({ ok: true, message: "Saved." })
 }
 
 export async function POST(req: Request, context: RouteContext) {
