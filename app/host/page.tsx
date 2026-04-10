@@ -630,7 +630,6 @@ export default function HostPage() {
   const [advancedInfiniteQuestionLimitStr, setAdvancedInfiniteQuestionLimitStr] = useState("")
   const [showSimpleGameSummary, setShowSimpleGameSummary] = useState(false)
   const [showSimpleRecommendedRounds, setShowSimpleRecommendedRounds] = useState(false)
-  const [showSimpleQuestionPool, setShowSimpleQuestionPool] = useState(false)
 
   const [roomCode, setRoomCode] = useState<string | null>(null)
   const [roomState, setRoomState] = useState<RoomState | null>(null)
@@ -1997,7 +1996,7 @@ export default function HostPage() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Host</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Create a room, share the code, and run the quiz.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Start a new game, share the room code, and run the quiz.</p>
         </div>
 
         <Link href="/" className="text-sm text-muted-foreground hover:underline">
@@ -2005,17 +2004,18 @@ export default function HostPage() {
         </Link>
       </div>
 
-      <div className={`grid gap-6 ${setupMode === "advanced" ? "lg:grid-cols-[minmax(0,1.15fr)_320px] xl:grid-cols-[minmax(0,1.2fr)_360px]" : "lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px]"}`}>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-6">
           {!hasRoom ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Create a room</CardTitle>
+            <Card className={setupMode === "advanced" ? "border-0 bg-transparent" : undefined}>
+              <CardHeader className={setupMode === "advanced" ? "border-b-0 px-0 pb-4 pt-0" : undefined}>
+                <CardTitle>Start a new game</CardTitle>
+                <div className="mt-1 text-sm text-muted-foreground">{setupMode === "simple" ? "Use the guided path for a quick setup." : "Build on the left. Use the right side for your question pool and recovery tools."}</div>
               </CardHeader>
 
-              <CardContent className="space-y-4">
+              <CardContent className={setupMode === "advanced" ? "space-y-6 px-0 py-0" : "space-y-4"}>
                 <div className="rounded-2xl border border-border p-3">
-                  <div className="text-sm font-semibold text-foreground">Game</div>
+                  <div className="text-sm font-semibold text-foreground">Game basics</div>
 
                   <div className="mt-3 grid gap-3 sm:grid-cols-3">
                     <div>
@@ -2068,7 +2068,7 @@ export default function HostPage() {
                 <div className="rounded-2xl border border-border p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-semibold text-foreground">Setup</div>
+                      <div className="text-sm font-semibold text-foreground">Choose setup path</div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {setupMode === "simple"
                           ? "Quick host flow for automatic quiz setup, quick Heads Up, or one continuous Infinite run."
@@ -2096,6 +2096,13 @@ export default function HostPage() {
                     </div>
                   </div>
                 </div>
+
+                {setupMode === "advanced" ? (
+                  <div className="rounded-2xl border border-border bg-card p-4">
+                    <div className="text-sm font-semibold text-foreground">Advanced setup</div>
+                    <div className="mt-1 text-sm text-muted-foreground">Choose a build method, then work in the matching builder below. The right side is for question-pool support, not the main workflow.</div>
+                  </div>
+                ) : null}
 
                 {setupMode === "simple" ? (
                   <>
@@ -2537,27 +2544,46 @@ export default function HostPage() {
                   </>
                 ) : (
                   <>
-                <div className="rounded-2xl border border-border p-3">
-                  <div className="text-sm font-semibold text-foreground">Build mode</div>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                    <div>
-                      <div className="text-sm font-medium text-foreground">Mode</div>
-                      <select value={buildMode} onChange={(e) => setBuildMode(e.target.value as BuildMode)} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                        <option value="manual_rounds">Manual rounds</option>
-                        <option value="quick_random">Quick random</option>
-                        <option value="infinite">Infinite</option>
-                        <option value="legacy_pack_mode">Legacy pack mode</option>
-                      </select>
-                    </div>
-                    <div className="sm:col-span-2 text-sm text-muted-foreground">
-                      {buildMode === "manual_rounds"
-                        ? "Create each round directly. Packs stay as sources, and metadata decides eligibility."
-                        : buildMode === "quick_random"
-                          ? "Choose packs and either use saved round templates or let the app create a simple generic round plan for you."
-                          : buildMode === "infinite"
-                            ? "Run one continuous stream of questions from the chosen packs, with no round setup."
-                            : "Use the older pack-based builder with optional per-pack counts while you transition."}
-                    </div>
+                <div className="rounded-2xl border border-border bg-card p-4">
+                  <div className="text-sm font-semibold text-foreground">1. Choose a build method</div>
+                  <div className="mt-1 text-sm text-muted-foreground">Pick one route. Only the matching builder stays on screen below.</div>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <label className={`rounded-2xl border p-3 text-sm transition-colors ${buildMode === "manual_rounds" ? "border-foreground bg-muted" : "border-border bg-background hover:bg-muted"}`}>
+                      <div className="flex items-start gap-2">
+                        <input type="radio" name="build-mode" checked={buildMode === "manual_rounds"} onChange={() => setBuildMode("manual_rounds")} className="mt-0.5" />
+                        <div>
+                          <div className="font-medium text-foreground">Manual rounds</div>
+                          <div className="mt-1 text-xs text-muted-foreground">Build each round directly. Packs stay as sources and metadata decides eligibility.</div>
+                        </div>
+                      </div>
+                    </label>
+                    <label className={`rounded-2xl border p-3 text-sm transition-colors ${buildMode === "quick_random" ? "border-foreground bg-muted" : "border-border bg-background hover:bg-muted"}`}>
+                      <div className="flex items-start gap-2">
+                        <input type="radio" name="build-mode" checked={buildMode === "quick_random"} onChange={() => setBuildMode("quick_random")} className="mt-0.5" />
+                        <div>
+                          <div className="font-medium text-foreground">Quick random</div>
+                          <div className="mt-1 text-xs text-muted-foreground">Choose packs and let templates or a generic plan build the game for you.</div>
+                        </div>
+                      </div>
+                    </label>
+                    <label className={`rounded-2xl border p-3 text-sm transition-colors ${buildMode === "infinite" ? "border-foreground bg-muted" : "border-border bg-background hover:bg-muted"}`}>
+                      <div className="flex items-start gap-2">
+                        <input type="radio" name="build-mode" checked={buildMode === "infinite"} onChange={() => setBuildMode("infinite")} className="mt-0.5" />
+                        <div>
+                          <div className="font-medium text-foreground">Infinite</div>
+                          <div className="mt-1 text-xs text-muted-foreground">Run one continuous stream of questions from the chosen packs, with no round setup.</div>
+                        </div>
+                      </div>
+                    </label>
+                    <label className={`rounded-2xl border p-3 text-sm transition-colors ${buildMode === "legacy_pack_mode" ? "border-foreground bg-muted" : "border-border bg-background hover:bg-muted"}`}>
+                      <div className="flex items-start gap-2">
+                        <input type="radio" name="build-mode" checked={buildMode === "legacy_pack_mode"} onChange={() => setBuildMode("legacy_pack_mode")} className="mt-0.5" />
+                        <div>
+                          <div className="font-medium text-foreground">Legacy pack mode</div>
+                          <div className="mt-1 text-xs text-muted-foreground">Use the older pack-based builder with optional per-pack counts while you transition.</div>
+                        </div>
+                      </div>
+                    </label>
                   </div>
                 </div>
 
@@ -3168,7 +3194,7 @@ export default function HostPage() {
                 {!createError && activeCreateBlockReason ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">{activeCreateBlockReason}</div> : null}
               </CardContent>
 
-              <CardFooter className="flex items-center justify-between gap-3">
+              <CardFooter className={setupMode === "advanced" ? "flex flex-col items-stretch gap-3 border-t-0 px-0 pt-2 sm:flex-row sm:items-center sm:justify-between" : "flex items-center justify-between gap-3"}>
                 <div className="text-sm text-muted-foreground">
                   {setupMode === "simple"
                     ? simpleFeasibilityBusy
@@ -3338,47 +3364,13 @@ export default function HostPage() {
         <div className="space-y-6">
           {!hasRoom ? (
             <>
-              {setupMode === "simple" ? (
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <CardTitle>Question pool</CardTitle>
-                        <div className="mt-1 text-sm text-muted-foreground">
-                          {selectPacks
-                            ? `${selectedPackCount} selected pack${selectedPackCount === 1 ? "" : "s"} will be used for this simple game.`
-                            : "Simple mode is currently using all active packs."}
-                        </div>
-                      </div>
-                      <Button variant="secondary" size="sm" onClick={() => setShowSimpleQuestionPool((prev) => !prev)}>
-                        {showSimpleQuestionPool ? "Hide packs" : "Show packs"}
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  {showSimpleQuestionPool ? (
-                    <CardContent className="space-y-3 max-h-[70vh] overflow-y-auto">
-                      <div className="flex flex-wrap gap-2">
-                        <Button variant="secondary" onClick={() => setAllSelected(true)}>Select all</Button>
-                        <Button variant="secondary" onClick={() => setAllSelected(false)}>Clear</Button>
-                      </div>
-                      <div className="grid gap-2">
-                        {packs.map((pack) => (
-                          <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
-                            <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
-                            <span className="min-w-0 flex-1 text-sm">{pack.display_name}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </CardContent>
-                  ) : null}
-                </Card>
-              ) : buildMode === "manual_rounds" ? (
+              {buildMode === "manual_rounds" ? (
                 <Card className="lg:sticky lg:top-4 self-start">
                   <CardHeader>
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <CardTitle>Question pool</CardTitle>
-                        <div className="mt-1 text-sm text-muted-foreground">Rounds using Selected packs will draw from these packs.</div>
+                        <div className="mt-1 text-sm text-muted-foreground">Manual rounds that use Selected packs will draw from these packs.</div>
                       </div>
                       <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedPackCount} selected</div>
                     </div>
@@ -3441,13 +3433,13 @@ export default function HostPage() {
                   <CardHeader><CardTitle>Question pool</CardTitle></CardHeader>
                   <CardContent className="space-y-2 text-sm text-muted-foreground">
                     <div>You are currently using all active packs.</div>
-                    <div>Turn on Select packs on the left if you want a narrower question pool.</div>
+                    <div>Turn on Choose packs on the left if you want to narrow the pool.</div>
                   </CardContent>
                 </Card>
               )}
 
               <Card>
-                <CardHeader><CardTitle>Resume hosting</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Resume previous game</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                   <div className="text-sm text-muted-foreground">Enter a room code to continue hosting an existing room.</div>
                   <div>
