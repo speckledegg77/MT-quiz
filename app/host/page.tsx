@@ -2066,7 +2066,7 @@ export default function HostPage() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Host</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Create a room, share the code, and run the quiz.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Start a new game, share the room code, and run the quiz.</p>
         </div>
 
         <Link href="/" className="text-sm text-muted-foreground hover:underline">
@@ -2079,7 +2079,7 @@ export default function HostPage() {
           {!hasRoom ? (
             <Card>
               <CardHeader>
-                <CardTitle>Create a room</CardTitle>
+                <CardTitle>Start a new game</CardTitle>
               </CardHeader>
 
               <CardContent className="space-y-4">
@@ -2353,8 +2353,8 @@ export default function HostPage() {
                     <div className="rounded-2xl border border-border p-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <div className="text-sm font-semibold text-foreground">Content</div>
-                          <div className="mt-1 text-xs text-muted-foreground">Use all active packs, or narrow the game to a smaller pack set.</div>
+                          <div className="text-sm font-semibold text-foreground">Question pool</div>
+                          <div className="mt-1 text-xs text-muted-foreground">Simple mode can use every active pack, or you can narrow the pool to a smaller set.</div>
                         </div>
                         <label className="flex items-center gap-2 text-sm text-muted-foreground">
                           <input
@@ -2368,7 +2368,7 @@ export default function HostPage() {
 
                       {!selectPacks ? (
                         <div className="mt-3 rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">
-                          Using all active packs.
+                          Using all active packs. Turn on <span className="font-medium text-foreground">Choose packs</span> when you want a narrower pool.
                         </div>
                       ) : (
                         <div className="mt-3 space-y-3">
@@ -2398,7 +2398,7 @@ export default function HostPage() {
                         onClick={() => setShowSimpleGameSummary((prev) => !prev)}
                       >
                         <div>
-                          <div className="text-sm font-semibold text-foreground">Game summary</div>
+                          <div className="text-sm font-semibold text-foreground">Preview game</div>
                           <div className="mt-1 text-xs text-muted-foreground">
                             {simpleGameType === "infinite"
                               ? "Open to preview the question pool and continuous-run behaviour."
@@ -2540,7 +2540,7 @@ export default function HostPage() {
                           onClick={() => setShowSimpleRecommendedRounds((prev) => !prev)}
                         >
                           <div>
-                            <div className="text-sm font-semibold text-foreground">Recommended rounds</div>
+                            <div className="text-sm font-semibold text-foreground">Preview rounds</div>
                             <div className="mt-1 text-xs text-muted-foreground">
                               Ready now: {simpleTemplatePlan.availableTemplateCount} template{simpleTemplatePlan.availableTemplateCount === 1 ? "" : "s"}, with {simpleTemplatePlan.availableStandardCount} standard and {simpleTemplatePlan.availableQuickfireCount} Quickfire.
                             </div>
@@ -3447,20 +3447,43 @@ export default function HostPage() {
         <div className="space-y-6">
           {!hasRoom ? (
             <>
-              <Card>
-                <CardHeader><CardTitle>Re-host room</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="text-sm text-muted-foreground">Enter a room code to continue hosting an existing room.</div>
-                  <div>
-                    <div className="text-sm font-medium text-foreground">Room code</div>
-                    <Input value={rehostCode} onChange={(e) => setRehostCode(cleanRoomCode(e.target.value))} placeholder="For example 3PDSXFT5" autoCapitalize="characters" spellCheck={false} />
-                  </div>
-                  {rehostError ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{rehostError}</div> : null}
-                  <Button onClick={rehostRoom} disabled={rehostBusy}>{rehostBusy ? "Loading..." : "Re-host"}</Button>
-                </CardContent>
-              </Card>
-
-              {buildMode === "manual_rounds" ? (
+              {setupMode === "simple" ? (
+                selectPacks ? (
+                  <Card className="lg:sticky lg:top-4 self-start">
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <CardTitle>Question pool</CardTitle>
+                          <div className="mt-1 text-sm text-muted-foreground">Simple mode will draw from these packs.</div>
+                        </div>
+                        <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedPackCount} selected</div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3 max-h-[70vh] overflow-y-auto">
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="secondary" onClick={() => setAllSelected(true)}>Select all</Button>
+                        <Button variant="secondary" onClick={() => setAllSelected(false)}>Clear</Button>
+                      </div>
+                      <div className="grid gap-2">
+                        {packs.map((pack) => (
+                          <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+                            <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
+                            <span className="min-w-0 flex-1 text-sm">{pack.display_name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardHeader><CardTitle>Question pool</CardTitle></CardHeader>
+                    <CardContent className="space-y-2 text-sm text-muted-foreground">
+                      <div>You are currently using all active packs.</div>
+                      <div>Turn on <span className="font-medium text-foreground">Choose packs</span> on the left if you want a narrower pool.</div>
+                    </CardContent>
+                  </Card>
+                )
+              ) : buildMode === "manual_rounds" ? (
                 <Card className="lg:sticky lg:top-4 self-start">
                   <CardHeader>
                     <CardTitle>Game preview</CardTitle>
@@ -3501,7 +3524,7 @@ export default function HostPage() {
                   <CardHeader>
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <CardTitle>Packs</CardTitle>
+                        <CardTitle>Question pool</CardTitle>
                         <div className="mt-1 text-sm text-muted-foreground">Choose which packs to include.</div>
                       </div>
                       <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedPackCount} selected</div>
@@ -3536,13 +3559,26 @@ export default function HostPage() {
                 </Card>
               ) : (
                 <Card>
-                  <CardHeader><CardTitle>Packs</CardTitle></CardHeader>
+                  <CardHeader><CardTitle>Question pool</CardTitle></CardHeader>
                   <CardContent className="space-y-2 text-sm text-muted-foreground">
                     <div>You are currently using all active packs.</div>
-                    <div>Tick Select packs on the left if you want to choose specific packs.</div>
+                    <div>Turn on Select packs on the left if you want a narrower question pool.</div>
                   </CardContent>
                 </Card>
               )}
+
+              <Card>
+                <CardHeader><CardTitle>Resume hosting</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="text-sm text-muted-foreground">Use this only when you want to reopen an existing room.</div>
+                  <div>
+                    <div className="text-sm font-medium text-foreground">Room code</div>
+                    <Input value={rehostCode} onChange={(e) => setRehostCode(cleanRoomCode(e.target.value))} placeholder="For example 3PDSXFT5" autoCapitalize="characters" spellCheck={false} />
+                  </div>
+                  {rehostError ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{rehostError}</div> : null}
+                  <Button onClick={rehostRoom} disabled={rehostBusy}>{rehostBusy ? "Loading..." : "Resume host controls"}</Button>
+                </CardContent>
+              </Card>
             </>
           ) : (
             <>
