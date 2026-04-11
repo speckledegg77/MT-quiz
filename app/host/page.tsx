@@ -1996,7 +1996,7 @@ export default function HostPage() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Host</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Start a new game, share the room code, and run the quiz.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Create a room, share the code, and run the quiz.</p>
         </div>
 
         <Link href="/" className="text-sm text-muted-foreground hover:underline">
@@ -2004,18 +2004,17 @@ export default function HostPage() {
         </Link>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="space-y-6">
           {!hasRoom ? (
-            <Card className={setupMode === "advanced" ? "border-0 bg-transparent" : undefined}>
-              <CardHeader className={setupMode === "advanced" ? "border-b-0 px-0 pb-4 pt-0" : undefined}>
-                <CardTitle>Start a new game</CardTitle>
-                <div className="mt-1 text-sm text-muted-foreground">{setupMode === "simple" ? "Use the guided path for a quick setup." : "Build on the left. Use the right side for your question pool and recovery tools."}</div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Create a room</CardTitle>
               </CardHeader>
 
-              <CardContent className={setupMode === "advanced" ? "space-y-6 px-0 py-0" : "space-y-4"}>
+              <CardContent className="space-y-4">
                 <div className="rounded-2xl border border-border p-3">
-                  <div className="text-sm font-semibold text-foreground">Game basics</div>
+                  <div className="text-sm font-semibold text-foreground">Game</div>
 
                   <div className="mt-3 grid gap-3 sm:grid-cols-3">
                     <div>
@@ -2068,7 +2067,7 @@ export default function HostPage() {
                 <div className="rounded-2xl border border-border p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-semibold text-foreground">Choose setup path</div>
+                      <div className="text-sm font-semibold text-foreground">Setup</div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {setupMode === "simple"
                           ? "Quick host flow for automatic quiz setup, quick Heads Up, or one continuous Infinite run."
@@ -2096,13 +2095,6 @@ export default function HostPage() {
                     </div>
                   </div>
                 </div>
-
-                {setupMode === "advanced" ? (
-                  <div className="rounded-2xl border border-border bg-card p-4">
-                    <div className="text-sm font-semibold text-foreground">Advanced setup</div>
-                    <div className="mt-1 text-sm text-muted-foreground">Choose a build method, then work in the matching builder below. The right side is for question-pool support, not the main workflow.</div>
-                  </div>
-                ) : null}
 
                 {setupMode === "simple" ? (
                   <>
@@ -2544,46 +2536,27 @@ export default function HostPage() {
                   </>
                 ) : (
                   <>
-                <div className="rounded-2xl border border-border bg-card p-4">
-                  <div className="text-sm font-semibold text-foreground">1. Choose a build method</div>
-                  <div className="mt-1 text-sm text-muted-foreground">Pick one route. Only the matching builder stays on screen below.</div>
-                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    <label className={`rounded-2xl border p-3 text-sm transition-colors ${buildMode === "manual_rounds" ? "border-foreground bg-muted" : "border-border bg-background hover:bg-muted"}`}>
-                      <div className="flex items-start gap-2">
-                        <input type="radio" name="build-mode" checked={buildMode === "manual_rounds"} onChange={() => setBuildMode("manual_rounds")} className="mt-0.5" />
-                        <div>
-                          <div className="font-medium text-foreground">Manual rounds</div>
-                          <div className="mt-1 text-xs text-muted-foreground">Build each round directly. Packs stay as sources and metadata decides eligibility.</div>
-                        </div>
-                      </div>
-                    </label>
-                    <label className={`rounded-2xl border p-3 text-sm transition-colors ${buildMode === "quick_random" ? "border-foreground bg-muted" : "border-border bg-background hover:bg-muted"}`}>
-                      <div className="flex items-start gap-2">
-                        <input type="radio" name="build-mode" checked={buildMode === "quick_random"} onChange={() => setBuildMode("quick_random")} className="mt-0.5" />
-                        <div>
-                          <div className="font-medium text-foreground">Quick random</div>
-                          <div className="mt-1 text-xs text-muted-foreground">Choose packs and let templates or a generic plan build the game for you.</div>
-                        </div>
-                      </div>
-                    </label>
-                    <label className={`rounded-2xl border p-3 text-sm transition-colors ${buildMode === "infinite" ? "border-foreground bg-muted" : "border-border bg-background hover:bg-muted"}`}>
-                      <div className="flex items-start gap-2">
-                        <input type="radio" name="build-mode" checked={buildMode === "infinite"} onChange={() => setBuildMode("infinite")} className="mt-0.5" />
-                        <div>
-                          <div className="font-medium text-foreground">Infinite</div>
-                          <div className="mt-1 text-xs text-muted-foreground">Run one continuous stream of questions from the chosen packs, with no round setup.</div>
-                        </div>
-                      </div>
-                    </label>
-                    <label className={`rounded-2xl border p-3 text-sm transition-colors ${buildMode === "legacy_pack_mode" ? "border-foreground bg-muted" : "border-border bg-background hover:bg-muted"}`}>
-                      <div className="flex items-start gap-2">
-                        <input type="radio" name="build-mode" checked={buildMode === "legacy_pack_mode"} onChange={() => setBuildMode("legacy_pack_mode")} className="mt-0.5" />
-                        <div>
-                          <div className="font-medium text-foreground">Legacy pack mode</div>
-                          <div className="mt-1 text-xs text-muted-foreground">Use the older pack-based builder with optional per-pack counts while you transition.</div>
-                        </div>
-                      </div>
-                    </label>
+                <div className="rounded-2xl border border-border p-3">
+                  <div className="text-sm font-semibold text-foreground">Build mode</div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <div className="text-sm font-medium text-foreground">Mode</div>
+                      <select value={buildMode} onChange={(e) => setBuildMode(e.target.value as BuildMode)} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                        <option value="manual_rounds">Manual rounds</option>
+                        <option value="quick_random">Quick random</option>
+                        <option value="infinite">Infinite</option>
+                        <option value="legacy_pack_mode">Legacy pack mode</option>
+                      </select>
+                    </div>
+                    <div className="sm:col-span-2 text-sm text-muted-foreground">
+                      {buildMode === "manual_rounds"
+                        ? "Create each round directly. Packs stay as sources, and metadata decides eligibility."
+                        : buildMode === "quick_random"
+                          ? "Choose packs and either use saved round templates or let the app create a simple generic round plan for you."
+                          : buildMode === "infinite"
+                            ? "Run one continuous stream of questions from the chosen packs, with no round setup."
+                            : "Use the older pack-based builder with optional per-pack counts while you transition."}
+                    </div>
                   </div>
                 </div>
 
@@ -2710,76 +2683,95 @@ export default function HostPage() {
 
                     <div className="mt-3 space-y-3">
                       {manualRounds.map((round, index) => (
-                        <div key={round.id} className="rounded-2xl border border-border bg-card p-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
+                        <div key={round.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                            <div className="min-w-0 flex-1 space-y-4">
                               <div className="flex flex-wrap items-center gap-2">
-                                <div className="font-medium text-foreground">Round {index + 1}</div>
+                                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Round {index + 1}</span>
                                 <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${roundBehaviourBadgeClass(round.behaviourType)}`}>
                                   {roundBehaviourLabel(round.behaviourType)}
                                 </span>
+                                <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                  {round.behaviourType === "heads_up" ? "Uses one Heads Up pack" : `${clampInt(parseIntOr(round.questionCountStr, 0), 1, 200)} question${clampInt(parseIntOr(round.questionCountStr, 0), 1, 200) === 1 ? "" : "s"}`}
+                                </span>
+                                <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                  {round.behaviourType === "heads_up"
+                                    ? "Specific pack"
+                                    : round.sourceMode === "selected_packs"
+                                      ? "Selected packs"
+                                      : round.sourceMode === "specific_packs"
+                                        ? "Specific packs"
+                                        : "All questions"}
+                                </span>
                               </div>
-                              <div className="mt-1 text-xs text-muted-foreground">{roundBehaviourSummary(round.behaviourType)}</div>
-                            </div>
-                            <Button variant="ghost" onClick={() => removeManualRound(round.id)} disabled={manualRounds.length <= 1}>Remove</Button>
-                          </div>
 
-                          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                            <div>
-                              <div className="text-sm font-medium text-foreground">Name</div>
-                              <Input value={round.name} onChange={(e) => updateManualRound(round.id, { name: e.target.value })} placeholder={defaultRoundName(index)} />
-                            </div>
-                            <div>
-                              <div className="text-sm font-medium text-foreground">{round.behaviourType === "heads_up" ? "Cards" : "Questions"}</div>
-                              {round.behaviourType === "heads_up" ? (
-                                <div className="mt-1 rounded-xl border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
-                                  Uses all active cards from the selected pack.
+                              <div>
+                                <div className="text-xs font-medium text-muted-foreground">Round name</div>
+                                <Input value={round.name} onChange={(e) => updateManualRound(round.id, { name: e.target.value })} placeholder={defaultRoundName(index)} />
+                                <div className="mt-1 text-xs text-muted-foreground">{roundBehaviourSummary(round.behaviourType)}</div>
+                              </div>
+
+                              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                <div>
+                                  <div className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">{round.behaviourType === "heads_up" ? "Cards" : "Questions"}</div>
+                                  {round.behaviourType === "heads_up" ? (
+                                    <div className="mt-1 rounded-xl border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
+                                      Uses all active cards from the selected pack.
+                                    </div>
+                                  ) : (
+                                    <Input value={round.questionCountStr} onChange={(e) => updateManualRound(round.id, { questionCountStr: e.target.value })} inputMode="numeric" />
+                                  )}
                                 </div>
-                              ) : (
-                                <Input value={round.questionCountStr} onChange={(e) => updateManualRound(round.id, { questionCountStr: e.target.value })} inputMode="numeric" />
-                              )}
+
+                                <div>
+                                  <div className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Behaviour</div>
+                                  <select value={round.behaviourType} onChange={(e) => updateManualRound(round.id, { behaviourType: e.target.value as RoundBehaviourType })} className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm">
+                                    {ROUND_BEHAVIOUR_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                                  </select>
+                                  <div className="mt-1 text-xs text-muted-foreground">{getManualRoundTimingSummary(round)}</div>
+                                </div>
+
+                                <div>
+                                  <div className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">Source</div>
+                                  {round.behaviourType === "heads_up" ? (
+                                    <>
+                                      <div className="mt-1 rounded-xl border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
+                                        Specific Heads Up pack
+                                      </div>
+                                      <div className="mt-1 text-xs text-muted-foreground">Heads Up uses one themed pack per round.</div>
+                                    </>
+                                  ) : (
+                                    <select value={round.sourceMode} onChange={(e) => updateManualRound(round.id, { sourceMode: e.target.value as RoundSourceMode })} className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm">
+                                      <option value="selected_packs">Selected packs</option>
+                                      <option value="specific_packs">Specific packs</option>
+                                      <option value="all_questions">All questions</option>
+                                    </select>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap gap-2">
+                                <label className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-muted-foreground">
+                                  <input type="checkbox" checked={round.jokerEligible} onChange={(e) => updateManualRound(round.id, { jokerEligible: e.target.checked })} disabled={round.behaviourType === "quickfire" || round.behaviourType === "heads_up"} />
+                                  Joker eligible
+                                </label>
+                                <label className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-muted-foreground">
+                                  <input type="checkbox" checked={round.countsTowardsScore} onChange={(e) => updateManualRound(round.id, { countsTowardsScore: e.target.checked })} disabled={round.behaviourType === "heads_up"} />
+                                  Counts towards score
+                                </label>
+                              </div>
                             </div>
-                            <div>
-                              <div className="text-sm font-medium text-foreground">Behaviour</div>
-                              <select value={round.behaviourType} onChange={(e) => updateManualRound(round.id, { behaviourType: e.target.value as RoundBehaviourType })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                {ROUND_BEHAVIOUR_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                              </select>
-                              <div className="mt-1 text-xs text-muted-foreground">{getManualRoundTimingSummary(round)}</div>
-                            </div>
-                            <div>
-                              <div className="text-sm font-medium text-foreground">Source mode</div>
-                              {round.behaviourType === "heads_up" ? (
-                                <>
-                                  <div className="mt-1 w-full rounded-xl border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
-                                    Specific Heads Up pack
-                                  </div>
-                                  <div className="mt-1 text-xs text-muted-foreground">Heads Up v1 uses one themed Heads Up pack per round.</div>
-                                </>
-                              ) : (
-                                <select value={round.sourceMode} onChange={(e) => updateManualRound(round.id, { sourceMode: e.target.value as RoundSourceMode })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                  <option value="selected_packs">Selected packs</option>
-                                  <option value="specific_packs">Specific packs</option>
-                                  <option value="all_questions">All questions</option>
-                                </select>
-                              )}
-                            </div>
-                            <div className="space-y-2 pt-6">
-                              <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <input type="checkbox" checked={round.jokerEligible} onChange={(e) => updateManualRound(round.id, { jokerEligible: e.target.checked })} disabled={round.behaviourType === "quickfire" || round.behaviourType === "heads_up"} />
-                                Joker eligible
-                              </label>
-                              <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <input type="checkbox" checked={round.countsTowardsScore} onChange={(e) => updateManualRound(round.id, { countsTowardsScore: e.target.checked })} disabled={round.behaviourType === "heads_up"} />
-                                Counts towards score
-                              </label>
+
+                            <div className="flex shrink-0 justify-end">
+                              <Button variant="ghost" onClick={() => removeManualRound(round.id)} disabled={manualRounds.length <= 1}>Remove</Button>
                             </div>
                           </div>
 
                           {round.behaviourType === "quickfire" ? (
-                            <div className="mt-3 rounded-2xl border border-border bg-background p-3">
+                            <div className="mt-4 rounded-2xl border border-border bg-background p-3">
                               <div className="flex flex-wrap items-center justify-between gap-3">
                                 <div>
-                                  <div className="text-sm font-medium text-foreground">Round timing override</div>
+                                  <div className="text-sm font-medium text-foreground">Round timing</div>
                                   <div className="mt-1 text-xs text-muted-foreground">
                                     Default {roundBehaviourLabel(round.behaviourType)} timings are {roundBehaviourTimingText(round.behaviourType)}. Turn this on if your group needs a slower or faster pace.
                                   </div>
@@ -2827,84 +2819,92 @@ export default function HostPage() {
                             </div>
                           ) : null}
 
-                          {round.behaviourType === "heads_up" ? (
-                            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                              <div>
-                                <div className="text-sm font-medium text-foreground">Heads Up pack</div>
-                                <select
-                                  value={round.packIds[0] ?? ""}
-                                  onChange={(e) => updateManualRound(round.id, { packIds: e.target.value ? [e.target.value] : [] })}
-                                  className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
-                                >
-                                  <option value="">Choose one pack</option>
-                                  {headsUpPacks.map((pack) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
-                                </select>
-                              </div>
-                              <div>
-                                <div className="text-sm font-medium text-foreground">difficulty</div>
-                                <select value={round.headsUpDifficulty} onChange={(e) => updateManualRound(round.id, { headsUpDifficulty: e.target.value as ManualRoundDraft["headsUpDifficulty"] })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                  {HEADS_UP_DIFFICULTY_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
-                                </select>
-                              </div>
-                              <div>
-                                <div className="text-sm font-medium text-foreground">Turn length</div>
-                                <select value={String(round.headsUpTurnSeconds)} onChange={(e) => updateManualRound(round.id, { headsUpTurnSeconds: e.target.value === "90" ? 90 : 60 })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                  {HEADS_UP_TURN_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                                </select>
-                              </div>
-                              <div>
-                                <div className="text-sm font-medium text-foreground">TV display</div>
-                                <select value={round.headsUpTvDisplayMode} onChange={(e) => updateManualRound(round.id, { headsUpTvDisplayMode: e.target.value as ManualRoundDraft["headsUpTvDisplayMode"] })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                  {HEADS_UP_TV_DISPLAY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                                </select>
-                              </div>
-                              <div>
-                                <div className="text-sm font-medium text-foreground">primary_show_key</div>
-                                <select value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                  <option value="">Any show</option>
-                                  {shows.map((show) => <option key={show.show_key} value={show.show_key}>{show.display_name}</option>)}
-                                </select>
-                              </div>
+                          <div className="mt-4 rounded-2xl border border-border bg-background p-3">
+                            <div className="text-sm font-medium text-foreground">Round filters</div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {round.behaviourType === "heads_up"
+                                ? "Choose the themed pack and optional filters for this Heads Up round."
+                                : "Use these filters to narrow the question pool for this round."}
                             </div>
-                          ) : (
-                            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                              <div>
-                                <div className="text-sm font-medium text-foreground">media_type</div>
-                                <select value={round.mediaType} onChange={(e) => updateManualRound(round.id, { mediaType: e.target.value as ManualRoundDraft["mediaType"] })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                  <option value="">Any media</option>
-                                  <option value="text">text</option>
-                                  <option value="audio">audio</option>
-                                  <option value="image">image</option>
-                                </select>
-                              </div>
-                              <div>
-                                <div className="text-sm font-medium text-foreground">prompt_target</div>
-                                <select value={round.promptTarget} onChange={(e) => updateManualRound(round.id, { promptTarget: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                  {PROMPT_TARGET_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
-                                </select>
-                              </div>
-                              <div>
-                                <div className="text-sm font-medium text-foreground">clue_source</div>
-                                <select value={round.clueSource} onChange={(e) => updateManualRound(round.id, { clueSource: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                  {CLUE_SOURCE_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
-                                </select>
-                              </div>
-                              <div>
-                                <div className="text-sm font-medium text-foreground">primary_show_key</div>
-                                <select value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                                  <option value="">Any show</option>
-                                  {shows.map((show) => <option key={show.show_key} value={show.show_key}>{show.display_name}</option>)}
-                                </select>
-                              </div>
 
-                              <div>
-                                <div className="text-sm font-medium text-foreground">audio_clip_type</div>
-                                <select value={round.audioClipType} onChange={(e) => updateManualRound(round.id, { audioClipType: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" disabled={round.mediaType !== "audio"}>
-                                  {AUDIO_CLIP_TYPE_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
-                                </select>
+                            {round.behaviourType === "heads_up" ? (
+                              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                                <div>
+                                  <div className="text-sm font-medium text-foreground">Heads Up pack</div>
+                                  <select
+                                    value={round.packIds[0] ?? ""}
+                                    onChange={(e) => updateManualRound(round.id, { packIds: e.target.value ? [e.target.value] : [] })}
+                                    className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm"
+                                  >
+                                    <option value="">Choose one pack</option>
+                                    {headsUpPacks.map((pack) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
+                                  </select>
+                                </div>
+                                <div>
+                                  <div className="text-sm font-medium text-foreground">Difficulty</div>
+                                  <select value={round.headsUpDifficulty} onChange={(e) => updateManualRound(round.id, { headsUpDifficulty: e.target.value as ManualRoundDraft["headsUpDifficulty"] })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                    {HEADS_UP_DIFFICULTY_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
+                                  </select>
+                                </div>
+                                <div>
+                                  <div className="text-sm font-medium text-foreground">Turn length</div>
+                                  <select value={String(round.headsUpTurnSeconds)} onChange={(e) => updateManualRound(round.id, { headsUpTurnSeconds: e.target.value === "90" ? 90 : 60 })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                    {HEADS_UP_TURN_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                                  </select>
+                                </div>
+                                <div>
+                                  <div className="text-sm font-medium text-foreground">TV display</div>
+                                  <select value={round.headsUpTvDisplayMode} onChange={(e) => updateManualRound(round.id, { headsUpTvDisplayMode: e.target.value as ManualRoundDraft["headsUpTvDisplayMode"] })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                    {HEADS_UP_TV_DISPLAY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                                  </select>
+                                </div>
+                                <div>
+                                  <div className="text-sm font-medium text-foreground">Show</div>
+                                  <select value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                    <option value="">Any show</option>
+                                    {shows.map((show) => <option key={show.show_key} value={show.show_key}>{show.display_name}</option>)}
+                                  </select>
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            ) : (
+                              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                                <div>
+                                  <div className="text-sm font-medium text-foreground">Media</div>
+                                  <select value={round.mediaType} onChange={(e) => updateManualRound(round.id, { mediaType: e.target.value as ManualRoundDraft["mediaType"] })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                    <option value="">Any media</option>
+                                    <option value="text">text</option>
+                                    <option value="audio">audio</option>
+                                    <option value="image">image</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <div className="text-sm font-medium text-foreground">Prompt target</div>
+                                  <select value={round.promptTarget} onChange={(e) => updateManualRound(round.id, { promptTarget: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                    {PROMPT_TARGET_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
+                                  </select>
+                                </div>
+                                <div>
+                                  <div className="text-sm font-medium text-foreground">Clue source</div>
+                                  <select value={round.clueSource} onChange={(e) => updateManualRound(round.id, { clueSource: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                    {CLUE_SOURCE_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
+                                  </select>
+                                </div>
+                                <div>
+                                  <div className="text-sm font-medium text-foreground">Show</div>
+                                  <select value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                                    <option value="">Any show</option>
+                                    {shows.map((show) => <option key={show.show_key} value={show.show_key}>{show.display_name}</option>)}
+                                  </select>
+                                </div>
+                                <div>
+                                  <div className="text-sm font-medium text-foreground">Audio clip type</div>
+                                  <select value={round.audioClipType} onChange={(e) => updateManualRound(round.id, { audioClipType: e.target.value })} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" disabled={round.mediaType !== "audio"}>
+                                    {AUDIO_CLIP_TYPE_OPTIONS.map((option) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
+                                  </select>
+                                </div>
+                              </div>
+                            )}
+                          </div>
 
                           {(() => {
                             const feasibility = manualFeasibilityById.get(round.id)
@@ -2913,16 +2913,16 @@ export default function HostPage() {
                             const toneClasses =
                               tone === "error"
                                 ? {
-                                    container: "mt-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950",
+                                    container: "mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm dark:border-red-900 dark:bg-red-950",
                                     text: "text-red-700 dark:text-red-200",
                                   }
                                 : tone === "warning"
                                   ? {
-                                      container: "mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950",
+                                      container: "mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950",
                                       text: "text-amber-800 dark:text-amber-200",
                                     }
                                   : {
-                                      container: "mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm dark:border-emerald-900 dark:bg-emerald-950",
+                                      container: "mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm dark:border-emerald-900 dark:bg-emerald-950",
                                       text: "text-emerald-800 dark:text-emerald-200",
                                     }
                             return (
@@ -2942,23 +2942,24 @@ export default function HostPage() {
                           })()}
 
                           {round.behaviourType === "quickfire" ? (
-                            <div className="mt-3 rounded-xl border border-violet-500/30 bg-violet-600/10 px-3 py-2 text-xs text-muted-foreground">
+                            <div className="mt-4 rounded-xl border border-violet-500/30 bg-violet-600/10 px-3 py-2 text-xs text-muted-foreground">
                               Quickfire question pool: MCQ only. Audio is allowed when media_duration_ms is set and the clip is 5 seconds or shorter. Audio and typed answers are excluded automatically.
                             </div>
                           ) : null}
 
                           {round.behaviourType === "heads_up" ? (
-                            <div className="mt-3 text-xs text-muted-foreground">Heads Up rounds ignore the main question pack panel and use the Heads Up pack chosen above.</div>
+                            <div className="mt-4 text-xs text-muted-foreground">Heads Up rounds ignore the main question pack panel and use the Heads Up pack chosen above.</div>
                           ) : round.sourceMode === "selected_packs" ? (
-                            <div className="mt-3 text-xs text-muted-foreground">This round uses the packs selected in the pack panel on the right.</div>
+                            <div className="mt-4 text-xs text-muted-foreground">This round uses the packs selected in the question pool panel on the right.</div>
                           ) : round.sourceMode === "all_questions" ? (
-                            <div className="mt-3 text-xs text-muted-foreground">This round can draw from any question linked to an active pack.</div>
+                            <div className="mt-4 text-xs text-muted-foreground">This round can draw from any question linked to an active pack.</div>
                           ) : (
-                            <div className="mt-3 space-y-2">
-                              <div className="text-xs text-muted-foreground">Choose packs for this round.</div>
-                              <div className="grid gap-2 sm:grid-cols-2">
+                            <div className="mt-4 rounded-2xl border border-border bg-background p-3">
+                              <div className="text-sm font-medium text-foreground">Specific packs for this round</div>
+                              <div className="mt-1 text-xs text-muted-foreground">Choose the packs this round should draw from.</div>
+                              <div className="mt-3 grid gap-2 sm:grid-cols-2">
                                 {packs.map((pack) => (
-                                  <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm">
+                                  <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm">
                                     <input type="checkbox" checked={round.packIds.includes(pack.id)} onChange={() => toggleManualRoundPack(round.id, pack.id)} />
                                     <span className="min-w-0 flex-1">{pack.display_name}</span>
                                   </label>
@@ -3194,7 +3195,7 @@ export default function HostPage() {
                 {!createError && activeCreateBlockReason ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">{activeCreateBlockReason}</div> : null}
               </CardContent>
 
-              <CardFooter className={setupMode === "advanced" ? "flex flex-col items-stretch gap-3 border-t-0 px-0 pt-2 sm:flex-row sm:items-center sm:justify-between" : "flex items-center justify-between gap-3"}>
+              <CardFooter className="flex items-center justify-between gap-3">
                 <div className="text-sm text-muted-foreground">
                   {setupMode === "simple"
                     ? simpleFeasibilityBusy
@@ -3364,13 +3365,26 @@ export default function HostPage() {
         <div className="space-y-6">
           {!hasRoom ? (
             <>
+              <Card>
+                <CardHeader><CardTitle>Re-host room</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="text-sm text-muted-foreground">Enter a room code to continue hosting an existing room.</div>
+                  <div>
+                    <div className="text-sm font-medium text-foreground">Room code</div>
+                    <Input value={rehostCode} onChange={(e) => setRehostCode(cleanRoomCode(e.target.value))} placeholder="For example 3PDSXFT5" autoCapitalize="characters" spellCheck={false} />
+                  </div>
+                  {rehostError ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{rehostError}</div> : null}
+                  <Button onClick={rehostRoom} disabled={rehostBusy}>{rehostBusy ? "Loading..." : "Re-host"}</Button>
+                </CardContent>
+              </Card>
+
               {buildMode === "manual_rounds" ? (
                 <Card className="lg:sticky lg:top-4 self-start">
                   <CardHeader>
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <CardTitle>Question pool</CardTitle>
-                        <div className="mt-1 text-sm text-muted-foreground">Manual rounds that use Selected packs will draw from these packs.</div>
+                        <CardTitle>Selected packs</CardTitle>
+                        <div className="mt-1 text-sm text-muted-foreground">Rounds using Selected packs will draw from these packs.</div>
                       </div>
                       <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedPackCount} selected</div>
                     </div>
@@ -3395,8 +3409,8 @@ export default function HostPage() {
                   <CardHeader>
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <CardTitle>Question pool</CardTitle>
-                        <div className="mt-1 text-sm text-muted-foreground">Choose which packs to include in this build.</div>
+                        <CardTitle>Packs</CardTitle>
+                        <div className="mt-1 text-sm text-muted-foreground">Choose which packs to include.</div>
                       </div>
                       <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedPackCount} selected</div>
                     </div>
@@ -3430,26 +3444,13 @@ export default function HostPage() {
                 </Card>
               ) : (
                 <Card>
-                  <CardHeader><CardTitle>Question pool</CardTitle></CardHeader>
+                  <CardHeader><CardTitle>Packs</CardTitle></CardHeader>
                   <CardContent className="space-y-2 text-sm text-muted-foreground">
                     <div>You are currently using all active packs.</div>
-                    <div>Turn on Choose packs on the left if you want to narrow the pool.</div>
+                    <div>Tick Select packs on the left if you want to choose specific packs.</div>
                   </CardContent>
                 </Card>
               )}
-
-              <Card>
-                <CardHeader><CardTitle>Resume previous game</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="text-sm text-muted-foreground">Enter a room code to continue hosting an existing room.</div>
-                  <div>
-                    <div className="text-sm font-medium text-foreground">Room code</div>
-                    <Input value={rehostCode} onChange={(e) => setRehostCode(cleanRoomCode(e.target.value))} placeholder="For example 3PDSXFT5" autoCapitalize="characters" spellCheck={false} />
-                  </div>
-                  {rehostError ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{rehostError}</div> : null}
-                  <Button onClick={rehostRoom} disabled={rehostBusy}>{rehostBusy ? "Loading..." : "Resume host controls"}</Button>
-                </CardContent>
-              </Card>
             </>
           ) : (
             <>
