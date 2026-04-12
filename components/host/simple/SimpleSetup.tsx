@@ -134,7 +134,7 @@ export default function SimpleSetup(props: any) {
             <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
               <div>
                 <div className="text-sm font-medium text-foreground">Rounds</div>
-                <SelectControl value={roundCountStr} onChange={(e) => setRoundCountStr(e.target.value)} className="mt-1">
+                <SelectControl value={roundCountStr} onChange={(e) => setRoundCountStr(e.target.value)} className="mt-1" variant="soft">
                   {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((count: number) => (
                     <option key={count} value={String(count)}>
                       {count}
@@ -183,7 +183,7 @@ export default function SimpleSetup(props: any) {
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div>
               <div className="text-sm font-medium text-foreground">Heads Up pack</div>
-              <SelectControl value={simpleHeadsUpPackId} onChange={(e) => setSimpleHeadsUpPackId(e.target.value)} className="mt-1">
+              <SelectControl value={simpleHeadsUpPackId} onChange={(e) => setSimpleHeadsUpPackId(e.target.value)} className="mt-1" variant="soft">
                 <option value="">Choose a Heads Up pack</option>
                 {headsUpPacks.map((pack: HeadsUpPackOption) => (
                   <option key={pack.id} value={pack.id}>{pack.name}</option>
@@ -217,7 +217,7 @@ export default function SimpleSetup(props: any) {
         <div className="mt-1 text-xs text-muted-foreground">Choose where audio questions should play for this game.</div>
         <div className="mt-3 max-w-sm">
           <div className="text-sm font-medium text-foreground">Audio mode</div>
-          <SelectControl value={audioMode} onChange={(e) => setAudioMode(e.target.value as LocalAudioMode)} className="mt-1">
+          <SelectControl value={audioMode} onChange={(e) => setAudioMode(e.target.value as LocalAudioMode)} className="mt-1" variant="soft">
             <option value="display">TV display only</option>
             <option value="phones">Phones only</option>
             <option value="both">TV and phones</option>
