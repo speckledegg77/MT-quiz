@@ -1,6 +1,6 @@
 "use client"
 
-import type { ReactNode, SelectHTMLAttributes } from "react"
+import type { CSSProperties, ReactNode, SelectHTMLAttributes } from "react"
 
 export type SelectControlVariant = "default" | "soft" | "toolbar" | "advanced"
 
@@ -11,15 +11,17 @@ type SelectControlProps = SelectHTMLAttributes<HTMLSelectElement> & {
 }
 
 export default function SelectControl({ children, className = "", compact = false, variant = "default", ...props }: SelectControlProps) {
-  const resolvedVariant: SelectControlVariant = variant === "default" ? "soft" : variant
+  const resolvedVariant: SelectControlVariant = variant === "default"
+    ? "soft"
+    : variant
 
-  const usesStrongQuietStyle = resolvedVariant === "soft" || resolvedVariant === "advanced"
   const isToolbar = resolvedVariant === "toolbar"
+  const isSubtle = resolvedVariant === "soft" || resolvedVariant === "advanced"
 
-  const sizeClasses = usesStrongQuietStyle
+  const sizeClasses = isSubtle
     ? compact
       ? "h-8 rounded-md pr-7 pl-2.5 text-[13px]"
-      : "h-8 rounded-md pr-7 pl-2.5 text-[13px]"
+      : "h-[34px] rounded-md pr-8 pl-2.5 text-[13px]"
     : isToolbar
       ? compact
         ? "h-8 rounded-md pr-7 pl-2.5 text-[13px]"
@@ -28,20 +30,33 @@ export default function SelectControl({ children, className = "", compact = fals
         ? "h-9 rounded-lg pr-8 pl-3 text-sm"
         : "h-10 rounded-lg pr-9 pl-3 text-sm"
 
-  const variantClasses = usesStrongQuietStyle
-    ? "border border-border/45 bg-muted/55 text-foreground shadow-none hover:border-border/70 hover:bg-muted focus:border-foreground/15 focus:bg-card focus:ring-1 focus:ring-foreground/10"
+  const variantClasses = isSubtle
+    ? "border border-border/35 bg-card/70 shadow-none hover:border-border/60 focus:border-border/70 focus:ring-1 focus:ring-border/40"
     : isToolbar
-      ? "border border-border/50 bg-background text-foreground shadow-none hover:border-border focus:border-border focus:ring-1 focus:ring-border"
-      : "border border-border/70 bg-card text-foreground shadow-sm hover:border-border focus:border-foreground/30 focus:bg-card focus:ring-2 focus:ring-foreground/10"
+      ? "border border-border/50 bg-background shadow-none hover:border-border focus:border-border focus:ring-1 focus:ring-border"
+      : "border border-border/70 bg-card shadow-sm hover:border-border focus:border-foreground/30 focus:bg-card focus:ring-2 focus:ring-foreground/10"
 
-  const iconSizeClasses = usesStrongQuietStyle || isToolbar ? "h-3.5 w-3.5" : "h-4 w-4"
-  const iconRightClass = usesStrongQuietStyle ? "right-2.5" : "right-3"
+  const iconSizeClasses = isSubtle
+    ? "h-3.5 w-3.5"
+    : isToolbar
+      ? compact
+        ? "h-3.5 w-3.5"
+        : "h-4 w-4"
+      : "h-4 w-4"
+
+  const inlineStyle: CSSProperties | undefined = isSubtle
+    ? {
+        backgroundColor: "var(--card)",
+        color: "var(--foreground)",
+      }
+    : undefined
 
   return (
     <div className="relative">
       <select
         {...props}
-        className={`${className} w-full appearance-none outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${variantClasses} ${sizeClasses}`}
+        style={inlineStyle}
+        className={`${className} w-full appearance-none text-foreground outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${variantClasses} ${sizeClasses}`}
       >
         {children}
       </select>
@@ -51,7 +66,7 @@ export default function SelectControl({ children, className = "", compact = fals
         fill="none"
         stroke="currentColor"
         strokeWidth="1.8"
-        className={`pointer-events-none absolute ${iconRightClass} top-1/2 -translate-y-1/2 text-muted-foreground ${iconSizeClasses}`}
+        className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground ${iconSizeClasses}`}
       >
         <path d="M5 7.5L10 12.5L15 7.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
