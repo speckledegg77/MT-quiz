@@ -271,7 +271,7 @@ export default function AdvancedSetup(props: any) {
                     <div className="flex flex-wrap items-end gap-2">
                       <div className="min-w-[220px] flex-1">
                         <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Template for this round</div>
-                        <SelectControl value={templateChoice} onChange={(e) => setRoundTemplateSelections((prev: Record<string, string>) => ({ ...prev, [round.id]: e.target.value }))} className="mt-1" compact variant="toolbar" disabled={!templates.length}>
+                        <SelectControl variant="advanced" value={templateChoice} onChange={(e) => setRoundTemplateSelections((prev: Record<string, string>) => ({ ...prev, [round.id]: e.target.value }))} className="mt-1" compact disabled={!templates.length}>
                           {templates.length === 0 ? <option value="">No active templates</option> : null}
                           {templates.map((template: TemplateOption) => (
                             <option key={template.id} value={template.id}>{template.name}</option>
@@ -297,7 +297,7 @@ export default function AdvancedSetup(props: any) {
                     </div>
                     <div>
                       <div className="text-sm font-medium text-foreground">Behaviour</div>
-                      <SelectControl value={round.behaviourType} onChange={(e) => updateManualRound(round.id, { behaviourType: e.target.value as "standard" | "quickfire" | "heads_up" })} className="mt-1" variant="toolbar">
+                      <SelectControl variant="advanced" value={round.behaviourType} onChange={(e) => updateManualRound(round.id, { behaviourType: e.target.value as "standard" | "quickfire" | "heads_up" })} className="mt-1">
                         {ROUND_BEHAVIOUR_OPTIONS.map((option: { value: string; label: string }) => <option key={option.value} value={option.value}>{option.label}</option>)}
                       </SelectControl>
                       <div className="mt-1 text-xs text-muted-foreground">{getManualRoundTimingSummary(round)}</div>
@@ -308,26 +308,26 @@ export default function AdvancedSetup(props: any) {
                     <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       <div>
                         <div className="text-sm font-medium text-foreground">Heads Up pack</div>
-                        <SelectControl value={round.packIds[0] ?? ""} onChange={(e) => updateManualRound(round.id, { packIds: e.target.value ? [e.target.value] : [] })} className="mt-1" variant="toolbar">
+                        <SelectControl variant="advanced" value={round.packIds[0] ?? ""} onChange={(e) => updateManualRound(round.id, { packIds: e.target.value ? [e.target.value] : [] })} className="mt-1">
                           <option value="">Choose one pack</option>
                           {headsUpPacks.map((pack: { id: string; name: string }) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
                         </SelectControl>
                       </div>
                       <div>
                         <div className="text-sm font-medium text-foreground">Difficulty</div>
-                        <SelectControl value={round.headsUpDifficulty} onChange={(e) => updateManualRound(round.id, { headsUpDifficulty: e.target.value as "" | "easy" | "medium" | "hard" })} className="mt-1" variant="toolbar">
+                        <SelectControl variant="advanced" value={round.headsUpDifficulty} onChange={(e) => updateManualRound(round.id, { headsUpDifficulty: e.target.value as "" | "easy" | "medium" | "hard" })} className="mt-1">
                           {HEADS_UP_DIFFICULTY_OPTIONS.map((option: { value: string; label: string }) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
                         </SelectControl>
                       </div>
                       <div>
                         <div className="text-sm font-medium text-foreground">Turn length</div>
-                        <SelectControl value={String(round.headsUpTurnSeconds)} onChange={(e) => updateManualRound(round.id, { headsUpTurnSeconds: e.target.value === "90" ? 90 : 60 })} className="mt-1" variant="toolbar">
+                        <SelectControl variant="advanced" value={String(round.headsUpTurnSeconds)} onChange={(e) => updateManualRound(round.id, { headsUpTurnSeconds: e.target.value === "90" ? 90 : 60 })} className="mt-1">
                           {HEADS_UP_TURN_OPTIONS.map((option: { value: number; label: string }) => <option key={option.value} value={option.value}>{option.label}</option>)}
                         </SelectControl>
                       </div>
                       <div>
                         <div className="text-sm font-medium text-foreground">TV display</div>
-                        <SelectControl value={round.headsUpTvDisplayMode} onChange={(e) => updateManualRound(round.id, { headsUpTvDisplayMode: e.target.value as "show_clue" | "timer_only" })} className="mt-1" variant="toolbar">
+                        <SelectControl variant="advanced" value={round.headsUpTvDisplayMode} onChange={(e) => updateManualRound(round.id, { headsUpTvDisplayMode: e.target.value as "show_clue" | "timer_only" })} className="mt-1">
                           {HEADS_UP_TV_DISPLAY_OPTIONS.map((option: { value: string; label: string }) => <option key={option.value} value={option.value}>{option.label}</option>)}
                         </SelectControl>
                       </div>
@@ -387,7 +387,7 @@ export default function AdvancedSetup(props: any) {
                         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                           <div>
                             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Media</div>
-                            <SelectControl value={round.mediaType} onChange={(e) => updateManualRound(round.id, { mediaType: e.target.value as "" | "text" | "audio" | "image" })} className="mt-1" compact variant="toolbar">
+                            <SelectControl variant="advanced" value={round.mediaType} onChange={(e) => updateManualRound(round.id, { mediaType: e.target.value as "" | "text" | "audio" | "image" })} className="mt-1" compact>
                               <option value="">Any media</option>
                               <option value="text">text</option>
                               <option value="audio">audio</option>
@@ -396,26 +396,26 @@ export default function AdvancedSetup(props: any) {
                           </div>
                           <div>
                             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Prompt target</div>
-                            <SelectControl value={round.promptTarget} onChange={(e) => updateManualRound(round.id, { promptTarget: e.target.value })} className="mt-1" compact variant="toolbar">
+                            <SelectControl variant="advanced" value={round.promptTarget} onChange={(e) => updateManualRound(round.id, { promptTarget: e.target.value })} className="mt-1" compact>
                               {PROMPT_TARGET_OPTIONS.map((option: { value: string; label: string }) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
                             </SelectControl>
                           </div>
                           <div>
                             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Clue source</div>
-                            <SelectControl value={round.clueSource} onChange={(e) => updateManualRound(round.id, { clueSource: e.target.value })} className="mt-1" compact variant="toolbar">
+                            <SelectControl variant="advanced" value={round.clueSource} onChange={(e) => updateManualRound(round.id, { clueSource: e.target.value })} className="mt-1" compact>
                               {CLUE_SOURCE_OPTIONS.map((option: { value: string; label: string }) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
                             </SelectControl>
                           </div>
                           <div>
                             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Show</div>
-                            <SelectControl value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1" compact variant="toolbar">
+                            <SelectControl variant="advanced" value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1" compact>
                               <option value="">Any show</option>
                               {shows.map((show: ShowOption) => <option key={show.show_key} value={show.show_key}>{show.display_name}</option>)}
                             </SelectControl>
                           </div>
                           <div>
                             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Audio clip</div>
-                            <SelectControl value={round.audioClipType} onChange={(e) => updateManualRound(round.id, { audioClipType: e.target.value })} className="mt-1" compact variant="toolbar" disabled={round.mediaType !== "audio"}>
+                            <SelectControl variant="advanced" value={round.audioClipType} onChange={(e) => updateManualRound(round.id, { audioClipType: e.target.value })} className="mt-1" compact disabled={round.mediaType !== "audio"}>
                               {AUDIO_CLIP_TYPE_OPTIONS.map((option: { value: string; label: string }) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
                             </SelectControl>
                           </div>
@@ -615,7 +615,7 @@ export default function AdvancedSetup(props: any) {
             ) : (
               <div>
                 <div className="text-sm font-medium text-foreground">Round filter</div>
-                <SelectControl value={roundFilter} onChange={(e) => setRoundFilter(e.target.value as "mixed" | "no_audio" | "no_image" | "audio_only" | "picture_only" | "audio_and_image")} className="mt-1" variant="toolbar">
+                <SelectControl variant="advanced" value={roundFilter} onChange={(e) => setRoundFilter(e.target.value as "mixed" | "no_audio" | "no_image" | "audio_only" | "picture_only" | "audio_and_image")} className="mt-1">
                   <option value="mixed">Mixed</option>
                   <option value="no_audio">No audio</option>
                   <option value="no_image">No pictures</option>
@@ -627,7 +627,7 @@ export default function AdvancedSetup(props: any) {
             )}
             <div>
               <div className="text-sm font-medium text-foreground">Audio mode</div>
-              <SelectControl value={audioMode} onChange={(e) => setAudioMode(e.target.value as "display" | "phones" | "both")} className="mt-1" variant="toolbar">
+              <SelectControl variant="advanced" value={audioMode} onChange={(e) => setAudioMode(e.target.value as "display" | "phones" | "both")} className="mt-1">
                 <option value="display">TV display only</option>
                 <option value="phones">Phones only</option>
                 <option value="both">TV and phones</option>

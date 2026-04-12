@@ -2338,7 +2338,7 @@ export default function HostPage() {
                   <div className="mt-3 grid gap-3 sm:grid-cols-3">
                     <div>
                       <div className="text-sm font-medium text-foreground">Mode</div>
-                      <SelectControl value={gameMode} onChange={(e) => setGameMode(e.target.value as GameMode)} className="mt-1" variant={setupMode === "simple" ? "soft" : "toolbar"}>
+                      <SelectControl variant={setupMode === "advanced" ? "advanced" : "default"} value={gameMode} onChange={(e) => setGameMode(e.target.value as GameMode)} className="mt-1">
                         <option value="teams">Teams</option>
                         <option value="solo">No teams</option>
                       </SelectControl>
@@ -2493,7 +2493,7 @@ export default function HostPage() {
                         {buildMode === "legacy_pack_mode" ? (
                           <div className="ml-auto flex items-center gap-2">
                             <div className="text-sm text-muted-foreground">Strategy</div>
-                            <SelectControl value={selectionStrategy} onChange={(e) => setSelectionStrategy(e.target.value as SelectionStrategy)} className="min-w-[220px]" variant="toolbar">
+                            <SelectControl variant="advanced" value={selectionStrategy} onChange={(e) => setSelectionStrategy(e.target.value as SelectionStrategy)} className="">
                               <option value="all_packs">Mix all selected packs</option>
                               <option value="per_pack">Set counts per pack</option>
                             </SelectControl>
