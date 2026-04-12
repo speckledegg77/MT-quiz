@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card"
 import { Input } from "@/components/ui/Input"
 import HostJoinedTeamsPanel from "@/components/HostJoinedTeamsPanel"
+import SelectControl from "@/components/host/SelectControl"
 import SimpleSetup from "@/components/host/simple/SimpleSetup"
 import AdvancedSetup from "@/components/host/advanced/AdvancedSetup"
 import ResumeHostingCard from "@/components/host/sidebar/ResumeHostingCard"
@@ -653,6 +654,8 @@ export default function HostPage() {
   const [quickRandomUseTemplates, setQuickRandomUseTemplates] = useState(true)
   const [quickRandomTemplateIds, setQuickRandomTemplateIds] = useState<string[]>([])
 
+  const [roundTemplateSelections, setRoundTemplateSelections] = useState<Record<string, string>>({})
+
   const [gameMode, setGameMode] = useState<GameMode>("solo")
   const [teamNames, setTeamNames] = useState<string[]>(() => {
     const first = randomTeamName()
@@ -837,6 +840,22 @@ export default function HostPage() {
   }, [templates])
 
   useEffect(() => {
+    if (!manualRounds.length || !templates.length) return
+    setRoundTemplateSelections((current) => {
+      const next = { ...current }
+      for (const round of manualRounds) {
+        if (!next[round.id] || !templates.some((template) => template.id === next[round.id])) {
+          next[round.id] = templates[0]?.id ?? ""
+        }
+      }
+      for (const roundId of Object.keys(next)) {
+        if (!manualRounds.some((round) => round.id === roundId)) delete next[roundId]
+      }
+      return next
+    })
+  }, [manualRounds, templates])
+
+  useEffect(() => {
     if (!roomCode) return
 
     let cancelled = false
@@ -993,6 +1012,58 @@ export default function HostPage() {
         roundIndex === index ? { ...round, packIds: [...previous.packIds] } : round
       )
     })
+  }
+
+  function openManualRoundPackPicker(roundId: string) {
+    setPackPickerSearch("")
+    setPackPickerRoundId(roundId)
+  }
+
+  function applyTemplateToManualRound(roundId: string, templateId: string) {
+    const template = templates.find((item) => item.id === templateId)
+    if (!template) return
+    const selectionRules = normaliseSelectionRules(template.selection_rules)
+    const defaultPackIds = normaliseDefaultPackIds(template.default_pack_ids)
+    const behaviourType: RoundBehaviourType =
+      String(template.behaviour_type ?? "standard") === "quickfire"
+        ? "quickfire"
+        : String(template.behaviour_type ?? "standard") === "heads_up"
+          ? "heads_up"
+          : "standard"
+
+    setManualRounds((prev) =>
+      prev.map((round) => {
+        if (round.id !== roundId) return round
+        const nextSourceMode: RoundSourceMode =
+          behaviourType === "heads_up"
+            ? "specific_packs"
+            : String(template.source_mode ?? "selected_packs") === "all_questions"
+              ? "all_questions"
+              : "specific_packs"
+
+        return normaliseManualRoundDraft({
+          ...round,
+          name: String(template.name ?? "").trim() || round.name,
+          questionCountStr: behaviourType === "heads_up" ? round.questionCountStr : String(Math.max(1, Number(template.default_question_count ?? 5) || 5)),
+          behaviourType,
+          jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : Boolean(template.joker_eligible ?? true),
+          countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(template.counts_towards_score ?? true),
+          sourceMode: nextSourceMode,
+          packIds: nextSourceMode === "specific_packs" ? (defaultPackIds.length ? defaultPackIds : round.packIds) : [],
+          mediaType: selectionRules.mediaTypes?.[0] ?? "",
+          promptTarget: selectionRules.promptTargets?.[0] ?? "",
+          clueSource: selectionRules.clueSources?.[0] ?? "",
+          primaryShowKey: selectionRules.primaryShowKeys?.[0] ?? "",
+          audioClipType: selectionRules.audioClipTypes?.[0] ?? "",
+          headsUpDifficulty: "",
+          headsUpTvDisplayMode: "timer_only",
+          headsUpTurnSeconds: 60,
+          useTimingOverride: false,
+          answerSecondsStr: "",
+          roundReviewSecondsStr: "",
+        })
+      })
+    )
   }
 
   function addManualRoundFromTemplate(template: RoundTemplateRow) {
@@ -2156,9 +2227,11 @@ export default function HostPage() {
     feasibilityTone,
     describeManualRoundPackSummary,
     packNameById,
-    setPackPickerRoundId,
-    setPackPickerSearch,
+    openManualRoundPackPicker,
     copyManualRoundPacksFromPrevious,
+    roundTemplateSelections,
+    setRoundTemplateSelections,
+    applyTemplateToManualRound,
     roomStage,
     roomState,
     roomIsInfinite,
@@ -2238,7 +2311,7 @@ export default function HostPage() {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Host</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Create a room, share the code, and run the quiz.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Start a new game, share the room code, and run the quiz.</p>
         </div>
 
         <Link href="/" className="text-sm text-muted-foreground hover:underline">
@@ -2246,25 +2319,26 @@ export default function HostPage() {
         </Link>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-6">
           {!hasRoom ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Create a room</CardTitle>
+            <Card className={setupMode === "advanced" ? "border-0 bg-transparent" : undefined}>
+              <CardHeader className={setupMode === "advanced" ? "border-b-0 px-0 pb-4 pt-0" : undefined}>
+                <CardTitle>Start a new game</CardTitle>
+                <div className="mt-1 text-sm text-muted-foreground">{setupMode === "simple" ? "Use the guided path for a quick setup." : "Build on the left. Use the right side for your question pool and recovery tools."}</div>
               </CardHeader>
 
-              <CardContent className="space-y-4">
+              <CardContent className={setupMode === "advanced" ? "space-y-6 px-0 py-0" : "space-y-4"}>
                 <div className="rounded-2xl border border-border p-3">
-                  <div className="text-sm font-semibold text-foreground">Game</div>
+                  <div className="text-sm font-semibold text-foreground">Game basics</div>
 
                   <div className="mt-3 grid gap-3 sm:grid-cols-3">
                     <div>
                       <div className="text-sm font-medium text-foreground">Mode</div>
-                      <select value={gameMode} onChange={(e) => setGameMode(e.target.value as GameMode)} className="mt-1 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                      <SelectControl value={gameMode} onChange={(e) => setGameMode(e.target.value as GameMode)} className="mt-1">
                         <option value="teams">Teams</option>
                         <option value="solo">No teams</option>
-                      </select>
+                      </SelectControl>
                       <div className="mt-1 text-xs text-muted-foreground">One phone per person.</div>
                     </div>
 
@@ -2309,7 +2383,7 @@ export default function HostPage() {
                 <div className="rounded-2xl border border-border p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-semibold text-foreground">Setup</div>
+                      <div className="text-sm font-semibold text-foreground">Choose setup path</div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {setupMode === "simple"
                           ? "Quick host flow for automatic quiz setup, quick Heads Up, or one continuous Infinite run."
@@ -2334,13 +2408,20 @@ export default function HostPage() {
                   </div>
                 </div>
 
+                {setupMode === "advanced" ? (
+                  <div className="rounded-2xl border border-border bg-card p-4">
+                    <div className="text-sm font-semibold text-foreground">Advanced setup</div>
+                    <div className="mt-1 text-sm text-muted-foreground">Choose a build method, then work in the matching builder below. The right side is for question-pool support, not the main workflow.</div>
+                  </div>
+                ) : null}
+
                 {setupMode === "simple" ? <SimpleSetup {...simpleSetupProps} /> : <AdvancedSetup {...advancedSetupProps} />}
 
                 {createError ? <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{createError}</div> : null}
                 {!createError && activeCreateBlockReason ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">{activeCreateBlockReason}</div> : null}
               </CardContent>
 
-              <CardFooter className="flex items-center justify-between gap-3">
+              <CardFooter className={setupMode === "advanced" ? "flex flex-col items-stretch gap-3 border-t-0 px-0 pt-2 sm:flex-row sm:items-center sm:justify-between" : "flex items-center justify-between gap-3"}>
                 <div className="text-sm text-muted-foreground">
                   {setupMode === "simple"
                     ? simpleFeasibilityBusy
@@ -2387,89 +2468,55 @@ export default function HostPage() {
             <>
               <ResumeHostingCard rehostCode={rehostCode} setRehostCode={setRehostCode} cleanRoomCode={cleanRoomCode} rehostError={rehostError} rehostBusy={rehostBusy} rehostRoom={rehostRoom} />
 
-              {buildMode === "manual_rounds" ? (
-                <Card className="lg:sticky lg:top-4 self-start">
-                  <CardHeader>
-                    <CardTitle>Game preview</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4 text-sm">
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                      <div className="rounded-xl border border-border bg-card px-3 py-2">
-                        <div className="text-xs uppercase tracking-wide text-muted-foreground">Rounds</div>
-                        <div className="mt-1 text-lg font-semibold text-foreground">{manualRounds.length}</div>
-                      </div>
-                      <div className="rounded-xl border border-border bg-card px-3 py-2">
-                        <div className="text-xs uppercase tracking-wide text-muted-foreground">Questions</div>
-                        <div className="mt-1 text-lg font-semibold text-foreground">{manualRoundsTotal}</div>
-                      </div>
-                      <div className="rounded-xl border border-border bg-card px-3 py-2">
-                        <div className="text-xs uppercase tracking-wide text-muted-foreground">Chosen-pack rounds</div>
-                        <div className="mt-1 text-lg font-semibold text-foreground">{manualRoundsWithChosenPacksCount}</div>
-                      </div>
-                      <div className="rounded-xl border border-border bg-card px-3 py-2">
-                        <div className="text-xs uppercase tracking-wide text-muted-foreground">All-pack rounds</div>
-                        <div className="mt-1 text-lg font-semibold text-foreground">{manualRoundsUsingAllQuestionsCount}</div>
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-border bg-background px-3 py-3 text-sm text-muted-foreground">
-                      Pack choices now belong to each round. Use <span className="font-medium text-foreground">Choose packs</span> inside a round card when you want a custom source.
-                    </div>
-                    {manualFeasibility ? (
-                      <div className="rounded-xl border border-border bg-background px-3 py-3 text-sm text-muted-foreground">
-                        <div className="font-medium text-foreground">Availability</div>
-                        <div className="mt-1">{manualFeasibility.summary.explanation.summary}</div>
-                        {manualFeasibility.summary.explanation.detail ? <div className="mt-1 text-xs">{manualFeasibility.summary.explanation.detail}</div> : null}
-                      </div>
-                    ) : null}
-                  </CardContent>
-                </Card>
-              ) : selectPacks ? (
-                <Card className="lg:sticky lg:top-4 self-start">
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <CardTitle>Packs</CardTitle>
-                        <div className="mt-1 text-sm text-muted-foreground">Choose which packs to include.</div>
-                      </div>
-                      <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedPackCount} selected</div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3 max-h-[70vh] overflow-y-auto">
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="secondary" onClick={() => setAllSelected(true)}>Select all</Button>
-                      <Button variant="secondary" onClick={() => setAllSelected(false)}>Clear</Button>
-                      {buildMode === "legacy_pack_mode" ? (
-                        <div className="ml-auto flex items-center gap-2">
-                          <div className="text-sm text-muted-foreground">Strategy</div>
-                          <select value={selectionStrategy} onChange={(e) => setSelectionStrategy(e.target.value as SelectionStrategy)} className="rounded-xl border border-border bg-card px-3 py-2 text-sm">
-                            <option value="all_packs">Mix all selected packs</option>
-                            <option value="per_pack">Set counts per pack</option>
-                          </select>
+              {setupMode === "advanced" && buildMode !== "manual_rounds" ? (
+                selectPacks ? (
+                  <Card className="lg:sticky lg:top-4 self-start">
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <CardTitle>Packs</CardTitle>
+                          <div className="mt-1 text-sm text-muted-foreground">Choose which packs this build should use.</div>
                         </div>
-                      ) : null}
-                    </div>
-                    <div className="grid gap-2">
-                      {packs.map((pack) => (
-                        <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
-                          <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
-                          <span className="min-w-0 flex-1 text-sm">{pack.display_name}</span>
-                          {buildMode === "legacy_pack_mode" && selectionStrategy === "per_pack" && selectedPacks[pack.id] ? (
-                            <input value={perPackCounts[pack.id] ?? ""} onChange={(e) => setPerPackCounts((prev) => ({ ...prev, [pack.id]: e.target.value }))} inputMode="numeric" placeholder="Count" className="w-24 rounded-xl border border-border bg-card px-3 py-2 text-sm" />
-                          ) : null}
-                        </label>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardHeader><CardTitle>Packs</CardTitle></CardHeader>
-                  <CardContent className="space-y-2 text-sm text-muted-foreground">
-                    <div>You are currently using all active packs.</div>
-                    <div>Tick Select packs on the left if you want to choose specific packs.</div>
-                  </CardContent>
-                </Card>
-              )}
+                        <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{selectedPackCount} selected</div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3 max-h-[70vh] overflow-y-auto">
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="secondary" onClick={() => setAllSelected(true)}>Select all</Button>
+                        <Button variant="secondary" onClick={() => setAllSelected(false)}>Clear</Button>
+                        {buildMode === "legacy_pack_mode" ? (
+                          <div className="ml-auto flex items-center gap-2">
+                            <div className="text-sm text-muted-foreground">Strategy</div>
+                            <SelectControl value={selectionStrategy} onChange={(e) => setSelectionStrategy(e.target.value as SelectionStrategy)} className="rounded-xl border border-border bg-card px-3 py-2 text-sm">
+                              <option value="all_packs">Mix all selected packs</option>
+                              <option value="per_pack">Set counts per pack</option>
+                            </SelectControl>
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="grid gap-2">
+                        {packs.map((pack) => (
+                          <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+                            <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
+                            <span className="min-w-0 flex-1 text-sm">{pack.display_name}</span>
+                            {buildMode === "legacy_pack_mode" && selectionStrategy === "per_pack" && selectedPacks[pack.id] ? (
+                              <input value={perPackCounts[pack.id] ?? ""} onChange={(e) => setPerPackCounts((prev) => ({ ...prev, [pack.id]: e.target.value }))} inputMode="numeric" placeholder="Count" className="w-24 rounded-xl border border-border bg-card px-3 py-2 text-sm" />
+                            ) : null}
+                          </label>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardHeader><CardTitle>Packs</CardTitle></CardHeader>
+                    <CardContent className="space-y-2 text-sm text-muted-foreground">
+                      <div>You are currently using all active packs.</div>
+                      <div>Tick Select packs on the left if you want to choose specific packs.</div>
+                    </CardContent>
+                  </Card>
+                )
+              ) : null}
             </>
           ) : (
             <>
