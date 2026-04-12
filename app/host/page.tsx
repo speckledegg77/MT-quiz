@@ -572,10 +572,10 @@ function roundBehaviourLabel(behaviourType: RoundBehaviourType) {
 
 function roundBehaviourBadgeClass(behaviourType: RoundBehaviourType) {
   return behaviourType === "quickfire"
-    ? "border-violet-500/40 bg-violet-600/10 text-violet-200"
+    ? "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-500/40 dark:bg-violet-600/10 dark:text-violet-200"
     : behaviourType === "heads_up"
-      ? "border-amber-500/40 bg-amber-600/10 text-amber-200"
-      : "border-emerald-500/40 bg-emerald-600/10 text-emerald-200"
+      ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-600/10 dark:text-amber-200"
+      : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-600/10 dark:text-emerald-200"
 }
 
 function roundBehaviourSummary(behaviourType: RoundBehaviourType) {
@@ -2330,7 +2330,10 @@ export default function HostPage() {
 
               <CardContent className={setupMode === "advanced" ? "space-y-6 px-0 py-0" : "space-y-4"}>
                 <div className="rounded-2xl border border-border p-3">
-                  <div className="text-sm font-semibold text-foreground">Game basics</div>
+                  <div className="flex items-center gap-2">
+                    {setupMode === "simple" ? <span className="rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">1</span> : null}
+                    <div className="text-sm font-semibold text-foreground">Game basics</div>
+                  </div>
 
                   <div className="mt-3 grid gap-3 sm:grid-cols-3">
                     <div>
@@ -2383,7 +2386,10 @@ export default function HostPage() {
                 <div className="rounded-2xl border border-border p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm font-semibold text-foreground">Choose setup path</div>
+                      <div className="flex items-center gap-2">
+                        {setupMode === "simple" ? <span className="rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-muted-foreground">2</span> : null}
+                        <div className="text-sm font-semibold text-foreground">Choose setup path</div>
+                      </div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {setupMode === "simple"
                           ? "Quick host flow for automatic quiz setup, quick Heads Up, or one continuous Infinite run."

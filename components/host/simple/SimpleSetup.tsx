@@ -78,7 +78,7 @@ export default function SimpleSetup(props: any) {
               Pick what sort of session you want to run. Recommended builds a full quiz for you, Heads Up starts a clueing game, and Infinite runs one long stream without round setup.
             </div>
           </div>
-          <div className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-sky-400/50 bg-gradient-to-r from-sky-500/20 to-cyan-500/20 px-3 py-1 text-sm font-semibold leading-none text-sky-100 shadow-sm shadow-sky-950/20">
+          <div className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-semibold leading-none text-sky-700 shadow-sm dark:border-sky-500/40 dark:bg-sky-600/10 dark:text-sky-200">
             {simpleGameType === "infinite"
               ? simpleFeasibilityBusy
                 ? "Checking..."
