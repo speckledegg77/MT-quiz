@@ -267,7 +267,7 @@ export default function AdvancedSetup(props: any) {
                     <Button variant="ghost" onClick={() => removeManualRound(round.id)} disabled={manualRounds.length <= 1}>Remove</Button>
                   </div>
 
-                  <div className="mt-3 rounded-xl border border-border bg-background p-3">
+                  <div className="mt-3 rounded-xl border border-border/70 bg-background/40 p-3">
                     <div className="flex flex-wrap items-end gap-2">
                       <div className="min-w-[220px] flex-1">
                         <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Template for this round</div>
@@ -297,7 +297,7 @@ export default function AdvancedSetup(props: any) {
                     </div>
                     <div>
                       <div className="text-sm font-medium text-foreground">Behaviour</div>
-                      <SelectControl variant="advanced" value={round.behaviourType} onChange={(e) => updateManualRound(round.id, { behaviourType: e.target.value as "standard" | "quickfire" | "heads_up" })} className="mt-1">
+                      <SelectControl variant="advanced" compact value={round.behaviourType} onChange={(e) => updateManualRound(round.id, { behaviourType: e.target.value as "standard" | "quickfire" | "heads_up" })} className="mt-1">
                         {ROUND_BEHAVIOUR_OPTIONS.map((option: { value: string; label: string }) => <option key={option.value} value={option.value}>{option.label}</option>)}
                       </SelectControl>
                       <div className="mt-1 text-xs text-muted-foreground">{getManualRoundTimingSummary(round)}</div>
@@ -308,26 +308,26 @@ export default function AdvancedSetup(props: any) {
                     <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       <div>
                         <div className="text-sm font-medium text-foreground">Heads Up pack</div>
-                        <SelectControl variant="advanced" value={round.packIds[0] ?? ""} onChange={(e) => updateManualRound(round.id, { packIds: e.target.value ? [e.target.value] : [] })} className="mt-1">
+                        <SelectControl variant="advanced" compact value={round.packIds[0] ?? ""} onChange={(e) => updateManualRound(round.id, { packIds: e.target.value ? [e.target.value] : [] })} className="mt-1">
                           <option value="">Choose one pack</option>
                           {headsUpPacks.map((pack: { id: string; name: string }) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
                         </SelectControl>
                       </div>
                       <div>
                         <div className="text-sm font-medium text-foreground">Difficulty</div>
-                        <SelectControl variant="advanced" value={round.headsUpDifficulty} onChange={(e) => updateManualRound(round.id, { headsUpDifficulty: e.target.value as "" | "easy" | "medium" | "hard" })} className="mt-1">
+                        <SelectControl variant="advanced" compact value={round.headsUpDifficulty} onChange={(e) => updateManualRound(round.id, { headsUpDifficulty: e.target.value as "" | "easy" | "medium" | "hard" })} className="mt-1">
                           {HEADS_UP_DIFFICULTY_OPTIONS.map((option: { value: string; label: string }) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
                         </SelectControl>
                       </div>
                       <div>
                         <div className="text-sm font-medium text-foreground">Turn length</div>
-                        <SelectControl variant="advanced" value={String(round.headsUpTurnSeconds)} onChange={(e) => updateManualRound(round.id, { headsUpTurnSeconds: e.target.value === "90" ? 90 : 60 })} className="mt-1">
+                        <SelectControl variant="advanced" compact value={String(round.headsUpTurnSeconds)} onChange={(e) => updateManualRound(round.id, { headsUpTurnSeconds: e.target.value === "90" ? 90 : 60 })} className="mt-1">
                           {HEADS_UP_TURN_OPTIONS.map((option: { value: number; label: string }) => <option key={option.value} value={option.value}>{option.label}</option>)}
                         </SelectControl>
                       </div>
                       <div>
                         <div className="text-sm font-medium text-foreground">TV display</div>
-                        <SelectControl variant="advanced" value={round.headsUpTvDisplayMode} onChange={(e) => updateManualRound(round.id, { headsUpTvDisplayMode: e.target.value as "show_clue" | "timer_only" })} className="mt-1">
+                        <SelectControl variant="advanced" compact value={round.headsUpTvDisplayMode} onChange={(e) => updateManualRound(round.id, { headsUpTvDisplayMode: e.target.value as "show_clue" | "timer_only" })} className="mt-1">
                           {HEADS_UP_TV_DISPLAY_OPTIONS.map((option: { value: string; label: string }) => <option key={option.value} value={option.value}>{option.label}</option>)}
                         </SelectControl>
                       </div>
