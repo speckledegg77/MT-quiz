@@ -5,6 +5,11 @@ import { useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetSt
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import {
+  buildRoundTemplatePresentation,
+  templateMatchesFilters,
+  type RoundTemplateListFilters,
+} from "@/lib/roundTemplateSummary"
+import {
   normaliseDefaultPackIds,
   normaliseSelectionRules,
   type RoundTemplateBehaviourType,
@@ -117,6 +122,13 @@ const CLUE_SOURCE_OPTIONS = [
   { value: "prop_image", label: "prop_image" },
 ]
 
+const DEFAULT_LIST_FILTERS: RoundTemplateListFilters = {
+  active: "all",
+  behaviour: "all",
+  answerType: "all",
+  mediaType: "all",
+}
+
 function buildAdminHeaders(token: string) {
   return {
     "x-admin-token": token.trim(),
@@ -224,16 +236,6 @@ function ruleSummary(editor: TemplateEditorState) {
   return parts.length ? parts.join(" · ") : "No filters"
 }
 
-function countSelectedRules(editor: TemplateEditorState) {
-  return (
-    editor.mediaTypes.length +
-    editor.promptTargets.length +
-    editor.clueSources.length +
-    editor.primaryShowKeys.length +
-    editor.audioClipTypes.length
-  )
-}
-
 function packSummary(editor: TemplateEditorState, packs: PackOption[]) {
   if (!editor.defaultPackIds.length) return "No default packs"
   const labels = packs
@@ -298,6 +300,47 @@ function SectionCard({
   )
 }
 
+function FilterChipGroup<T extends string>({
+  title,
+  value,
+  options,
+  onChange,
+}: {
+  title: string
+  value: T
+  options: Array<{ value: T; label: string }>
+  onChange: (next: T) => void
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{title}</div>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => {
+          const selected = option.value === value
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onChange(option.value)}
+              className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${selected ? "border-foreground bg-foreground text-background" : "border-border bg-card text-muted-foreground hover:bg-muted/50 hover:text-foreground"}`}
+            >
+              {option.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function SummaryChip({ children }: { children: ReactNode }) {
+  return (
+    <span className="rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[11px] text-foreground">
+      {children}
+    </span>
+  )
+}
+
 export function RoundTemplatesDashboard() {
   const [token, setToken] = useState("")
   const cleanToken = token.trim()
@@ -306,6 +349,7 @@ export function RoundTemplatesDashboard() {
   const [templates, setTemplates] = useState<RoundTemplateRow[]>([])
   const [packs, setPacks] = useState<PackOption[]>([])
   const [shows, setShows] = useState<ShowOption[]>([])
+  const [listFilters, setListFilters] = useState<RoundTemplateListFilters>(DEFAULT_LIST_FILTERS)
 
   const [listBusy, setListBusy] = useState(false)
   const [listError, setListError] = useState("")
@@ -580,6 +624,9 @@ export function RoundTemplatesDashboard() {
     }
   }
 
+  const packLabelById = useMemo(() => new Map(packs.map((pack) => [pack.id, pack.label] as const)), [packs])
+  const showNameByKey = useMemo(() => new Map(shows.map((show) => [show.show_key, show.display_name] as const)), [shows])
+
   const filteredTemplates = useMemo(() => {
     const needle = search.trim().toLowerCase()
     const sorted = [...templates].sort((a, b) => {
@@ -587,23 +634,26 @@ export function RoundTemplatesDashboard() {
       return a.name.localeCompare(b.name)
     })
 
-    if (!needle) return sorted
-
     return sorted.filter((template) => {
-      const defaultPackIds = normaliseDefaultPackIds(template.default_pack_ids).join(" ").toLowerCase()
-
-      return (
-        template.name.toLowerCase().includes(needle) ||
-        String(template.description ?? "").toLowerCase().includes(needle) ||
-        defaultPackIds.includes(needle)
-      )
+      if (!templateMatchesFilters(template, listFilters)) return false
+      if (!needle) return true
+      const summary = buildRoundTemplatePresentation(template, { packLabelById, showNameByKey })
+      return summary.searchText.includes(needle)
     })
-  }, [templates, search])
+  }, [listFilters, packLabelById, search, showNameByKey, templates])
 
   const selectedTemplate = useMemo(
     () => filteredTemplates.find((template) => template.id === selectedTemplateId) ?? templates.find((template) => template.id === selectedTemplateId) ?? null,
     [filteredTemplates, selectedTemplateId, templates]
   )
+
+  const selectedTemplateSummary = useMemo(
+    () => selectedTemplate ? buildRoundTemplatePresentation(selectedTemplate, { packLabelById, showNameByKey }) : null,
+    [packLabelById, selectedTemplate, showNameByKey]
+  )
+
+  const activeCount = templates.filter((template) => template.is_active).length
+  const inactiveCount = templates.length - activeCount
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(360px,1fr)_minmax(420px,1fr)] xl:items-start">
@@ -631,10 +681,56 @@ export function RoundTemplatesDashboard() {
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search round templates"
+                placeholder="Search round templates, families, shows, rules, or packs"
                 className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
               />
               <Button onClick={() => loadTemplates()}>Load templates</Button>
+            </div>
+
+            <div className="grid gap-3 rounded-lg border border-border bg-muted/20 p-3 md:grid-cols-2">
+              <FilterChipGroup
+                title="Status"
+                value={listFilters.active}
+                options={[
+                  { value: "all", label: `All (${templates.length})` },
+                  { value: "active", label: `Active (${activeCount})` },
+                  { value: "inactive", label: `Inactive (${inactiveCount})` },
+                ]}
+                onChange={(next) => setListFilters((current) => ({ ...current, active: next }))}
+              />
+              <FilterChipGroup
+                title="Behaviour"
+                value={listFilters.behaviour}
+                options={[
+                  { value: "all", label: "All" },
+                  { value: "standard", label: "Standard" },
+                  { value: "quickfire", label: "Quickfire" },
+                ]}
+                onChange={(next) => setListFilters((current) => ({ ...current, behaviour: next }))}
+              />
+              <FilterChipGroup
+                title="Answer"
+                value={listFilters.answerType}
+                options={[
+                  { value: "all", label: "All" },
+                  { value: "mcq", label: "MCQ" },
+                  { value: "text", label: "Text" },
+                  { value: "any", label: "No filter" },
+                ]}
+                onChange={(next) => setListFilters((current) => ({ ...current, answerType: next }))}
+              />
+              <FilterChipGroup
+                title="Media"
+                value={listFilters.mediaType}
+                options={[
+                  { value: "all", label: "All" },
+                  { value: "text", label: "Text" },
+                  { value: "audio", label: "Audio" },
+                  { value: "image", label: "Image" },
+                  { value: "any", label: "No filter" },
+                ]}
+                onChange={(next) => setListFilters((current) => ({ ...current, mediaType: next }))}
+              />
             </div>
 
             <div className="text-sm text-muted-foreground">
@@ -659,11 +755,11 @@ export function RoundTemplatesDashboard() {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {selectedTemplate ? (
+            {selectedTemplate && selectedTemplateSummary ? (
               <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm">
                 <div className="font-medium">Selected: {selectedTemplate.name}</div>
                 <div className="mt-1 text-xs text-muted-foreground">
-                  {selectedTemplate.default_question_count} questions · {selectedTemplate.behaviour_type} · {selectedTemplate.source_mode}
+                  Family {selectedTemplateSummary.familyName} · Variant {selectedTemplateSummary.variantLabel} · {selectedTemplateSummary.behaviourLabel}
                 </div>
               </div>
             ) : null}
@@ -672,12 +768,14 @@ export function RoundTemplatesDashboard() {
               <div className="text-sm text-muted-foreground">Loading round templates…</div>
             ) : filteredTemplates.length === 0 ? (
               <div className="text-sm text-muted-foreground">
-                No round templates loaded yet. Enter your token, then click Load templates.
+                No round templates match the current search and filter set.
               </div>
             ) : (
               <div className="space-y-2">
                 {filteredTemplates.map((template) => {
                   const isSelected = template.id === selectedTemplateId
+                  const summary = buildRoundTemplatePresentation(template, { packLabelById, showNameByKey })
+
                   return (
                     <button
                       key={template.id}
@@ -695,22 +793,18 @@ export function RoundTemplatesDashboard() {
                       }`}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <div className="font-medium">{template.name}</div>
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            {template.default_question_count} questions · {template.behaviour_type} · {template.source_mode}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="font-medium text-foreground">{template.name}</div>
+                            <SummaryChip>{summary.behaviourLabel}</SummaryChip>
+                            <SummaryChip>{summary.answerTypeLabel}</SummaryChip>
+                            <SummaryChip>{summary.mediaTypeLabel}</SummaryChip>
                           </div>
                           <div className="mt-1 text-xs text-muted-foreground">
-                            {template.default_answer_seconds == null
-                              ? `Answer: ${getDefaultAnswerSecondsForBehaviour(template.behaviour_type)}s default`
-                              : `Answer: ${template.default_answer_seconds}s`}
-                            {" · "}
-                            {template.default_round_review_seconds == null
-                              ? `Round review: ${getDefaultRoundReviewSecondsForBehaviour(template.behaviour_type)}s default`
-                              : `Round review: ${template.default_round_review_seconds}s`}
+                            Family {summary.familyName} · Variant {summary.variantLabel} · {summary.sourceModeLabel}
                           </div>
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className={`rounded-full px-2 py-0.5 text-[11px] ${template.is_active ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200" : "bg-muted text-muted-foreground"}`}>
                           {template.is_active ? "Active" : "Inactive"}
                         </div>
                       </div>
@@ -718,6 +812,26 @@ export function RoundTemplatesDashboard() {
                       {template.description ? (
                         <div className="mt-2 text-sm text-muted-foreground">{template.description}</div>
                       ) : null}
+
+                      <div className="mt-3 grid gap-1 text-xs text-muted-foreground">
+                        <div>
+                          <span className="font-medium text-foreground">Rules:</span> {summary.promptTargetLabel} · {summary.clueSourceLabel} · {summary.showLabel}
+                        </div>
+                        <div>
+                          <span className="font-medium text-foreground">Pack scope:</span> {summary.packScopeLabel}
+                        </div>
+                        {summary.mediaTypeLabel.includes("Audio") || summary.audioClipTypeLabel !== "Any audio clip" ? (
+                          <div>
+                            <span className="font-medium text-foreground">Audio:</span> {summary.audioClipTypeLabel}
+                          </div>
+                        ) : null}
+                        <div>
+                          <span className="font-medium text-foreground">Timing:</span> {summary.timingLabel}
+                        </div>
+                        <div>
+                          <span className="font-medium text-foreground">Scoring:</span> {summary.scoringLabel}
+                        </div>
+                      </div>
                     </button>
                   )
                 })}
