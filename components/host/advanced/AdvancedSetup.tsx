@@ -9,6 +9,17 @@ type PackOption = { id: string; display_name: string }
 type TemplateOption = { id: string; name: string; default_question_count?: number }
 type ShowOption = { show_key: string; display_name: string }
 
+const MEDIA_TYPE_OPTIONS = [
+  { value: "text", label: "Text" },
+  { value: "audio", label: "Audio" },
+  { value: "image", label: "Image" },
+]
+
+const ANSWER_TYPE_OPTIONS = [
+  { value: "mcq", label: "MCQ" },
+  { value: "text", label: "Text" },
+]
+
 type Explanation = { tone: string; summary: string; detail?: string | null; fallback?: string | null }
 type FeasibilityResult = {
   id: string
@@ -25,32 +36,104 @@ function formatMetadataToken(value: string) {
     .join(" ")
 }
 
+function describeTokenSelection(values: string[], singularLabel: string) {
+  if (!values.length) return ""
+  if (values.length <= 2) return values.map(formatMetadataToken).join(" + ")
+  return `${values.length} ${singularLabel}${values.length === 1 ? "" : "s"}`
+}
+
+function describeShowSelection(showKeys: string[], showNameByKey: Map<string, string>) {
+  if (!showKeys.length) return ""
+  if (showKeys.length === 1) return showNameByKey.get(showKeys[0]) ?? showKeys[0]
+  return `${showKeys.length} shows`
+}
+
 function buildManualRoundFilterSummary(round: any, showNameByKey: Map<string, string>) {
   if (round.behaviourType === "heads_up") {
     const parts: string[] = []
     if (round.headsUpDifficulty) parts.push(`Difficulty: ${formatMetadataToken(round.headsUpDifficulty)}`)
-    if (round.primaryShowKey) parts.push(`Show: ${showNameByKey.get(round.primaryShowKey) ?? round.primaryShowKey}`)
+    if (round.primaryShowKeys?.length) parts.push(`Show: ${describeShowSelection(round.primaryShowKeys, showNameByKey)}`)
     return parts
   }
 
   const parts: string[] = []
-  if (round.mediaType) parts.push(`Media: ${formatMetadataToken(round.mediaType)}`)
-  if (round.promptTarget) parts.push(`Prompt: ${formatMetadataToken(round.promptTarget)}`)
-  if (round.clueSource) parts.push(`Clue: ${formatMetadataToken(round.clueSource)}`)
-  if (round.primaryShowKey) parts.push(`Show: ${showNameByKey.get(round.primaryShowKey) ?? round.primaryShowKey}`)
-  if (round.audioClipType) parts.push(`Audio clip: ${formatMetadataToken(round.audioClipType)}`)
+  const mediaSummary = describeTokenSelection(round.mediaTypes ?? [], "media type")
+  const answerSummary = Array.isArray(round.answerTypes) && round.answerTypes.length
+    ? round.answerTypes.map((value: string) => value.toUpperCase()).join(" + ")
+    : ""
+  const promptSummary = describeTokenSelection(round.promptTargets ?? [], "prompt target")
+  const clueSummary = describeTokenSelection(round.clueSources ?? [], "clue source")
+  const showSummary = describeShowSelection(round.primaryShowKeys ?? [], showNameByKey)
+  const audioClipSummary = describeTokenSelection(round.audioClipTypes ?? [], "audio clip type")
+
+  if (mediaSummary) parts.push(`Media: ${mediaSummary}`)
+  if (answerSummary) parts.push(`Answer: ${answerSummary}`)
+  if (promptSummary) parts.push(`Prompt: ${promptSummary}`)
+  if (clueSummary) parts.push(`Clue: ${clueSummary}`)
+  if (showSummary) parts.push(`Show: ${showSummary}`)
+  if (audioClipSummary) parts.push(`Audio clip: ${audioClipSummary}`)
   return parts
 }
 
 function countManualRoundFilters(round: any) {
   let count = 0
-  if (round.mediaType) count += 1
-  if (round.promptTarget) count += 1
-  if (round.clueSource) count += 1
-  if (round.primaryShowKey) count += 1
-  if (round.audioClipType) count += 1
+  if (round.mediaTypes?.length) count += 1
+  if (round.answerTypes?.length) count += 1
+  if (round.promptTargets?.length) count += 1
+  if (round.clueSources?.length) count += 1
+  if (round.primaryShowKeys?.length) count += 1
+  if (round.audioClipTypes?.length) count += 1
   if (round.behaviourType === "heads_up" && round.headsUpDifficulty) count += 1
   return count
+}
+
+function InlineChipMultiSelectField({
+  title,
+  values,
+  options,
+  onToggle,
+  onClear,
+  description,
+}: {
+  title: string
+  values: string[]
+  options: Array<{ value: string; label: string; disabled?: boolean }>
+  onToggle: (value: string) => void
+  onClear: () => void
+  description?: string
+}) {
+  const activeCount = values.length
+  return (
+    <div className="rounded-xl border border-border bg-background p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</div>
+          <div className="mt-1 text-xs text-muted-foreground">{description ?? (activeCount > 0 ? `${activeCount} selected` : "No restriction")}</div>
+        </div>
+        {activeCount > 0 ? (
+          <button type="button" onClick={onClear} className="rounded-full border border-border px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+            Clear
+          </button>
+        ) : null}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {options.map((option) => {
+          const selected = values.includes(option.value)
+          return (
+            <button
+              key={option.value}
+              type="button"
+              disabled={option.disabled}
+              onClick={() => onToggle(option.value)}
+              className={`rounded-full border px-3 py-1 text-xs transition-colors ${selected ? "border-foreground bg-muted text-foreground" : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"} ${option.disabled ? "cursor-not-allowed opacity-40" : ""}`}
+            >
+              {option.label}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 export default function AdvancedSetup(props: any) {
@@ -384,40 +467,68 @@ export default function AdvancedSetup(props: any) {
                         <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{filterCount > 0 ? `${filterCount} active` : "Show"}</div>
                       </summary>
                       <div className="border-t border-border p-3">
-                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                          <div>
-                            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Media</div>
-                            <SelectControl variant="advanced" value={round.mediaType} onChange={(e) => updateManualRound(round.id, { mediaType: e.target.value as "" | "text" | "audio" | "image" })} className="mt-1" compact>
-                              <option value="">Any media</option>
-                              <option value="text">text</option>
-                              <option value="audio">audio</option>
-                              <option value="image">image</option>
-                            </SelectControl>
-                          </div>
+                        <div className="grid gap-3 lg:grid-cols-2">
+                          <InlineChipMultiSelectField
+                            title="media_type"
+                            values={round.mediaTypes ?? []}
+                            options={MEDIA_TYPE_OPTIONS}
+                            onToggle={(value) => {
+                              const current = Array.isArray(round.mediaTypes) ? round.mediaTypes : []
+                              const next = current.includes(value) ? current.filter((item: string) => item !== value) : [...current, value]
+                              updateManualRound(round.id, {
+                                mediaTypes: next,
+                                audioClipTypes: next.includes("audio") ? round.audioClipTypes ?? [] : [],
+                              })
+                            }}
+                            onClear={() => updateManualRound(round.id, { mediaTypes: [], audioClipTypes: [] })}
+                            description="Within a field, selected values behave as OR."
+                          />
+
+                          <InlineChipMultiSelectField
+                            title="answer_type"
+                            values={round.answerTypes ?? []}
+                            options={ANSWER_TYPE_OPTIONS.map((option) => ({
+                              ...option,
+                              disabled: round.behaviourType === "quickfire" && option.value === "text",
+                            }))}
+                            onToggle={(value) => {
+                              if (round.behaviourType === "quickfire" && value === "text") return
+                              const current = Array.isArray(round.answerTypes) ? round.answerTypes : []
+                              const next = current.includes(value) ? current.filter((item: string) => item !== value) : [...current, value]
+                              updateManualRound(round.id, { answerTypes: next })
+                            }}
+                            onClear={() => updateManualRound(round.id, { answerTypes: round.behaviourType === "quickfire" ? ["mcq"] : [] })}
+                            description={round.behaviourType === "quickfire" ? "Quickfire is limited to MCQ." : "Leave clear for no answer-type restriction."}
+                          />
+
                           <div>
                             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Prompt target</div>
-                            <SelectControl variant="advanced" value={round.promptTarget} onChange={(e) => updateManualRound(round.id, { promptTarget: e.target.value })} className="mt-1" compact>
+                            <SelectControl variant="advanced" value={round.promptTargets?.[0] ?? ""} onChange={(e) => updateManualRound(round.id, { promptTargets: e.target.value ? [e.target.value] : [] })} className="mt-1" compact>
                               {PROMPT_TARGET_OPTIONS.map((option: { value: string; label: string }) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
                             </SelectControl>
+                            {round.promptTargets?.length > 1 ? <div className="mt-1 text-[11px] text-muted-foreground">Template keeps {round.promptTargets.length} prompt targets.</div> : null}
                           </div>
                           <div>
                             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Clue source</div>
-                            <SelectControl variant="advanced" value={round.clueSource} onChange={(e) => updateManualRound(round.id, { clueSource: e.target.value })} className="mt-1" compact>
+                            <SelectControl variant="advanced" value={round.clueSources?.[0] ?? ""} onChange={(e) => updateManualRound(round.id, { clueSources: e.target.value ? [e.target.value] : [] })} className="mt-1" compact>
                               {CLUE_SOURCE_OPTIONS.map((option: { value: string; label: string }) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
                             </SelectControl>
+                            {round.clueSources?.length > 1 ? <div className="mt-1 text-[11px] text-muted-foreground">Template keeps {round.clueSources.length} clue sources.</div> : null}
                           </div>
                           <div>
                             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Show</div>
-                            <SelectControl variant="advanced" value={round.primaryShowKey} onChange={(e) => updateManualRound(round.id, { primaryShowKey: e.target.value })} className="mt-1" compact>
+                            <SelectControl variant="advanced" value={round.primaryShowKeys?.[0] ?? ""} onChange={(e) => updateManualRound(round.id, { primaryShowKeys: e.target.value ? [e.target.value] : [] })} className="mt-1" compact>
                               <option value="">Any show</option>
                               {shows.map((show: ShowOption) => <option key={show.show_key} value={show.show_key}>{show.display_name}</option>)}
                             </SelectControl>
+                            {round.primaryShowKeys?.length > 1 ? <div className="mt-1 text-[11px] text-muted-foreground">Template keeps {round.primaryShowKeys.length} show filters.</div> : null}
                           </div>
                           <div>
                             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Audio clip</div>
-                            <SelectControl variant="advanced" value={round.audioClipType} onChange={(e) => updateManualRound(round.id, { audioClipType: e.target.value })} className="mt-1" compact disabled={round.mediaType !== "audio"}>
+                            <SelectControl variant="advanced" value={round.audioClipTypes?.[0] ?? ""} onChange={(e) => updateManualRound(round.id, { audioClipTypes: e.target.value ? [e.target.value] : [] })} className="mt-1" compact disabled={!Array.isArray(round.mediaTypes) || !round.mediaTypes.includes("audio")}>
                               {AUDIO_CLIP_TYPE_OPTIONS.map((option: { value: string; label: string }) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
                             </SelectControl>
+                            {round.audioClipTypes?.length > 1 ? <div className="mt-1 text-[11px] text-muted-foreground">Template keeps {round.audioClipTypes.length} audio clip filters.</div> : null}
                           </div>
                         </div>
                       </div>

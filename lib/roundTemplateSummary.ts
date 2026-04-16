@@ -217,14 +217,17 @@ export function templateMatchesFilters(
   if (filters.answerType !== "all") {
     const answerTypes = rules.answerTypes ?? []
     if (filters.answerType === "any" && answerTypes.length > 0) return false
-    if (filters.answerType === "mcq" && !(answerTypes.length === 1 && answerTypes[0] === "mcq")) return false
-    if (filters.answerType === "text" && !(answerTypes.length === 1 && answerTypes[0] === "text")) return false
+    if (filters.answerType === "mcq" && !answerTypes.includes("mcq")) return false
+    if (filters.answerType === "text" && !answerTypes.includes("text")) return false
   }
 
   if (filters.mediaType !== "all") {
     const mediaTypes = rules.mediaTypes ?? []
     if (filters.mediaType === "any" && mediaTypes.length > 0) return false
-    if (["text", "audio", "image"].includes(filters.mediaType) && !(mediaTypes.length === 1 && mediaTypes[0] === filters.mediaType)) {
+    if (
+      (filters.mediaType === "text" || filters.mediaType === "audio" || filters.mediaType === "image") &&
+      !mediaTypes.includes(filters.mediaType)
+    ) {
       return false
     }
   }

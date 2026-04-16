@@ -143,7 +143,7 @@ function buildSelectionRulesFromEditor(editor: TemplateEditorState) {
   const rules: Record<string, string[]> = {}
 
   if (editor.mediaTypes.length) rules.mediaTypes = editor.mediaTypes
-  if (editor.answerTypes.length === 1) rules.answerTypes = editor.answerTypes
+  if (editor.answerTypes.length) rules.answerTypes = editor.answerTypes
   if (editor.promptTargets.length) rules.promptTargets = editor.promptTargets
   if (editor.clueSources.length) rules.clueSources = editor.clueSources
   if (editor.primaryShowKeys.length) rules.primaryShowKeys = editor.primaryShowKeys
@@ -228,7 +228,7 @@ function editorFromTemplate(template: RoundTemplateRow): TemplateEditorState {
 function ruleSummary(editor: TemplateEditorState) {
   const parts: string[] = []
   if (editor.mediaTypes.length) parts.push(`media ${editor.mediaTypes.length}`)
-  if (editor.answerTypes.length === 1) parts.push(`answer ${editor.answerTypes[0]}`)
+  if (editor.answerTypes.length) parts.push(editor.answerTypes.length === 1 ? `answer ${editor.answerTypes[0]}` : `answers ${editor.answerTypes.map((value) => value.toUpperCase()).join(" + ")}`)
   if (editor.promptTargets.length) parts.push(`prompt ${editor.promptTargets.length}`)
   if (editor.clueSources.length) parts.push(`clue ${editor.clueSources.length}`)
   if (editor.primaryShowKeys.length) parts.push(`shows ${editor.primaryShowKeys.length}`)
@@ -1182,20 +1182,16 @@ function TemplateFields({
 
               <InlineChipMultiSelectField
                 title="answer_type"
-                values={editor.answerTypes.length === 2 ? [] : editor.answerTypes}
+                values={editor.answerTypes}
                 options={ANSWER_TYPE_OPTIONS.map((option) => ({
                   ...option,
                   disabled: option.value === "text" && editor.behaviourType === "quickfire",
                 }))}
                 onToggle={(value) =>
-                  setEditor((current) => {
-                    const next = toggleInArray(current.answerTypes, value)
-                    const compact = next.includes("mcq") && next.includes("text") ? [] : next
-                    return {
-                      ...current,
-                      answerTypes: current.behaviourType === "quickfire" ? ["mcq"] : compact,
-                    }
-                  })
+                  setEditor((current) => ({
+                    ...current,
+                    answerTypes: current.behaviourType === "quickfire" ? ["mcq"] : toggleInArray(current.answerTypes, value),
+                  }))
                 }
                 onClear={() =>
                   setEditor((current) => ({

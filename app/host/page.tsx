@@ -118,11 +118,12 @@ type ManualRoundDraft = {
   countsTowardsScore: boolean
   sourceMode: RoundSourceMode
   packIds: string[]
-  mediaType: "" | "text" | "audio" | "image"
-  promptTarget: string
-  clueSource: string
-  primaryShowKey: string
-  audioClipType: string
+  mediaTypes: Array<"text" | "audio" | "image">
+  answerTypes: Array<"mcq" | "text">
+  promptTargets: string[]
+  clueSources: string[]
+  primaryShowKeys: string[]
+  audioClipTypes: string[]
   headsUpDifficulty: "" | "easy" | "medium" | "hard"
   headsUpTvDisplayMode: "show_clue" | "timer_only"
   headsUpTurnSeconds: 60 | 90
@@ -248,9 +249,48 @@ function makeRoundId() {
   return `round_${Math.random().toString(36).slice(2, 10)}`
 }
 
+function cleanManualStringArray(values: string[] | undefined | null) {
+  return [...new Set((values ?? []).map((value) => String(value ?? "").trim()).filter(Boolean))]
+}
+
+function cleanManualMediaTypes(values: Array<"text" | "audio" | "image"> | string[] | undefined | null) {
+  return cleanManualStringArray(values).filter(
+    (value): value is "text" | "audio" | "image" => value === "text" || value === "audio" || value === "image"
+  )
+}
+
+function cleanManualAnswerTypes(values: Array<"mcq" | "text"> | string[] | undefined | null) {
+  return cleanManualStringArray(values).filter(
+    (value): value is "mcq" | "text" => value === "mcq" || value === "text"
+  )
+}
+
+function describeTokenSelection(values: string[], singularLabel: string) {
+  if (!values.length) return ""
+  if (values.length <= 2) return values.map(formatMetadataToken).join(" + ")
+  return `${values.length} ${singularLabel}${values.length === 1 ? "" : "s"}`
+}
+
+function describeShowSelection(showKeys: string[], showNameByKey: Map<string, string>) {
+  if (!showKeys.length) return ""
+  if (showKeys.length === 1) return showNameByKey.get(showKeys[0]) ?? showKeys[0]
+  return `${showKeys.length} shows`
+}
+
 function normaliseManualRoundDraft(draft: ManualRoundDraft): ManualRoundDraft {
   const behaviourType: RoundBehaviourType =
     draft.behaviourType === "quickfire" ? "quickfire" : draft.behaviourType === "heads_up" ? "heads_up" : "standard"
+  const mediaTypes: ManualRoundDraft["mediaTypes"] = behaviourType === "heads_up" ? [] : cleanManualMediaTypes(draft.mediaTypes)
+  const answerTypes: ManualRoundDraft["answerTypes"] = behaviourType === "heads_up"
+    ? []
+    : behaviourType === "quickfire"
+      ? ["mcq"]
+      : cleanManualAnswerTypes(draft.answerTypes)
+  const promptTargets = behaviourType === "heads_up" ? [] : cleanManualStringArray(draft.promptTargets)
+  const clueSources = behaviourType === "heads_up" ? [] : cleanManualStringArray(draft.clueSources)
+  const primaryShowKeys = cleanManualStringArray(draft.primaryShowKeys)
+  const audioClipTypes = behaviourType === "heads_up" || !mediaTypes.includes("audio") ? [] : cleanManualStringArray(draft.audioClipTypes)
+
   return {
     ...draft,
     behaviourType,
@@ -262,10 +302,12 @@ function normaliseManualRoundDraft(draft: ManualRoundDraft): ManualRoundDraft {
         : draft.sourceMode === "all_questions"
           ? "all_questions"
           : "specific_packs",
-    mediaType: behaviourType === "heads_up" ? "" : draft.mediaType,
-    promptTarget: behaviourType === "heads_up" ? "" : draft.promptTarget,
-    clueSource: behaviourType === "heads_up" ? "" : draft.clueSource,
-    audioClipType: behaviourType === "heads_up" ? "" : draft.audioClipType,
+    mediaTypes,
+    answerTypes,
+    promptTargets,
+    clueSources,
+    primaryShowKeys,
+    audioClipTypes,
     headsUpTvDisplayMode: behaviourType === "heads_up" ? draft.headsUpTvDisplayMode : "timer_only",
     headsUpTurnSeconds: behaviourType === "heads_up" ? draft.headsUpTurnSeconds : 60,
   }
@@ -281,11 +323,12 @@ function makeManualRound(index: number): ManualRoundDraft {
     countsTowardsScore: true,
     sourceMode: "specific_packs",
     packIds: [],
-    mediaType: "",
-    promptTarget: "",
-    clueSource: "",
-    primaryShowKey: "",
-    audioClipType: "",
+    mediaTypes: [],
+    answerTypes: [],
+    promptTargets: [],
+    clueSources: [],
+    primaryShowKeys: [],
+    audioClipTypes: [],
     headsUpDifficulty: "",
     headsUpTvDisplayMode: "timer_only",
     headsUpTurnSeconds: 60,
@@ -319,25 +362,34 @@ function buildManualRoundFilterSummary(round: ManualRoundDraft, showNameByKey: M
   if (round.behaviourType === "heads_up") {
     const parts: string[] = []
     if (round.headsUpDifficulty) parts.push(`Difficulty: ${formatMetadataToken(round.headsUpDifficulty)}`)
-    if (round.primaryShowKey) parts.push(`Show: ${showNameByKey.get(round.primaryShowKey) ?? round.primaryShowKey}`)
+    if (round.primaryShowKeys.length) parts.push(`Show: ${describeShowSelection(round.primaryShowKeys, showNameByKey)}`)
     return parts
   }
 
   const parts: string[] = []
-  if (round.mediaType) parts.push(`Media: ${formatMetadataToken(round.mediaType)}`)
-  if (round.promptTarget) parts.push(`Prompt: ${formatMetadataToken(round.promptTarget)}`)
-  if (round.clueSource) parts.push(`Clue: ${formatMetadataToken(round.clueSource)}`)
-  if (round.primaryShowKey) parts.push(`Show: ${showNameByKey.get(round.primaryShowKey) ?? round.primaryShowKey}`)
-  if (round.audioClipType) parts.push(`Audio clip: ${formatMetadataToken(round.audioClipType)}`)
+  const mediaSummary = describeTokenSelection(round.mediaTypes, "media type")
+  const answerSummary = round.answerTypes.length ? round.answerTypes.map((value) => value.toUpperCase()).join(" + ") : ""
+  const promptSummary = describeTokenSelection(round.promptTargets, "prompt target")
+  const clueSummary = describeTokenSelection(round.clueSources, "clue source")
+  const showSummary = describeShowSelection(round.primaryShowKeys, showNameByKey)
+  const audioClipSummary = describeTokenSelection(round.audioClipTypes, "audio clip type")
+
+  if (mediaSummary) parts.push(`Media: ${mediaSummary}`)
+  if (answerSummary) parts.push(`Answer: ${answerSummary}`)
+  if (promptSummary) parts.push(`Prompt: ${promptSummary}`)
+  if (clueSummary) parts.push(`Clue: ${clueSummary}`)
+  if (showSummary) parts.push(`Show: ${showSummary}`)
+  if (audioClipSummary) parts.push(`Audio clip: ${audioClipSummary}`)
   return parts
 }
 function buildSelectionRulesFromDraft(round: ManualRoundDraft) {
   return {
-    mediaTypes: round.mediaType ? [round.mediaType] : [],
-    promptTargets: round.promptTarget ? [round.promptTarget] : [],
-    clueSources: round.clueSource ? [round.clueSource] : [],
-    primaryShowKeys: round.primaryShowKey ? [round.primaryShowKey] : [],
-    audioClipTypes: round.audioClipType ? [round.audioClipType] : [],
+    mediaTypes: round.mediaTypes,
+    answerTypes: round.answerTypes,
+    promptTargets: round.promptTargets,
+    clueSources: round.clueSources,
+    primaryShowKeys: round.primaryShowKeys,
+    audioClipTypes: round.audioClipTypes,
     headsUpDifficulties: round.behaviourType === "heads_up" && round.headsUpDifficulty ? [round.headsUpDifficulty] : [],
   }
 }
@@ -387,6 +439,7 @@ function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
     packIds: sourceMode === "specific_packs" ? defaultPackIds : [],
     selectionRules: {
       mediaTypes: selectionRules.mediaTypes ?? [],
+      answerTypes: selectionRules.answerTypes ?? [],
       promptTargets: selectionRules.promptTargets ?? [],
       clueSources: selectionRules.clueSources ?? [],
       primaryShowKeys: selectionRules.primaryShowKeys ?? [],
@@ -1050,11 +1103,12 @@ export default function HostPage() {
           countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(template.counts_towards_score ?? true),
           sourceMode: nextSourceMode,
           packIds: nextSourceMode === "specific_packs" ? (defaultPackIds.length ? defaultPackIds : round.packIds) : [],
-          mediaType: selectionRules.mediaTypes?.[0] ?? "",
-          promptTarget: selectionRules.promptTargets?.[0] ?? "",
-          clueSource: selectionRules.clueSources?.[0] ?? "",
-          primaryShowKey: selectionRules.primaryShowKeys?.[0] ?? "",
-          audioClipType: selectionRules.audioClipTypes?.[0] ?? "",
+          mediaTypes: selectionRules.mediaTypes ?? [],
+          answerTypes: selectionRules.answerTypes ?? [],
+          promptTargets: selectionRules.promptTargets ?? [],
+          clueSources: selectionRules.clueSources ?? [],
+          primaryShowKeys: selectionRules.primaryShowKeys ?? [],
+          audioClipTypes: selectionRules.audioClipTypes ?? [],
           headsUpDifficulty: "",
           headsUpTvDisplayMode: "timer_only",
           headsUpTurnSeconds: 60,
@@ -1092,11 +1146,12 @@ export default function HostPage() {
         countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(template.counts_towards_score ?? true),
         sourceMode,
         packIds: sourceMode === "specific_packs" ? defaultPackIds : [],
-        mediaType: selectionRules.mediaTypes?.[0] ?? "",
-        promptTarget: selectionRules.promptTargets?.[0] ?? "",
-        clueSource: selectionRules.clueSources?.[0] ?? "",
-        primaryShowKey: selectionRules.primaryShowKeys?.[0] ?? "",
-        audioClipType: selectionRules.audioClipTypes?.[0] ?? "",
+        mediaTypes: selectionRules.mediaTypes ?? [],
+        answerTypes: selectionRules.answerTypes ?? [],
+        promptTargets: selectionRules.promptTargets ?? [],
+        clueSources: selectionRules.clueSources ?? [],
+        primaryShowKeys: selectionRules.primaryShowKeys ?? [],
+        audioClipTypes: selectionRules.audioClipTypes ?? [],
         headsUpDifficulty: "",
         headsUpTvDisplayMode: "timer_only",
         headsUpTurnSeconds: 60,
