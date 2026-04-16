@@ -9,6 +9,7 @@ import { randomTeamName } from "@/lib/teamNameSuggestions"
 import { normaliseDefaultPackIds, normaliseSelectionRules, type RoundTemplateRow } from "@/lib/roundTemplates"
 import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour } from "@/lib/roomRoundPlan"
 import { getRoomStagePillLabel, getRunModeSummaryLabel } from "@/lib/gameMode"
+import { getRoundTemplateDisplayName } from "@/lib/roundTemplateNaming"
 
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card"
@@ -430,7 +431,7 @@ function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
 
   return {
     id: String(template.id ?? `template_${index + 1}`),
-    name: String(template.name ?? "").trim() || defaultRoundName(index),
+    name: getRoundTemplateDisplayName(template) || defaultRoundName(index),
     questionCount: Math.max(1, Number(template.default_question_count ?? 5) || 5),
     behaviourType,
     jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : Boolean(template.joker_eligible ?? true),
@@ -469,7 +470,7 @@ function getSimplePresetQuickfireTarget(preset: SimplePresetId, roundCount: numb
 
 function sortTemplatesForSimplePlan(templates: RoundTemplateRow[]) {
   return [...templates].sort((a, b) =>
-    String(a.name ?? "").localeCompare(String(b.name ?? ""))
+    getRoundTemplateDisplayName(a).localeCompare(getRoundTemplateDisplayName(b))
   )
 }
 
@@ -1096,7 +1097,7 @@ export default function HostPage() {
 
         return normaliseManualRoundDraft({
           ...round,
-          name: String(template.name ?? "").trim() || round.name,
+          name: getRoundTemplateDisplayName(template) || round.name,
           questionCountStr: behaviourType === "heads_up" ? round.questionCountStr : String(Math.max(1, Number(template.default_question_count ?? 5) || 5)),
           behaviourType,
           jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : Boolean(template.joker_eligible ?? true),
@@ -1139,7 +1140,7 @@ export default function HostPage() {
       ...prev,
       normaliseManualRoundDraft({
         id: makeRoundId(),
-        name: String(template.name ?? "").trim() || defaultRoundName(prev.length),
+        name: getRoundTemplateDisplayName(template) || defaultRoundName(prev.length),
         questionCountStr: String(Math.max(1, Number(template.default_question_count ?? 5))),
         behaviourType,
         jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : Boolean(template.joker_eligible ?? true),
