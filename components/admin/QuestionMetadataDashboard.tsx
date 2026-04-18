@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 
+import { QuestionAnswerAuditPanel } from "@/components/admin/QuestionAnswerAuditPanel"
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 
@@ -46,6 +47,43 @@ type MetadataWarning = {
   message: string
 }
 
+type AuditIssue = {
+  code: string
+  message: string
+}
+
+type AuditHelperSuggestion = {
+  label: string
+  value: string
+  reason: string
+}
+
+type QuestionAudit = {
+  likelyProblem: boolean
+  summaryBadges: string[]
+  textNeedsAcceptedAnswersReview: boolean
+  mcqHasIssues: boolean
+  text: {
+    canonicalRaw: string
+    canonicalNormalised: string
+    acceptedAnswers: string[]
+    acceptedNormalised: string[]
+    helperSuggestions: AuditHelperSuggestion[]
+    issues: AuditIssue[]
+    needsAcceptedAnswersReview: boolean
+  } | null
+  mcq: {
+    options: Array<{
+      index: number
+      label: string
+      value: string
+      normalised: string
+    }>
+    issues: AuditIssue[]
+    duplicateOptionGroups: string[][]
+  } | null
+}
+
 type QuestionSummaryItem = {
   question: {
     id: string
@@ -80,6 +118,7 @@ type QuestionSummaryItem = {
     reasons: MetadataReasons
     warnings: MetadataWarning[]
   }
+  audit: QuestionAudit
 }
 
 type QuestionDetailResponse = {
@@ -226,6 +265,15 @@ const ANSWER_TYPE_OPTIONS = [
   { value: "", label: "Any answer type" },
   { value: "mcq", label: "mcq" },
   { value: "text", label: "text" },
+]
+
+const AUDIT_FILTER_OPTIONS = [
+  { value: "", label: "Any answer audit state" },
+  { value: "likely_answer_issues", label: "Likely answer issues" },
+  { value: "text_likely_problems", label: "Text questions with answer issues" },
+  { value: "text_needs_accepted_review", label: "Text questions needing accepted review" },
+  { value: "mcq_has_issues", label: "MCQ questions with option issues" },
+  { value: "mcq_review", label: "All MCQ questions" },
 ]
 
 const BULK_MEDIA_TYPE_OPTIONS = [
@@ -468,6 +516,7 @@ export function QuestionMetadataDashboard() {
   const [packId, setPackId] = useState("")
   const [legacyRoundType, setLegacyRoundType] = useState("")
   const [answerType, setAnswerType] = useState("")
+  const [auditFilter, setAuditFilter] = useState("")
   const [filterMediaType, setFilterMediaType] = useState("")
   const [filterPromptTarget, setFilterPromptTarget] = useState("")
   const [filterClueSource, setFilterClueSource] = useState("")
@@ -631,6 +680,7 @@ export function QuestionMetadataDashboard() {
       if (packId) params.set("packId", packId)
       if (legacyRoundType) params.set("legacyRoundType", legacyRoundType)
       if (answerType) params.set("answerType", answerType)
+      if (auditFilter) params.set("auditFilter", auditFilter)
       if (filterMediaType) params.set("mediaType", filterMediaType)
       if (filterPromptTarget) params.set("promptTarget", filterPromptTarget)
       if (filterClueSource) params.set("clueSource", filterClueSource)
@@ -1177,6 +1227,18 @@ async function saveAnswerFields() {
               </select>
 
               <select
+                value={auditFilter}
+                onChange={(event) => setAuditFilter(event.target.value)}
+                className={metadataSelectClass()}
+              >
+                {AUDIT_FILTER_OPTIONS.map((option) => (
+                  <option key={option.value || "blank"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
                 value={filterMediaType}
                 onChange={(event) => setFilterMediaType(event.target.value)}
                 className={metadataSelectClass()}
@@ -1291,6 +1353,7 @@ async function saveAnswerFields() {
                   setPackId("")
                   setLegacyRoundType("")
                   setAnswerType("")
+                  setAuditFilter("")
                   setFilterMediaType("")
                   setFilterPromptTarget("")
                   setFilterClueSource("")
@@ -1544,6 +1607,7 @@ async function saveAnswerFields() {
                   const audioChipType = item.metadata.saved.audioClipType || item.question.audio_clip_type
                   const packNames = item.packs.map((pack) => pack.display_name).join(", ") || "None"
                   const summaryText = buildSummaryText(item)
+                  const auditBadgeCount = item.audit.summaryBadges.length
 
                   return (
                     <div
@@ -1592,12 +1656,24 @@ async function saveAnswerFields() {
                                   {warningCount} warning{warningCount === 1 ? "" : "s"}
                                 </span>
                               ) : null}
+                              {item.audit.textNeedsAcceptedAnswersReview ? (
+                                <span className={pillClass("warning")}>accepted review</span>
+                              ) : null}
+                              {item.audit.mcqHasIssues ? (
+                                <span className={pillClass("warning")}>mcq review</span>
+                              ) : null}
+                              {!item.audit.textNeedsAcceptedAnswersReview && !item.audit.mcqHasIssues && item.audit.likelyProblem ? (
+                                <span className={pillClass("warning")}>answer review</span>
+                              ) : null}
                             </div>
                           </div>
 
                           <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                             <span className="truncate">Packs: {packNames}</span>
                             <span className="truncate">{summaryText}</span>
+                            {auditBadgeCount ? (
+                              <span className="truncate">Audit: {item.audit.summaryBadges.join(", ")}</span>
+                            ) : null}
                           </div>
                         </button>
                       </div>
@@ -1642,6 +1718,8 @@ async function saveAnswerFields() {
                       <span className={pillClass(reviewStateTone(detailItem.metadata.saved.metadataReviewState || detailItem.question.metadata_review_state))}>
                         {detailItem.metadata.saved.metadataReviewState || detailItem.question.metadata_review_state || "unreviewed"}
                       </span>
+                      {detailItem.audit.textNeedsAcceptedAnswersReview ? <span className={pillClass("warning")}>accepted review</span> : null}
+                      {detailItem.audit.mcqHasIssues ? <span className={pillClass("warning")}>mcq review</span> : null}
                     </div>
                   </div>
                   <div className="mt-3 whitespace-pre-line text-sm leading-6 text-foreground">{detailItem.question.text}</div>
@@ -1716,143 +1794,16 @@ async function saveAnswerFields() {
                 </div>
 
 
-<div className={fieldCardClass()}>
-  <div className="flex flex-wrap items-center justify-between gap-2">
-    <div className="text-sm font-medium">Answer editor</div>
-    <span className={pillClass()}>{detailItem.question.answer_type}</span>
-  </div>
 
-  {detailItem.question.answer_type === "text" ? (
-    <div className="mt-3 grid gap-3">
-      <label className={metadataFieldLabelClass()}>
-        <div className={metadataFieldHeaderClass()}>
-          <span className={metadataFieldNameClass()}>answer_text</span>
-          <MetadataHint label="answer_text" hint="Canonical answer used for text matching" />
-        </div>
-        <input
-          value={answerEditor.answerText}
-          onChange={(event) =>
-            setAnswerEditor((current) => ({
-              ...current,
-              answerText: event.target.value,
-            }))
-          }
-          className={metadataInputClass()}
-        />
-      </label>
+                <QuestionAnswerAuditPanel
+                  item={detailItem}
+                  adminToken={cleanToken}
+                  onSaved={async (questionId) => {
+                    await loadQuestionDetail(questionId)
+                    await loadQuestions(questionId, listOffset)
+                  }}
+                />
 
-      <label className={metadataFieldLabelClass()}>
-        <div className={metadataFieldHeaderClass()}>
-          <span className={metadataFieldNameClass()}>accepted_answers</span>
-          <MetadataHint
-            label="accepted_answers"
-            hint="Use pipe separators, for example Diana Goodman | Diana"
-          />
-        </div>
-        <input
-          value={answerEditor.acceptedAnswersText}
-          onChange={(event) =>
-            setAnswerEditor((current) => ({
-              ...current,
-              acceptedAnswersText: event.target.value,
-            }))
-          }
-          placeholder="Alternative accepted answers separated by |"
-          className={metadataInputClass()}
-        />
-      </label>
-    </div>
-  ) : detailItem.question.answer_type === "mcq" ? (
-    <div className="mt-3 grid gap-3">
-      {answerEditor.options.map((optionValue, optionIndex) => (
-        <label key={`mcq-option-${optionIndex}`} className={metadataFieldLabelClass()}>
-          <div className={metadataFieldHeaderClass()}>
-            <span className={metadataFieldNameClass()}>{`option_${String.fromCharCode(97 + optionIndex)}`}</span>
-            <MetadataHint
-              label={`option ${optionIndex + 1}`}
-              hint={optionIndex === Number(answerEditor.answerIndex) ? "Current correct option" : "MCQ distractor"}
-            />
-          </div>
-          <input
-            value={optionValue}
-            onChange={(event) =>
-              setAnswerEditor((current) => {
-                const nextOptions = [...current.options] as [string, string, string, string]
-                nextOptions[optionIndex] = event.target.value
-                return {
-                  ...current,
-                  options: nextOptions,
-                }
-              })
-            }
-            className={metadataInputClass()}
-          />
-        </label>
-      ))}
-
-      <label className={metadataFieldLabelClass()}>
-        <div className={metadataFieldHeaderClass()}>
-          <span className={metadataFieldNameClass()}>answer_index</span>
-          <MetadataHint label="answer_index" hint="Zero-based index of the correct MCQ answer" />
-        </div>
-        <select
-          value={answerEditor.answerIndex}
-          onChange={(event) =>
-            setAnswerEditor((current) => ({
-              ...current,
-              answerIndex: event.target.value,
-            }))
-          }
-          className={metadataSelectClass()}
-        >
-          <option value="">Select correct option</option>
-          <option value="0">option_a</option>
-          <option value="1">option_b</option>
-          <option value="2">option_c</option>
-          <option value="3">option_d</option>
-        </select>
-      </label>
-    </div>
-  ) : (
-    <div className="mt-3 text-sm text-muted-foreground">
-      This question type cannot be edited in the answer editor.
-    </div>
-  )}
-
-  <div className="mt-3 flex flex-wrap gap-2">
-    <Button
-      size="sm"
-      variant="secondary"
-      onClick={() => detailItem && setAnswerEditor(buildAnswerEditorState(detailItem))}
-      disabled={answerSaveBusy}
-    >
-      Reset answer fields
-    </Button>
-    <Button
-      size="sm"
-      onClick={saveAnswerFields}
-      disabled={
-        answerSaveBusy ||
-        (detailItem.question.answer_type === "mcq" && answerEditor.answerIndex === "")
-      }
-    >
-      {answerSaveBusy ? "Saving…" : "Save answers"}
-    </Button>
-  </div>
-
-  {answerSaveResult ? (
-    <div
-      className={cx(
-        "mt-3 rounded-lg px-3 py-2 text-sm",
-        answerSaveResult === "Saved."
-          ? "border border-green-300 bg-green-50 text-green-700"
-          : "border border-red-300 bg-red-50 text-red-700"
-      )}
-    >
-      {answerSaveResult}
-    </div>
-  ) : null}
-</div>
 
 <div className="grid gap-2 md:grid-cols-2">
                   <label className={cx(metadataFieldLabelClass(), "md:col-span-1")}>

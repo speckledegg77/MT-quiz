@@ -3,6 +3,7 @@ export const runtime = "nodejs"
 import { NextResponse } from "next/server"
 
 import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/adminAuth"
+import { analyseQuestionAnswerAudit } from "@/lib/questionAudit"
 import {
   analyseQuestionMetadata,
   type PackRowForMetadata,
@@ -85,6 +86,7 @@ async function loadQuestionDetailPayload(questionId: string) {
   const shows = (showsRes.data ?? []) as ShowRow[]
   const packs = ((packsRes.data ?? []) as PackRow[]).sort((a, b) => a.display_name.localeCompare(b.display_name))
   const analysis = analyseQuestionMetadata(question, shows, packs)
+  const audit = analyseQuestionAnswerAudit(question)
 
   return {
     ok: true as const,
@@ -107,6 +109,7 @@ async function loadQuestionDetailPayload(questionId: string) {
           reasons: analysis.reasons,
           warnings: analysis.warnings,
         },
+        audit,
       },
     },
   }
