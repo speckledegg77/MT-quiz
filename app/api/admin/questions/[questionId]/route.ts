@@ -3,7 +3,6 @@ export const runtime = "nodejs"
 import { NextResponse } from "next/server"
 
 import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/adminAuth"
-import { analyseQuestionAnswerAudit } from "@/lib/questionAudit"
 import {
   analyseQuestionMetadata,
   type PackRowForMetadata,
@@ -86,7 +85,6 @@ async function loadQuestionDetailPayload(questionId: string) {
   const shows = (showsRes.data ?? []) as ShowRow[]
   const packs = ((packsRes.data ?? []) as PackRow[]).sort((a, b) => a.display_name.localeCompare(b.display_name))
   const analysis = analyseQuestionMetadata(question, shows, packs)
-  const audit = analyseQuestionAnswerAudit(question)
 
   return {
     ok: true as const,
@@ -109,7 +107,6 @@ async function loadQuestionDetailPayload(questionId: string) {
           reasons: analysis.reasons,
           warnings: analysis.warnings,
         },
-        audit,
       },
     },
   }
@@ -197,6 +194,51 @@ export async function GET(req: Request, context: RouteContext) {
   }
 
   return NextResponse.json(result.payload)
+}
+
+
+export async function PATCH(req: Request, context: RouteContext) {
+  if (!isAuthorisedAdminRequest(req)) return unauthorisedAdminResponse()
+
+  const { questionId } = await context.params
+
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 })
+  }
+
+  const payload = (body ?? {}) as { text?: unknown; explanation?: unknown }
+  const nextText = String(payload.text ?? "").trim()
+  const nextExplanation = payload.explanation == null ? "" : String(payload.explanation).trim()
+
+  if (!nextText) {
+    return NextResponse.json({ error: "Question text is required." }, { status: 400 })
+  }
+
+  const updateRes = await supabaseAdmin
+    .from("questions")
+    .update({
+      text: nextText,
+      explanation: nextExplanation || null,
+    })
+    .eq("id", questionId)
+    .select("id")
+    .maybeSingle()
+
+  if (updateRes.error) {
+    return NextResponse.json({ error: updateRes.error.message }, { status: 500 })
+  }
+
+  if (!updateRes.data) {
+    return NextResponse.json({ error: "Question not found." }, { status: 404 })
+  }
+
+  return NextResponse.json({
+    ok: true,
+    message: "Question content saved.",
+  })
 }
 
 export async function POST(req: Request, context: RouteContext) {

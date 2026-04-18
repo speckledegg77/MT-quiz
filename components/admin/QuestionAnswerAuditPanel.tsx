@@ -188,7 +188,7 @@ export function QuestionAnswerAuditPanel({ item, adminToken, onSaved }: Props) {
         }),
       })
 
-      const json = (await res.json()) as { error?: string }
+      const json = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) {
         setSaveResult(json.error || "Could not save question content.")
         return
@@ -225,7 +225,7 @@ export function QuestionAnswerAuditPanel({ item, adminToken, onSaved }: Props) {
         }),
       })
 
-      const json = (await res.json()) as { error?: string }
+      const json = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) {
         setSaveResult(json.error || "Could not save text-answer settings.")
         return
@@ -262,7 +262,7 @@ export function QuestionAnswerAuditPanel({ item, adminToken, onSaved }: Props) {
         }),
       })
 
-      const json = (await res.json()) as { error?: string }
+      const json = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) {
         setSaveResult(json.error || "Could not save MCQ options.")
         return
