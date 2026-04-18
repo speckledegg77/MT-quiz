@@ -28,6 +28,7 @@ import {
 } from "../../../../lib/manualRoundPlanBuilder"
 import { buildHeadsUpSyntheticQuestionId, cleanHeadsUpDifficulty } from "../../../../lib/headsUp"
 import { normaliseMediaDurationMs } from "../../../../lib/quickfireEligibility"
+import { chooseDistinctRoundTemplatesRandomised, countDistinctRoundTemplateFamilies } from "../../../../lib/roundTemplateFamilies"
 
 type LegacyRoundRequest = { packId: string; count: number }
 
@@ -465,16 +466,23 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: "No active round templates matched your selection." }, { status: 400 })
         }
 
-        if (roundCount > activeTemplates.length) {
+        const distinctFamilyCount = countDistinctRoundTemplateFamilies(activeTemplates)
+
+        if (roundCount > distinctFamilyCount) {
           return NextResponse.json(
-            { error: "Number of rounds cannot be greater than the number of selected templates." },
+            { error: "Number of rounds cannot be greater than the number of distinct template families selected." },
             { status: 400 }
           )
         }
 
-        const shuffledTemplates = [...activeTemplates]
-        shuffleInPlace(shuffledTemplates)
-        const chosenTemplates = shuffledTemplates.slice(0, roundCount)
+        const chosenTemplates = chooseDistinctRoundTemplatesRandomised(activeTemplates, roundCount)
+        if (chosenTemplates.length < roundCount) {
+          return NextResponse.json(
+            { error: "Could not build a quick-random game without repeating the same round family." },
+            { status: 400 }
+          )
+        }
+
         const quickRandomRounds = chosenTemplates.map((template, index) => mapTemplateToManualRound(template, index))
 
         const { allActivePackIds, candidates } = await loadCandidatePoolForManualRounds({

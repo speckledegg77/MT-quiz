@@ -1,6 +1,6 @@
 param(
   [string]$OutputFolder = "",
-  [string]$ZipBaseName = "latest-chatgpt-source",
+  [string]$ZipBaseName = "mt-quiz",
   [switch]$KeepStage
 )
 
@@ -78,6 +78,24 @@ function Get-NormalisedFullPath {
   }
 
   return [System.IO.Path]::GetFullPath($resolved.Path)
+}
+
+function Get-SafeFilenamePart {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Value
+  )
+
+  $safe = $Value.Trim()
+  $safe = $safe -replace "[^A-Za-z0-9._-]", "-"
+  $safe = $safe -replace "-+", "-"
+  $safe = $safe.Trim("-")
+
+  if ([string]::IsNullOrWhiteSpace($safe)) {
+    throw "Filename part cannot be empty after sanitising."
+  }
+
+  return $safe
 }
 
 function Get-RelativePathSafe {
@@ -201,6 +219,7 @@ $excludedExtensions = [System.Collections.Generic.HashSet[string]]::new([System.
 
 $currentBranch = (& git rev-parse --abbrev-ref HEAD).Trim()
 $currentCommit = (& git rev-parse HEAD).Trim()
+$shortCommit = (& git rev-parse --short HEAD).Trim()
 $workingTreeDirty = @(& git status --porcelain).Count -gt 0
 
 $stageRoot = Join-Path $repoRoot "chatgpt-export-stage"
@@ -285,6 +304,7 @@ $manifest = [PSCustomObject]@{
   sourceRepoRoot = $repoRoot
   sourceBranch = $currentBranch
   sourceCommit = $currentCommit
+  sourceShortCommit = $shortCommit
   workingTreeDirty = $workingTreeDirty
   includePaths = $includePaths
   missingIncludePaths = $missingIncludePaths
@@ -319,8 +339,22 @@ Exported UTC: $($manifest.exportedAtUtc)
 Set-Content -LiteralPath (Join-Path $stageRoot "README-chatgpt-export.txt") -Value $readme -Encoding utf8
 
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
-$timestampedZipPath = Join-Path $OutputFolder ("{0}-{1}.zip" -f $ZipBaseName, $timestamp)
-$latestZipPath = Join-Path $OutputFolder ("{0}.zip" -f $ZipBaseName)
+$filenameParts = New-Object System.Collections.Generic.List[string]
+$filenameParts.Add((Get-SafeFilenamePart -Value $ZipBaseName)) | Out-Null
+$filenameParts.Add($timestamp) | Out-Null
+$filenameParts.Add((Get-SafeFilenamePart -Value $shortCommit)) | Out-Null
+
+if ($workingTreeDirty) {
+  $filenameParts.Add("dirty") | Out-Null
+}
+
+if ($currentBranch -ne "main") {
+  $filenameParts.Add((Get-SafeFilenamePart -Value $currentBranch)) | Out-Null
+}
+
+$timestampedZipFileName = ((@($filenameParts) -join "-") + ".zip")
+$timestampedZipPath = Join-Path $OutputFolder $timestampedZipFileName
+$latestZipPath = Join-Path $OutputFolder ((Get-SafeFilenamePart -Value $ZipBaseName) + ".zip")
 
 if (Test-Path -LiteralPath $timestampedZipPath) {
   Remove-Item -LiteralPath $timestampedZipPath -Force
@@ -344,6 +378,7 @@ Write-Host "Latest zip:      $latestZipPath"
 Write-Host "Included files:  $($includedFiles.Count)"
 Write-Host "Skipped files:   $($skippedFiles.Count)"
 Write-Host "Commit:          $currentCommit"
+Write-Host "Short commit:    $shortCommit"
 Write-Host "Working dirty:   $workingTreeDirty"
 Write-Host ""
 

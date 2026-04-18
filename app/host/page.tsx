@@ -9,6 +9,7 @@ import { randomTeamName } from "@/lib/teamNameSuggestions"
 import { normaliseDefaultPackIds, normaliseSelectionRules, type RoundTemplateRow } from "@/lib/roundTemplates"
 import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour } from "@/lib/roomRoundPlan"
 import { getRoomStagePillLabel, getRunModeSummaryLabel } from "@/lib/gameMode"
+import { countDistinctRoundTemplateFamilies, getRoundTemplateFamilyKey } from "@/lib/roundTemplateFamilies"
 
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/Card"
@@ -467,51 +468,79 @@ function getSimplePresetQuickfireTarget(preset: SimplePresetId, roundCount: numb
   return Math.min(roundCount - 1, Math.max(1, Math.floor(roundCount / 2)))
 }
 
-function sortTemplatesForSimplePlan(templates: RoundTemplateRow[]) {
-  return [...templates].sort((a, b) =>
-    String(a.name ?? "").localeCompare(String(b.name ?? ""))
-  )
+function shuffleTemplates<T>(items: T[]) {
+  const copy = [...items]
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const current = copy[i]
+    copy[i] = copy[j]
+    copy[j] = current
+  }
+  return copy
 }
 
-function orderSimplePlanTemplates(params: {
+function takeNextTemplateByFamily(pool: RoundTemplateRow[], usedFamilies: Set<string>) {
+  for (let index = 0; index < pool.length; index += 1) {
+    const template = pool[index]
+    const familyKey = getRoundTemplateFamilyKey(template)
+    if (usedFamilies.has(familyKey)) continue
+    usedFamilies.add(familyKey)
+    pool.splice(index, 1)
+    return template
+  }
+  return null
+}
+
+function chooseSimplePlanTemplates(params: {
   preset: SimplePresetId
   standardTemplates: RoundTemplateRow[]
   quickfireTemplates: RoundTemplateRow[]
+  roundCount: number
 }) {
-  const standardTemplates = [...params.standardTemplates]
-  const quickfireTemplates = [...params.quickfireTemplates]
+  const standardTemplates = shuffleTemplates(params.standardTemplates)
+  const quickfireTemplates = shuffleTemplates(params.quickfireTemplates)
   const ordered: RoundTemplateRow[] = []
+  const usedFamilies = new Set<string>()
 
   const pushStandard = () => {
-    const next = standardTemplates.shift()
+    const next = takeNextTemplateByFamily(standardTemplates, usedFamilies)
     if (next) ordered.push(next)
   }
 
   const pushQuickfire = () => {
-    const next = quickfireTemplates.shift()
+    const next = takeNextTemplateByFamily(quickfireTemplates, usedFamilies)
     if (next) ordered.push(next)
   }
 
   if (params.preset === "quickfire_mix") {
-    if (standardTemplates.length) pushStandard()
-    while (standardTemplates.length || quickfireTemplates.length) {
-      if (quickfireTemplates.length) pushQuickfire()
-      if (standardTemplates.length) pushStandard()
+    if (ordered.length < params.roundCount) pushStandard()
+    while (ordered.length < params.roundCount) {
+      const before = ordered.length
+      if (ordered.length < params.roundCount) pushQuickfire()
+      if (ordered.length < params.roundCount) pushStandard()
+      if (ordered.length === before) break
     }
     return ordered
   }
 
   if (params.preset === "balanced") {
-    while (standardTemplates.length || quickfireTemplates.length) {
-      if (standardTemplates.length) pushStandard()
-      if (standardTemplates.length) pushStandard()
-      if (quickfireTemplates.length) pushQuickfire()
+    while (ordered.length < params.roundCount) {
+      const before = ordered.length
+      if (ordered.length < params.roundCount) pushStandard()
+      if (ordered.length < params.roundCount) pushStandard()
+      if (ordered.length < params.roundCount) pushQuickfire()
+      if (ordered.length === before) break
     }
     return ordered
   }
 
-  while (standardTemplates.length) pushStandard()
-  while (quickfireTemplates.length) pushQuickfire()
+  while (ordered.length < params.roundCount) {
+    const before = ordered.length
+    pushStandard()
+    if (ordered.length < params.roundCount) pushQuickfire()
+    if (ordered.length === before) break
+  }
+
   return ordered
 }
 
@@ -522,35 +551,36 @@ function buildSimpleTemplatePlan(params: {
   preset: SimplePresetId
 }) {
   const roundCount = clampInt(params.roundCount, 1, 20)
-  const feasibleTemplates = sortTemplatesForSimplePlan(params.templates).filter((template) => {
-    return params.feasibilityById.get(template.id)?.feasible
-  })
-
+  const feasibleTemplates = params.templates.filter((template) => params.feasibilityById.get(template.id)?.feasible)
   const standardTemplates = feasibleTemplates.filter((template) => template.behaviour_type !== "quickfire")
   const quickfireTemplates = feasibleTemplates.filter((template) => template.behaviour_type === "quickfire")
 
-  if (feasibleTemplates.length === 0) {
+  const availableTemplateCount = countDistinctRoundTemplateFamilies(feasibleTemplates)
+  const availableStandardCount = countDistinctRoundTemplateFamilies(standardTemplates)
+  const availableQuickfireCount = countDistinctRoundTemplateFamilies(quickfireTemplates)
+
+  if (availableTemplateCount === 0) {
     return {
       rounds: [],
       notes: [],
       error: "No ready round templates match the current pack choice.",
-      availableTemplateCount: 0,
-      availableStandardCount: 0,
-      availableQuickfireCount: 0,
+      availableTemplateCount,
+      availableStandardCount,
+      availableQuickfireCount,
       standardCount: 0,
       quickfireCount: 0,
       jokerEligibleCount: 0,
     }
   }
 
-  if (feasibleTemplates.length < roundCount) {
+  if (availableTemplateCount < roundCount) {
     return {
       rounds: [],
       notes: [],
-      error: `Only ${feasibleTemplates.length} ready template${feasibleTemplates.length === 1 ? " is" : "s are"} available for ${roundCount} rounds.`,
-      availableTemplateCount: feasibleTemplates.length,
-      availableStandardCount: standardTemplates.length,
-      availableQuickfireCount: quickfireTemplates.length,
+      error: `Only ${availableTemplateCount} ready template famil${availableTemplateCount === 1 ? "y is" : "ies are"} available for ${roundCount} rounds.`,
+      availableTemplateCount,
+      availableStandardCount,
+      availableQuickfireCount,
       standardCount: 0,
       quickfireCount: 0,
       jokerEligibleCount: 0,
@@ -558,57 +588,52 @@ function buildSimpleTemplatePlan(params: {
   }
 
   const desiredQuickfireCount = getSimplePresetQuickfireTarget(params.preset, roundCount)
-  let quickfireCount = Math.min(desiredQuickfireCount, quickfireTemplates.length)
-  let standardCount = Math.min(roundCount - quickfireCount, standardTemplates.length)
+  const desiredStandardCount = roundCount - desiredQuickfireCount
+  const notes: string[] = []
 
-  if (standardCount + quickfireCount < roundCount) {
-    const missing = roundCount - (standardCount + quickfireCount)
-    quickfireCount += Math.min(missing, quickfireTemplates.length - quickfireCount)
+  if (desiredQuickfireCount > 0 && availableQuickfireCount === 0) {
+    notes.push("No ready Quickfire template families were found for this pack choice, so this game falls back to standard rounds.")
+  } else if (availableQuickfireCount < desiredQuickfireCount) {
+    notes.push(`Only ${availableQuickfireCount} ready Quickfire template famil${availableQuickfireCount === 1 ? "y was" : "ies were"} available, so the game uses fewer Quickfire rounds than the preset prefers.`)
   }
 
-  if (standardCount + quickfireCount < roundCount) {
+  if (availableStandardCount < desiredStandardCount) {
+    notes.push(`Only ${availableStandardCount} ready standard template famil${availableStandardCount === 1 ? "y was" : "ies were"} available, so extra Quickfire rounds were used to fill the plan.`)
+  }
+
+  const orderedTemplates = chooseSimplePlanTemplates({
+    preset: params.preset,
+    standardTemplates,
+    quickfireTemplates,
+    roundCount,
+  }).slice(0, roundCount)
+
+  if (orderedTemplates.length < roundCount) {
     return {
       rounds: [],
-      notes: [],
-      error: "The current ready templates cannot fill that game plan.",
-      availableTemplateCount: feasibleTemplates.length,
-      availableStandardCount: standardTemplates.length,
-      availableQuickfireCount: quickfireTemplates.length,
+      notes,
+      error: "The current ready templates cannot fill that game plan without repeating the same round family.",
+      availableTemplateCount,
+      availableStandardCount,
+      availableQuickfireCount,
       standardCount: 0,
       quickfireCount: 0,
       jokerEligibleCount: 0,
     }
   }
 
-  const desiredStandardCount = roundCount - desiredQuickfireCount
-  const notes: string[] = []
-
-  if (desiredQuickfireCount > 0 && quickfireCount === 0) {
-    notes.push("No ready Quickfire templates were found for this pack choice, so this game falls back to standard rounds.")
-  } else if (quickfireCount < desiredQuickfireCount) {
-    notes.push(`Only ${quickfireTemplates.length} ready Quickfire template${quickfireTemplates.length === 1 ? " was" : "s were"} available, so the game uses fewer Quickfire rounds than the preset prefers.`)
-  }
-
-  if (standardCount < desiredStandardCount) {
-    notes.push(`Only ${standardTemplates.length} ready standard template${standardTemplates.length === 1 ? " was" : "s were"} available, so extra Quickfire rounds were used to fill the plan.`)
-  }
-
-  const orderedTemplates = orderSimplePlanTemplates({
-    preset: params.preset,
-    standardTemplates: standardTemplates.slice(0, standardCount),
-    quickfireTemplates: quickfireTemplates.slice(0, quickfireCount),
-  }).slice(0, roundCount)
-
   const rounds = orderedTemplates.map((template, index) => serialiseTemplateAsRound(template, index))
+  const quickfireCount = rounds.filter((round) => round.behaviourType === "quickfire").length
+  const standardCount = rounds.filter((round) => round.behaviourType !== "quickfire").length
   const jokerEligibleCount = rounds.filter((round) => round.jokerEligible).length
 
   return {
     rounds,
     notes,
     error: null,
-    availableTemplateCount: feasibleTemplates.length,
-    availableStandardCount: standardTemplates.length,
-    availableQuickfireCount: quickfireTemplates.length,
+    availableTemplateCount,
+    availableStandardCount,
+    availableQuickfireCount,
     standardCount,
     quickfireCount,
     jokerEligibleCount,
@@ -1170,6 +1195,11 @@ export default function HostPage() {
   const selectedQuickRandomTemplates = useMemo(
     () => templates.filter((template) => quickRandomTemplateIds.includes(template.id)),
     [templates, quickRandomTemplateIds]
+  )
+
+  const selectedQuickRandomTemplateFamilyCount = useMemo(
+    () => countDistinctRoundTemplateFamilies(selectedQuickRandomTemplates),
+    [selectedQuickRandomTemplates]
   )
 
   const simpleSelectedPackIds = useMemo(() => {
@@ -1767,8 +1797,8 @@ export default function HostPage() {
               return
             }
 
-            if (roundCount > quickRandomTemplateIds.length) {
-              setCreateError("Number of rounds cannot be greater than the number of selected templates.")
+            if (roundCount > selectedQuickRandomTemplateFamilyCount) {
+              setCreateError("Number of rounds cannot be greater than the number of distinct template families selected.")
               setCreating(false)
               return
             }
