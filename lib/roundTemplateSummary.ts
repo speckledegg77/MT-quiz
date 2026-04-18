@@ -2,7 +2,6 @@ import {
   getDefaultAnswerSecondsForBehaviour,
   getDefaultRoundReviewSecondsForBehaviour,
 } from "@/lib/roomRoundPlan"
-import { getRoundTemplateDisplayInfo } from "@/lib/roundTemplateNaming"
 import {
   normaliseDefaultPackIds,
   normaliseSelectionRules,
@@ -58,13 +57,33 @@ function formatLabelList(values: string[]) {
 }
 
 export function deriveTemplateFamilyName(name: string) {
-  return getRoundTemplateDisplayInfo(name).familyName
+  const trimmed = String(name ?? "").trim()
+  if (!trimmed) return "Unnamed template"
+
+  const withoutParenVariant = trimmed.replace(/\s+\([^)]*\)\s*$/, "").trim()
+  const colonIndex = withoutParenVariant.indexOf(":")
+  if (colonIndex > 0) {
+    return withoutParenVariant.slice(0, colonIndex).trim() || withoutParenVariant
+  }
+
+  return withoutParenVariant || trimmed
 }
 
 export function deriveTemplateVariantLabel(name: string, familyName?: string) {
-  const info = getRoundTemplateDisplayInfo(name)
-  if (familyName && info.familyName !== familyName) return info.variantLabel
-  return info.variantLabel
+  const trimmed = String(name ?? "").trim()
+  const family = familyName || deriveTemplateFamilyName(trimmed)
+  if (!trimmed) return "Base"
+  if (trimmed === family) return "Base"
+
+  const parenMatch = trimmed.match(/\(([^)]*)\)\s*$/)
+  if (parenMatch?.[1]) return parenMatch[1].trim() || "Base"
+
+  if (trimmed.startsWith(`${family}:`)) {
+    return trimmed.slice(family.length + 1).trim() || "Base"
+  }
+
+  const leftover = trimmed.replace(family, "").trim()
+  return leftover || "Base"
 }
 
 function firstOrManyLabel(values: string[], fallback: string, kind: string) {
@@ -115,9 +134,8 @@ export function buildRoundTemplatePresentation(
   const packLabelById = options?.packLabelById ?? new Map<string, string>()
   const showNameByKey = options?.showNameByKey ?? new Map<string, string>()
   const rules = normaliseSelectionRules(template.selection_rules)
-  const displayInfo = getRoundTemplateDisplayInfo(template)
-  const familyName = displayInfo.familyName
-  const variantLabel = displayInfo.variantLabel
+  const familyName = deriveTemplateFamilyName(template.name)
+  const variantLabel = deriveTemplateVariantLabel(template.name, familyName)
 
   const promptTargetLabel = firstOrManyLabel(rules.promptTargets ?? [], "Any prompt", "prompt targets")
   const clueSourceLabel = firstOrManyLabel(rules.clueSources ?? [], "Any clue", "clue sources")
@@ -149,7 +167,6 @@ export function buildRoundTemplatePresentation(
 
   const searchText = [
     template.name,
-    displayInfo.displayName,
     familyName,
     variantLabel,
     template.description ?? "",

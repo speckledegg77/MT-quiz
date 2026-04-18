@@ -1,9 +1,9 @@
 ﻿{
     "exportName":  "latest-chatgpt-source",
-    "exportedAtUtc":  "2026-04-11T15:53:47Z",
+    "exportedAtUtc":  "2026-04-16T18:40:13Z",
     "sourceRepoRoot":  "C:/Users/mark/musical-theatre-quiz",
     "sourceBranch":  "main",
-    "sourceCommit":  "591c8ed8166a7a2e5708aa0f4f7e057106023022",
+    "sourceCommit":  "213bd326f290fd813b76c3cac58373325059e3f6",
     "workingTreeDirty":  false,
     "includePaths":  [
                          "app",
@@ -79,7 +79,7 @@
                                ".webp",
                                ".zip"
                            ],
-    "includedFileCount":  187,
+    "includedFileCount":  193,
     "skippedFileCount":  275,
     "includedFiles":  [
                           "app\\admin\\heads-up\\page.tsx",
@@ -150,7 +150,12 @@
                           "components\\admin\\ShowsDashboard.tsx",
                           "components\\EnsureAnonAuth.tsx",
                           "components\\GameCompletedSummary.tsx",
+                          "components\\host\\advanced\\AdvancedSetup.tsx",
                           "components\\host\\HostAnswerReviewPanel.tsx",
+                          "components\\host\\live\\HostLiveControls.tsx",
+                          "components\\host\\SelectControl.tsx",
+                          "components\\host\\sidebar\\ResumeHostingCard.tsx",
+                          "components\\host\\simple\\SimpleSetup.tsx",
                           "components\\HostJoinedTeamsPanel.tsx",
                           "components\\JoinedTeamsPanel.tsx",
                           "components\\JoinFeedPanel.tsx",
@@ -184,6 +189,7 @@
                           "lib\\roundFlow.ts",
                           "lib\\roundReadiness.ts",
                           "lib\\roundTemplates.ts",
+                          "lib\\roundTemplateSummary.ts",
                           "lib\\storage.ts",
                           "lib\\supabaseAdmin.ts",
                           "lib\\supabaseClient.ts",

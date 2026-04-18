@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import SelectControl from "@/components/host/SelectControl"
-import { getRoundTemplateDisplayName } from "@/lib/roundTemplateNaming"
 
 type LocalAudioMode = "display" | "phones" | "both"
 type SimplePresetOption = { value: string; label: string; description: string }
@@ -368,7 +367,7 @@ export default function SimpleSetup(props: any) {
                     <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Templates not ready now</div>
                     {simpleUnavailableTemplateExamples.map((template: UnavailableTemplate) => (
                       <div key={template.id} className="rounded-xl border border-border bg-card p-3 text-sm">
-                        <div className="font-medium text-foreground">{getRoundTemplateDisplayName(template as any)}</div>
+                        <div className="font-medium text-foreground">{template.name}</div>
                         <div className={template.explanation.tone === "error" ? "mt-1 text-red-700 dark:text-red-200" : "mt-1 text-amber-700 dark:text-amber-200"}>{template.explanation.summary}</div>
                         {template.explanation.detail ? <div className="mt-1 text-xs text-muted-foreground">{template.explanation.detail}</div> : null}
                       </div>

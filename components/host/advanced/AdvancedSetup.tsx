@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import SelectControl from "@/components/host/SelectControl"
-import { getRoundTemplateDisplayName } from "@/lib/roundTemplateNaming"
 import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBehaviour } from "@/lib/roomRoundPlan"
 
 type PackOption = { id: string; display_name: string }
@@ -358,7 +357,7 @@ export default function AdvancedSetup(props: any) {
                         <SelectControl variant="advanced" value={templateChoice} onChange={(e) => setRoundTemplateSelections((prev: Record<string, string>) => ({ ...prev, [round.id]: e.target.value }))} className="mt-1" compact disabled={!templates.length}>
                           {templates.length === 0 ? <option value="">No active templates</option> : null}
                           {templates.map((template: TemplateOption) => (
-                            <option key={template.id} value={template.id}>{getRoundTemplateDisplayName(template as any)}</option>
+                            <option key={template.id} value={template.id}>{template.name}</option>
                           ))}
                         </SelectControl>
                       </div>
@@ -671,7 +670,7 @@ export default function AdvancedSetup(props: any) {
                         <label key={template.id} className="rounded-xl border border-border bg-background px-3 py-2 text-sm">
                           <div className="flex items-center gap-2">
                             <input type="checkbox" checked={selected} onChange={() => toggleQuickRandomTemplate(template.id)} />
-                            <span className="min-w-0 flex-1">{getRoundTemplateDisplayName(template as any)}</span>
+                            <span className="min-w-0 flex-1">{template.name}</span>
                             <span className="text-xs text-muted-foreground">{template.default_question_count}</span>
                           </div>
                           {feasibility ? (

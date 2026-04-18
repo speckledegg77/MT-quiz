@@ -5,11 +5,6 @@ import { useEffect, useMemo, useState, type Dispatch, type ReactNode, type SetSt
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 import {
-  getCanonicalRoundTemplateName,
-  getRoundTemplateDisplayInfo,
-  getRoundTemplateDisplayName,
-} from "@/lib/roundTemplateNaming"
-import {
   buildRoundTemplatePresentation,
   templateMatchesFilters,
   type RoundTemplateListFilters,
@@ -636,7 +631,7 @@ export function RoundTemplatesDashboard() {
     const needle = search.trim().toLowerCase()
     const sorted = [...templates].sort((a, b) => {
       if (a.is_active !== b.is_active) return a.is_active ? -1 : 1
-      return getRoundTemplateDisplayName(a).localeCompare(getRoundTemplateDisplayName(b))
+      return a.name.localeCompare(b.name)
     })
 
     return sorted.filter((template) => {
@@ -762,13 +757,10 @@ export function RoundTemplatesDashboard() {
           <CardContent className="space-y-3">
             {selectedTemplate && selectedTemplateSummary ? (
               <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm">
-                <div className="font-medium">Selected: {getRoundTemplateDisplayName(selectedTemplate)}</div>
+                <div className="font-medium">Selected: {selectedTemplate.name}</div>
                 <div className="mt-1 text-xs text-muted-foreground">
                   Family {selectedTemplateSummary.familyName} · Variant {selectedTemplateSummary.variantLabel} · {selectedTemplateSummary.behaviourLabel}
                 </div>
-                {getRoundTemplateDisplayName(selectedTemplate) !== selectedTemplate.name ? (
-                  <div className="mt-1 text-[11px] text-muted-foreground">Stored name: {selectedTemplate.name}</div>
-                ) : null}
               </div>
             ) : null}
 
@@ -783,7 +775,6 @@ export function RoundTemplatesDashboard() {
                 {filteredTemplates.map((template) => {
                   const isSelected = template.id === selectedTemplateId
                   const summary = buildRoundTemplatePresentation(template, { packLabelById, showNameByKey })
-                  const displayInfo = getRoundTemplateDisplayInfo(template)
 
                   return (
                     <button
@@ -804,7 +795,7 @@ export function RoundTemplatesDashboard() {
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <div className="font-medium text-foreground">{displayInfo.displayName}</div>
+                            <div className="font-medium text-foreground">{template.name}</div>
                             <SummaryChip>{summary.behaviourLabel}</SummaryChip>
                             <SummaryChip>{summary.answerTypeLabel}</SummaryChip>
                             <SummaryChip>{summary.mediaTypeLabel}</SummaryChip>
@@ -812,9 +803,6 @@ export function RoundTemplatesDashboard() {
                           <div className="mt-1 text-xs text-muted-foreground">
                             Family {summary.familyName} · Variant {summary.variantLabel} · {summary.sourceModeLabel}
                           </div>
-                          {!displayInfo.isCanonical ? (
-                            <div className="mt-1 text-[11px] text-muted-foreground">Stored name: {displayInfo.rawName}</div>
-                          ) : null}
                         </div>
                         <div className={`rounded-full px-2 py-0.5 text-[11px] ${template.is_active ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200" : "bg-muted text-muted-foreground"}`}>
                           {template.is_active ? "Active" : "Inactive"}
@@ -971,26 +959,6 @@ function TemplateFields({
             placeholder="Song Intros"
             className="h-10 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-border"
           />
-          {editor.name.trim() && getCanonicalRoundTemplateName({ name: editor.name, selection_rules: buildSelectionRulesFromEditor(editor) }) !== editor.name.trim() ? (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-              <div>
-                Suggested canonical name: <span className="font-medium text-foreground">{getCanonicalRoundTemplateName({ name: editor.name, selection_rules: buildSelectionRulesFromEditor(editor) })}</span>
-              </div>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() =>
-                  setEditor((current) => ({
-                    ...current,
-                    name: getCanonicalRoundTemplateName({ name: current.name, selection_rules: buildSelectionRulesFromEditor(current) }),
-                  }))
-                }
-              >
-                Use suggested name
-              </Button>
-            </div>
-          ) : null}
         </label>
 
         <label className="grid gap-1">
