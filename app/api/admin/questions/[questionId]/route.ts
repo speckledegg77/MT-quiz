@@ -199,6 +199,41 @@ export async function GET(req: Request, context: RouteContext) {
   return NextResponse.json(result.payload)
 }
 
+export async function PATCH(req: Request, context: RouteContext) {
+  if (!isAuthorisedAdminRequest(req)) return unauthorisedAdminResponse()
+
+  const { questionId } = await context.params
+  const body = (await req.json().catch(() => null)) as { text?: unknown; explanation?: unknown } | null
+
+  const nextText = String(body?.text ?? "").trim()
+  const nextExplanationRaw = body?.explanation
+  const nextExplanation = String(nextExplanationRaw ?? "").trim()
+
+  if (!nextText) {
+    return NextResponse.json({ error: "Question text is required." }, { status: 400 })
+  }
+
+  const updateRes = await supabaseAdmin
+    .from("questions")
+    .update({
+      text: nextText,
+      explanation: nextExplanation || null,
+    })
+    .eq("id", questionId)
+    .select("id")
+    .maybeSingle()
+
+  if (updateRes.error) {
+    return NextResponse.json({ error: updateRes.error.message }, { status: 500 })
+  }
+
+  if (!updateRes.data) {
+    return NextResponse.json({ error: "Question not found." }, { status: 404 })
+  }
+
+  return NextResponse.json({ ok: true, message: "Question content saved." })
+}
+
 export async function POST(req: Request, context: RouteContext) {
   if (!isAuthorisedAdminRequest(req)) return unauthorisedAdminResponse()
 
