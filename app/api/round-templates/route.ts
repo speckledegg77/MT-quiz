@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic"
 
 import { NextResponse } from "next/server"
 
-import { normaliseRoundTemplateRow } from "@/lib/roundTemplates"
+import { getVisibleHostTemplates } from "@/lib/hostCatalog"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 export async function GET() {
@@ -18,7 +18,7 @@ export async function GET() {
   }
 
   return NextResponse.json(
-    { ok: true, templates: (templatesRes.data ?? []).map(normaliseRoundTemplateRow) },
+    { ok: true, templates: getVisibleHostTemplates(templatesRes.data ?? []) },
     { headers: { "Cache-Control": "no-store, max-age=0" } }
   )
 }
