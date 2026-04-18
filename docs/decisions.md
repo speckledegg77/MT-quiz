@@ -58,7 +58,7 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 - Quickfire is a real round behaviour, not just a naming convention.
 - Quickfire rounds are not Joker-eligible.
 - Quickfire skips the per-question reveal and goes straight to the round flow.
-- Quickfire v1 stays limited to safe non-audio content until audio duration and pacing are handled properly.
+- Quickfire v1 can include safe MCQ audio clips up to 7 seconds when the clip starts on recognisable material. Longer intros, slow pickups, silence, and dialogue-led starts are still poor fits.
 - Quickfire scoring is `+1` for any correct answer, plus `+1` for the fastest correct player on that question.
 - Quickfire round review shows the correct answer and exactly who got it right, with `⚡` on the fastest correct player.
 - Quickfire and Standard rounds can use different default timings.

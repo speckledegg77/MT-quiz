@@ -24,7 +24,7 @@ This file tracks the live plan. Keep it short and practical.
 - [ ] Review which single-show packs still need to stay visible now that metadata-led show selection is stronger.
 - [ ] Decide the minimum tagging model needed for round selection, for example: round type, media type, show, difficulty, era, performer, character.
 - [ ] Keep tagging simple enough that question writing and import do not become painful.
-- [ ] Review whether Quickfire-safe content should stay limited to MCQ and picture until audio duration is handled properly.
+- [ ] Review whether the 7 second Quickfire audio cap feels right in live play, or whether the rule should tighten or loosen further.
 
 ## Quality of life
 

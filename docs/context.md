@@ -155,7 +155,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 ### Quickfire
 - Quickfire is a real round behaviour.
 - Quickfire rounds are not Joker-eligible.
-- Quickfire currently stays limited to safe non-audio content.
+- Quickfire can include safe MCQ audio clips up to 7 seconds when the clip starts on recognisable material.
 - Each correct answer scores `+1`.
 - The fastest correct player on each question gets an extra `+1`.
 - Quickfire skips the per-question reveal.

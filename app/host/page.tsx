@@ -658,7 +658,7 @@ function roundBehaviourBadgeClass(behaviourType: RoundBehaviourType) {
 
 function roundBehaviourSummary(behaviourType: RoundBehaviourType) {
   if (behaviourType === "quickfire") {
-    return "Fast answers, no Joker, no reveal after each question, and the fastest correct player gets a bonus point. Quickfire audio is allowed only when the clip is 5 seconds or shorter."
+    return "Fast answers, no Joker, no reveal after each question, and the fastest correct player gets a bonus point. Quickfire audio is allowed when the clip is 7 seconds or shorter, but the clip should still start on recognisable material."
   }
   if (behaviourType === "heads_up") {
     return "Timed turn-based clueing. The guesser scores one point for each correct card, and the host can review mistakes before the turn is locked."

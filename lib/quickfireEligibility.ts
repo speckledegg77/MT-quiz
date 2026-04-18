@@ -1,4 +1,4 @@
-export const QUICKFIRE_AUDIO_MAX_DURATION_MS = 5000
+export const QUICKFIRE_AUDIO_MAX_DURATION_MS = 7000
 
 export type QuickfireEligibilityLike = {
   answerType?: string | null
