@@ -160,43 +160,71 @@ function suggestMediaType(question: QuestionRowForMetadata): { value: MediaType 
   return { value: null, reason: null }
 }
 
-function suggestPromptTarget(question: QuestionRowForMetadata): { value: PromptTarget | null; reason: string | null } {
-  const text = cleanLower(question.text)
-  const refersToLyrics = /\b(from these lyrics|from the lyrics|these lyrics|lyric excerpt|lyrics?)\b/.test(text)
+function hasLyricExcerptCue(text: string) {
+  return /\b(lyric excerpt|lyric extract|from these lyrics|from the lyrics|these lyrics|includes these lyrics|matches these lyrics)\b/.test(
+    text
+  )
+}
 
-  if (/\b(song title|which song|what song|identify the song)\b/.test(text)) {
-    return {
-      value: "song_title",
-      reason: "Suggested because the question asks the player to identify the song.",
-    }
-  }
-
-  if (/\bname\b[\w\s]{0,40}\bsong\b/.test(text) || (refersToLyrics && /\bsong\b/.test(text))) {
-    return {
-      value: "song_title",
-      reason: refersToLyrics
-        ? "Suggested because the question asks the player to name the song from lyrics."
-        : "Suggested because the question asks the player to name the song.",
-    }
-  }
-
+function asksForSongTitle(text: string, refersToLyrics: boolean) {
   if (
-    /\b(which musical|which show|name the show|name the musical|identify the show|identify the musical|what show|what musical)\b/.test(
+    /\b(song title|which song|what song|identify the song|identify this song|identify the track|which track|what track)\b/.test(
       text
     )
   ) {
+    return true
+  }
+
+  if (/\bwhich musical theatre song title\b/.test(text)) return true
+  if (/\btitle matches this (intro|clip)\b/.test(text)) return true
+  if (/\bwhich (show tune|number) includes these lyrics\b/.test(text)) return true
+  if (/\bname\b[\w\s]{0,40}\b(song|track|number|show tune)\b/.test(text)) return true
+  if (/\btype the song\b/.test(text)) return true
+
+  return refersToLyrics && /\b(song|track|number|show tune)\b/.test(text)
+}
+
+function asksForShowTitle(text: string, refersToLyrics: boolean) {
+  if (
+    /\b(which disney film|which film|what film|which musical|which show|name the show|name the musical|identify the show|identify the musical|what show|what musical)\b/.test(
+      text
+    )
+  ) {
+    return true
+  }
+
+  if (/\btype the musical\b|\btype the show\b/.test(text)) return true
+  if (/\b(features|includes) the song\b/.test(text)) return true
+  if (/\bname\b[\w\s]{0,40}\b(musical|show|film)\b/.test(text)) return true
+
+  return refersToLyrics && /\b(musical|show|film)\b/.test(text)
+}
+
+function asksForCreativeName(text: string) {
+  return /\b(who wrote the book and lyrics|who wrote the music and lyrics|who wrote the score|lyrics by which lyricist|music by which composer)\b/.test(
+    text
+  )
+}
+
+function suggestPromptTarget(question: QuestionRowForMetadata): { value: PromptTarget | null; reason: string | null } {
+  const text = cleanLower(question.text)
+  const refersToLyrics = hasLyricExcerptCue(text)
+
+  if (asksForSongTitle(text, refersToLyrics)) {
     return {
-      value: "show_title",
-      reason: "Suggested because the question asks the player to name the show.",
+      value: "song_title",
+      reason: refersToLyrics
+        ? "Suggested because the question asks the player to identify the song from lyric text."
+        : "Suggested because the question asks the player to identify the song.",
     }
   }
 
-  if (/\bname\b[\w\s]{0,40}\b(musical|show)\b/.test(text) || (refersToLyrics && /\b(musical|show)\b/.test(text))) {
+  if (asksForShowTitle(text, refersToLyrics)) {
     return {
       value: "show_title",
       reason: refersToLyrics
-        ? "Suggested because the question asks the player to name the show from lyrics."
-        : "Suggested because the question asks the player to name the show.",
+        ? "Suggested because the question asks the player to identify the show from the clue."
+        : "Suggested because the question asks the player to identify the show.",
     }
   }
 
@@ -214,7 +242,7 @@ function suggestPromptTarget(question: QuestionRowForMetadata): { value: PromptT
     }
   }
 
-  if (/\bcomposer|lyricist|writer|director|choreographer|book writer|book by\b/.test(text)) {
+  if (asksForCreativeName(text) || /\bcomposer|lyricist|writer|director|choreographer|book writer|book by\b/.test(text)) {
     return {
       value: "creative_name",
       reason: "Suggested because the question asks the player to identify a creative.",
@@ -232,35 +260,24 @@ function suggestClueSource(question: QuestionRowForMetadata): { value: ClueSourc
   const hasAudio = !!cleanText(question.audio_path) || mapLegacyRoundTypeToMediaType(question.round_type) === "audio"
   const hasImage = !!cleanText(question.image_path) || mapLegacyRoundTypeToMediaType(question.round_type) === "image"
 
-  if (/\boverture\b/.test(text)) {
-    return {
-      value: "overture_clip",
-      reason: "Suggested because the clue refers to an overture clip.",
+  if (hasAudio) {
+    if (/\boverture\b/.test(text)) {
+      return {
+        value: "overture_clip",
+        reason: "Suggested because the clue refers to an overture clip.",
+      }
     }
-  }
 
-  if (/\bentr[’' ]?acte\b|\bentracte\b/.test(text)) {
-    return {
-      value: "entracte_clip",
-      reason: "Suggested because the clue refers to an entr'acte clip.",
+    if (/\bentr[’' ]?acte\b|\bentracte\b/.test(text)) {
+      return {
+        value: "entracte_clip",
+        reason: "Suggested because the clue refers to an entr'acte clip.",
+      }
     }
-  }
 
-  if (/\b(lyric excerpt|from these lyrics|from the lyrics|these lyrics|lyrics?)\b/.test(text)) {
     return {
-      value: "lyric_excerpt",
-      reason: "Suggested because the clue is based on lyrics.",
-    }
-  }
-
-  if (
-    /\b(which musical|which show|name the show|name the musical|identify the show|identify the musical|what show|what musical)\b/.test(
-      text
-    ) && /\bsong\b/.test(text)
-  ) {
-    return {
-      value: "song_title",
-      reason: "Suggested because the clue is the title of a song written in the question text.",
+      value: "song_clip",
+      reason: "Suggested because the clue is an audio clip.",
     }
   }
 
@@ -292,10 +309,17 @@ function suggestClueSource(question: QuestionRowForMetadata): { value: ClueSourc
     }
   }
 
-  if (hasAudio) {
+  if (hasLyricExcerptCue(text)) {
     return {
-      value: "song_clip",
-      reason: "Suggested because the clue is an audio clip.",
+      value: "lyric_excerpt",
+      reason: "Suggested because the clue presents lyric text.",
+    }
+  }
+
+  if (asksForShowTitle(text, false) && /\bsong\b/.test(text)) {
+    return {
+      value: "song_title",
+      reason: "Suggested because the clue is the title of a song written in the question text.",
     }
   }
 
