@@ -223,6 +223,72 @@ function audioModeLabel(mode: AudioMode) {
   return "TV"
 }
 
+function HostStepBadge({ step }: { step: string }) {
+  return <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-border text-[11px] font-semibold text-muted-foreground">{step}</span>
+}
+
+function HostDeviceMapCard({ hasRoom }: { hasRoom: boolean }) {
+  const nextStepText = hasRoom
+    ? "Open the TV screen, get players joined on phones, then start from this host page."
+    : "Create the room here first, then open the TV screen and let players join on phones."
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{hasRoom ? "How this setup works" : "How to set up a game"}</CardTitle>
+        <div className="mt-1 text-sm text-muted-foreground">{nextStepText}</div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-2xl border border-border bg-card p-3">
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Host device</div>
+            <div className="mt-2 text-sm text-foreground">Build the game here, watch who has joined, and control when the game starts and moves on.</div>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-3">
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">TV screen</div>
+            <div className="mt-2 text-sm text-foreground">Open the display screen on the shared screen in the room. This is what everyone looks at together.</div>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-3">
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Players' phones</div>
+            <div className="mt-2 text-sm text-foreground">Each player joins on their own phone to answer questions or take part in special rounds.</div>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-4">
+          <div className="rounded-2xl border border-border bg-card p-3">
+            <div className="flex items-center gap-2">
+              <HostStepBadge step="1" />
+              <div className="text-sm font-medium text-foreground">Create the room</div>
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">Choose the setup and create the room from this page.</div>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-3">
+            <div className="flex items-center gap-2">
+              <HostStepBadge step="2" />
+              <div className="text-sm font-medium text-foreground">Open the TV screen</div>
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">Use the display link on the shared screen, not on the players' phones.</div>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-3">
+            <div className="flex items-center gap-2">
+              <HostStepBadge step="3" />
+              <div className="text-sm font-medium text-foreground">Players join</div>
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">Players scan the QR code or use the join page on their phones.</div>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-3">
+            <div className="flex items-center gap-2">
+              <HostStepBadge step="4" />
+              <div className="text-sm font-medium text-foreground">Start the game</div>
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">Start once the room screen is open and the right players have joined.</div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 function clampInt(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min
   return Math.min(max, Math.max(min, Math.floor(n)))
@@ -2406,6 +2472,8 @@ export default function HostPage() {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-6">
+          <HostDeviceMapCard hasRoom={hasRoom} />
+
           {!hasRoom ? (
             <Card className={setupMode === "advanced" ? "border-0 bg-transparent" : undefined}>
               <CardHeader className={setupMode === "advanced" ? "border-b-0 px-0 pb-4 pt-0" : undefined}>
@@ -2543,7 +2611,7 @@ export default function HostPage() {
                             : "No packs selected yet."}
                 </div>
                 <Button onClick={createRoom} disabled={creating || packsLoading || (setupMode === "simple" ? simpleFeasibilityBusy || Boolean(activeCreateBlockReason) : Boolean(activeCreateBlockReason))}>
-                  {creating ? "Creating..." : packsLoading ? "Loading packs..." : "Create room"}
+                  {creating ? "Creating..." : packsLoading ? "Loading packs..." : "Create host room"}
                 </Button>
               </CardFooter>
             </Card>
@@ -2612,16 +2680,50 @@ export default function HostPage() {
           ) : (
             <>
               <Card>
-                <CardHeader><CardTitle>Room access</CardTitle></CardHeader>
+                <CardHeader>
+                  <CardTitle>Room setup</CardTitle>
+                  <div className="mt-1 text-sm text-muted-foreground">Use this card to put the right page on each device before you start the game.</div>
+                </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between gap-3"><div className="text-2xl font-semibold tracking-widest text-foreground">{roomCode}</div><QRTile value={joinUrl} size={112} /></div>
-                  <div className="text-sm text-muted-foreground">Players join at</div>
-                  <div className="rounded-xl border border-border bg-card px-3 py-2 text-sm"><a href={joinUrl} className="break-all underline">{joinUrl}</a></div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <Button onClick={() => openInNewWindow(displayUrl)}>Open TV display</Button>
-                    <Button variant="secondary" onClick={() => openInNewWindow(joinPageUrl)}>Join room</Button>
+                  <div className="rounded-2xl border border-border bg-card p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Room code</div>
+                        <div className="mt-1 text-2xl font-semibold tracking-widest text-foreground">{roomCode}</div>
+                      </div>
+                      <QRTile value={joinUrl} size={112} />
+                    </div>
+                    <div className="mt-3 text-xs text-muted-foreground">Players can scan the QR code or use the join link on their phones.</div>
                   </div>
-                  <Button variant="secondary" onClick={copyJoinLink}>Copy join link</Button>
+
+                  <div className="rounded-2xl border border-border bg-card p-3">
+                    <div className="flex items-center gap-2">
+                      <HostStepBadge step="1" />
+                      <div className="text-sm font-medium text-foreground">Put the display on the TV</div>
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground">Open this on the shared screen in the room. It is the screen everyone watches together.</div>
+                    <div className="mt-3 grid gap-2">
+                      <Button onClick={() => openInNewWindow(displayUrl)}>Open TV display</Button>
+                      <div className="rounded-xl border border-border bg-background px-3 py-2 text-xs text-muted-foreground">{displayUrl}</div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-border bg-card p-3">
+                    <div className="flex items-center gap-2">
+                      <HostStepBadge step="2" />
+                      <div className="text-sm font-medium text-foreground">Get players onto the join page</div>
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground">Players should use this page on their own phones, not the TV display link.</div>
+                    <div className="mt-3 rounded-xl border border-border bg-background px-3 py-2 text-sm"><a href={joinUrl} className="break-all underline">{joinUrl}</a></div>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <Button variant="secondary" onClick={() => openInNewWindow(joinPageUrl)}>Open player join page</Button>
+                      <Button variant="secondary" onClick={copyJoinLink}>Copy join link</Button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-border bg-card p-3 text-sm text-muted-foreground">
+                    Keep this host page open here. Once the TV is ready and the right players have joined, start the game from the host controls.
+                  </div>
                 </CardContent>
               </Card>
               <HostJoinedTeamsPanel code={roomCode ?? ""} />
