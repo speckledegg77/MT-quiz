@@ -1,9 +1,10 @@
 ﻿{
-    "exportName":  "latest-chatgpt-source",
-    "exportedAtUtc":  "2026-04-16T18:40:13Z",
+    "exportName":  "mt-quiz",
+    "exportedAtUtc":  "2026-04-21T17:32:05Z",
     "sourceRepoRoot":  "C:/Users/mark/musical-theatre-quiz",
     "sourceBranch":  "main",
-    "sourceCommit":  "213bd326f290fd813b76c3cac58373325059e3f6",
+    "sourceCommit":  "f5d0cf580f682f2bb42fb780274e79190922335b",
+    "sourceShortCommit":  "f5d0cf5",
     "workingTreeDirty":  false,
     "includePaths":  [
                          "app",
@@ -79,7 +80,7 @@
                                ".webp",
                                ".zip"
                            ],
-    "includedFileCount":  193,
+    "includedFileCount":  196,
     "skippedFileCount":  275,
     "includedFiles":  [
                           "app\\admin\\heads-up\\page.tsx",
@@ -174,6 +175,7 @@
                           "lib\\gameMode.ts",
                           "lib\\headsUp.ts",
                           "lib\\headsUpGameplay.ts",
+                          "lib\\hostCatalog.ts",
                           "lib\\manualRoundPlanBuilder.ts",
                           "lib\\mcqShuffle.ts",
                           "lib\\questionAudit.ts",
@@ -188,6 +190,8 @@
                           "lib\\roundFeasibility.ts",
                           "lib\\roundFlow.ts",
                           "lib\\roundReadiness.ts",
+                          "lib\\roundTemplateFamilies.ts",
+                          "lib\\roundTemplateNaming.ts",
                           "lib\\roundTemplates.ts",
                           "lib\\roundTemplateSummary.ts",
                           "lib\\storage.ts",
