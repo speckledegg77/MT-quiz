@@ -43,6 +43,7 @@ This file tracks the live plan. Keep it short and practical.
 - [ ] Expand the question bank, especially for rounds that need larger eligible pools.
 - [x] Build out the `Waxing Lyrical` text and MCQ packs.
 - [x] Validate and import the final `Waxing Lyrical (MCQ)` master.
+- [ ] Manually review the imported `Waxing Lyrical (MCQ)` pack in the admin questions workflow.
 - [ ] Build beta-friendly round content next, starting with decade packs and stronger intro-led audio rounds.
 - [ ] Add pack-side Heads Up curation tools so packs can add and remove large numbers of existing items quickly.
 - [ ] Polish Heads Up turn review and correction flow after live playtesting.
@@ -60,6 +61,7 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Recently completed
 
+- [x] Rebuild and rebalance the live Heads Up packs so every live pack reaches at least 100 clues.
 - [x] Tidy the visible host pack and round library so core items stay visible first and single-show source packs are tucked behind an explicit reveal.
 - [x] Make Add round template and Edit selected template collapsible on the admin round-templates page.
 - [x] Add importer guidance for quoted CSV fields, show-key discipline, and a regression checklist.

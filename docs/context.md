@@ -4,7 +4,7 @@ Live URL: https://mt-quiz.vercel.app
 Repo URL: https://github.com/speckledegg77/MT-quiz  
 Branch workflow: work directly on `main` and push to GitHub. Vercel auto-deploys from `main`.
 
-Context last updated: 2026-04-04  
+Context last updated: 2026-04-21  
 Repo commit: fill this in with `git rev-parse --short HEAD`
 
 ---
@@ -112,6 +112,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Heads Up rounds now support a TV display setting to either show the live clue or hide it behind a timer-only view.
 - Heads Up rounds now support 60 second and 90 second turn lengths, with 60 seconds as the default.
 - Heads Up scoring is now driven by the active guesser on their phone, with host undo and review before the turn is confirmed.
+- Live Heads Up packs have now been rebuilt and rebalanced so every live pack is at or above 100 clues.
 
 ### Round-plan model
 - Packs are content sources.
@@ -143,7 +144,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Curated `accepted_answers` still matter and are preferred to very loose fuzzy matching.
 - The admin questions dashboard lets the user review and edit `answer_text` and `accepted_answers` for text-answer questions.
 - `Waxing Lyrical (Text)` is complete and imported.
-- `Waxing Lyrical (MCQ)` has been validated and imported.
+- `Waxing Lyrical (MCQ)` is complete and imported, but still needs a manual review pass.
 - Host-side room review is now the next live-host priority, starting with text-answer adjudication.
 
 ### Admin questions page
