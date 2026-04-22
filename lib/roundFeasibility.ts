@@ -273,7 +273,7 @@ function buildExplanation(round: InternalRoundEvaluation, assignedCount: number)
   if (eligibleCount <= 0) {
     return {
       tone: "error",
-      summary: round.behaviourType === "heads_up" ? "No eligible Heads Up items match this round right now." : "No eligible questions match this round right now.",
+      summary: round.behaviourType === "heads_up" ? "No eligible Spotlight items match this round right now." : "No eligible questions match this round right now.",
       detail: [round.scopeDescription, round.filtersDescription].filter(Boolean).join(" "),
       fallback: null,
     }
@@ -349,7 +349,7 @@ export function evaluateRoundsFeasibility(params: {
         : sourceMode === "specific_packs" && sourcePackIds.length === 0
           ? "This round needs at least one specific pack."
           : behaviourType === "heads_up" && sourceMode !== "specific_packs"
-            ? "Heads Up rounds must use a specific Heads Up pack."
+            ? "Spotlight rounds must use a specific Spotlight pack."
             : null
     const eligibleCandidateIds = setupError
       ? []
@@ -371,7 +371,7 @@ export function evaluateRoundsFeasibility(params: {
       sourceMode,
       eligibleCandidateIds: [...new Set(eligibleCandidateIds)],
       setupError,
-      notes: behaviourType === "quickfire" ? ["Quickfire pool excludes typed answers and long audio clips."] : behaviourType === "heads_up" ? ["Heads Up uses separate themed packs and does not use phone answers in v1."] : [],
+      notes: behaviourType === "quickfire" ? ["Quickfire pool excludes typed answers and long audio clips."] : behaviourType === "heads_up" ? ["Spotlight uses separate themed packs and does not use phone answers in v1."] : [],
       scopeDescription: describeSourceScope(sourceMode, sourcePackIds),
       filtersDescription: describeSelectionFilters(rules, behaviourType),
     }

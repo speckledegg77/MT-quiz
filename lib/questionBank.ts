@@ -95,7 +95,7 @@ function mapHeadsUpRow(questionId: string, row: DbHeadsUpRow): Question {
     id: questionId,
     roundType: "heads_up",
     answerType: "none",
-    text: String(row.answer_text ?? "").trim() || "Heads Up card",
+    text: String(row.answer_text ?? "").trim() || "Spotlight card",
     options: [],
     answerIndex: null,
     answerText: String(row.answer_text ?? "").trim() || undefined,

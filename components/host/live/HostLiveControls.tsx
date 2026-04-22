@@ -58,14 +58,14 @@ export default function HostLiveControls(props: any) {
           <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-3 py-2 text-sm text-amber-100">
             {roomHeadsUp?.willAdvanceToNextTurn
               ? `Moving to ${String(roomHeadsUp?.nextGuesserName ?? "the next player")}${roomHeadsUp?.nextTeamName ? ` from Team ${String(roomHeadsUp.nextTeamName)}` : ""} in ${headsUpReviewCountdownSeconds}s unless you move on now or correct the turn log first.`
-              : `Finishing the Heads Up round in ${headsUpReviewCountdownSeconds}s unless you move on now or correct the turn log first.`}
+              : `Finishing the Spotlight round in ${headsUpReviewCountdownSeconds}s unless you move on now or correct the turn log first.`}
           </div>
         ) : null}
         {roomStage === "round_summary" ? (
           <div className={`rounded-xl border px-3 py-2 text-sm ${headsUpRoundCompleteReason === "card_pool_exhausted" ? "border-amber-500/30 bg-amber-600/10 text-amber-100" : "border-border bg-card text-muted-foreground"}`}>
             {headsUpRoundCompleteReason === "card_pool_exhausted"
-              ? `This Heads Up round used all ${Math.max(0, Number(roomHeadsUp?.cardPoolSize ?? 0))} active cards in its selected pack before another player turn could begin. Continue to the next round, or add more active cards to that pack for a longer Heads Up round.`
-              : "This Heads Up round is complete. Continue when you are ready."}
+              ? `This Spotlight round used all ${Math.max(0, Number(roomHeadsUp?.cardPoolSize ?? 0))} active cards in its selected pack before another player turn could begin. Continue to the next round, or add more active cards to that pack for a longer Spotlight round.`
+              : "This Spotlight round is complete. Continue when you are ready."}
           </div>
         ) : null}
         {roomStage === "round_summary" ? (
@@ -92,7 +92,7 @@ export default function HostLiveControls(props: any) {
                   <div key={item.questionId} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2 text-sm">
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-foreground">{item.questionText}</div>
-                      <div className="text-xs text-muted-foreground">{[item.itemType, item.difficulty].filter(Boolean).join(" · ") || "Heads Up card"}</div>
+                      <div className="text-xs text-muted-foreground">{[item.itemType, item.difficulty].filter(Boolean).join(" · ") || "Spotlight card"}</div>
                     </div>
                     {roomStage === "heads_up_review" ? (
                       <select

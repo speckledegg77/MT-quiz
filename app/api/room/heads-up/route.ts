@@ -76,7 +76,7 @@ export async function POST(req: Request) {
   const currentIndex = Math.max(0, Math.floor(Number(room.question_index ?? 0)) || 0)
   const currentRound = findRoundForQuestionIndex(currentIndex, roundPlan)
   if (String(currentRound?.behaviourType ?? "").trim().toLowerCase() !== "heads_up") {
-    return NextResponse.json({ error: "Heads Up controls are only available in a Heads Up round." }, { status: 400 })
+    return NextResponse.json({ error: "Spotlight controls are only available in a Spotlight round." }, { status: 400 })
   }
 
   const questionIds = currentRound.questionIds.map(String)
@@ -315,5 +315,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, stage: roundComplete ? "round_summary" : "heads_up_ready" })
   }
 
-  return NextResponse.json({ error: "Unsupported Heads Up action." }, { status: 400 })
+  return NextResponse.json({ error: "Unsupported Spotlight action." }, { status: 400 })
 }

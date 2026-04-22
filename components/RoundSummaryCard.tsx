@@ -242,7 +242,7 @@ export default function RoundSummaryCard({
               {isInfiniteMode
                 ? "Total cards shown in this run."
                 : isHeadsUp
-                  ? "Heads Up v1 runs through live clueing instead of phone answers."
+                  ? "Spotlight runs through live clueing instead of phone answers."
                   : "Correct answers out of answers received this round."}
             </div>
           </div>
@@ -258,7 +258,7 @@ export default function RoundSummaryCard({
                 : isQuickfire
                   ? "One bonus point goes to the fastest correct player on each question."
                   : isHeadsUp
-                    ? "Heads Up v1 does not use phone answers or automatic scoring."
+                    ? "Spotlight does not use phone answers or automatic scoring."
                     : `Joker correct: ${fmt(Number(roundStats?.jokerCorrect ?? 0))}`}
             </div>
           </div>
@@ -327,7 +327,7 @@ export default function RoundSummaryCard({
                               Card {index + 1}. {item.questionText}
                             </div>
                             <div className="mt-1 text-xs text-muted-foreground">
-                              {[item.itemType, item.difficulty].filter(Boolean).join(" · ") || "Heads Up item"}
+                              {[item.itemType, item.difficulty].filter(Boolean).join(" · ") || "Spotlight item"}
                             </div>
                           </div>
                           <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] ${item.outcome === "correct" ? "border-emerald-500/40 bg-emerald-600/10 text-emerald-200" : "border-slate-500/40 bg-slate-600/10 text-slate-200"}`}>
@@ -352,7 +352,7 @@ export default function RoundSummaryCard({
                     Card {item.questionNumberInRound}. {item.questionText}
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    {[item.itemType, item.difficulty].filter(Boolean).join(" · ") || "Heads Up item"}
+                    {[item.itemType, item.difficulty].filter(Boolean).join(" · ") || "Spotlight item"}
                   </div>
                 </div>
               ))}

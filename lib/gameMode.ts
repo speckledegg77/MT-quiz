@@ -117,7 +117,7 @@ export function getRoundBehaviourLabel(behaviourType: unknown, options: { isInfi
   if (options.isInfiniteMode) return "Infinite"
   const value = normaliseBehaviourType(behaviourType)
   if (value === "quickfire") return "Quickfire"
-  if (value === "heads_up") return "Heads Up"
+  if (value === "heads_up") return "Spotlight"
   return "Standard"
 }
 

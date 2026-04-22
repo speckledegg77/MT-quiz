@@ -150,7 +150,7 @@ async function autoConfirmHeadsUpReview(params: {
     return {
       ok: false,
       advanced: false,
-      error: updateRes.error.message || "Could not confirm Heads Up turn.",
+      error: updateRes.error.message || "Could not confirm Spotlight turn.",
       status: 500,
     } satisfies AdvanceRoomIfReadyResult
   }

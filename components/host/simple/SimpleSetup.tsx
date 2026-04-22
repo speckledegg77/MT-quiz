@@ -75,7 +75,7 @@ export default function SimpleSetup(props: any) {
               <div className="text-sm font-semibold text-foreground">Choose game type</div>
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
-              Pick what sort of session you want to run. Recommended builds a full quiz for you, Heads Up starts a clueing game, and Infinite runs one long stream without round setup.
+              Pick what sort of session you want to run. Recommended builds a full quiz for you, Spotlight starts a clueing game, and Infinite runs one long stream without round setup.
             </div>
           </div>
           <div className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-semibold leading-none text-sky-700 shadow-sm dark:border-sky-500/40 dark:bg-sky-600/10 dark:text-sky-200">
@@ -92,7 +92,7 @@ export default function SimpleSetup(props: any) {
                   ? "Checking..."
                   : simpleCandidateCount > 0
                     ? `${simpleCandidateCount} cards`
-                    : "Heads Up pack"
+                    : "Spotlight pack"
                 : `${simpleRoundCount} rounds`}
           </div>
         </div>
@@ -112,7 +112,7 @@ export default function SimpleSetup(props: any) {
             <div className="flex items-start gap-3">
               <input type="radio" name="simple-game-type" checked={simpleGameType === "heads_up"} onChange={() => setSimpleGameType("heads_up")} className="mt-0.5" />
               <div>
-                <div className="font-medium text-foreground">Heads Up</div>
+                <div className="font-medium text-foreground">Spotlight</div>
                 <div className="mt-1 text-xs text-muted-foreground">Quick host flow for one themed clueing pack with default settings.</div>
               </div>
             </div>
@@ -182,17 +182,17 @@ export default function SimpleSetup(props: any) {
         ) : simpleGameType === "heads_up" ? (
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div>
-              <div className="text-sm font-medium text-foreground">Heads Up pack</div>
+              <div className="text-sm font-medium text-foreground">Spotlight pack</div>
               <SelectControl value={simpleHeadsUpPackId} onChange={(e) => setSimpleHeadsUpPackId(e.target.value)} className="mt-1" variant="soft">
-                <option value="">Choose a Heads Up pack</option>
+                <option value="">Choose a Spotlight pack</option>
                 {headsUpPacks.map((pack: HeadsUpPackOption) => (
                   <option key={pack.id} value={pack.id}>{pack.name}</option>
                 ))}
               </SelectControl>
-              <div className="mt-1 text-xs text-muted-foreground">Quick play uses one Heads Up pack, 60 second turns, and timer-only TV by default.</div>
+              <div className="mt-1 text-xs text-muted-foreground">Quick play uses one Spotlight pack, 60 second turns, and timer-only TV by default.</div>
             </div>
             <div className="rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">
-              Heads Up quick play is ready for a fast host flow. No extra round builder steps, Joker stays hidden, and solo mode still works if you do not want teams.
+              Spotlight quick play is ready for a fast host flow. No extra round builder steps, Joker stays hidden, and solo mode still works if you do not want teams.
             </div>
           </div>
         ) : (
@@ -269,7 +269,7 @@ export default function SimpleSetup(props: any) {
               {simpleGameType === "infinite"
                 ? "Open to preview the question pool and continuous-run behaviour."
                 : simpleGameType === "heads_up"
-                  ? "Open to preview the quick Heads Up setup."
+                  ? "Open to preview the quick Spotlight setup."
                   : "Open to preview the game that Simple mode will create."}
             </div>
           </div>

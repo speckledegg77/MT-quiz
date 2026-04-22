@@ -634,7 +634,7 @@ export default function PlayerPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setAnswerError(String(data?.error ?? "Could not update Heads Up."))
+        setAnswerError(String(data?.error ?? "Could not update Spotlight."))
         return
       }
       if (pendingAction === "correct" || pendingAction === "pass") {
@@ -642,7 +642,7 @@ export default function PlayerPage() {
       }
       await refreshState()
     } catch {
-      setAnswerError("Could not update Heads Up.")
+      setAnswerError("Could not update Spotlight.")
     } finally {
       setHeadsUpSubmittingAction(null)
     }
@@ -1146,11 +1146,11 @@ export default function PlayerPage() {
               <CardContent className="py-4">
                 <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-4 py-3 text-sm">
                   <div className="font-medium text-foreground">
-                    {headsUpRoundCompleteReason === "card_pool_exhausted" ? "This Heads Up round has run out of cards." : "This Heads Up round is complete."}
+                    {headsUpRoundCompleteReason === "card_pool_exhausted" ? "This Spotlight round has run out of cards." : "This Spotlight round is complete."}
                   </div>
                   <div className="mt-1 text-muted-foreground">
                     {headsUpRoundCompleteReason === "card_pool_exhausted"
-                      ? "Wait for the host to continue to the next round. Future Heads Up rounds need a larger card pool if you want more players to take a turn."
+                      ? "Wait for the host to continue to the next round. Future Spotlight rounds need a larger card pool if you want more players to take a turn."
                       : "Wait for the host to continue when they are ready."}
                   </div>
                 </div>
@@ -1214,7 +1214,7 @@ export default function PlayerPage() {
               <div className="flex items-center justify-between gap-3">
                 <CardTitle>{isHeadsUpRound ? "Card" : "Question"}</CardTitle>
                 <div className="text-sm text-muted-foreground">
-                  {q.roundType === "audio" ? "Audio" : q.roundType === "picture" ? "Picture" : q.roundType === "heads_up" ? "Heads Up" : "General"}
+                  {q.roundType === "audio" ? "Audio" : q.roundType === "picture" ? "Picture" : q.roundType === "heads_up" ? "Spotlight" : "General"}
                 </div>
               </div>
             </CardHeader>
@@ -1238,7 +1238,7 @@ export default function PlayerPage() {
 
               {isHeadsUpRound ? (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-3 py-3 text-sm">
-                  <div className="font-medium text-foreground">Heads Up</div>
+                  <div className="font-medium text-foreground">Spotlight</div>
                   <div className="mt-1 text-muted-foreground">
                     {headsUpRole === "guesser"
                       ? isHeadsUpReadyStage
@@ -1394,7 +1394,7 @@ export default function PlayerPage() {
                   <div className="font-medium text-foreground">
                     {headsUp?.willAdvanceToNextTurn
                       ? `Next player: ${String(headsUp?.nextGuesserName ?? "The next player")}${headsUp?.nextTeamName ? ` · Team ${String(headsUp.nextTeamName)}` : ""}`
-                      : "Ending Heads Up round"}
+                      : "Ending Spotlight round"}
                   </div>
                   <div className="mt-1 text-muted-foreground">
                     {headsUp?.willAdvanceToNextTurn

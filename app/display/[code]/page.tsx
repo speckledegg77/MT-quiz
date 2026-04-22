@@ -406,7 +406,7 @@ export default function DisplayPage() {
             <Card>
               <CardContent className="py-6">
                 <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-5 py-4 text-center">
-                  <div className="text-xs uppercase tracking-[0.24em] text-amber-200">Heads Up round complete</div>
+                  <div className="text-xs uppercase tracking-[0.24em] text-amber-200">Spotlight round complete</div>
                   <div className="mt-2 text-2xl font-semibold text-foreground">
                     {String(state?.headsUp?.roundCompleteReason ?? "") === "card_pool_exhausted" ? "No more cards left in this round" : "All turns complete"}
                   </div>
@@ -453,7 +453,7 @@ export default function DisplayPage() {
                   ) : null}
                   {isHeadsUpRound ? (
                     <span className="rounded-full border border-amber-500/40 bg-amber-600/10 px-3 py-1 text-sm text-amber-200">
-                      Heads Up
+                      Spotlight
                     </span>
                   ) : null}
                 </div>
@@ -479,7 +479,7 @@ export default function DisplayPage() {
 
                 {isHeadsUpRound ? (
                   <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-4 py-3 text-sm">
-                    <div className="font-medium text-foreground">Heads Up turn</div>
+                    <div className="font-medium text-foreground">Spotlight turn</div>
                     <div className="mt-1 text-muted-foreground">
                       {headsUp?.tvDisplayMode === "show_clue"
                         ? "The TV is showing the live clue for the active team or the room."
@@ -523,7 +523,7 @@ export default function DisplayPage() {
                         <div className="font-medium text-foreground">
                           {headsUp?.willAdvanceToNextTurn
                             ? `Next player: ${String(headsUp?.nextGuesserName ?? "The next player")}${headsUp?.nextTeamName ? ` · Team ${String(headsUp.nextTeamName)}` : ""}`
-                            : "Ending Heads Up round"}
+                            : "Ending Spotlight round"}
                         </div>
                         <div className="mt-1 text-muted-foreground">
                           {headsUp?.willAdvanceToNextTurn
@@ -538,7 +538,7 @@ export default function DisplayPage() {
                           <div key={item.questionId} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3">
                             <div className="min-w-0 flex-1">
                               <div className="truncate text-base text-foreground">{item.questionText}</div>
-                              <div className="text-xs text-muted-foreground">{[item.itemType, item.difficulty].filter(Boolean).join(" · ") || "Heads Up card"}</div>
+                              <div className="text-xs text-muted-foreground">{[item.itemType, item.difficulty].filter(Boolean).join(" · ") || "Spotlight card"}</div>
                             </div>
                             <span className={`rounded-full border px-3 py-1 text-sm ${item.action === "correct" ? "border-emerald-500/40 bg-emerald-600/10 text-emerald-200" : "border-slate-500/40 bg-slate-600/10 text-slate-200"}`}>
                               {item.action === "correct" ? "Correct" : "Pass"}

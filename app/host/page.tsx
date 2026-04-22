@@ -25,7 +25,7 @@ const pathCards = [
     bullets: [
       "Current host screen stays intact",
       "Simple and Advanced setup still available",
-      "Better for Heads Up, Infinite, and manual control",
+      "Better for Spotlight, Infinite, and manual control",
     ],
   },
 ]

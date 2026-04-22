@@ -191,7 +191,7 @@ export function buildManualRoomRoundPlan(params: {
     }
 
     if (behaviourType === "heads_up" && sourceMode !== "specific_packs") {
-      throw new Error(`Round "${name}" must use a specific Heads Up pack.`)
+      throw new Error(`Round "${name}" must use a specific Spotlight pack.`)
     }
 
     const selectionRules = normaliseSelectionRules(roundRaw.selectionRules)
@@ -221,7 +221,7 @@ export function buildManualRoomRoundPlan(params: {
     if (requestedCount <= 0) {
       throw new Error(
         behaviourType === "heads_up"
-          ? `Round "${name}" needs at least one active Heads Up card in the selected pack.`
+          ? `Round "${name}" needs at least one active Spotlight card in the selected pack.`
           : `Round "${name}" needs a question count greater than 0.`
       )
     }

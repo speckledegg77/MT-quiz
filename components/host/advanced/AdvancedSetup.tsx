@@ -390,7 +390,7 @@ export default function AdvancedSetup(props: any) {
                   {round.behaviourType === "heads_up" ? (
                     <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       <div>
-                        <div className="text-sm font-medium text-foreground">Heads Up pack</div>
+                        <div className="text-sm font-medium text-foreground">Spotlight pack</div>
                         <SelectControl variant="advanced" compact value={round.packIds[0] ?? ""} onChange={(e) => updateManualRound(round.id, { packIds: e.target.value ? [e.target.value] : [] })} className="mt-1">
                           <option value="">Choose one pack</option>
                           {headsUpPacks.map((pack: { id: string; name: string }) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}

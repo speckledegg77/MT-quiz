@@ -281,8 +281,8 @@ export default function HostWizardPage() {
     if (feasibilityBusy) return "Still checking which ready templates fit the current question pool."
     if (feasibilityError) return feasibilityError
     if (teamValidationMessage) return teamValidationMessage
-    if (includeHeadsUpFinish && !headsUpPacks.length) return "No active Heads Up packs are available right now."
-    if (includeHeadsUpFinish && roundCount < 2) return "Choose at least 2 rounds if you want a Heads Up finish."
+    if (includeHeadsUpFinish && !headsUpPacks.length) return "No active Spotlight packs are available right now."
+    if (includeHeadsUpFinish && roundCount < 2) return "Choose at least 2 rounds if you want a Spotlight finish."
     return templatePlan.error
   }, [feasibilityBusy, feasibilityError, headsUpPacks.length, includeHeadsUpFinish, loadError, loading, roundCount, teamValidationMessage, templatePlan.error])
 
@@ -302,7 +302,7 @@ export default function HostWizardPage() {
         fetch("/api/heads-up/packs", { cache: "no-store" })
           .then(async (res) => {
             const json = (await res.json().catch(() => ({}))) as { packs?: HeadsUpPackRow[]; error?: string }
-            if (!res.ok) throw new Error(json.error ?? "Could not load Heads Up packs.")
+            if (!res.ok) throw new Error(json.error ?? "Could not load Spotlight packs.")
             return json.packs ?? []
           }),
         fetch("/api/round-templates", { cache: "no-store" })
@@ -459,7 +459,7 @@ export default function HostWizardPage() {
       const chosenHeadsUpPack = includeHeadsUpFinish ? chooseRandomItem(headsUpPacks) : null
 
       if (includeHeadsUpFinish && !chosenHeadsUpPack) {
-        setCreateError("No active Heads Up packs are available right now.")
+        setCreateError("No active Spotlight packs are available right now.")
         setCreating(false)
         return
       }
@@ -469,7 +469,7 @@ export default function HostWizardPage() {
         ...(chosenHeadsUpPack
           ? [{
               id: `wizard_heads_up_${chosenHeadsUpPack.id}`,
-              name: "Heads Up",
+              name: "Spotlight",
               questionCount: 1,
               behaviourType: "heads_up" as const,
               jokerEligible: false,
@@ -808,9 +808,9 @@ export default function HostWizardPage() {
                   <div className="space-y-3 rounded-2xl border border-border bg-card p-4 text-sm">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="font-medium text-foreground">Finish with Heads Up</div>
+                        <div className="font-medium text-foreground">Finish with Spotlight</div>
                         <div className="mt-1 text-xs text-muted-foreground">
-                          Add one final Heads Up round using a random active pack. You do not need to choose the pack here.
+                          Add one final Spotlight round using a random active pack. You do not need to choose the pack here.
                         </div>
                       </div>
                       <label className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
@@ -825,8 +825,8 @@ export default function HostWizardPage() {
                     {includeHeadsUpFinish ? (
                       <div className="rounded-xl border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
                         {playSurface === "phones_only"
-                          ? "This final Heads Up round will replace the last round and follow the phones-only setup too."
-                          : "This final Heads Up round will replace the last round and use the normal room setup, with a random active pack and timer-only TV by default."}
+                          ? "This final Spotlight round will replace the last round and follow the phones-only setup too."
+                          : "This final Spotlight round will replace the last round and use the normal room setup, with a random active pack and timer-only TV by default."}
                       </div>
                     ) : null}
                   </div>
@@ -863,7 +863,7 @@ export default function HostWizardPage() {
                             <span className="text-right font-medium text-foreground">{SETUP_LENGTHS.find((option) => option.id === lengthId)?.title ?? "Standard game"}</span>
                           </div>
                           <div className="flex items-start justify-between gap-3">
-                            <span className="text-muted-foreground">Heads Up finish</span>
+                            <span className="text-muted-foreground">Spotlight finish</span>
                             <span className="text-right font-medium text-foreground">{includeHeadsUpFinish ? "Yes, use the final round for a random pack" : "No"}</span>
                           </div>
                           <div className="flex items-start justify-between gap-3">
@@ -905,8 +905,8 @@ export default function HostWizardPage() {
                           {includeHeadsUpFinish ? (
                             <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm">
                               <div className="flex items-center justify-between gap-3">
-                                <div className="font-medium text-foreground">{templatePlan.rounds.length + 1}. Heads Up</div>
-                                <div className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">Heads Up</div>
+                                <div className="font-medium text-foreground">{templatePlan.rounds.length + 1}. Spotlight</div>
+                                <div className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">Spotlight</div>
                               </div>
                               <div className="mt-1 text-xs text-muted-foreground">
                                 Replaces the final round · random active pack · 60s turns · 20s round review
@@ -974,7 +974,7 @@ export default function HostWizardPage() {
 
                   {createdHeadsUpPack ? (
                     <div className="rounded-2xl border border-border bg-muted p-4 text-sm text-muted-foreground">
-                      This game will use <span className="font-medium text-foreground">{createdHeadsUpPack.name}</span> for the final Heads Up round.
+                      This game will use <span className="font-medium text-foreground">{createdHeadsUpPack.name}</span> for the final Spotlight round.
                     </div>
                   ) : null}
 
@@ -1070,7 +1070,7 @@ export default function HostWizardPage() {
                     <span className="text-right font-medium text-foreground">{SETUP_LENGTHS.find((option) => option.id === lengthId)?.title ?? "Standard game"}</span>
                   </div>
                   <div className="flex items-start justify-between gap-3">
-                    <span className="text-muted-foreground">Heads Up finish</span>
+                    <span className="text-muted-foreground">Spotlight finish</span>
                     <span className="text-right font-medium text-foreground">{createdHeadsUpPack ? `${createdHeadsUpPack.name} in final round` : includeHeadsUpFinish ? "Random active pack in final round" : "No"}</span>
                   </div>
                   <div className="flex items-start justify-between gap-3">

@@ -148,7 +148,7 @@ const PROMPT_TARGET_OPTIONS = [
 const ROUND_BEHAVIOUR_OPTIONS: Array<{ value: RoundBehaviourType; label: string }> = [
   { value: "standard", label: "Standard" },
   { value: "quickfire", label: "Quickfire" },
-  { value: "heads_up", label: "Heads Up" },
+  { value: "heads_up", label: "Spotlight" },
 ]
 
 const AUDIO_CLIP_TYPE_OPTIONS = [
@@ -349,7 +349,7 @@ function formatMetadataToken(value: string) {
 }
 
 function describeManualRoundPackSummary(round: ManualRoundDraft, packNameById: Map<string, string>) {
-  if (round.behaviourType === "heads_up") return "1 Heads Up pack"
+  if (round.behaviourType === "heads_up") return "1 Spotlight pack"
   if (round.sourceMode === "all_questions") return "All active packs"
   if (round.packIds.length === 0) return "No packs chosen"
   if (round.packIds.length === 1) return packNameById.get(round.packIds[0]) ?? "1 pack selected"
@@ -645,7 +645,7 @@ function feasibilityTone(result: FeasibilityRoundResult) {
 }
 
 function roundBehaviourLabel(behaviourType: RoundBehaviourType) {
-  return behaviourType === "quickfire" ? "Quickfire" : behaviourType === "heads_up" ? "Heads Up" : "Standard"
+  return behaviourType === "quickfire" ? "Quickfire" : behaviourType === "heads_up" ? "Spotlight" : "Standard"
 }
 
 function roundBehaviourBadgeClass(behaviourType: RoundBehaviourType) {
@@ -1281,7 +1281,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
                     ? [
                         {
                           id: "simple_heads_up_round",
-                          name: "Heads Up",
+                          name: "Spotlight",
                           questionCount: 0,
                           behaviourType: "heads_up",
                           sourceMode: "specific_packs",
@@ -1537,9 +1537,9 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
     }
 
     if (simpleGameType === "heads_up") {
-      if (!simpleHeadsUpPackId) return "Choose a Heads Up pack first."
-      if (simpleFeasibilityBusy) return "Still checking the selected Heads Up pack."
-      if (simpleCandidateCount <= 0) return "No active Heads Up cards are available in the selected pack."
+      if (!simpleHeadsUpPackId) return "Choose a Spotlight pack first."
+      if (simpleFeasibilityBusy) return "Still checking the selected Spotlight pack."
+      if (simpleCandidateCount <= 0) return "No active Spotlight cards are available in the selected pack."
       return null
     }
 
@@ -1607,7 +1607,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
             simpleGameType === "infinite"
               ? "Still checking how many questions are available for this pack choice."
               : simpleGameType === "heads_up"
-                ? "Still checking the selected Heads Up pack."
+                ? "Still checking the selected Spotlight pack."
                 : "Still checking which round templates are ready for this pack choice."
           )
           setCreating(false)
@@ -1649,13 +1649,13 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
           }
         } else if (simpleGameType === "heads_up") {
           if (!simpleHeadsUpPackId) {
-            setCreateError("Choose a Heads Up pack first.")
+            setCreateError("Choose a Spotlight pack first.")
             setCreating(false)
             return
           }
 
           if (simpleCandidateCount <= 0) {
-            setCreateError("No active Heads Up cards are available in the selected pack.")
+            setCreateError("No active Spotlight cards are available in the selected pack.")
             setCreating(false)
             return
           }
@@ -1667,7 +1667,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
             manualRounds: [
               {
                 id: "simple_heads_up_round",
-                name: selectedHeadsUpPack?.name?.trim() || "Heads Up",
+                name: selectedHeadsUpPack?.name?.trim() || "Spotlight",
                 questionCount: 0,
                 behaviourType: "heads_up",
                 jokerEligible: false,
@@ -1999,10 +1999,10 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setForceCloseError(String(data?.error ?? "Could not update Heads Up."))
+        setForceCloseError(String(data?.error ?? "Could not update Spotlight."))
       }
     } catch {
-      setForceCloseError("Could not update Heads Up.")
+      setForceCloseError("Could not update Spotlight.")
     } finally {
       setForcingClose(false)
     }
@@ -2148,8 +2148,8 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
           : roomStage === "heads_up_review"
             ? "Review the turn log, correct any mistakes if needed, then confirm it. The round will continue automatically after a longer review pause unless you move on sooner."
             : headsUpRoundCompleteReason === "card_pool_exhausted"
-              ? "This Heads Up round has run out of active cards before every player has taken a turn. Continue to the next round, then add more cards to this pack if you want longer Heads Up rounds."
-              : "The Heads Up round is finished. Continue when you are ready."
+              ? "This Spotlight round has run out of active cards before every player has taken a turn. Continue to the next round, then add more cards to this pack if you want longer Spotlight rounds."
+              : "The Spotlight round is finished. Continue when you are ready."
       : roomPhase === "lobby"
       ? joinedPlayerCount <= 0
         ? "Players can still join. At least one player must join before you can start the game."
@@ -2227,21 +2227,21 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
         : "Needs changes"
 
   const simpleJokerSummary = simpleGameType === "heads_up"
-    ? "Joker hidden in Heads Up"
+    ? "Joker hidden in Spotlight"
     : simpleTemplatePlan.jokerEligibleCount >= 2
       ? `Joker available in ${simpleTemplatePlan.jokerEligibleCount} round${simpleTemplatePlan.jokerEligibleCount === 1 ? "" : "s"}`
       : "Joker hidden for this game"
 
   const simpleTimingSummary = simpleGameType === "heads_up"
-    ? "Heads Up quick play uses 60 second turns, timer-only TV, and the normal Heads Up end-of-turn review."
+    ? "Spotlight quick play uses 60 second turns, timer-only TV, and the normal Spotlight end-of-turn review."
     : simpleTemplatePlan.quickfireCount > 0
       ? "Standard rounds use 20 second answers and 30 second reviews. Quickfire uses 10 second answers and 45 second round reviews."
       : "Standard rounds use 20 second answers and 30 second round reviews."
 
   const simpleGameSummaryText = simpleGameType === "heads_up"
     ? simpleCandidateCount > 0
-      ? `This game will start a quick Heads Up round using ${headsUpPacks.find((pack) => pack.id === simpleHeadsUpPackId)?.name ?? "the selected pack"}, with ${simpleCandidateCount} active card${simpleCandidateCount === 1 ? "" : "s"}, 60 second turns, and timer-only TV.`
-      : "Simple mode will start a quick Heads Up round as soon as the selected pack has active cards."
+      ? `This game will start a quick Spotlight round using ${headsUpPacks.find((pack) => pack.id === simpleHeadsUpPackId)?.name ?? "the selected pack"}, with ${simpleCandidateCount} active card${simpleCandidateCount === 1 ? "" : "s"}, 60 second turns, and timer-only TV.`
+      : "Simple mode will start a quick Spotlight round as soon as the selected pack has active cards."
     : simpleTemplatePlan.rounds.length > 0
       ? `This game will create ${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"}: ${simpleTemplatePlan.standardCount} Standard and ${simpleTemplatePlan.quickfireCount} Quickfire, using ${simplePackScopeText}, with ${audioModeLabel(audioMode)} audio and sensible default timings.`
       : "Simple mode will build a game from ready templates as soon as the current pack choice supports it."
@@ -2511,7 +2511,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
                       </div>
                       <div className="mt-1 text-xs text-muted-foreground">
                         {setupMode === "simple"
-                          ? "Quick host flow for automatic quiz setup, quick Heads Up, or one continuous Infinite run."
+                          ? "Quick host flow for automatic quiz setup, quick Spotlight, or one continuous Infinite run."
                           : "Full round builder with templates, metadata filters, timing overrides, and legacy options."}
                       </div>
                     </div>
