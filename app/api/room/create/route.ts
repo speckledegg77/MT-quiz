@@ -188,7 +188,7 @@ function cleanSourceMode(raw: unknown): RoundSourceMode {
 function cleanBehaviourType(raw: unknown): RoundBehaviourType {
   const value = String(raw ?? "").trim().toLowerCase()
   if (value === "quickfire") return "quickfire"
-  if (value === "spotlight" || value === "heads_up") return "spotlight"
+  if (value === "spotlight") return "spotlight"
   return "standard"
 }
 
@@ -208,7 +208,7 @@ function cleanManualRounds(raw: unknown): ManualRoundDraftInput[] {
       selectionRules: cleanSelectionRules(value.selectionRules),
       answerSeconds: cleanOptionalNonNegativeNumber(value.answerSeconds),
       roundReviewSeconds: cleanOptionalNonNegativeNumber(value.roundReviewSeconds),
-      spotlightTvDisplayMode: String(value.spotlightTvDisplayMode ?? value.legacySpotlightTvDisplayMode ?? "").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only",
+      spotlightTvDisplayMode: String(value.spotlightTvDisplayMode ?? "").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only",
     }
   })
 }
@@ -255,7 +255,7 @@ function mapTemplateToManualRound(template: any, index: number): ManualRoundDraf
     roundReviewSeconds:
       cleanOptionalNonNegativeNumber(template?.default_round_review_seconds) ??
       getDefaultRoundReviewSecondsForBehaviour(behaviourType),
-    spotlightTvDisplayMode: String(template?.spotlight_tv_display_mode ?? template?.heads_up_tv_display_mode ?? "").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only",
+    spotlightTvDisplayMode: String(template?.spotlight_tv_display_mode ?? "").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only",
   }
 }
 

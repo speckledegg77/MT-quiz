@@ -51,7 +51,7 @@ function describeShowSelection(showKeys: string[], showNameByKey: Map<string, st
 function buildManualRoundFilterSummary(round: any, showNameByKey: Map<string, string>) {
   if (round.behaviourType === "spotlight") {
     const parts: string[] = []
-    if (round.headsUpDifficulty) parts.push(`Difficulty: ${formatMetadataToken(round.headsUpDifficulty)}`)
+    if (round.spotlightDifficulty) parts.push(`Difficulty: ${formatMetadataToken(round.spotlightDifficulty)}`)
     if (round.primaryShowKeys?.length) parts.push(`Show: ${describeShowSelection(round.primaryShowKeys, showNameByKey)}`)
     return parts
   }
@@ -83,7 +83,7 @@ function countManualRoundFilters(round: any) {
   if (round.clueSources?.length) count += 1
   if (round.primaryShowKeys?.length) count += 1
   if (round.audioClipTypes?.length) count += 1
-  if (round.behaviourType === "spotlight" && round.headsUpDifficulty) count += 1
+  if (round.behaviourType === "spotlight" && round.spotlightDifficulty) count += 1
   return count
 }
 
@@ -173,10 +173,10 @@ export default function AdvancedSetup(props: any) {
     updateManualRound,
     ROUND_BEHAVIOUR_OPTIONS,
     getManualRoundTimingSummary,
-    HEADS_UP_DIFFICULTY_OPTIONS,
-    HEADS_UP_TURN_OPTIONS,
-    HEADS_UP_TV_DISPLAY_OPTIONS,
-    headsUpPacks,
+    SPOTLIGHT_DIFFICULTY_OPTIONS,
+    SPOTLIGHT_TURN_OPTIONS,
+    SPOTLIGHT_TV_DISPLAY_OPTIONS,
+    spotlightPacks,
     shows,
     PROMPT_TARGET_OPTIONS,
     CLUE_SOURCE_OPTIONS,
@@ -393,25 +393,25 @@ export default function AdvancedSetup(props: any) {
                         <div className="text-sm font-medium text-foreground">Spotlight pack</div>
                         <SelectControl variant="advanced" compact value={round.packIds[0] ?? ""} onChange={(e) => updateManualRound(round.id, { packIds: e.target.value ? [e.target.value] : [] })} className="mt-1">
                           <option value="">Choose one pack</option>
-                          {headsUpPacks.map((pack: { id: string; name: string }) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
+                          {spotlightPacks.map((pack: { id: string; name: string }) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
                         </SelectControl>
                       </div>
                       <div>
                         <div className="text-sm font-medium text-foreground">Difficulty</div>
-                        <SelectControl variant="advanced" compact value={round.headsUpDifficulty} onChange={(e) => updateManualRound(round.id, { headsUpDifficulty: e.target.value as "" | "easy" | "medium" | "hard" })} className="mt-1">
-                          {HEADS_UP_DIFFICULTY_OPTIONS.map((option: { value: string; label: string }) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
+                        <SelectControl variant="advanced" compact value={round.spotlightDifficulty} onChange={(e) => updateManualRound(round.id, { spotlightDifficulty: e.target.value as "" | "easy" | "medium" | "hard" })} className="mt-1">
+                          {SPOTLIGHT_DIFFICULTY_OPTIONS.map((option: { value: string; label: string }) => <option key={option.value || "blank"} value={option.value}>{option.label}</option>)}
                         </SelectControl>
                       </div>
                       <div>
                         <div className="text-sm font-medium text-foreground">Turn length</div>
-                        <SelectControl variant="advanced" compact value={String(round.headsUpTurnSeconds)} onChange={(e) => updateManualRound(round.id, { headsUpTurnSeconds: e.target.value === "90" ? 90 : 60 })} className="mt-1">
-                          {HEADS_UP_TURN_OPTIONS.map((option: { value: number; label: string }) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                        <SelectControl variant="advanced" compact value={String(round.spotlightTurnSeconds)} onChange={(e) => updateManualRound(round.id, { spotlightTurnSeconds: e.target.value === "90" ? 90 : 60 })} className="mt-1">
+                          {SPOTLIGHT_TURN_OPTIONS.map((option: { value: number; label: string }) => <option key={option.value} value={option.value}>{option.label}</option>)}
                         </SelectControl>
                       </div>
                       <div>
                         <div className="text-sm font-medium text-foreground">TV display</div>
-                        <SelectControl variant="advanced" compact value={round.headsUpTvDisplayMode} onChange={(e) => updateManualRound(round.id, { headsUpTvDisplayMode: e.target.value as "show_clue" | "timer_only" })} className="mt-1">
-                          {HEADS_UP_TV_DISPLAY_OPTIONS.map((option: { value: string; label: string }) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                        <SelectControl variant="advanced" compact value={round.spotlightTvDisplayMode} onChange={(e) => updateManualRound(round.id, { spotlightTvDisplayMode: e.target.value as "show_clue" | "timer_only" })} className="mt-1">
+                          {SPOTLIGHT_TV_DISPLAY_OPTIONS.map((option: { value: string; label: string }) => <option key={option.value} value={option.value}>{option.label}</option>)}
                         </SelectControl>
                       </div>
                     </div>

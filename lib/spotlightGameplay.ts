@@ -61,10 +61,10 @@ export function getSpotlightTurnSeconds(round: { behaviourType?: unknown; answer
   return value === 90 ? 90 : 60
 }
 
-export function getSpotlightTvDisplayMode(round: { behaviourType?: unknown; spotlightTvDisplayMode?: unknown; legacySpotlightTvDisplayMode?: unknown } | null | undefined) {
+export function getSpotlightTvDisplayMode(round: { behaviourType?: unknown; spotlightTvDisplayMode?: unknown } | null | undefined) {
   const behaviourType = String(round?.behaviourType ?? "").trim().toLowerCase()
   if (behaviourType !== "spotlight") return "show_clue" as SpotlightTvDisplayMode
-  return cleanSpotlightTvDisplayMode(round?.spotlightTvDisplayMode ?? (round as any)?.legacySpotlightTvDisplayMode ?? (round as any)?.headsUpTvDisplayMode)
+  return cleanSpotlightTvDisplayMode(round?.spotlightTvDisplayMode)
 }
 
 export function buildSpotlightTurnOrder(playersRaw: SpotlightPlayerLike[], options: { gameMode?: unknown; teamNames?: unknown } = {}) {

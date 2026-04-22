@@ -526,13 +526,13 @@ export async function GET(req: Request) {
   const roundSummaryEndsAt = buildRoundSummaryEndsAt(room.next_at, roundReviewSeconds)
 
   const spotlightState = isSpotlightRound(currentRound)
-    ? normaliseSpotlightRoomState(room?.heads_up_state, currentRound.index)
+    ? normaliseSpotlightRoomState(room?.spotlight_state, currentRound.index)
     : null
   const derivedSpotlightStage = isSpotlightRound(currentRound)
     ? deriveSpotlightStage({
         roomPhase: room.phase,
         round: currentRound,
-        rawState: room?.heads_up_state,
+        rawState: room?.spotlight_state,
         nowMs: now.getTime(),
         closeAt: room.close_at,
       })

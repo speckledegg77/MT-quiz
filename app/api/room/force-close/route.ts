@@ -60,14 +60,14 @@ export async function POST(req: Request) {
   const isSpotlightRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
 
   if (isSpotlightRound) {
-    const currentState = normaliseSpotlightRoomState(room?.heads_up_state, currentRound.index)
+    const currentState = normaliseSpotlightRoomState(room?.spotlight_state, currentRound.index)
     const { error } = await supabaseAdmin
       .from("rooms")
       .update({
         close_at: now.toISOString(),
         reveal_at: null,
         next_at: null,
-        heads_up_state: serialiseSpotlightState({ ...currentState, status: "review" }),
+        spotlight_state: serialiseSpotlightState({ ...currentState, status: "review" }),
       })
       .eq("id", room.id)
 

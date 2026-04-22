@@ -28,7 +28,7 @@ function findQuestionIndex(questionIds: string[], questionId: string) {
 }
 
 function getCurrentSpotlightState(room: any, currentRound: any, players: any[]) {
-  const base = normaliseSpotlightRoomState(room?.heads_up_state, currentRound.index)
+  const base = normaliseSpotlightRoomState(room?.spotlight_state, currentRound.index)
   if (base.roundIndex !== currentRound.index || base.turnOrderPlayerIds.length === 0) {
     return createSpotlightReadyState({
       roundIndex: currentRound.index,
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
       const nextState: SpotlightRoomState = { ...currentState, status: "round_summary" }
       const updateRes = await supabaseAdmin
         .from("rooms")
-        .update({ heads_up_state: serialiseSpotlightState(nextState), open_at: null, close_at: null, reveal_at: null, next_at: null })
+        .update({ spotlight_state: serialiseSpotlightState(nextState), open_at: null, close_at: null, reveal_at: null, next_at: null })
         .eq("id", room.id)
       if (updateRes.error) return NextResponse.json({ error: updateRes.error.message }, { status: 500 })
       return NextResponse.json({ ok: true, stage: "round_summary" })
@@ -136,7 +136,7 @@ export async function POST(req: Request) {
         close_at: closeAt.toISOString(),
         reveal_at: null,
         next_at: null,
-        heads_up_state: serialiseSpotlightState(nextState),
+        spotlight_state: serialiseSpotlightState(nextState),
       })
       .eq("id", room.id)
 
@@ -169,7 +169,7 @@ export async function POST(req: Request) {
 
     const updatePayload: Record<string, unknown> = {
       question_index: reachedEndOfPool ? currentIndex : nextQuestionIndex,
-      heads_up_state: serialiseSpotlightState(nextState),
+      spotlight_state: serialiseSpotlightState(nextState),
     }
 
     if (reachedEndOfPool) {
@@ -203,7 +203,7 @@ export async function POST(req: Request) {
       .from("rooms")
       .update({
         question_index: restoredQuestionIndex >= 0 ? restoredQuestionIndex : currentIndex,
-        heads_up_state: serialiseSpotlightState(nextState),
+        spotlight_state: serialiseSpotlightState(nextState),
       })
       .eq("id", room.id)
 
@@ -220,7 +220,7 @@ export async function POST(req: Request) {
     }
     const updateRes = await supabaseAdmin
       .from("rooms")
-      .update({ close_at: now, reveal_at: null, next_at: null, heads_up_state: serialiseSpotlightState(nextState) })
+      .update({ close_at: now, reveal_at: null, next_at: null, spotlight_state: serialiseSpotlightState(nextState) })
       .eq("id", room.id)
     if (updateRes.error) return NextResponse.json({ error: updateRes.error.message }, { status: 500 })
     return NextResponse.json({ ok: true, stage: "spotlight_review" })
@@ -242,7 +242,7 @@ export async function POST(req: Request) {
 
     const updateRes = await supabaseAdmin
       .from("rooms")
-      .update({ heads_up_state: serialiseSpotlightState({ ...currentState, status: "review", currentTurnActions: nextActions }) })
+      .update({ spotlight_state: serialiseSpotlightState({ ...currentState, status: "review", currentTurnActions: nextActions }) })
       .eq("id", room.id)
 
     if (updateRes.error) return NextResponse.json({ error: updateRes.error.message }, { status: 500 })
@@ -307,7 +307,7 @@ export async function POST(req: Request) {
         close_at: null,
         reveal_at: null,
         next_at: null,
-        heads_up_state: serialiseSpotlightState(nextState),
+        spotlight_state: serialiseSpotlightState(nextState),
       })
       .eq("id", room.id)
 

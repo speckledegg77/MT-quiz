@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     updatePayload.close_at = null
     updatePayload.reveal_at = null
     updatePayload.next_at = null
-    updatePayload.heads_up_state = serialiseSpotlightState(
+    updatePayload.spotlight_state = serialiseSpotlightState(
       createSpotlightReadyState({
         roundIndex: firstRound.index,
         players,
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
     updatePayload.close_at = roomTimes.closeAt.toISOString()
     updatePayload.reveal_at = roomTimes.revealAt.toISOString()
     updatePayload.next_at = roomTimes.nextAt.toISOString()
-    updatePayload.heads_up_state = {}
+    updatePayload.spotlight_state = {}
   }
 
   const { error } = await supabaseAdmin.from("rooms").update(updatePayload).eq("id", room.id)

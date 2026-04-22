@@ -76,13 +76,13 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - `/join?code=XXXX` join a room
 - `/play/[code]` player phone screen
 - `/display/[code]` TV screen
-- Spotlight migration status: routes, UI, round-plan values, and storage tables now use Spotlight naming. Readers still accept legacy `heads_up` values where needed, and legacy `heads_up_*` table names remain available as temporary compatibility views during the migration window.
+- Spotlight migration status: routes, UI, round-plan values, room state, and storage tables now use Spotlight naming. The old migration bridges have been removed.
 - `/admin/import` admin import and media upload tools for question CSVs, Spotlight CSVs, and media
 - `/admin/questions` question metadata dashboard
 - `/admin/shows` shows manager
 - `/admin/round-templates` round templates manager
 - `/admin/spotlight` Spotlight items and packs manager
-- Old `/admin/heads-up` and `heads-up` API compatibility aliases have now been removed from the app layer. Legacy `heads_up_*` table names still remain temporarily as compatibility views after the Stage 4D schema rename.
+- Old `/admin/heads-up` and `heads-up` API compatibility aliases have now been removed from the app layer.
 
 ---
 
@@ -108,7 +108,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - TV display shows the join QR code before the game starts.
 
 ### Spotlight content model
-- Spotlight is now the public and internal app name for this round and content model. Routes, persisted round-plan values, and storage tables now use Spotlight naming, while only the remaining compatibility layer still accepts legacy `heads_up` values where needed.
+- Spotlight is now the public and internal app name for this round and content model. Routes, persisted round-plan values, room state, and storage tables now use Spotlight naming.
 - `spotlight_items` stores playable answers such as shows, songs, characters, people, and phrases.
 - `spotlight_packs` stores themed decks.
 - `spotlight_pack_items` lets one item belong to several packs.

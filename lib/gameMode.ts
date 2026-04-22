@@ -5,7 +5,7 @@ export type GameStage = "countdown" | "open" | "wait" | "reveal" | "round_summar
 function normaliseBehaviourType(raw: unknown) {
   const value = String(raw ?? "").trim().toLowerCase()
   if (value === "quickfire") return "quickfire"
-  if (value === "spotlight" || value === "heads_up") return "spotlight"
+  if (value === "spotlight") return "spotlight"
   return "standard"
 }
 

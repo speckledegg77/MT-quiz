@@ -164,17 +164,17 @@ const AUDIO_CLIP_TYPE_OPTIONS = [
 ]
 
 
-const HEADS_UP_TV_DISPLAY_OPTIONS = [
+const SPOTLIGHT_TV_DISPLAY_OPTIONS = [
   { value: "timer_only", label: "Timer only on TV" },
   { value: "show_clue", label: "Show clue on TV" },
 ]
 
-const HEADS_UP_TURN_OPTIONS = [
+const SPOTLIGHT_TURN_OPTIONS = [
   { value: 60, label: "60 seconds" },
   { value: 90, label: "90 seconds" },
 ]
 
-const HEADS_UP_DIFFICULTY_OPTIONS = [
+const SPOTLIGHT_DIFFICULTY_OPTIONS = [
   { value: "", label: "Any difficulty" },
   { value: "easy", label: "easy" },
   { value: "medium", label: "medium" },
@@ -2334,9 +2334,9 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
     updateManualRound,
     ROUND_BEHAVIOUR_OPTIONS,
     getManualRoundTimingSummary,
-    HEADS_UP_DIFFICULTY_OPTIONS,
-    HEADS_UP_TURN_OPTIONS,
-    HEADS_UP_TV_DISPLAY_OPTIONS,
+    SPOTLIGHT_DIFFICULTY_OPTIONS,
+    SPOTLIGHT_TURN_OPTIONS,
+    SPOTLIGHT_TV_DISPLAY_OPTIONS,
     spotlightPacks,
     shows,
     PROMPT_TARGET_OPTIONS,

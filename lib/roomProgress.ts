@@ -45,7 +45,7 @@ function buildRoundSummaryEndsAt(nextAt: string | null | undefined, roundReviewS
 }
 
 function getCurrentSpotlightState(room: any, currentRound: any, players: any[]) {
-  const base = normaliseSpotlightRoomState(room?.heads_up_state, currentRound.index)
+  const base = normaliseSpotlightRoomState(room?.spotlight_state, currentRound.index)
   if (base.roundIndex !== currentRound.index || base.turnOrderPlayerIds.length === 0) {
     return createSpotlightReadyState({
       roundIndex: currentRound.index,
@@ -140,7 +140,7 @@ async function autoConfirmSpotlightReview(params: {
       close_at: null,
       reveal_at: null,
       next_at: null,
-      heads_up_state: serialiseSpotlightState(nextState),
+      spotlight_state: serialiseSpotlightState(nextState),
     })
     .eq("id", room.id)
     .eq("phase", "running")
@@ -217,7 +217,7 @@ export async function advanceRoomIfReady(params: {
       deriveSpotlightStage({
         roomPhase: room.phase,
         round: currentRound,
-        rawState: room.heads_up_state,
+        rawState: room.spotlight_state,
         nowMs,
         closeAt: room.close_at,
       }) ?? baseStage
@@ -268,7 +268,7 @@ export async function advanceRoomIfReady(params: {
   if (nextIndex >= ids.length) {
     const finishRes = await supabaseAdmin
       .from("rooms")
-      .update({ phase: "finished", heads_up_state: {} })
+      .update({ phase: "finished", spotlight_state: {} })
       .eq("id", room.id)
       .eq("phase", "running")
       .select("id")
@@ -318,7 +318,7 @@ export async function advanceRoomIfReady(params: {
     updatePayload.close_at = null
     updatePayload.reveal_at = null
     updatePayload.next_at = null
-    updatePayload.heads_up_state = serialiseSpotlightState(
+    updatePayload.spotlight_state = serialiseSpotlightState(
       createSpotlightReadyState({
         roundIndex: nextRound.index,
         players: playersRes.data ?? [],
@@ -333,7 +333,7 @@ export async function advanceRoomIfReady(params: {
     updatePayload.close_at = roomTimes.closeAt.toISOString()
     updatePayload.reveal_at = roomTimes.revealAt.toISOString()
     updatePayload.next_at = roomTimes.nextAt.toISOString()
-    updatePayload.heads_up_state = {}
+    updatePayload.spotlight_state = {}
   }
 
   const updateRes = await supabaseAdmin

@@ -67,7 +67,7 @@ function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
     audioClipTypes: cleanStringArray(value.audioClipTypes),
-    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties ?? value.legacySpotlightDifficulties ?? (value as any).headsUpDifficulties),
+    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties),
   }
 }
 
@@ -80,7 +80,7 @@ function normaliseSourceMode(raw: unknown): RoundSourceMode {
 
 function normaliseBehaviourType(raw: unknown): RoundBehaviourType {
   const value = String(raw ?? "").trim().toLowerCase()
-  if (value === "spotlight" || value === "heads_up") return "spotlight"
+  if (value === "spotlight") return "spotlight"
   return isQuickfireBehaviour(raw) ? "quickfire" : "standard"
 }
 

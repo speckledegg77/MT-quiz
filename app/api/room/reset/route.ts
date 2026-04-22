@@ -203,7 +203,7 @@ export async function POST(req: Request) {
       close_at: null,
       reveal_at: null,
       next_at: null,
-      heads_up_state: {},
+      spotlight_state: {},
     })
     .eq("id", room.id);
 

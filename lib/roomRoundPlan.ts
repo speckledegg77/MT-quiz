@@ -122,16 +122,12 @@ function normaliseSpotlightTvDisplayMode(raw: unknown): SpotlightTvDisplayMode {
 function normaliseBehaviourType(raw: unknown): RoundBehaviourType {
   const value = String(raw ?? "").trim().toLowerCase()
   if (value === "quickfire") return "quickfire"
-  if (value === "spotlight" || value === "heads_up") return "spotlight"
+  if (value === "spotlight") return "spotlight"
   return "standard"
 }
 
 function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
   const value = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {}
-  const legacyDifficultyValues =
-    (value as any).legacySpotlightDifficulties ??
-    (value as any).headsUpDifficulties ??
-    undefined
 
   return {
     mediaTypes: cleanStringArray(value.mediaTypes).filter(
@@ -144,7 +140,7 @@ function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
     audioClipTypes: cleanStringArray(value.audioClipTypes),
-    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties ?? legacyDifficultyValues),
+    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties),
   }
 }
 
@@ -207,7 +203,6 @@ function normaliseStoredRoundPlan(raw: unknown): RoomRoundPlan | null {
       const round = roundRaw && typeof roundRaw === "object" ? (roundRaw as Record<string, unknown>) : {}
       const questionIds = cleanQuestionIds(round.questionIds)
       const behaviourType = normaliseBehaviourType(round.behaviourType)
-      const legacyTvMode = (round as any).legacySpotlightTvDisplayMode ?? (round as any).headsUpTvDisplayMode
 
       return {
         id: String(round.id ?? `round_${index + 1}`).trim() || `round_${index + 1}`,
@@ -222,9 +217,7 @@ function normaliseStoredRoundPlan(raw: unknown): RoomRoundPlan | null {
         answerSeconds: cleanOptionalNonNegativeInt(round.answerSeconds),
         roundReviewSeconds: cleanOptionalNonNegativeInt(round.roundReviewSeconds),
         spotlightTvDisplayMode:
-          behaviourType === "spotlight"
-            ? normaliseSpotlightTvDisplayMode(round.spotlightTvDisplayMode ?? legacyTvMode)
-            : undefined,
+          behaviourType === "spotlight" ? normaliseSpotlightTvDisplayMode(round.spotlightTvDisplayMode) : undefined,
         questionIds,
       }
     })

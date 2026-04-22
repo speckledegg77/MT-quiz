@@ -47,7 +47,7 @@ function cleanRounds(raw: unknown): RoundFeasibilityInput[] {
       id: String(item.id ?? `round_${index + 1}`).trim() || `round_${index + 1}`,
       name: String(item.name ?? "").trim(),
       questionCount: Math.max(0, Math.floor(Number(item.questionCount ?? 0)) || 0),
-      behaviourType: behaviourRaw === "quickfire" ? "quickfire" : behaviourRaw === "spotlight" || behaviourRaw === "heads_up" ? "spotlight" : "standard",
+      behaviourType: behaviourRaw === "quickfire" ? "quickfire" : behaviourRaw === "spotlight" ? "spotlight" : "standard",
       sourceMode:
         String(item.sourceMode ?? "selected_packs").trim().toLowerCase() === "specific_packs"
           ? "specific_packs"
