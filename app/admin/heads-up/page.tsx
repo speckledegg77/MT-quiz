@@ -11,9 +11,9 @@ export default function AdminHeadsUpPage() {
     <main className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-2xl font-semibold">Admin Heads Up</div>
+          <div className="text-2xl font-semibold">Admin Spotlight</div>
           <div className="text-sm text-muted-foreground">
-            Create Heads Up items and themed packs without forcing them into the normal questions model.
+            Create Spotlight items and themed packs without forcing them into the normal questions model.
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 # Import regression checklist
 
-Use this after any change to the question importer, Heads Up importer, CSV templates, authoring guidance, text-answer matching, or admin question loading.
+Use this after any change to the question importer, Spotlight importer, CSV templates, authoring guidance, text-answer matching, or admin question loading.
 
 ## Question CSV checks
 
@@ -43,7 +43,7 @@ Check these cases after deploy:
 - the full matching result set can load without old hard caps accidentally returning
 - multiline lyric question text stays readable in both the list row and the detail panel
 
-## Heads Up CSV checks
+## Spotlight CSV checks
 
 Run validate-only first, then a real import on a safe test pack.
 
@@ -63,8 +63,8 @@ Check these cases:
 - commas and quotes display correctly
 - no column shift happened
 - no unexpected blank fields were created
-- new shows, packs, or Heads Up pack links were created only when intended
-- duplicate Heads Up items were not created
+- new shows, packs, or Spotlight pack links were created only when intended
+- duplicate Spotlight items were not created
 - lyric question line breaks render properly on player, display, admin list, and admin detail screens
 - text-answer canonical answer and accepted answers are editable in the admin questions panel
 

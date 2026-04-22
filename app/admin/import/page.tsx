@@ -261,7 +261,7 @@ export default function AdminImportPage() {
         <div>
           <div className="text-2xl font-semibold">Admin Import</div>
           <div className="text-sm text-muted-foreground">
-            Import question CSVs, Heads Up CSVs, or upload media in bulk.
+            Import question CSVs, Spotlight CSVs, or upload media in bulk.
           </div>
         </div>
 
@@ -307,7 +307,7 @@ export default function AdminImportPage() {
             >
               <option value="">Select a tool</option>
               <option value="questions">Question CSV import</option>
-              <option value="headsUp">Heads Up CSV import</option>
+              <option value="headsUp">Spotlight CSV import</option>
               <option value="media">Bulk media upload</option>
             </select>
 
@@ -315,7 +315,7 @@ export default function AdminImportPage() {
               {selectedTool === "questions" &&
                 "Use this for normal quiz questions and pack links."}
               {selectedTool === "headsUp" &&
-                "Use this for Heads Up items and pack assignment. Duplicate rows now update matching items instead of silently creating copies."}
+                "Use this for Spotlight items and pack assignment. Duplicate rows now update matching items instead of silently creating copies."}
               {selectedTool === "media" &&
                 "Use this for bulk audio or image uploads to Supabase Storage."}
               {!selectedTool && "Choose one tool to keep this page tidy and reduce mix-ups."}
@@ -416,7 +416,7 @@ export default function AdminImportPage() {
         {selectedTool === "headsUp" ? (
           <Card>
             <CardHeader>
-              <CardTitle>Heads Up CSV import</CardTitle>
+              <CardTitle>Spotlight CSV import</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4">
               <div className="grid gap-2">
@@ -445,7 +445,7 @@ export default function AdminImportPage() {
                 <textarea
                   value={headsUpText}
                   onChange={(event) => setHeadsUpText(event.target.value)}
-                  placeholder="Paste Heads Up CSV here"
+                  placeholder="Paste Spotlight CSV here"
                   rows={10}
                   className={inputClassName}
                 />
@@ -470,7 +470,7 @@ export default function AdminImportPage() {
                     })
                   }
                 >
-                  {headsUpBusy ? "Working..." : "Validate Heads Up CSV"}
+                  {headsUpBusy ? "Working..." : "Validate Spotlight CSV"}
                 </Button>
                 <Button
                   variant="secondary"
@@ -486,17 +486,17 @@ export default function AdminImportPage() {
                     })
                   }
                 >
-                  {headsUpBusy ? "Working..." : "Import Heads Up CSV"}
+                  {headsUpBusy ? "Working..." : "Import Spotlight CSV"}
                 </Button>
               </div>
 
               <div className="grid gap-2">
-                <div className="text-sm font-medium">Heads Up import result</div>
-                <pre className={resultClassName}>{headsUpResult || "No Heads Up CSV upload yet."}</pre>
+                <div className="text-sm font-medium">Spotlight import result</div>
+                <pre className={resultClassName}>{headsUpResult || "No Spotlight CSV upload yet."}</pre>
               </div>
 
               <div className="grid gap-2">
-                <div className="text-sm font-medium">Heads Up CSV reminder</div>
+                <div className="text-sm font-medium">Spotlight CSV reminder</div>
                 <pre className={mutedBoxClassName}>
                   {"item_id,answer_text,item_type,person_roles,difficulty,primary_show_key,notes,is_active,pack_names"}
                 </pre>

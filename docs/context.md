@@ -76,11 +76,11 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - `/join?code=XXXX` join a room
 - `/play/[code]` player phone screen
 - `/display/[code]` TV screen
-- `/admin/import` admin import and media upload tools for question CSVs, Heads Up CSVs, and media
+- `/admin/import` admin import and media upload tools for question CSVs, Spotlight CSVs, and media
 - `/admin/questions` question metadata dashboard
 - `/admin/shows` shows manager
 - `/admin/round-templates` round templates manager
-- `/admin/heads-up` Heads Up items and packs manager
+- `/admin/heads-up` Spotlight items and packs manager
 
 ---
 
@@ -105,19 +105,19 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Players choose a Joker round in the lobby.
 - TV display shows the join QR code before the game starts.
 
-### Heads Up content model
-- Heads Up content now lives outside the normal questions table.
+### Spotlight content model
+- Spotlight is the public name for this round and content model. Internal routes and tables still use `heads_up`.
 - `heads_up_items` stores playable answers such as shows, songs, characters, people, and phrases.
 - `heads_up_packs` stores themed decks.
 - `heads_up_pack_items` lets one item belong to several packs.
 - Person items can carry multiple roles such as performer, composer, and lyricist.
-- Heads Up gameplay appears as a manual round behaviour, using one Heads Up pack per round.
-- Heads Up turns now use role-based phone views. The guesser sees only the timer plus Correct and Pass. Clue-givers see the clue card plus timer.
+- Spotlight gameplay appears as a manual round behaviour, using one Spotlight pack per round.
+- Spotlight turns now use role-based phone views. The guesser sees only the timer plus Correct and Pass. Clue-givers see the clue card plus timer.
 - In teams mode, only the active team gets the live clue view. In solo mode, all non-active players become clue-givers.
-- Heads Up rounds now support a TV display setting to either show the live clue or hide it behind a timer-only view.
-- Heads Up rounds now support 60 second and 90 second turn lengths, with 60 seconds as the default.
-- Heads Up scoring is now driven by the active guesser on their phone, with host undo and review before the turn is confirmed.
-- Live Heads Up packs have now been rebuilt and rebalanced so every live pack is at or above 100 clues.
+- Spotlight rounds now support a TV display setting to either show the live clue or hide it behind a timer-only view.
+- Spotlight rounds now support 60 second and 90 second turn lengths, with 60 seconds as the default.
+- Spotlight scoring is now driven by the active guesser on their phone, with host undo and review before the turn is confirmed.
+- Live Spotlight packs have now been rebuilt and rebalanced so every live pack is at or above 100 clues.
 
 ### Round-plan model
 - Packs are content sources.
@@ -212,7 +212,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - The admin import page supports validate-only and real import modes for the main question bank CSV.
 - The current question CSV format includes metadata columns after `image_path`, including `media_type`, `prompt_target`, `clue_source`, and `primary_show_key`, plus `media_duration_ms` and `audio_clip_type`.
 - Legacy `pack_sort_order` is still tolerated by the importer, but it is ignored.
-- A separate Heads Up CSV import supports item import, automatic pack creation by name, validate-only checks, and natural-key dedupe against existing Heads Up items.
+- A separate Spotlight CSV import supports item import, automatic pack creation by name, validate-only checks, and natural-key dedupe against existing Spotlight items.
 
 ### Shows manager
 - Shows can be created and edited in the UI.
@@ -382,5 +382,5 @@ Pack loading:
 
 - `docs/shows-reference.md` is the canonical source for `primary_show_key` values.
 - `docs/question-writing-standards.md` is the canonical guide for quiz-question CSV generation.
-- `docs/heads-up-writing-standards.md` is the canonical guide for Heads Up CSV generation.
+- `docs/heads-up-writing-standards.md` is the canonical guide for Spotlight CSV generation.
 - `docs/import-regression-checklist.md` is the quick test list for importer changes.

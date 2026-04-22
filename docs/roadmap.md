@@ -11,7 +11,7 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Next feature candidates
 
-- [x] Add Heads Up gameplay round behaviour on top of the new separate content model, then move it to a turn-based v2 flow with role-based player views.
+- [x] Add Spotlight gameplay round behaviour on top of the new separate content model, then move it to a turn-based v2 flow with role-based player views.
 - [ ] Add Karaoke round format.
 - [ ] Review remote phone audio autoplay and decide whether the gain is worth the browser pain.
 - [ ] Allow optional late joins after the game has started.
@@ -46,9 +46,9 @@ This file tracks the live plan. Keep it short and practical.
 - [x] Validate and import the final `Waxing Lyrical (MCQ)` master.
 - [ ] Manually review the imported `Waxing Lyrical (MCQ)` pack in the admin questions workflow.
 - [ ] Build beta-friendly round content next, starting with decade packs and stronger intro-led audio rounds.
-- [ ] Add pack-side Heads Up curation tools so packs can add and remove large numbers of existing items quickly.
-- [ ] Polish Heads Up turn review and correction flow after live playtesting.
-- [ ] Decide whether Heads Up should support host-selected team order and turn order overrides.
+- [ ] Add pack-side Spotlight curation tools so packs can add and remove large numbers of existing items quickly.
+- [ ] Polish Spotlight turn review and correction flow after live playtesting.
+- [ ] Decide whether Spotlight should support host-selected team order and turn order overrides.
 - [ ] Add more images in Supabase Storage for picture rounds.
 - [ ] Add more audio clips in Supabase Storage once audio rules are clearer.
 - [ ] Define and build specialist audio sets such as intros, overtures, and entr'actes once the main intro format feels solid.
@@ -62,13 +62,13 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Recently completed
 
-- [x] Rebuild and rebalance the live Heads Up packs so every live pack reaches at least 100 clues.
+- [x] Rebuild and rebalance the live Spotlight packs so every live pack reaches at least 100 clues.
 - [x] Tidy the visible host pack and round library so core items stay visible first and single-show source packs are tucked behind an explicit reveal.
 - [x] Make Add round template and Edit selected template collapsible on the admin round-templates page.
 - [x] Add importer guidance for quoted CSV fields, show-key discipline, and a regression checklist.
-- [x] Review and tidy the main question CSV import format, plus add Heads Up CSV import and validate-only checks.
-- [x] Heads Up v1 data model and admin workflow with separate items and pack management.
-- [x] Heads Up v2 turn-based gameplay with role-based player views, TV clue toggle, and 60s or 90s turn options.
+- [x] Review and tidy the main question CSV import format, plus add Spotlight CSV import and validate-only checks.
+- [x] Spotlight v1 data model and admin workflow with separate items and pack management.
+- [x] Spotlight v2 turn-based gameplay with role-based player views, TV clue toggle, and 60s or 90s turn options.
 - [x] Shared round-flow cleanup for stage labels, mode badges, and stale-question suppression across Host, Player, and Display.
 - [x] Add a dedicated `/host` landing page plus a quiz-first easy setup wizard, while keeping the existing host page available as the direct control path.
 - [x] Simple vs Advanced host creation split started, with Simple mode driven by ready round templates and Advanced kept as the power-tool path.

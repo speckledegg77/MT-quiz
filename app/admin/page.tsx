@@ -66,14 +66,14 @@ export default function AdminHomePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Heads Up</CardTitle>
+            <CardTitle>Spotlight</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="text-sm text-muted-foreground">
-              Create Heads Up items and themed packs without forcing them into the normal quiz question model.
+              Create Spotlight items and themed packs without forcing them into the normal quiz question model.
             </div>
             <Link href="/admin/heads-up" className={linkButtonClass("secondary")}>
-              Open Heads Up
+              Open Spotlight
             </Link>
           </CardContent>
         </Card>
@@ -84,7 +84,7 @@ export default function AdminHomePage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="text-sm text-muted-foreground">
-              Import questions, Heads Up items, and media in bulk.
+              Import questions, Spotlight items, and media in bulk.
             </div>
             <Link href="/admin/import" className={linkButtonClass("secondary")}>
               Open Import

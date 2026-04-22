@@ -1,6 +1,8 @@
-# Heads Up writing guide
+# Spotlight writing guide
 
-Use this when you want to bulk import Heads Up items and themed pack assignments.
+Use this when you want to bulk import Spotlight items and themed pack assignments.
+
+Public name note: the file path and internal import route still use `heads-up` for compatibility, but the public product name is Spotlight.
 
 Use this together with:
 
@@ -10,13 +12,13 @@ Use this together with:
 
 ## One row equals one item
 
-Each CSV row should describe one Heads Up item.
+Each CSV row should describe one Spotlight item.
 
 That row can assign the item to several packs by using a pipe-separated `pack_names` field.
 
 If you import an existing item by `item_id`, the importer will replace that item's pack membership with the pack names listed in that row.
 
-## Heads Up content rules
+## Spotlight content rules
 
 Write clues that are playable out loud.
 
@@ -55,7 +57,7 @@ Use this exact order:
 
 Optional.
 
-Leave this blank when you want to create a new Heads Up item.
+Leave this blank when you want to create a new Spotlight item.
 
 Supply the existing UUID when you want to update an item that already exists.
 
@@ -152,7 +154,7 @@ If you leave it blank, the importer uses `true`.
 
 Optional but strongly recommended.
 
-Use a pipe-separated list of Heads Up pack names inside one CSV cell.
+Use a pipe-separated list of Spotlight pack names inside one CSV cell.
 
 Example:
 

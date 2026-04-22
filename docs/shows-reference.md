@@ -1,6 +1,6 @@
 # Shows reference
 
-Use this as the canonical show-key reference for question writing, Heads Up writing, CSV generation, and future admin imports.
+Use this as the canonical show-key reference for question writing, Spotlight writing, CSV generation, and future admin imports.
 
 ## Rules
 

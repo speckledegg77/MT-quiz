@@ -267,13 +267,13 @@ export function HeadsUpDashboard() {
       const showsJson = (await showsRes.json()) as ShowsResponse | { error?: string }
 
       if (!itemsRes.ok) {
-        setLoadError((itemsJson as { error?: string }).error || "Could not load Heads Up items.")
+        setLoadError((itemsJson as { error?: string }).error || "Could not load Spotlight items.")
         setItems([])
         return
       }
 
       if (!packsRes.ok) {
-        setLoadError((packsJson as { error?: string }).error || "Could not load Heads Up packs.")
+        setLoadError((packsJson as { error?: string }).error || "Could not load Spotlight packs.")
         setPacks([])
         return
       }
@@ -309,7 +309,7 @@ export function HeadsUpDashboard() {
         setSelectedPackId("")
       }
     } catch (error: unknown) {
-      setLoadError(getErrorMessage(error) || "Could not load Heads Up data.")
+      setLoadError(getErrorMessage(error) || "Could not load Spotlight data.")
       setItems([])
       setPacks([])
       setShows([])
@@ -471,15 +471,15 @@ export function HeadsUpDashboard() {
       const json = (await res.json()) as { error?: string; item?: HeadsUpItem }
 
       if (!res.ok) {
-        setCreateItemResult(json.error || "Could not create Heads Up item.")
+        setCreateItemResult(json.error || "Could not create Spotlight item.")
         return
       }
 
-      setCreateItemResult("Heads Up item created.")
+      setCreateItemResult("Spotlight item created.")
       setCreateItem(EMPTY_ITEM_FORM)
       await loadAll(json.item?.id, undefined)
     } catch (error: unknown) {
-      setCreateItemResult(getErrorMessage(error) || "Could not create Heads Up item.")
+      setCreateItemResult(getErrorMessage(error) || "Could not create Spotlight item.")
     } finally {
       setCreateItemBusy(false)
     }
@@ -532,14 +532,14 @@ export function HeadsUpDashboard() {
       const json = (await res.json()) as { error?: string; item?: HeadsUpItem }
 
       if (!res.ok) {
-        setSaveItemResult(json.error || "Could not save Heads Up item.")
+        setSaveItemResult(json.error || "Could not save Spotlight item.")
         return
       }
 
       setSaveItemResult("Saved.")
       await loadAll(json.item?.id ?? selectedItemId, undefined)
     } catch (error: unknown) {
-      setSaveItemResult(getErrorMessage(error) || "Could not save Heads Up item.")
+      setSaveItemResult(getErrorMessage(error) || "Could not save Spotlight item.")
     } finally {
       setSaveItemBusy(false)
     }
@@ -664,7 +664,7 @@ export function HeadsUpDashboard() {
 
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => loadAll()} disabled={busy}>
-              {busy ? "Loading…" : "Load Heads Up data"}
+              {busy ? "Loading…" : "Load Spotlight data"}
             </Button>
             <Button
               variant={view === "items" ? "primary" : "secondary"}
@@ -681,7 +681,7 @@ export function HeadsUpDashboard() {
           </div>
 
           <div className="text-sm text-muted-foreground">
-            Heads Up items are stored separately from normal questions. Packs are themed decks, and one
+            Spotlight items are stored separately from normal questions. Packs are themed decks, and one
             item can belong to several packs.
           </div>
 
@@ -817,7 +817,7 @@ export function HeadsUpDashboard() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {filteredItems.length === 0 ? (
-                  <div className="text-sm text-muted-foreground">No Heads Up items match these filters.</div>
+                  <div className="text-sm text-muted-foreground">No Spotlight items match these filters.</div>
                 ) : (
                   filteredItems.map((item) => {
                     const selected = item.id === selectedItemId
