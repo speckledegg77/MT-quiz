@@ -625,28 +625,18 @@ export default function HostWizardPage() {
                     })}
                   </div>
 
-                  <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-                    <div>
-                      <div className="text-sm font-medium text-foreground">Audio</div>
-                      <select
-                        value={audioMode}
-                        onChange={(event) => setAudioMode(event.target.value as AudioMode)}
-                        className="mt-1 h-10 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground"
-                      >
-                        <option value="display">TV display only</option>
-                        <option value="phones">Player phones only</option>
-                        <option value="both">TV and player phones</option>
-                      </select>
-                      <div className="mt-1 text-xs text-muted-foreground">Leave this on TV display unless you already know you want something else.</div>
-                    </div>
-
-                    <div className="rounded-2xl border border-border bg-card p-4">
-                      <div className="text-sm font-medium text-foreground">Question pool</div>
-                      <div className="mt-1 text-xs text-muted-foreground">The wizard now uses all active packs automatically, so you do not need to choose them here.</div>
-                      <div className="mt-3 rounded-xl border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
-                        Using all active packs.
-                      </div>
-                    </div>
+                  <div>
+                    <div className="text-sm font-medium text-foreground">Audio</div>
+                    <select
+                      value={audioMode}
+                      onChange={(event) => setAudioMode(event.target.value as AudioMode)}
+                      className="mt-1 h-10 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground"
+                    >
+                      <option value="display">TV display only</option>
+                      <option value="phones">Player phones only</option>
+                      <option value="both">TV and player phones</option>
+                    </select>
+                    <div className="mt-1 text-xs text-muted-foreground">Leave this on TV display unless you already know you want something else.</div>
                   </div>
 
                   <div className="rounded-2xl border border-border bg-muted p-4 text-sm text-muted-foreground">
