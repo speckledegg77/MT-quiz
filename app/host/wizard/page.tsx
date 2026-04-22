@@ -186,8 +186,6 @@ export default function HostWizardPage() {
   const [teamNames, setTeamNames] = useState<string[]>(() => buildInitialTeams())
   const [lengthId, setLengthId] = useState<string>("standard")
   const [audioMode, setAudioMode] = useState<AudioMode>("display")
-  const [selectPacks, setSelectPacks] = useState(false)
-  const [selectedPacks, setSelectedPacks] = useState<Record<string, boolean>>({})
 
   const [feasibilityBusy, setFeasibilityBusy] = useState(false)
   const [feasibilityError, setFeasibilityError] = useState<string | null>(null)
@@ -210,12 +208,7 @@ export default function HostWizardPage() {
     return SETUP_LENGTHS.find((option) => option.id === lengthId)?.roundCount ?? 4
   }, [lengthId])
 
-  const selectedPackIds = useMemo(() => {
-    if (!selectPacks) return packs.map((pack) => pack.id)
-    return packs.filter((pack) => selectedPacks[pack.id]).map((pack) => pack.id)
-  }, [packs, selectPacks, selectedPacks])
-
-  const selectedPackCount = selectedPackIds.length
+  const selectedPackIds = useMemo(() => packs.map((pack) => pack.id), [packs])
 
   const templateRounds = useMemo(() => {
     return templates.map((template, index) => serialiseTemplateAsRound(template, index))
@@ -239,12 +232,11 @@ export default function HostWizardPage() {
   const createBlockReason = useMemo(() => {
     if (loading) return "Still loading the question library and ready templates."
     if (loadError) return loadError
-    if (selectPacks && selectedPackCount === 0) return "Select at least one pack, or use all active packs."
-    if (feasibilityBusy) return "Still checking which ready templates fit the current pack choice."
+    if (feasibilityBusy) return "Still checking which ready templates fit the current question pool."
     if (feasibilityError) return feasibilityError
     if (teamValidationMessage) return teamValidationMessage
     return templatePlan.error
-  }, [feasibilityBusy, feasibilityError, loadError, loading, selectPacks, selectedPackCount, teamValidationMessage, templatePlan.error])
+  }, [feasibilityBusy, feasibilityError, loadError, loading, teamValidationMessage, templatePlan.error])
 
   useEffect(() => {
     let cancelled = false
@@ -290,18 +282,6 @@ export default function HostWizardPage() {
       cancelled = true
     }
   }, [])
-
-  useEffect(() => {
-    if (!packs.length) return
-
-    setSelectedPacks((current) => {
-      const next = { ...current }
-      for (const pack of packs) {
-        if (next[pack.id] === undefined) next[pack.id] = false
-      }
-      return next
-    })
-  }, [packs])
 
   useEffect(() => {
     if (loading) return
@@ -356,16 +336,6 @@ export default function HostWizardPage() {
       window.clearTimeout(timer)
     }
   }, [loading, selectedPackIds, templateRounds, templates.length])
-
-  function togglePack(packId: string) {
-    setSelectedPacks((current) => ({ ...current, [packId]: !current[packId] }))
-  }
-
-  function setAllSelected(value: boolean) {
-    const next: Record<string, boolean> = {}
-    for (const pack of packs) next[pack.id] = value
-    setSelectedPacks(next)
-  }
 
   function addTeam() {
     setTeamNames((current) => {
@@ -671,53 +641,20 @@ export default function HostWizardPage() {
                     </div>
 
                     <div className="rounded-2xl border border-border bg-card p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-medium text-foreground">Question pool</div>
-                          <div className="mt-1 text-xs text-muted-foreground">Use all active packs, or narrow the wizard to a smaller pack set.</div>
-                        </div>
-                        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <input type="checkbox" checked={selectPacks} onChange={(event) => setSelectPacks(event.target.checked)} />
-                          Choose packs
-                        </label>
+                      <div className="text-sm font-medium text-foreground">Question pool</div>
+                      <div className="mt-1 text-xs text-muted-foreground">The wizard now uses all active packs automatically, so you do not need to choose them here.</div>
+                      <div className="mt-3 rounded-xl border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
+                        Using all active packs.
                       </div>
-
-                      {!selectPacks ? (
-                        <div className="mt-3 rounded-xl border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
-                          Using all active packs.
-                        </div>
-                      ) : (
-                        <div className="mt-3 space-y-3">
-                          <div className="flex flex-wrap gap-2">
-                            <Button variant="secondary" size="sm" onClick={() => setAllSelected(true)}>
-                              Select all
-                            </Button>
-                            <Button variant="secondary" size="sm" onClick={() => setAllSelected(false)}>
-                              Clear
-                            </Button>
-                            <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
-                              {selectedPackCount} selected
-                            </div>
-                          </div>
-                          <div className="grid max-h-72 gap-2 overflow-y-auto sm:grid-cols-2 xl:grid-cols-3">
-                            {packs.map((pack) => (
-                              <label key={pack.id} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm text-foreground hover:bg-muted">
-                                <input type="checkbox" checked={Boolean(selectedPacks[pack.id])} onChange={() => togglePack(pack.id)} />
-                                <span className="min-w-0 flex-1 truncate">{pack.display_name}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
 
                   <div className="rounded-2xl border border-border bg-muted p-4 text-sm text-muted-foreground">
                     {feasibilityBusy
-                      ? "Checking which ready templates fit this question pool..."
+                      ? "Checking which ready templates fit the current question pool..."
                       : createBlockReason
                         ? createBlockReason
-                        : `${roundCount} rounds can be built from ${selectedPackCount} pack${selectedPackCount === 1 ? "" : "s"} with ${candidateCount} candidate questions in scope.`}
+                        : `${roundCount} rounds can be built from all active packs with ${candidateCount} candidate questions in scope.`}
                   </div>
                 </div>
               ) : null}
@@ -749,7 +686,7 @@ export default function HostWizardPage() {
                           </div>
                           <div className="flex items-start justify-between gap-3">
                             <span className="text-muted-foreground">Question pool</span>
-                            <span className="text-right font-medium text-foreground">{selectPacks ? `${selectedPackCount} selected packs` : "All active packs"}</span>
+                            <span className="text-right font-medium text-foreground">All active packs</span>
                           </div>
                         </CardContent>
                       </Card>
