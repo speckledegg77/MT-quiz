@@ -38,6 +38,7 @@ type FeasibilityResponse = {
 }
 
 type GameMode = "teams" | "solo"
+type PlaySurface = "tv_and_phones" | "phones_only"
 type AudioMode = "display" | "phones" | "both"
 
 type SetupLength = {
@@ -90,7 +91,7 @@ const SETUP_LENGTHS: SetupLength[] = [
   },
 ]
 
-const SCREEN_EXPLANATIONS = [
+const TV_AND_PHONE_SCREEN_EXPLANATIONS = [
   {
     title: "Host screen",
     body: "Keep this on your device. You create the room here and control the game from here.",
@@ -102,6 +103,17 @@ const SCREEN_EXPLANATIONS = [
   {
     title: "Player phones",
     body: "Players join with the room code or QR link on their own phones and answer there.",
+  },
+]
+
+const PHONE_ONLY_SCREEN_EXPLANATIONS = [
+  {
+    title: "Host screen",
+    body: "Keep this on your device. You create the room here and control the game from here.",
+  },
+  {
+    title: "Player phones",
+    body: "Players join with the room code or QR link on their own phones, answer there, and follow the game from there too.",
   },
 ]
 
@@ -126,6 +138,11 @@ function rememberHostCode(code: string) {
   } catch {
     // ignore
   }
+}
+
+function playSurfaceLabel(surface: PlaySurface) {
+  if (surface === "phones_only") return "Player phones only"
+  return "TV and player phones"
 }
 
 function audioModeLabel(mode: AudioMode) {
@@ -183,6 +200,7 @@ export default function HostWizardPage() {
 
   const [quizFeel, setQuizFeel] = useState<SimplePresetId>("classic")
   const [gameMode, setGameMode] = useState<GameMode>("teams")
+  const [playSurface, setPlaySurface] = useState<PlaySurface>("tv_and_phones")
   const [teamNames, setTeamNames] = useState<string[]>(() => buildInitialTeams())
   const [lengthId, setLengthId] = useState<string>("standard")
   const [audioMode, setAudioMode] = useState<AudioMode>("display")
@@ -210,6 +228,10 @@ export default function HostWizardPage() {
   }, [lengthId])
 
   const selectedPackIds = useMemo(() => packs.map((pack) => pack.id), [packs])
+
+  const screenExplanations = useMemo(() => {
+    return playSurface === "phones_only" ? PHONE_ONLY_SCREEN_EXPLANATIONS : TV_AND_PHONE_SCREEN_EXPLANATIONS
+  }, [playSurface])
 
   const templateRounds = useMemo(() => {
     return templates.map((template, index) => serialiseTemplateAsRound(template, index))
@@ -337,6 +359,12 @@ export default function HostWizardPage() {
       window.clearTimeout(timer)
     }
   }, [loading, selectedPackIds, templateRounds, templates.length])
+
+  useEffect(() => {
+    if (playSurface === "phones_only" && audioMode !== "phones") {
+      setAudioMode("phones")
+    }
+  }, [audioMode, playSurface])
 
   useEffect(() => {
     if (!roomCode) {
@@ -519,8 +547,8 @@ export default function HostWizardPage() {
           {WIZARD_STEPS.map((label, index) => renderStepPill(index + 1, label))}
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-3">
-          {SCREEN_EXPLANATIONS.map((item) => (
+        <div className={`grid gap-4 ${playSurface === "phones_only" ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}>
+          {screenExplanations.map((item) => (
             <Card key={item.title}>
               <CardHeader>
                 <CardTitle>{item.title}</CardTitle>
@@ -665,19 +693,50 @@ export default function HostWizardPage() {
                     })}
                   </div>
 
-                  <div>
-                    <div className="text-sm font-medium text-foreground">Audio</div>
-                    <select
-                      value={audioMode}
-                      onChange={(event) => setAudioMode(event.target.value as AudioMode)}
-                      className="mt-1 h-10 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground"
-                    >
-                      <option value="display">TV display only</option>
-                      <option value="phones">Player phones only</option>
-                      <option value="both">TV and player phones</option>
-                    </select>
-                    <div className="mt-1 text-xs text-muted-foreground">Leave this on TV display unless you already know you want something else.</div>
+                  <div className="space-y-3">
+                    <div className="text-sm font-medium text-foreground">How will people follow the game?</div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className={`rounded-2xl border p-4 text-sm transition-colors ${playSurface === "tv_and_phones" ? "border-foreground bg-muted" : "border-border bg-card hover:bg-muted"}`}>
+                        <div className="flex items-start gap-3">
+                          <input type="radio" name="play-surface" checked={playSurface === "tv_and_phones"} onChange={() => setPlaySurface("tv_and_phones")} className="mt-0.5" />
+                          <div>
+                            <div className="font-medium text-foreground">TV and phones</div>
+                            <div className="mt-1 text-xs text-muted-foreground">Open the TV display for the room, then let players answer on their phones.</div>
+                          </div>
+                        </div>
+                      </label>
+
+                      <label className={`rounded-2xl border p-4 text-sm transition-colors ${playSurface === "phones_only" ? "border-foreground bg-muted" : "border-border bg-card hover:bg-muted"}`}>
+                        <div className="flex items-start gap-3">
+                          <input type="radio" name="play-surface" checked={playSurface === "phones_only"} onChange={() => setPlaySurface("phones_only")} className="mt-0.5" />
+                          <div>
+                            <div className="font-medium text-foreground">Phones only</div>
+                            <div className="mt-1 text-xs text-muted-foreground">Skip the TV display and let players follow the game from their own phones.</div>
+                          </div>
+                        </div>
+                      </label>
+                    </div>
                   </div>
+
+                  {playSurface === "phones_only" ? (
+                    <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+                      This setup does not need a TV display. Audio is set to player phones for this game.
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="text-sm font-medium text-foreground">Audio</div>
+                      <select
+                        value={audioMode}
+                        onChange={(event) => setAudioMode(event.target.value as AudioMode)}
+                        className="mt-1 h-10 w-full rounded-xl border border-border bg-card px-3 text-sm text-foreground"
+                      >
+                        <option value="display">TV display only</option>
+                        <option value="phones">Player phones only</option>
+                        <option value="both">TV and player phones</option>
+                      </select>
+                      <div className="mt-1 text-xs text-muted-foreground">Leave this on TV display unless you already know you want something else.</div>
+                    </div>
+                  )}
 
                   <div className="rounded-2xl border border-border bg-muted p-4 text-sm text-muted-foreground">
                     {feasibilityBusy
@@ -711,12 +770,12 @@ export default function HostWizardPage() {
                             <span className="text-right font-medium text-foreground">{SETUP_LENGTHS.find((option) => option.id === lengthId)?.title ?? "Standard game"}</span>
                           </div>
                           <div className="flex items-start justify-between gap-3">
-                            <span className="text-muted-foreground">Audio</span>
-                            <span className="text-right font-medium text-foreground">{audioModeLabel(audioMode)}</span>
+                            <span className="text-muted-foreground">Play format</span>
+                            <span className="text-right font-medium text-foreground">{playSurfaceLabel(playSurface)}</span>
                           </div>
                           <div className="flex items-start justify-between gap-3">
-                            <span className="text-muted-foreground">Question pool</span>
-                            <span className="text-right font-medium text-foreground">All active packs</span>
+                            <span className="text-muted-foreground">Audio</span>
+                            <span className="text-right font-medium text-foreground">{audioModeLabel(audioMode)}</span>
                           </div>
                         </CardContent>
                       </Card>
@@ -761,7 +820,9 @@ export default function HostWizardPage() {
                       </CardHeader>
                       <CardContent className="space-y-3 text-sm text-muted-foreground">
                         <p>
-                          Creating the room does not start the game. It gives you a room code, a TV display link, and a join link for players.
+                          {playSurface === "phones_only"
+                            ? "Creating the room does not start the game. It gives you a room code and a join link for players, then hands you over to the live host controls when you are ready."
+                            : "Creating the room does not start the game. It gives you a room code, a TV display link, and a join link for players."}
                         </p>
                         {createError ? (
                           <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
@@ -788,7 +849,7 @@ export default function HostWizardPage() {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>5. Open the right screens</CardTitle>
+                  <CardTitle>{playSurface === "phones_only" ? "5. Get players joined and start" : "5. Open the right screens"}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-5">
                   <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_160px] lg:items-center">
@@ -802,24 +863,26 @@ export default function HostWizardPage() {
                     </div>
                   </div>
 
-                  <div className="grid gap-3 md:grid-cols-3">
+                  <div className={`grid gap-3 ${playSurface === "phones_only" ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
                     <div className="rounded-2xl border border-border bg-card p-4 text-sm">
                       <div className="font-medium text-foreground">Host screen</div>
                       <div className="mt-1 text-muted-foreground">Keep this wizard open for now, then switch to the full host controls when you are ready.</div>
                     </div>
-                    <div className="rounded-2xl border border-border bg-card p-4 text-sm">
-                      <div className="font-medium text-foreground">TV display</div>
-                      <div className="mt-1 text-muted-foreground">Open the TV display on the room screen before you start.</div>
-                    </div>
+                    {playSurface === "phones_only" ? null : (
+                      <div className="rounded-2xl border border-border bg-card p-4 text-sm">
+                        <div className="font-medium text-foreground">TV display</div>
+                        <div className="mt-1 text-muted-foreground">Open the TV display on the room screen before you start.</div>
+                      </div>
+                    )}
                     <div className="rounded-2xl border border-border bg-card p-4 text-sm">
                       <div className="font-medium text-foreground">Player phones</div>
                       <div className="mt-1 text-muted-foreground">Players use the code or QR to join on their own phones.</div>
                     </div>
                   </div>
 
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <Button onClick={() => openInNewWindow(displayUrl)}>Open TV display</Button>
-                    <Button variant="secondary" onClick={() => openInNewWindow(joinUrl)}>Open player join page</Button>
+                  <div className={`grid gap-2 ${playSurface === "phones_only" ? "sm:grid-cols-1" : "sm:grid-cols-2"}`}>
+                    {playSurface === "phones_only" ? null : <Button onClick={() => openInNewWindow(displayUrl)}>Open TV display</Button>}
+                    <Button variant={playSurface === "phones_only" ? "primary" : "secondary"} onClick={() => openInNewWindow(joinUrl)}>Open player join page</Button>
                   </div>
 
                   <div className="rounded-xl border border-border bg-card px-3 py-2 text-sm text-muted-foreground break-all">
@@ -841,7 +904,9 @@ export default function HostWizardPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
-                    Wait for your players to join, then start the game. When you press Start game, the app moves you into the existing host controls for live running.
+                    {playSurface === "phones_only"
+                      ? "Wait for your players to join on their phones, then start the game. When you press Start game, the app moves you into the existing host controls for live running."
+                      : "Wait for your players to join, then open the TV display if needed and start the game. When you press Start game, the app moves you into the existing host controls for live running."}
                   </div>
 
                   <div className="rounded-2xl border border-border bg-card p-4 text-sm">
@@ -892,6 +957,10 @@ export default function HostWizardPage() {
                   <div className="flex items-start justify-between gap-3">
                     <span className="text-muted-foreground">Rounds</span>
                     <span className="text-right font-medium text-foreground">{templatePlan.rounds.length}</span>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-muted-foreground">Play format</span>
+                    <span className="text-right font-medium text-foreground">{playSurfaceLabel(playSurface)}</span>
                   </div>
                   <div className="flex items-start justify-between gap-3">
                     <span className="text-muted-foreground">Audio</span>
