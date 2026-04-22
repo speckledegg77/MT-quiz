@@ -34,7 +34,7 @@ function cleanSelectionRules(raw: unknown): RoundSelectionRules {
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
     audioClipTypes: cleanStringArray(value.audioClipTypes),
-    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties ?? value.headsUpDifficulties),
+    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties ?? value.spotlightDifficultiesLegacy),
   }
 }
 
@@ -60,7 +60,7 @@ function cleanRounds(raw: unknown): RoundFeasibilityInput[] {
   })
 }
 
-function buildHeadsUpCandidatesFromPackRows(rows: Array<Record<string, unknown>>): QuestionCandidate[] {
+function buildSpotlightCandidatesFromPackRows(rows: Array<Record<string, unknown>>): QuestionCandidate[] {
   const candidatesById = new Map<string, QuestionCandidate>()
   for (const row of rows) {
     const packId = String(row?.pack_id ?? "").trim()
@@ -118,7 +118,7 @@ async function fetchAllPackQuestionRows(packIds: string[]) {
   return rows
 }
 
-async function fetchAllHeadsUpPackItemRows(packIds: string[]) {
+async function fetchAllSpotlightPackItemRows(packIds: string[]) {
   const cleanedPackIds = [...new Set(cleanStringArray(packIds))]
   if (cleanedPackIds.length === 0) return [] as Array<Record<string, unknown>>
 
@@ -154,7 +154,7 @@ export async function POST(req: Request) {
     const allRounds = [...manualRounds, ...templateRounds]
 
     const questionRounds = allRounds.filter((round) => round.behaviourType !== "spotlight")
-    const headsUpRounds = allRounds.filter((round) => round.behaviourType === "spotlight")
+    const spotlightRounds = allRounds.filter((round) => round.behaviourType === "spotlight")
 
     const needsAllQuestions = questionRounds.some((round) => round.sourceMode === "all_questions")
     let allActivePackIds: string[] = []
@@ -168,7 +168,7 @@ export async function POST(req: Request) {
     const specificQuestionPackIds = [...new Set(questionRounds.flatMap((round) => cleanStringArray(round.packIds)))]
     const scopeQuestionPackIds = [...new Set([...selectedPackIds, ...specificQuestionPackIds, ...allActivePackIds])]
 
-    const specificHeadsUpPackIds = [...new Set(headsUpRounds.flatMap((round) => cleanStringArray(round.packIds)))]
+    const specificSpotlightPackIds = [...new Set(spotlightRounds.flatMap((round) => cleanStringArray(round.packIds)))]
 
     let candidates: QuestionCandidate[] = []
     let selectedCandidates: QuestionCandidate[] = []
@@ -183,10 +183,10 @@ export async function POST(req: Request) {
       candidates = candidates.concat(buildQuestionCandidatesFromPackRows(links))
     }
 
-    if (specificHeadsUpPackIds.length > 0) {
-      const headsUpLinks = await fetchAllHeadsUpPackItemRows(specificHeadsUpPackIds)
+    if (specificSpotlightPackIds.length > 0) {
+      const spotlightLinks = await fetchAllSpotlightPackItemRows(specificSpotlightPackIds)
 
-      const activeRows = (headsUpLinks as Array<Record<string, unknown>>).filter((row) => {
+      const activeRows = (spotlightLinks as Array<Record<string, unknown>>).filter((row) => {
         const item = row?.spotlight_items
         const value = Array.isArray(item) ? item[0] : item
         return Boolean(value && (value as Record<string, unknown>).is_active !== false)
@@ -196,7 +196,7 @@ export async function POST(req: Request) {
         return { ...row, spotlight_items: value } as Record<string, unknown>
       })
 
-      candidates = candidates.concat(buildHeadsUpCandidatesFromPackRows(activeRows))
+      candidates = candidates.concat(buildSpotlightCandidatesFromPackRows(activeRows))
     }
 
     const manual = manualRounds.length
@@ -210,7 +210,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true,
       candidateCount: selectedCandidates.length,
-      scopePackCount: scopeQuestionPackIds.length + specificHeadsUpPackIds.length,
+      scopePackCount: scopeQuestionPackIds.length + specificSpotlightPackIds.length,
       manual,
       templates,
     })

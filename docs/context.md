@@ -82,7 +82,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - `/admin/shows` shows manager
 - `/admin/round-templates` round templates manager
 - `/admin/spotlight` Spotlight items and packs manager
-- Legacy `/admin/heads-up` and `heads-up` API paths stay alive as compatibility aliases during the full Spotlight rename. Legacy `heads_up_*` table names also stay available temporarily as compatibility views after the Stage 4D schema rename.
+- Old `/admin/heads-up` and `heads-up` API compatibility aliases have now been removed from the app layer. Legacy `heads_up_*` table names still remain temporarily as compatibility views after the Stage 4D schema rename.
 
 ---
 
@@ -384,5 +384,5 @@ Pack loading:
 
 - `docs/shows-reference.md` is the canonical source for `primary_show_key` values.
 - `docs/question-writing-standards.md` is the canonical guide for quiz-question CSV generation.
-- `docs/heads-up-writing-standards.md` is the canonical guide for Spotlight CSV generation.
+- `docs/spotlight-writing-standards.md` is the canonical guide for Spotlight CSV generation.
 - `docs/import-regression-checklist.md` is the quick test list for importer changes.

@@ -6,13 +6,13 @@ import { z } from "zod"
 import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/adminAuth"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
-const createHeadsUpPackSchema = z.object({
+const createSpotlightPackSchema = z.object({
   name: z.string().trim().min(1, "Pack name is required."),
   description: z.string().optional(),
   isActive: z.boolean().optional(),
 })
 
-async function loadHeadsUpPacks() {
+async function loadSpotlightPacks() {
   const packsRes = await supabaseAdmin
     .from("spotlight_packs")
     .select("id, name, description, is_active, created_at, updated_at")
@@ -44,7 +44,7 @@ async function loadHeadsUpPacks() {
 export async function GET(req: Request) {
   if (!isAuthorisedAdminRequest(req)) return unauthorisedAdminResponse()
 
-  const result = await loadHeadsUpPacks()
+  const result = await loadSpotlightPacks()
 
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: 500 })
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 })
   }
 
-  const parsed = createHeadsUpPackSchema.safeParse(body)
+  const parsed = createSpotlightPackSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Invalid payload." },

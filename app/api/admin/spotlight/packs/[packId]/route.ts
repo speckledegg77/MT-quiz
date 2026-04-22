@@ -12,7 +12,7 @@ type RouteContext = {
   }>
 }
 
-const updateHeadsUpPackSchema = z
+const updateSpotlightPackSchema = z
   .object({
     name: z.string().trim().min(1, "Pack name is required.").optional(),
     description: z.string().optional(),
@@ -36,7 +36,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 })
   }
 
-  const parsed = updateHeadsUpPackSchema.safeParse(body)
+  const parsed = updateSpotlightPackSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Invalid payload." },

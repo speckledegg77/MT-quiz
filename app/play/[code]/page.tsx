@@ -55,15 +55,15 @@ export default function PlayerPage() {
 
   const [jokerBusy, setJokerBusy] = useState(false)
   const [jokerError, setJokerError] = useState<string | null>(null)
-  const [headsUpSubmittingAction, setHeadsUpSubmittingAction] = useState<null | "start" | "correct" | "pass">(null)
-  const [headsUpFeedback, setHeadsUpFeedback] = useState<null | "correct" | "pass">(null)
+  const [spotlightSubmittingAction, setSpotlightSubmittingAction] = useState<null | "start" | "correct" | "pass">(null)
+  const [spotlightFeedback, setSpotlightFeedback] = useState<null | "correct" | "pass">(null)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const autoSubmitAttemptKeyRef = useRef<string | null>(null)
-  const headsUpFeedbackTimeoutRef = useRef<number | null>(null)
+  const spotlightFeedbackTimeoutRef = useRef<number | null>(null)
   const feedbackAudioContextRef = useRef<AudioContext | null>(null)
-  const lastHeadsUpCountdownSecondRef = useRef<number | null>(null)
-  const lastHeadsUpCountdownStageRef = useRef<string | null>(null)
+  const lastSpotlightCountdownSecondRef = useRef<number | null>(null)
+  const lastSpotlightCountdownStageRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!code) return
@@ -135,11 +135,11 @@ export default function PlayerPage() {
       setTypedIsCorrect(null)
 
       setAnswerError(null)
-      setHeadsUpSubmittingAction(null)
-      setHeadsUpFeedback(null)
-      if (headsUpFeedbackTimeoutRef.current !== null) {
-        window.clearTimeout(headsUpFeedbackTimeoutRef.current)
-        headsUpFeedbackTimeoutRef.current = null
+      setSpotlightSubmittingAction(null)
+      setSpotlightFeedback(null)
+      if (spotlightFeedbackTimeoutRef.current !== null) {
+        window.clearTimeout(spotlightFeedbackTimeoutRef.current)
+        spotlightFeedbackTimeoutRef.current = null
       }
 
       setPlayedForQ(null)
@@ -193,9 +193,9 @@ export default function PlayerPage() {
   }, [correctIndex, inReveal, isTextQ, submittedIndex, typedIsCorrect, typedSubmitted])
   const currentRound = state?.rounds?.current ?? null
   const isQuickfireRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "quickfire"
-  const isHeadsUpRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
-  const headsUp = state?.headsUp ?? null
-  const headsUpShowLabel = useMemo(() => {
+  const isSpotlightRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
+  const spotlight = state?.spotlight ?? null
+  const spotlightShowLabel = useMemo(() => {
     const explicitLabel = String(q?.meta?.primaryShowDisplayName ?? "").trim()
     if (explicitLabel) return explicitLabel
 
@@ -211,13 +211,13 @@ export default function PlayerPage() {
 
   const canAnswer = useMemo(() => {
     if (state?.phase !== "running") return false
-    if (!(state?.stage === "open" || state?.stage === "heads_up_live")) return false
+    if (!(state?.stage === "open" || state?.stage === "spotlight_live")) return false
     if (!q?.id) return false
 
-    if (isHeadsUpRound || answerType === "none") return false
+    if (isSpotlightRound || answerType === "none") return false
     if (answerType === "text") return !typedSubmitted
     return submittedIndex === null && !mcqSubmitting
-  }, [state?.phase, state?.stage, q?.id, answerType, typedSubmitted, submittedIndex, mcqSubmitting, isHeadsUpRound])
+  }, [state?.phase, state?.stage, q?.id, answerType, typedSubmitted, submittedIndex, mcqSubmitting, isSpotlightRound])
 
   const players = useMemo(() => {
     return Array.isArray(state?.players) ? state.players : []
@@ -228,26 +228,26 @@ export default function PlayerPage() {
     return players.find((p: any) => p.id === playerId) ?? null
   }, [players, playerId])
 
-  const headsUpRole = useMemo(() => {
-    if (!isHeadsUpRound) return "spectator" as const
+  const spotlightRole = useMemo(() => {
+    if (!isSpotlightRound) return "spectator" as const
     return getSpotlightRole({
       playerId,
       playerTeamName: String(myPlayer?.team_name ?? teamName ?? "").trim() || null,
-      activeGuesserId: String(headsUp?.activeGuesserId ?? "").trim() || null,
-      activeTeamName: String(headsUp?.activeTeamName ?? "").trim() || null,
+      activeGuesserId: String(spotlight?.activeGuesserId ?? "").trim() || null,
+      activeTeamName: String(spotlight?.activeTeamName ?? "").trim() || null,
       gameMode,
     })
-  }, [gameMode, headsUp?.activeGuesserId, headsUp?.activeTeamName, isHeadsUpRound, myPlayer?.team_name, playerId, teamName])
+  }, [gameMode, spotlight?.activeGuesserId, spotlight?.activeTeamName, isSpotlightRound, myPlayer?.team_name, playerId, teamName])
 
 
-  const headsUpReviewSignature = useMemo(
+  const spotlightReviewSignature = useMemo(
     () =>
       JSON.stringify(
-        Array.isArray(state?.headsUp?.currentTurnActions)
-          ? state.headsUp.currentTurnActions.map((item: any) => `${String(item.questionId ?? "")}:${String(item.action ?? "")}`)
+        Array.isArray(state?.spotlight?.currentTurnActions)
+          ? state.spotlight.currentTurnActions.map((item: any) => `${String(item.questionId ?? "")}:${String(item.action ?? "")}`)
           : []
       ),
-    [state?.headsUp?.currentTurnActions]
+    [state?.spotlight?.currentTurnActions]
   )
 
   const myJokerIndex = useMemo(() => {
@@ -295,17 +295,17 @@ export default function PlayerPage() {
   const displayCloseAtMs = displayCloseAtRaw ? Date.parse(String(displayCloseAtRaw)) : null
   const adjustedNowMs = liveNowMs + serverOffsetMs
 
-  const headsUpTurnSeconds = Number(state?.headsUp?.turnSeconds ?? 0)
-  const headsUpRoundCompleteReason = String(state?.headsUp?.roundCompleteReason ?? "").trim()
+  const spotlightTurnSeconds = Number(state?.spotlight?.turnSeconds ?? 0)
+  const spotlightRoundCompleteReason = String(state?.spotlight?.roundCompleteReason ?? "").trim()
   const secondsRemaining =
     displayCloseAtMs && Number.isFinite(displayCloseAtMs)
       ? Math.max(0, Math.ceil((displayCloseAtMs - adjustedNowMs) / 1000))
-      : String(state?.stage ?? "") === "heads_up_ready" && Number.isFinite(headsUpTurnSeconds) && headsUpTurnSeconds > 0
-        ? headsUpTurnSeconds
+      : String(state?.stage ?? "") === "spotlight_ready" && Number.isFinite(spotlightTurnSeconds) && spotlightTurnSeconds > 0
+        ? spotlightTurnSeconds
         : 0
-  const headsUpReviewAutoAdvanceAtMs = state?.headsUp?.reviewAutoAdvanceAt ? Date.parse(String(state.headsUp.reviewAutoAdvanceAt)) : Number.NaN
-  const headsUpReviewCountdownSeconds = Number.isFinite(headsUpReviewAutoAdvanceAtMs)
-    ? Math.max(0, Math.ceil((headsUpReviewAutoAdvanceAtMs - adjustedNowMs) / 1000))
+  const spotlightReviewAutoAdvanceAtMs = state?.spotlight?.reviewAutoAdvanceAt ? Date.parse(String(state.spotlight.reviewAutoAdvanceAt)) : Number.NaN
+  const spotlightReviewCountdownSeconds = Number.isFinite(spotlightReviewAutoAdvanceAtMs)
+    ? Math.max(0, Math.ceil((spotlightReviewAutoAdvanceAtMs - adjustedNowMs) / 1000))
     : 0
 
   useEffect(() => {
@@ -527,7 +527,7 @@ export default function PlayerPage() {
     }
   }
 
-  async function ensureHeadsUpAudioReady() {
+  async function ensureSpotlightAudioReady() {
     try {
       const anyWindow = window as typeof window & { webkitAudioContext?: typeof AudioContext }
       const Ctx = anyWindow.AudioContext || anyWindow.webkitAudioContext
@@ -542,9 +542,9 @@ export default function PlayerPage() {
     }
   }
 
-  async function playHeadsUpTimerCue(kind: "tick" | "end") {
+  async function playSpotlightTimerCue(kind: "tick" | "end") {
     try {
-      const ctx = await ensureHeadsUpAudioReady()
+      const ctx = await ensureSpotlightAudioReady()
       if (!ctx) return
 
       const pulse = (frequency: number, start: number, duration: number, type: OscillatorType, volume: number) => {
@@ -574,10 +574,10 @@ export default function PlayerPage() {
     }
   }
 
-  async function playHeadsUpCue(kind: "correct" | "pass") {
+  async function playSpotlightCue(kind: "correct" | "pass") {
 
     try {
-      const ctx = await ensureHeadsUpAudioReady()
+      const ctx = await ensureSpotlightAudioReady()
       if (!ctx) return
 
       const pulse = (frequency: number, start: number, duration: number, type: OscillatorType, volume: number) => {
@@ -607,24 +607,24 @@ export default function PlayerPage() {
     }
   }
 
-  function showHeadsUpFeedback(kind: "correct" | "pass") {
-    if (headsUpFeedbackTimeoutRef.current !== null) {
-      window.clearTimeout(headsUpFeedbackTimeoutRef.current)
+  function showSpotlightFeedback(kind: "correct" | "pass") {
+    if (spotlightFeedbackTimeoutRef.current !== null) {
+      window.clearTimeout(spotlightFeedbackTimeoutRef.current)
     }
-    setHeadsUpFeedback(kind)
-    void playHeadsUpCue(kind)
-    headsUpFeedbackTimeoutRef.current = window.setTimeout(() => {
-      setHeadsUpFeedback(null)
-      headsUpFeedbackTimeoutRef.current = null
+    setSpotlightFeedback(kind)
+    void playSpotlightCue(kind)
+    spotlightFeedbackTimeoutRef.current = window.setTimeout(() => {
+      setSpotlightFeedback(null)
+      spotlightFeedbackTimeoutRef.current = null
     }, 650)
   }
 
-  async function submitHeadsUpAction(action: "guesser_start_turn" | "guesser_correct" | "guesser_pass") {
-    if (!playerId || !isHeadsUpRound) return
+  async function submitSpotlightAction(action: "guesser_start_turn" | "guesser_correct" | "guesser_pass") {
+    if (!playerId || !isSpotlightRound) return
     const pendingAction =
       action === "guesser_start_turn" ? "start" : action === "guesser_correct" ? "correct" : "pass"
 
-    setHeadsUpSubmittingAction(pendingAction)
+    setSpotlightSubmittingAction(pendingAction)
     setAnswerError(null)
     try {
       const res = await fetch("/api/room/spotlight", {
@@ -638,13 +638,13 @@ export default function PlayerPage() {
         return
       }
       if (pendingAction === "correct" || pendingAction === "pass") {
-        showHeadsUpFeedback(pendingAction)
+        showSpotlightFeedback(pendingAction)
       }
       await refreshState()
     } catch {
       setAnswerError("Could not update Spotlight.")
     } finally {
-      setHeadsUpSubmittingAction(null)
+      setSpotlightSubmittingAction(null)
     }
   }
 
@@ -695,7 +695,7 @@ export default function PlayerPage() {
     setAutoplayFailed(false)
 
     try {
-      await ensureHeadsUpAudioReady()
+      await ensureSpotlightAudioReady()
     } catch {
       // ignore
     }
@@ -778,7 +778,7 @@ export default function PlayerPage() {
   useEffect(() => {
     const shouldKeepPlaying =
       state?.phase === "running" &&
-      (state?.stage === "open" || state?.stage === "heads_up_live") &&
+      (state?.stage === "open" || state?.stage === "spotlight_live") &&
       shouldPlayOnPhone &&
       audioEnabled &&
       isAudioQ &&
@@ -791,7 +791,7 @@ export default function PlayerPage() {
 
   useEffect(() => {
     const resumeAudio = () => {
-      void ensureHeadsUpAudioReady()
+      void ensureSpotlightAudioReady()
     }
     window.addEventListener("pointerdown", resumeAudio)
     window.addEventListener("keydown", resumeAudio)
@@ -803,25 +803,25 @@ export default function PlayerPage() {
 
   useEffect(() => {
     const currentStage = String(state?.stage ?? "")
-    const isHeadsUpBehaviour = String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
-    const currentRole = isHeadsUpBehaviour
+    const isSpotlightBehaviour = String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
+    const currentRole = isSpotlightBehaviour
       ? getSpotlightRole({
           playerId,
           playerTeamName: String(myPlayer?.team_name ?? teamName ?? "").trim() || null,
-          activeGuesserId: String(state?.headsUp?.activeGuesserId ?? "").trim() || null,
-          activeTeamName: String(state?.headsUp?.activeTeamName ?? "").trim() || null,
+          activeGuesserId: String(state?.spotlight?.activeGuesserId ?? "").trim() || null,
+          activeTeamName: String(state?.spotlight?.activeTeamName ?? "").trim() || null,
           gameMode,
         })
       : "spectator"
 
     const shouldPlayCountdownCue =
-      isHeadsUpBehaviour &&
-      currentStage === "heads_up_live" &&
+      isSpotlightBehaviour &&
+      currentStage === "spotlight_live" &&
       (currentRole === "guesser" || currentRole === "clue_giver")
 
     if (!shouldPlayCountdownCue) {
-      lastHeadsUpCountdownSecondRef.current = null
-      lastHeadsUpCountdownStageRef.current = currentStage
+      lastSpotlightCountdownSecondRef.current = null
+      lastSpotlightCountdownStageRef.current = currentStage
       return
     }
 
@@ -833,29 +833,29 @@ export default function PlayerPage() {
     if (!Number.isFinite(currentSecondsRemaining)) return
 
     const currentSecond = Math.max(0, Math.floor(currentSecondsRemaining))
-    const previousSecond = lastHeadsUpCountdownSecondRef.current
-    const previousStage = lastHeadsUpCountdownStageRef.current
-    lastHeadsUpCountdownSecondRef.current = currentSecond
-    lastHeadsUpCountdownStageRef.current = currentStage
+    const previousSecond = lastSpotlightCountdownSecondRef.current
+    const previousStage = lastSpotlightCountdownStageRef.current
+    lastSpotlightCountdownSecondRef.current = currentSecond
+    lastSpotlightCountdownStageRef.current = currentStage
 
-    if (previousStage !== "heads_up_live") return
+    if (previousStage !== "spotlight_live") return
     if (previousSecond === currentSecond) return
 
     if (currentSecond > 0 && currentSecond <= 5) {
-      void playHeadsUpTimerCue("tick")
+      void playSpotlightTimerCue("tick")
       return
     }
 
     if (currentSecond === 0 && previousSecond !== 0) {
-      void playHeadsUpTimerCue("end")
+      void playSpotlightTimerCue("end")
     }
   }, [gameMode, myPlayer?.team_name, playerId, state, teamName])
 
   useEffect(() => {
     return () => {
       stopClip()
-      if (headsUpFeedbackTimeoutRef.current !== null) {
-        window.clearTimeout(headsUpFeedbackTimeoutRef.current)
+      if (spotlightFeedbackTimeoutRef.current !== null) {
+        window.clearTimeout(spotlightFeedbackTimeoutRef.current)
       }
       try {
         feedbackAudioContextRef.current?.close()
@@ -868,11 +868,11 @@ export default function PlayerPage() {
 
 
   useEffect(() => {
-    const isReviewStage = String(state?.stage ?? "") === "heads_up_review"
-    const isHeadsUpBehaviour = String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
-    if (!code || !state || !isHeadsUpBehaviour || !isReviewStage) return
+    const isReviewStage = String(state?.stage ?? "") === "spotlight_review"
+    const isSpotlightBehaviour = String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
+    if (!code || !state || !isSpotlightBehaviour || !isReviewStage) return
 
-    const reviewAtMs = state?.headsUp?.reviewAutoAdvanceAt ? Date.parse(String(state.headsUp.reviewAutoAdvanceAt)) : Number.NaN
+    const reviewAtMs = state?.spotlight?.reviewAutoAdvanceAt ? Date.parse(String(state.spotlight.reviewAutoAdvanceAt)) : Number.NaN
     const delayMs = Number.isFinite(reviewAtMs) ? Math.max(0, reviewAtMs - adjustedNowMs) : 4500
 
     const timeoutId = window.setTimeout(() => {
@@ -886,7 +886,7 @@ export default function PlayerPage() {
     }, delayMs)
 
     return () => window.clearTimeout(timeoutId)
-  }, [adjustedNowMs, code, headsUpReviewSignature, refreshState, state?.headsUp?.currentTurnIndex, state?.headsUp?.reviewAutoAdvanceAt, state?.stage, state?.rounds?.current?.behaviourType])
+  }, [adjustedNowMs, code, spotlightReviewSignature, refreshState, state?.spotlight?.currentTurnIndex, state?.spotlight?.reviewAutoAdvanceAt, state?.stage, state?.rounds?.current?.behaviourType])
 
   if (!code) {
     return (
@@ -923,10 +923,10 @@ export default function PlayerPage() {
   const isInfiniteMode = isInfiniteModeFromState(state)
 
   const stage = String(state?.stage ?? "")
-  const isHeadsUpReadyStage = stage === "heads_up_ready"
-  const isHeadsUpLiveStage = stage === "heads_up_live"
-  const isHeadsUpReviewStage = stage === "heads_up_review"
-  const isLiveAnswerStage = stage === "open" || isHeadsUpLiveStage
+  const isSpotlightReadyStage = stage === "spotlight_ready"
+  const isSpotlightLiveStage = stage === "spotlight_live"
+  const isSpotlightReviewStage = stage === "spotlight_review"
+  const isLiveAnswerStage = stage === "open" || isSpotlightLiveStage
   const showInfiniteFinalStage = isInfiniteFinalStage(stage, {
     isInfiniteMode,
     isLastQuestionOverall: Boolean(state?.flow?.isLastQuestionOverall),
@@ -964,7 +964,7 @@ export default function PlayerPage() {
   let timerLabel = getAnswerWindowLabel({
     isUntimedAnswers,
     isQuickfire: isQuickfireRound,
-    isHeadsUp: isHeadsUpRound,
+    isSpotlight: isSpotlightRound,
   })
   let timerValue = isUntimedAnswers ? "No timer" : formatDuration(secondsRemaining)
 
@@ -1141,15 +1141,15 @@ export default function PlayerPage() {
 
       {!showLobby && !finished && stage === "round_summary" ? (
         <div className="grid gap-4">
-          {isHeadsUpRound ? (
+          {isSpotlightRound ? (
             <Card>
               <CardContent className="py-4">
                 <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-4 py-3 text-sm">
                   <div className="font-medium text-foreground">
-                    {headsUpRoundCompleteReason === "card_pool_exhausted" ? "This Spotlight round has run out of cards." : "This Spotlight round is complete."}
+                    {spotlightRoundCompleteReason === "card_pool_exhausted" ? "This Spotlight round has run out of cards." : "This Spotlight round is complete."}
                   </div>
                   <div className="mt-1 text-muted-foreground">
-                    {headsUpRoundCompleteReason === "card_pool_exhausted"
+                    {spotlightRoundCompleteReason === "card_pool_exhausted"
                       ? "Wait for the host to continue to the next round. Future Spotlight rounds need a larger card pool if you want more players to take a turn."
                       : "Wait for the host to continue when they are ready."}
                   </div>
@@ -1212,7 +1212,7 @@ export default function PlayerPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between gap-3">
-                <CardTitle>{isHeadsUpRound ? "Card" : "Question"}</CardTitle>
+                <CardTitle>{isSpotlightRound ? "Card" : "Question"}</CardTitle>
                 <div className="text-sm text-muted-foreground">
                   {q.roundType === "audio" ? "Audio" : q.roundType === "picture" ? "Picture" : q.roundType === "spotlight" ? "Spotlight" : "General"}
                 </div>
@@ -1236,16 +1236,16 @@ export default function PlayerPage() {
                 </div>
               ) : null}
 
-              {isHeadsUpRound ? (
+              {isSpotlightRound ? (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-3 py-3 text-sm">
                   <div className="font-medium text-foreground">Spotlight</div>
                   <div className="mt-1 text-muted-foreground">
-                    {headsUpRole === "guesser"
-                      ? isHeadsUpReadyStage
+                    {spotlightRole === "guesser"
+                      ? isSpotlightReadyStage
                         ? "You are the next guesser. Start the turn from this phone when you are ready."
                         : "You are the guesser. Use Correct and Pass while your team or the rest of the room gives clues."
-                      : headsUpRole === "clue_giver"
-                        ? isHeadsUpLiveStage
+                      : spotlightRole === "clue_giver"
+                        ? isSpotlightLiveStage
                           ? "You can see the live clue. Do not say the answer itself, only give clues."
                           : "Wait for the guesser to start the turn. The clue will appear here when the timer begins."
                         : "Wait for the active team or player to finish their turn."}
@@ -1253,28 +1253,28 @@ export default function PlayerPage() {
                 </div>
               ) : null}
 
-              {isHeadsUpRound ? (
-                headsUpRole === "clue_giver" && isHeadsUpLiveStage ? (
+              {isSpotlightRound ? (
+                spotlightRole === "clue_giver" && isSpotlightLiveStage ? (
                   <div className="rounded-2xl border border-amber-500/30 bg-amber-600/10 px-4 py-6 text-center">
                     <div className="flex items-start justify-between gap-3 text-left">
                       <div className="text-xs uppercase tracking-[0.2em] text-amber-200">Live clue</div>
-                      {headsUpShowLabel ? (
+                      {spotlightShowLabel ? (
                         <div className="rounded-full border border-amber-400/40 bg-amber-500/15 px-2.5 py-1 text-[11px] font-medium leading-none text-amber-100">
-                          {headsUpShowLabel}
+                          {spotlightShowLabel}
                         </div>
                       ) : null}
                     </div>
                     <div className="mt-3 whitespace-pre-line text-2xl font-semibold leading-tight text-foreground sm:text-3xl">{q.text}</div>
                   </div>
-                ) : headsUpRole === "guesser" ? (
+                ) : spotlightRole === "guesser" ? (
                   <div className="rounded-2xl border border-border bg-muted px-4 py-5 text-center">
                     <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Guess without seeing the card</div>
-                    <div className="mt-2 text-lg font-semibold text-foreground">{isHeadsUpReadyStage ? "Start the turn when you are ready, then listen to the clues." : headsUpFeedback === "correct" ? "Correct recorded. Move on to the next clue." : headsUpFeedback === "pass" ? "Pass recorded. Skip and keep moving." : "Listen to the clues and tap the result."}</div>
+                    <div className="mt-2 text-lg font-semibold text-foreground">{isSpotlightReadyStage ? "Start the turn when you are ready, then listen to the clues." : spotlightFeedback === "correct" ? "Correct recorded. Move on to the next clue." : spotlightFeedback === "pass" ? "Pass recorded. Skip and keep moving." : "Listen to the clues and tap the result."}</div>
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-border bg-muted px-4 py-5 text-center">
                     <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Waiting</div>
-                    <div className="mt-2 text-lg font-semibold text-foreground">{isHeadsUpReadyStage ? `${String(headsUp?.activeGuesserName ?? "Another player")} will start the turn from their phone.` : `This turn belongs to ${String(headsUp?.activeGuesserName ?? "another player")}.`}
+                    <div className="mt-2 text-lg font-semibold text-foreground">{isSpotlightReadyStage ? `${String(spotlight?.activeGuesserName ?? "Another player")} will start the turn from their phone.` : `This turn belongs to ${String(spotlight?.activeGuesserName ?? "another player")}.`}
                     </div>
                   </div>
                 )
@@ -1321,90 +1321,90 @@ export default function PlayerPage() {
                 </div>
               ) : null}
 
-              {isHeadsUpRound ? (
-                headsUpRole === "guesser" ? (
+              {isSpotlightRound ? (
+                spotlightRole === "guesser" ? (
                   <div className="grid gap-3">
-                    {isHeadsUpReadyStage ? (
+                    {isSpotlightReadyStage ? (
                       <Button
-                        onClick={() => submitHeadsUpAction("guesser_start_turn")}
-                        disabled={headsUpSubmittingAction !== null}
+                        onClick={() => submitSpotlightAction("guesser_start_turn")}
+                        disabled={spotlightSubmittingAction !== null}
                         className="min-h-20 text-lg"
                       >
-                        {headsUpSubmittingAction === "start" ? "Starting..." : "Start turn"}
+                        {spotlightSubmittingAction === "start" ? "Starting..." : "Start turn"}
                       </Button>
                     ) : (
                       <div className="grid gap-3">
-                        {headsUpFeedback ? (
-                          <div className={`rounded-2xl border px-4 py-3 text-center text-sm font-semibold shadow-sm transition-all ${headsUpFeedback === "correct" ? "border-emerald-500/40 bg-emerald-600/10 text-emerald-200" : "border-amber-500/40 bg-amber-600/10 text-amber-200"}`}>
-                            {headsUpFeedback === "correct" ? "Correct recorded" : "Pass recorded"}
+                        {spotlightFeedback ? (
+                          <div className={`rounded-2xl border px-4 py-3 text-center text-sm font-semibold shadow-sm transition-all ${spotlightFeedback === "correct" ? "border-emerald-500/40 bg-emerald-600/10 text-emerald-200" : "border-amber-500/40 bg-amber-600/10 text-amber-200"}`}>
+                            {spotlightFeedback === "correct" ? "Correct recorded" : "Pass recorded"}
                           </div>
                         ) : null}
                         <div className="grid grid-cols-2 gap-3">
                           <Button
                             variant="secondary"
-                            onClick={() => submitHeadsUpAction("guesser_pass")}
-                            disabled={!isHeadsUpLiveStage || headsUpSubmittingAction !== null}
-                            className={`min-h-20 text-lg ${headsUpSubmittingAction === "pass" ? "scale-[0.98] border-amber-500/40 bg-amber-600/10 text-amber-100" : ""}`}
+                            onClick={() => submitSpotlightAction("guesser_pass")}
+                            disabled={!isSpotlightLiveStage || spotlightSubmittingAction !== null}
+                            className={`min-h-20 text-lg ${spotlightSubmittingAction === "pass" ? "scale-[0.98] border-amber-500/40 bg-amber-600/10 text-amber-100" : ""}`}
                           >
-                            {headsUpSubmittingAction === "pass" ? "Passing..." : "Pass"}
+                            {spotlightSubmittingAction === "pass" ? "Passing..." : "Pass"}
                           </Button>
                           <Button
-                            onClick={() => submitHeadsUpAction("guesser_correct")}
-                            disabled={!isHeadsUpLiveStage || headsUpSubmittingAction !== null}
-                            className={`min-h-20 text-lg ${headsUpSubmittingAction === "correct" ? "scale-[0.98] border-emerald-500/50 bg-emerald-500 text-background" : ""}`}
+                            onClick={() => submitSpotlightAction("guesser_correct")}
+                            disabled={!isSpotlightLiveStage || spotlightSubmittingAction !== null}
+                            className={`min-h-20 text-lg ${spotlightSubmittingAction === "correct" ? "scale-[0.98] border-emerald-500/50 bg-emerald-500 text-background" : ""}`}
                           >
-                            {headsUpSubmittingAction === "correct" ? "Correct..." : "Correct"}
+                            {spotlightSubmittingAction === "correct" ? "Correct..." : "Correct"}
                           </Button>
                         </div>
                       </div>
                     )}
                     <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm text-muted-foreground">
-                      {isHeadsUpReadyStage
+                      {isSpotlightReadyStage
                         ? "Start the timer from this phone when you are ready to begin guessing."
-                        : isHeadsUpReviewStage
+                        : isSpotlightReviewStage
                           ? "The turn is ending. The next player will be prepared automatically after the countdown below unless the host corrects something."
-                          : headsUpSubmittingAction === "correct"
+                          : spotlightSubmittingAction === "correct"
                             ? "Saving that correct answer now."
-                            : headsUpSubmittingAction === "pass"
+                            : spotlightSubmittingAction === "pass"
                               ? "Skipping that clue now."
                               : "Keep facing away from the clue and use the buttons as each guess lands."}
                     </div>
                   </div>
-                ) : headsUpRole === "clue_giver" ? (
+                ) : spotlightRole === "clue_giver" ? (
                   <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm text-muted-foreground">
-                    {isHeadsUpReadyStage
-                      ? `Waiting for ${String(headsUp?.activeGuesserName ?? "the guesser")} to start the turn.`
-                      : isHeadsUpReviewStage
+                    {isSpotlightReadyStage
+                      ? `Waiting for ${String(spotlight?.activeGuesserName ?? "the guesser")} to start the turn.`
+                      : isSpotlightReviewStage
                         ? "The turn has ended. Watch the countdown below for the next player unless the host makes a correction."
                         : "Give clues without saying any part of the answer on the card."}
                   </div>
                 ) : (
                   <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm text-muted-foreground">
-                    {isHeadsUpReadyStage
-                      ? `Waiting for ${String(headsUp?.activeGuesserName ?? "the active player")} to start the turn.`
-                      : isHeadsUpReviewStage
+                    {isSpotlightReadyStage
+                      ? `Waiting for ${String(spotlight?.activeGuesserName ?? "the active player")} to start the turn.`
+                      : isSpotlightReviewStage
                         ? "The turn has ended. Watch the countdown below for the next player unless the host makes a correction."
                         : "Waiting for the active player to finish. You will get a live clue view when it is your turn to help."}
                   </div>
                 )
               ) : null}
 
-              {isHeadsUpRound && isHeadsUpReviewStage ? (
+              {isSpotlightRound && isSpotlightReviewStage ? (
                 <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-4 py-3 text-sm">
                   <div className="font-medium text-foreground">
-                    {headsUp?.willAdvanceToNextTurn
-                      ? `Next player: ${String(headsUp?.nextGuesserName ?? "The next player")}${headsUp?.nextTeamName ? ` · Team ${String(headsUp.nextTeamName)}` : ""}`
+                    {spotlight?.willAdvanceToNextTurn
+                      ? `Next player: ${String(spotlight?.nextGuesserName ?? "The next player")}${spotlight?.nextTeamName ? ` · Team ${String(spotlight.nextTeamName)}` : ""}`
                       : "Ending Spotlight round"}
                   </div>
                   <div className="mt-1 text-muted-foreground">
-                    {headsUp?.willAdvanceToNextTurn
-                      ? `Moving on in ${headsUpReviewCountdownSeconds}s unless the host corrects the turn or skips ahead.`
-                      : `Finishing the round in ${headsUpReviewCountdownSeconds}s unless the host skips ahead.`}
+                    {spotlight?.willAdvanceToNextTurn
+                      ? `Moving on in ${spotlightReviewCountdownSeconds}s unless the host corrects the turn or skips ahead.`
+                      : `Finishing the round in ${spotlightReviewCountdownSeconds}s unless the host skips ahead.`}
                   </div>
                 </div>
               ) : null}
 
-              {!isHeadsUpRound ? (
+              {!isSpotlightRound ? (
                 isTextQ ? (
                   <div className="grid gap-2">
                     <Input

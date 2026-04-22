@@ -68,7 +68,7 @@ async function fetchAllPackQuestionRows(packIds: string[]) {
   return rows
 }
 
-async function fetchAllHeadsUpPackItemRows(packIds: string[]) {
+async function fetchAllSpotlightPackItemRows(packIds: string[]) {
   const cleanedPackIds = [...new Set(cleanStringArray(packIds))]
   if (cleanedPackIds.length === 0) return [] as Array<Record<string, unknown>>
 
@@ -174,7 +174,7 @@ function cleanSelectionRules(raw: unknown): RoundSelectionRules {
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
     audioClipTypes: cleanStringArray(value.audioClipTypes),
-    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties ?? value.headsUpDifficulties),
+    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties ?? value.spotlightDifficultiesLegacy),
   }
 }
 
@@ -208,7 +208,7 @@ function cleanManualRounds(raw: unknown): ManualRoundDraftInput[] {
       selectionRules: cleanSelectionRules(value.selectionRules),
       answerSeconds: cleanOptionalNonNegativeNumber(value.answerSeconds),
       roundReviewSeconds: cleanOptionalNonNegativeNumber(value.roundReviewSeconds),
-      spotlightTvDisplayMode: String(value.spotlightTvDisplayMode ?? value.headsUpTvDisplayMode ?? "").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only",
+      spotlightTvDisplayMode: String(value.spotlightTvDisplayMode ?? value.legacySpotlightTvDisplayMode ?? "").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only",
     }
   })
 }
@@ -255,7 +255,7 @@ function mapTemplateToManualRound(template: any, index: number): ManualRoundDraf
     roundReviewSeconds:
       cleanOptionalNonNegativeNumber(template?.default_round_review_seconds) ??
       getDefaultRoundReviewSecondsForBehaviour(behaviourType),
-    spotlightTvDisplayMode: String(template?.heads_up_tv_display_mode ?? "").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only",
+    spotlightTvDisplayMode: String(template?.spotlight_tv_display_mode ?? template?.heads_up_tv_display_mode ?? "").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only",
   }
 }
 
@@ -264,7 +264,7 @@ async function loadCandidatePoolForManualRounds(params: {
   manualRounds: ManualRoundDraftInput[]
 }) {
   const questionRounds = params.manualRounds.filter((round) => round.behaviourType !== "spotlight")
-  const headsUpRounds = params.manualRounds.filter((round) => round.behaviourType === "spotlight")
+  const spotlightRounds = params.manualRounds.filter((round) => round.behaviourType === "spotlight")
 
   const needsAllQuestions = questionRounds.some((round) => round.sourceMode === "all_questions")
   let allActivePackIds: string[] = []
@@ -277,9 +277,9 @@ async function loadCandidatePoolForManualRounds(params: {
 
   const specificQuestionPackIds = questionRounds.flatMap((round) => cleanStringArray(round.packIds))
   const scopeQuestionPackIds = [...new Set([...params.selectedPackIds, ...specificQuestionPackIds, ...allActivePackIds])]
-  const specificHeadsUpPackIds = [...new Set(headsUpRounds.flatMap((round) => cleanStringArray(round.packIds)))]
+  const specificSpotlightPackIds = [...new Set(spotlightRounds.flatMap((round) => cleanStringArray(round.packIds)))]
 
-  if (scopeQuestionPackIds.length === 0 && specificHeadsUpPackIds.length === 0) {
+  if (scopeQuestionPackIds.length === 0 && specificSpotlightPackIds.length === 0) {
     throw new Error("Manual rounds need selected packs, specific packs, or all active packs.")
   }
 
@@ -319,10 +319,10 @@ async function loadCandidatePoolForManualRounds(params: {
     }
   }
 
-  if (specificHeadsUpPackIds.length > 0) {
-    const headsUpLinks = await fetchAllHeadsUpPackItemRows(specificHeadsUpPackIds)
+  if (specificSpotlightPackIds.length > 0) {
+    const spotlightLinks = await fetchAllSpotlightPackItemRows(specificSpotlightPackIds)
 
-    for (const row of headsUpLinks as any[]) {
+    for (const row of spotlightLinks as any[]) {
       const packId = String(row.pack_id ?? "").trim()
       const itemId = String(row.item_id ?? "").trim()
       const itemRaw = Array.isArray(row.spotlight_items) ? row.spotlight_items[0] : row.spotlight_items

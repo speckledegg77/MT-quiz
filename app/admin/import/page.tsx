@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/Button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 
-type ImportTool = "" | "questions" | "headsUp" | "media"
+type ImportTool = "" | "questions" | "spotlight" | "media"
 type MediaBucket = "audio" | "images"
 
 type AudioDurationRow = {
@@ -52,7 +52,7 @@ function buildAdminHeaders(token: string, validateOnly = false) {
 
 export default function AdminImportPage() {
   const questionsFileInputRef = useRef<HTMLInputElement | null>(null)
-  const headsUpFileInputRef = useRef<HTMLInputElement | null>(null)
+  const spotlightFileInputRef = useRef<HTMLInputElement | null>(null)
   const mediaFileInputRef = useRef<HTMLInputElement | null>(null)
 
   const [token, setToken] = useState("")
@@ -65,10 +65,10 @@ export default function AdminImportPage() {
   const [questionsBusy, setQuestionsBusy] = useState(false)
   const [questionsResult, setQuestionsResult] = useState("")
 
-  const [headsUpFile, setHeadsUpFile] = useState<File | null>(null)
-  const [headsUpText, setHeadsUpText] = useState("")
-  const [headsUpBusy, setHeadsUpBusy] = useState(false)
-  const [headsUpResult, setHeadsUpResult] = useState("")
+  const [spotlightFile, setSpotlightFile] = useState<File | null>(null)
+  const [spotlightText, setSpotlightText] = useState("")
+  const [spotlightBusy, setSpotlightBusy] = useState(false)
+  const [spotlightResult, setSpotlightResult] = useState("")
 
   const [mediaBucket, setMediaBucket] = useState<MediaBucket>("audio")
   const [mediaFolder, setMediaFolder] = useState("")
@@ -108,9 +108,9 @@ export default function AdminImportPage() {
     return cleanToken.length > 0 && (!!questionsFile || questionsText.trim().length > 0) && !questionsBusy
   }, [cleanToken, questionsFile, questionsText, questionsBusy])
 
-  const canUploadHeadsUp = useMemo(() => {
-    return cleanToken.length > 0 && (!!headsUpFile || headsUpText.trim().length > 0) && !headsUpBusy
-  }, [cleanToken, headsUpFile, headsUpText, headsUpBusy])
+  const canUploadSpotlight = useMemo(() => {
+    return cleanToken.length > 0 && (!!spotlightFile || spotlightText.trim().length > 0) && !spotlightBusy
+  }, [cleanToken, spotlightFile, spotlightText, spotlightBusy])
 
   const canUploadMedia = useMemo(() => {
     return cleanToken.length > 0 && mediaFiles.length > 0 && !mediaBusy
@@ -307,14 +307,14 @@ export default function AdminImportPage() {
             >
               <option value="">Select a tool</option>
               <option value="questions">Question CSV import</option>
-              <option value="headsUp">Spotlight CSV import</option>
+              <option value="spotlight">Spotlight CSV import</option>
               <option value="media">Bulk media upload</option>
             </select>
 
             <div className="text-sm text-muted-foreground">
               {selectedTool === "questions" &&
                 "Use this for normal quiz questions and pack links."}
-              {selectedTool === "headsUp" &&
+              {selectedTool === "spotlight" &&
                 "Use this for Spotlight items and pack assignment. Duplicate rows now update matching items instead of silently creating copies."}
               {selectedTool === "media" &&
                 "Use this for bulk audio or image uploads to Supabase Storage."}
@@ -413,7 +413,7 @@ export default function AdminImportPage() {
           </Card>
         ) : null}
 
-        {selectedTool === "headsUp" ? (
+        {selectedTool === "spotlight" ? (
           <Card>
             <CardHeader>
               <CardTitle>Spotlight CSV import</CardTitle>
@@ -422,20 +422,20 @@ export default function AdminImportPage() {
               <div className="grid gap-2">
                 <div className="text-sm font-medium">Upload CSV file</div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <Button variant="secondary" onClick={() => headsUpFileInputRef.current?.click()}>
+                  <Button variant="secondary" onClick={() => spotlightFileInputRef.current?.click()}>
                     Choose CSV file
                   </Button>
                   <div className="text-sm text-muted-foreground">
-                    {headsUpFile
-                      ? `Selected: ${headsUpFile.name} (${Math.round(headsUpFile.size / 1024)} KB)`
+                    {spotlightFile
+                      ? `Selected: ${spotlightFile.name} (${Math.round(spotlightFile.size / 1024)} KB)`
                       : "No file selected."}
                   </div>
                 </div>
                 <input
-                  ref={headsUpFileInputRef}
+                  ref={spotlightFileInputRef}
                   type="file"
                   accept=".csv,text/csv"
-                  onChange={(event) => setHeadsUpFile(event.target.files?.[0] ?? null)}
+                  onChange={(event) => setSpotlightFile(event.target.files?.[0] ?? null)}
                   className="hidden"
                 />
               </div>
@@ -443,8 +443,8 @@ export default function AdminImportPage() {
               <div className="grid gap-2">
                 <div className="text-sm font-medium">Or paste CSV</div>
                 <textarea
-                  value={headsUpText}
-                  onChange={(event) => setHeadsUpText(event.target.value)}
+                  value={spotlightText}
+                  onChange={(event) => setSpotlightText(event.target.value)}
                   placeholder="Paste Spotlight CSV here"
                   rows={10}
                   className={inputClassName}
@@ -458,41 +458,41 @@ export default function AdminImportPage() {
 
               <div className="flex flex-wrap gap-3">
                 <Button
-                  disabled={!canUploadHeadsUp}
+                  disabled={!canUploadSpotlight}
                   onClick={() =>
                     void uploadCsv({
                       endpoint: "/api/admin/import-spotlight",
-                      file: headsUpFile,
-                      text: headsUpText,
-                      setBusy: setHeadsUpBusy,
-                      setResult: setHeadsUpResult,
+                      file: spotlightFile,
+                      text: spotlightText,
+                      setBusy: setSpotlightBusy,
+                      setResult: setSpotlightResult,
                       validateOnly: true,
                     })
                   }
                 >
-                  {headsUpBusy ? "Working..." : "Validate Spotlight CSV"}
+                  {spotlightBusy ? "Working..." : "Validate Spotlight CSV"}
                 </Button>
                 <Button
                   variant="secondary"
-                  disabled={!canUploadHeadsUp}
+                  disabled={!canUploadSpotlight}
                   onClick={() =>
                     void uploadCsv({
                       endpoint: "/api/admin/import-spotlight",
-                      file: headsUpFile,
-                      text: headsUpText,
-                      setBusy: setHeadsUpBusy,
-                      setResult: setHeadsUpResult,
+                      file: spotlightFile,
+                      text: spotlightText,
+                      setBusy: setSpotlightBusy,
+                      setResult: setSpotlightResult,
                       validateOnly: false,
                     })
                   }
                 >
-                  {headsUpBusy ? "Working..." : "Import Spotlight CSV"}
+                  {spotlightBusy ? "Working..." : "Import Spotlight CSV"}
                 </Button>
               </div>
 
               <div className="grid gap-2">
                 <div className="text-sm font-medium">Spotlight import result</div>
-                <pre className={resultClassName}>{headsUpResult || "No Spotlight CSV upload yet."}</pre>
+                <pre className={resultClassName}>{spotlightResult || "No Spotlight CSV upload yet."}</pre>
               </div>
 
               <div className="grid gap-2">

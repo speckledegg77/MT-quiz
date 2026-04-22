@@ -56,15 +56,15 @@ export function cleanSpotlightTvDisplayMode(raw: unknown): SpotlightTvDisplayMod
 
 export function getSpotlightTurnSeconds(round: { behaviourType?: unknown; answerSeconds?: unknown } | null | undefined) {
   const behaviourType = String(round?.behaviourType ?? "").trim().toLowerCase()
-  if (behaviourType !== "spotlight" && behaviourType !== "heads_up") return 60
+  if (behaviourType !== "spotlight") return 60
   const value = Math.floor(Number(round?.answerSeconds ?? 60))
   return value === 90 ? 90 : 60
 }
 
-export function getSpotlightTvDisplayMode(round: { behaviourType?: unknown; headsUpTvDisplayMode?: unknown; spotlightTvDisplayMode?: unknown } | null | undefined) {
+export function getSpotlightTvDisplayMode(round: { behaviourType?: unknown; spotlightTvDisplayMode?: unknown; legacySpotlightTvDisplayMode?: unknown } | null | undefined) {
   const behaviourType = String(round?.behaviourType ?? "").trim().toLowerCase()
-  if (behaviourType !== "spotlight" && behaviourType !== "heads_up") return "show_clue" as SpotlightTvDisplayMode
-  return cleanSpotlightTvDisplayMode(round?.spotlightTvDisplayMode ?? round?.headsUpTvDisplayMode)
+  if (behaviourType !== "spotlight") return "show_clue" as SpotlightTvDisplayMode
+  return cleanSpotlightTvDisplayMode(round?.spotlightTvDisplayMode ?? (round as any)?.legacySpotlightTvDisplayMode ?? (round as any)?.headsUpTvDisplayMode)
 }
 
 export function buildSpotlightTurnOrder(playersRaw: SpotlightPlayerLike[], options: { gameMode?: unknown; teamNames?: unknown } = {}) {
@@ -238,19 +238,19 @@ export function deriveSpotlightStage(params: {
 }) {
   if (String(params.roomPhase ?? "").trim().toLowerCase() !== "running") return null
   const behaviourType = String(params.round?.behaviourType ?? "").trim().toLowerCase()
-  if (behaviourType !== "spotlight" && behaviourType !== "heads_up") return null
+  if (behaviourType !== "spotlight") return null
 
   const state = normaliseSpotlightRoomState(params.rawState, params.round?.index ?? 0)
   const closeAtMs = params.closeAt ? Date.parse(String(params.closeAt)) : Number.NaN
   const nowMs = Number.isFinite(Number(params.nowMs)) ? Number(params.nowMs) : Date.now()
 
   if (state.status === "round_summary") return "round_summary"
-  if (state.status === "review") return "heads_up_review"
+  if (state.status === "review") return "spotlight_review"
   if (state.status === "live") {
-    if (Number.isFinite(closeAtMs) && nowMs >= closeAtMs) return "heads_up_review"
-    return "heads_up_live"
+    if (Number.isFinite(closeAtMs) && nowMs >= closeAtMs) return "spotlight_review"
+    return "spotlight_live"
   }
-  return "heads_up_ready"
+  return "spotlight_ready"
 }
 
 export function getSpotlightRole(params: {

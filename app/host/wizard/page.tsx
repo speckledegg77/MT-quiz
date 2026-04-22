@@ -30,7 +30,7 @@ type PackRow = {
   is_active: boolean | null
 }
 
-type HeadsUpPackRow = {
+type SpotlightPackRow = {
   id: string
   name: string
   description?: string
@@ -206,7 +206,7 @@ export default function HostWizardPage() {
 
   const [currentStep, setCurrentStep] = useState(1)
   const [packs, setPacks] = useState<PackRow[]>([])
-  const [headsUpPacks, setHeadsUpPacks] = useState<HeadsUpPackRow[]>([])
+  const [spotlightPacks, setSpotlightPacks] = useState<SpotlightPackRow[]>([])
   const [templates, setTemplates] = useState<RoundTemplateRow[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -217,7 +217,7 @@ export default function HostWizardPage() {
   const [teamNames, setTeamNames] = useState<string[]>(() => buildInitialTeams())
   const [lengthId, setLengthId] = useState<string>("standard")
   const [audioMode, setAudioMode] = useState<AudioMode>("display")
-  const [includeHeadsUpFinish, setIncludeHeadsUpFinish] = useState(false)
+  const [includeSpotlightFinish, setIncludeSpotlightFinish] = useState(false)
 
   const [feasibilityBusy, setFeasibilityBusy] = useState(false)
   const [feasibilityError, setFeasibilityError] = useState<string | null>(null)
@@ -227,7 +227,7 @@ export default function HostWizardPage() {
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const [roomCode, setRoomCode] = useState<string | null>(null)
-  const [createdHeadsUpPack, setCreatedHeadsUpPack] = useState<HeadsUpPackRow | null>(null)
+  const [createdSpotlightPack, setCreatedSpotlightPack] = useState<SpotlightPackRow | null>(null)
   const [joinedPlayerCount, setJoinedPlayerCount] = useState(0)
 
   const [startBusy, setStartBusy] = useState(false)
@@ -243,8 +243,8 @@ export default function HostWizardPage() {
   }, [lengthId])
 
   const templateRoundCount = useMemo(() => {
-    return includeHeadsUpFinish ? Math.max(1, roundCount - 1) : roundCount
-  }, [includeHeadsUpFinish, roundCount])
+    return includeSpotlightFinish ? Math.max(1, roundCount - 1) : roundCount
+  }, [includeSpotlightFinish, roundCount])
 
   const selectedPackIds = useMemo(() => packs.map((pack) => pack.id), [packs])
 
@@ -270,8 +270,8 @@ export default function HostWizardPage() {
   }, [feasibilityById, quizFeel, templateRoundCount, templates])
 
   const totalPlannedRounds = useMemo(() => {
-    return templatePlan.rounds.length + (includeHeadsUpFinish ? 1 : 0)
-  }, [includeHeadsUpFinish, templatePlan.rounds.length])
+    return templatePlan.rounds.length + (includeSpotlightFinish ? 1 : 0)
+  }, [includeSpotlightFinish, templatePlan.rounds.length])
 
   const teamValidationMessage = useMemo(() => createTeamValidationMessage(gameMode, teamNames), [gameMode, teamNames])
 
@@ -281,10 +281,10 @@ export default function HostWizardPage() {
     if (feasibilityBusy) return "Still checking which ready templates fit the current question pool."
     if (feasibilityError) return feasibilityError
     if (teamValidationMessage) return teamValidationMessage
-    if (includeHeadsUpFinish && !headsUpPacks.length) return "No active Spotlight packs are available right now."
-    if (includeHeadsUpFinish && roundCount < 2) return "Choose at least 2 rounds if you want a Spotlight finish."
+    if (includeSpotlightFinish && !spotlightPacks.length) return "No active Spotlight packs are available right now."
+    if (includeSpotlightFinish && roundCount < 2) return "Choose at least 2 rounds if you want a Spotlight finish."
     return templatePlan.error
-  }, [feasibilityBusy, feasibilityError, headsUpPacks.length, includeHeadsUpFinish, loadError, loading, roundCount, teamValidationMessage, templatePlan.error])
+  }, [feasibilityBusy, feasibilityError, spotlightPacks.length, includeSpotlightFinish, loadError, loading, roundCount, teamValidationMessage, templatePlan.error])
 
   useEffect(() => {
     let cancelled = false
@@ -293,7 +293,7 @@ export default function HostWizardPage() {
       setLoading(true)
       setLoadError(null)
 
-      const [packsRes, headsUpPacksRes, templatesRes] = await Promise.all([
+      const [packsRes, spotlightPacksRes, templatesRes] = await Promise.all([
         supabase
           .from("packs")
           .select("id, display_name, round_type, sort_order, is_active")
@@ -301,7 +301,7 @@ export default function HostWizardPage() {
           .order("sort_order", { ascending: true }),
         fetch("/api/spotlight/packs", { cache: "no-store" })
           .then(async (res) => {
-            const json = (await res.json().catch(() => ({}))) as { packs?: HeadsUpPackRow[]; error?: string }
+            const json = (await res.json().catch(() => ({}))) as { packs?: SpotlightPackRow[]; error?: string }
             if (!res.ok) throw new Error(json.error ?? "Could not load Spotlight packs.")
             return json.packs ?? []
           }),
@@ -322,7 +322,7 @@ export default function HostWizardPage() {
       }
 
       setPacks((packsRes.data ?? []) as PackRow[])
-      setHeadsUpPacks(headsUpPacksRes)
+      setSpotlightPacks(spotlightPacksRes)
       setTemplates(templatesRes)
       setLoading(false)
     }
@@ -456,9 +456,9 @@ export default function HostWizardPage() {
       }
 
       const cleanTeamNames = teamNames.map((name) => name.trim()).filter(Boolean)
-      const chosenHeadsUpPack = includeHeadsUpFinish ? chooseRandomItem(headsUpPacks) : null
+      const chosenSpotlightPack = includeSpotlightFinish ? chooseRandomItem(spotlightPacks) : null
 
-      if (includeHeadsUpFinish && !chosenHeadsUpPack) {
+      if (includeSpotlightFinish && !chosenSpotlightPack) {
         setCreateError("No active Spotlight packs are available right now.")
         setCreating(false)
         return
@@ -466,16 +466,16 @@ export default function HostWizardPage() {
 
       const manualRounds = [
         ...templatePlan.rounds,
-        ...(chosenHeadsUpPack
+        ...(chosenSpotlightPack
           ? [{
-              id: `wizard_spotlight_${chosenHeadsUpPack.id}`,
+              id: `wizard_spotlight_${chosenSpotlightPack.id}`,
               name: "Spotlight",
               questionCount: 1,
               behaviourType: "spotlight" as const,
               jokerEligible: false,
               countsTowardsScore: false,
               sourceMode: "specific_packs" as const,
-              packIds: [chosenHeadsUpPack.id],
+              packIds: [chosenSpotlightPack.id],
               selectionRules: {
                 mediaTypes: [],
                 answerTypes: [],
@@ -486,7 +486,7 @@ export default function HostWizardPage() {
               },
               answerSeconds: 60,
               roundReviewSeconds: 20,
-              headsUpTvDisplayMode: "timer_only" as const,
+              spotlightTvDisplayMode: "timer_only" as const,
             }]
           : []),
       ]
@@ -521,7 +521,7 @@ export default function HostWizardPage() {
       }
 
       rememberHostCode(code)
-      setCreatedHeadsUpPack(chosenHeadsUpPack)
+      setCreatedSpotlightPack(chosenSpotlightPack)
       setRoomCode(code)
       setCurrentStep(5)
     } catch (error: unknown) {
@@ -816,13 +816,13 @@ export default function HostWizardPage() {
                       <label className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
                         <input
                           type="checkbox"
-                          checked={includeHeadsUpFinish}
-                          onChange={(event) => setIncludeHeadsUpFinish(event.target.checked)}
+                          checked={includeSpotlightFinish}
+                          onChange={(event) => setIncludeSpotlightFinish(event.target.checked)}
                         />
                         Include it
                       </label>
                     </div>
-                    {includeHeadsUpFinish ? (
+                    {includeSpotlightFinish ? (
                       <div className="rounded-xl border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
                         {playSurface === "phones_only"
                           ? "This final Spotlight round will replace the last round and follow the phones-only setup too."
@@ -864,7 +864,7 @@ export default function HostWizardPage() {
                           </div>
                           <div className="flex items-start justify-between gap-3">
                             <span className="text-muted-foreground">Spotlight finish</span>
-                            <span className="text-right font-medium text-foreground">{includeHeadsUpFinish ? "Yes, use the final round for a random pack" : "No"}</span>
+                            <span className="text-right font-medium text-foreground">{includeSpotlightFinish ? "Yes, use the final round for a random pack" : "No"}</span>
                           </div>
                           <div className="flex items-start justify-between gap-3">
                             <span className="text-muted-foreground">Play format</span>
@@ -902,7 +902,7 @@ export default function HostWizardPage() {
                             <div className="text-sm text-muted-foreground">No ready plan yet.</div>
                           )}
 
-                          {includeHeadsUpFinish ? (
+                          {includeSpotlightFinish ? (
                             <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm">
                               <div className="flex items-center justify-between gap-3">
                                 <div className="font-medium text-foreground">{templatePlan.rounds.length + 1}. Spotlight</div>
@@ -972,9 +972,9 @@ export default function HostWizardPage() {
                     </div>
                   </div>
 
-                  {createdHeadsUpPack ? (
+                  {createdSpotlightPack ? (
                     <div className="rounded-2xl border border-border bg-muted p-4 text-sm text-muted-foreground">
-                      This game will use <span className="font-medium text-foreground">{createdHeadsUpPack.name}</span> for the final Spotlight round.
+                      This game will use <span className="font-medium text-foreground">{createdSpotlightPack.name}</span> for the final Spotlight round.
                     </div>
                   ) : null}
 
@@ -1071,7 +1071,7 @@ export default function HostWizardPage() {
                   </div>
                   <div className="flex items-start justify-between gap-3">
                     <span className="text-muted-foreground">Spotlight finish</span>
-                    <span className="text-right font-medium text-foreground">{createdHeadsUpPack ? `${createdHeadsUpPack.name} in final round` : includeHeadsUpFinish ? "Random active pack in final round" : "No"}</span>
+                    <span className="text-right font-medium text-foreground">{createdSpotlightPack ? `${createdSpotlightPack.name} in final round` : includeSpotlightFinish ? "Random active pack in final round" : "No"}</span>
                   </div>
                   <div className="flex items-start justify-between gap-3">
                     <span className="text-muted-foreground">Rounds</span>

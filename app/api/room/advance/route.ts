@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   const result = await advanceRoomIfReady({
     code,
     allowRoundSummaryAdvance: true,
-    allowHeadsUpReviewAutoConfirm: false,
+    allowSpotlightReviewAutoConfirm: false,
   })
 
   if (!result.ok) {

@@ -37,7 +37,7 @@ type DbQuestionRow = {
   image_path: string | null
 }
 
-type DbHeadsUpRow = {
+type DbSpotlightRow = {
   id: string
   answer_text: string
   item_type: string | null
@@ -90,7 +90,7 @@ function mapDbRow(row: DbQuestionRow): Question {
   }
 }
 
-function mapHeadsUpRow(questionId: string, row: DbHeadsUpRow): Question {
+function mapSpotlightRow(questionId: string, row: DbSpotlightRow): Question {
   return {
     id: questionId,
     roundType: "spotlight",
@@ -117,18 +117,18 @@ export async function getQuestionById(id: string): Promise<Question | null> {
   const now = Date.now()
   if (cached && now - cached.at < CACHE_TTL_MS) return cached.q
 
-  const headsUpItemId = parseSpotlightSyntheticQuestionId(key)
-  if (headsUpItemId) {
+  const spotlightItemId = parseSpotlightSyntheticQuestionId(key)
+  if (spotlightItemId) {
     const res = await supabaseAdmin
       .from("spotlight_items")
       .select("id, answer_text, item_type, difficulty, primary_show_key, notes")
-      .eq("id", headsUpItemId)
+      .eq("id", spotlightItemId)
       .eq("is_active", true)
       .single()
 
     if (res.error || !res.data) return null
 
-    const q = mapHeadsUpRow(key, res.data as DbHeadsUpRow)
+    const q = mapSpotlightRow(key, res.data as DbSpotlightRow)
     cache.set(key, { at: now, q })
     return q
   }

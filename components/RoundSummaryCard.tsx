@@ -38,7 +38,7 @@ type QuickfireReviewQuestion = {
   fastestCorrectPlayerName: string | null
 }
 
-type HeadsUpReviewItem = {
+type SpotlightReviewItem = {
   questionId: string
   questionNumberInRound: number
   questionText: string
@@ -48,13 +48,13 @@ type HeadsUpReviewItem = {
   playerId?: string
 }
 
-type HeadsUpReviewPlayer = {
+type SpotlightReviewPlayer = {
   playerId: string
   playerName: string
   teamName?: string | null
   correctCount: number
   passCount: number
-  cards: HeadsUpReviewItem[]
+  cards: SpotlightReviewItem[]
 }
 
 type Props = {
@@ -81,8 +81,8 @@ type Props = {
     | {
         behaviourType?: "standard" | "quickfire" | "spotlight"
         questions?: QuickfireReviewQuestion[]
-        items?: HeadsUpReviewItem[]
-        players?: HeadsUpReviewPlayer[]
+        items?: SpotlightReviewItem[]
+        players?: SpotlightReviewPlayer[]
       }
     | null
     | undefined
@@ -176,10 +176,10 @@ export default function RoundSummaryCard({
 
   const teamRows = Array.isArray(roundStats?.byTeam) ? roundStats.byTeam : []
   const isQuickfire = round?.behaviourType === "quickfire" || roundReview?.behaviourType === "quickfire"
-  const isHeadsUp = round?.behaviourType === "spotlight" || roundReview?.behaviourType === "spotlight"
+  const isSpotlight = round?.behaviourType === "spotlight" || roundReview?.behaviourType === "spotlight"
   const quickfireQuestions = Array.isArray(roundReview?.questions) ? roundReview.questions : []
-  const headsUpItems = Array.isArray(roundReview?.items) ? roundReview.items : []
-  const headsUpPlayers = Array.isArray(roundReview?.players) ? roundReview.players : []
+  const spotlightItems = Array.isArray(roundReview?.items) ? roundReview.items : []
+  const spotlightPlayers = Array.isArray(roundReview?.players) ? roundReview.players : []
   const fastestAwardCount = quickfireQuestions.filter((question) => question.fastestCorrectPlayerName).length
   const infiniteQuestionsAsked = Math.max(0, Math.floor(Number(summaryQuestionCount ?? 0) || 0))
 
@@ -193,10 +193,10 @@ export default function RoundSummaryCard({
               <CardTitle>{isInfiniteMode ? "Infinite run" : `Round ${Number(round?.number ?? 0)}`}</CardTitle>
               <span
                 className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${
-                  getRoundBehaviourBadgeClass(isQuickfire ? "quickfire" : isHeadsUp ? "spotlight" : "standard", { isInfiniteMode })
+                  getRoundBehaviourBadgeClass(isQuickfire ? "quickfire" : isSpotlight ? "spotlight" : "standard", { isInfiniteMode })
                 }`}
               >
-                {getRoundBehaviourLabel(isQuickfire ? "quickfire" : isHeadsUp ? "spotlight" : "standard", { isInfiniteMode })}
+                {getRoundBehaviourLabel(isQuickfire ? "quickfire" : isSpotlight ? "spotlight" : "standard", { isInfiniteMode })}
               </span>
             </div>
             <div className="mt-1 text-sm text-muted-foreground">
@@ -229,35 +229,35 @@ export default function RoundSummaryCard({
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-xl border border-border bg-card p-3">
             <div className="text-xs text-muted-foreground">
-              {isInfiniteMode ? "Questions asked" : isHeadsUp ? "Phone answers" : "Correct"}
+              {isInfiniteMode ? "Questions asked" : isSpotlight ? "Phone answers" : "Correct"}
             </div>
             <div className="mt-1 text-lg font-semibold">
               {isInfiniteMode
                 ? fmt(infiniteQuestionsAsked)
-                : isHeadsUp
+                : isSpotlight
                   ? "Not used"
                   : `${fmt(Number(roundStats?.correct ?? 0))}/${fmt(Number(roundStats?.answered ?? 0))}`}
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
               {isInfiniteMode
                 ? "Total cards shown in this run."
-                : isHeadsUp
+                : isSpotlight
                   ? "Spotlight runs through live clueing instead of phone answers."
                   : "Correct answers out of answers received this round."}
             </div>
           </div>
 
           <div className="rounded-xl border border-border bg-card p-3">
-            <div className="text-xs text-muted-foreground">{isInfiniteMode ? "Correct answers" : isQuickfire ? "Fastest bonuses" : isHeadsUp ? "Cards used" : "Joker usage"}</div>
+            <div className="text-xs text-muted-foreground">{isInfiniteMode ? "Correct answers" : isQuickfire ? "Fastest bonuses" : isSpotlight ? "Cards used" : "Joker usage"}</div>
             <div className="mt-1 text-lg font-semibold">
-              {isInfiniteMode ? fmt(Number(roundStats?.correct ?? 0)) : isQuickfire ? fmt(fastestAwardCount) : isHeadsUp ? fmt(headsUpItems.length || Number(summaryQuestionCount ?? 0)) : fmt(Number(roundStats?.jokerUsed ?? 0))}
+              {isInfiniteMode ? fmt(Number(roundStats?.correct ?? 0)) : isQuickfire ? fmt(fastestAwardCount) : isSpotlight ? fmt(spotlightItems.length || Number(summaryQuestionCount ?? 0)) : fmt(Number(roundStats?.jokerUsed ?? 0))}
             </div>
             <div className="mt-1 text-xs text-muted-foreground">
               {isInfiniteMode
                 ? "Unanswered questions do not count as correct."
                 : isQuickfire
                   ? "One bonus point goes to the fastest correct player on each question."
-                  : isHeadsUp
+                  : isSpotlight
                     ? "Spotlight does not use phone answers or automatic scoring."
                     : `Joker correct: ${fmt(Number(roundStats?.jokerCorrect ?? 0))}`}
             </div>
@@ -297,12 +297,12 @@ export default function RoundSummaryCard({
           </div>
         ) : null}
 
-        {isHeadsUp && headsUpPlayers.length ? (
+        {isSpotlight && spotlightPlayers.length ? (
           <div className="space-y-3">
             <div className="text-sm font-medium text-foreground">By player</div>
 
             <div className="space-y-3">
-              {headsUpPlayers.map((player) => (
+              {spotlightPlayers.map((player) => (
                 <details key={player.playerId} className="rounded-xl border border-border bg-card px-4 py-3">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
                     <div className="min-w-0">
@@ -341,12 +341,12 @@ export default function RoundSummaryCard({
               ))}
             </div>
           </div>
-        ) : isHeadsUp && headsUpItems.length ? (
+        ) : isSpotlight && spotlightItems.length ? (
           <div className="space-y-3">
             <div className="text-sm font-medium text-foreground">Cards used</div>
 
             <div className="space-y-2">
-              {headsUpItems.map((item) => (
+              {spotlightItems.map((item) => (
                 <div key={item.questionId} className="rounded-xl border border-border bg-card px-4 py-3">
                   <div className="text-sm font-medium text-foreground">
                     Card {item.questionNumberInRound}. {item.questionText}
@@ -371,7 +371,7 @@ export default function RoundSummaryCard({
                     <div>
                       <div className="text-sm font-semibold text-foreground">{team.team}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        {isHeadsUp
+                        {isSpotlight
                           ? "Live card round. No phone answers or automatic scoring in v1."
                           : isQuickfire || isInfiniteMode
                             ? `Correct ${fmt(Number(team.correct ?? 0))}/${fmt(Number(team.answered ?? 0))}`
@@ -396,7 +396,7 @@ export default function RoundSummaryCard({
                         >
                           <div className="flex min-w-0 items-center gap-2">
                             <div className="truncate text-sm text-foreground">{player.name}</div>
-                            {!isInfiniteMode && !isHeadsUp && player.usedJokerInScope ? <JokerBadge /> : null}
+                            {!isInfiniteMode && !isSpotlight && player.usedJokerInScope ? <JokerBadge /> : null}
                           </div>
 
                           <div className="shrink-0 text-sm font-semibold tabular-nums">{fmt(Number(player.totalScore ?? 0))}</div>
@@ -420,7 +420,7 @@ export default function RoundSummaryCard({
                 >
                   <div className="flex min-w-0 items-center gap-2">
                     <div className="truncate text-sm text-foreground">{player.name}</div>
-                    {!isInfiniteMode && !isHeadsUp && player.usedJokerInScope ? <JokerBadge /> : null}
+                    {!isInfiniteMode && !isSpotlight && player.usedJokerInScope ? <JokerBadge /> : null}
                   </div>
 
                   <div className="shrink-0 text-sm font-semibold tabular-nums">{fmt(Number(player.totalScore ?? 0))}</div>

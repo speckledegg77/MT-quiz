@@ -44,7 +44,7 @@ function buildRoundSummaryEndsAt(nextAt: string | null | undefined, roundReviewS
   return new Date(nextMs + reviewMs).toISOString()
 }
 
-function getCurrentHeadsUpState(room: any, currentRound: any, players: any[]) {
+function getCurrentSpotlightState(room: any, currentRound: any, players: any[]) {
   const base = normaliseSpotlightRoomState(room?.heads_up_state, currentRound.index)
   if (base.roundIndex !== currentRound.index || base.turnOrderPlayerIds.length === 0) {
     return createSpotlightReadyState({
@@ -61,7 +61,7 @@ function findQuestionIndex(questionIds: string[], questionId: string) {
   return questionIds.findIndex((value) => String(value ?? "") === String(questionId ?? ""))
 }
 
-async function autoConfirmHeadsUpReview(params: {
+async function autoConfirmSpotlightReview(params: {
   room: any
   currentRound: any
   currentIndex: number
@@ -85,7 +85,7 @@ async function autoConfirmHeadsUpReview(params: {
   }
 
   const players = playersRes.data ?? []
-  const currentState = getCurrentHeadsUpState(room, currentRound, players)
+  const currentState = getCurrentSpotlightState(room, currentRound, players)
   const fullQuestionIds = roundPlan.flatMap((round) => round.questionIds).map(String)
   const currentVisibleQuestionId = String(fullQuestionIds[currentIndex] ?? "").trim()
 
@@ -159,18 +159,18 @@ async function autoConfirmHeadsUpReview(params: {
     ok: true,
     advanced: Array.isArray(updateRes.data) && updateRes.data.length > 0,
     finished: false,
-    stage: roundComplete ? "round_summary" : "heads_up_ready",
+    stage: roundComplete ? "round_summary" : "spotlight_ready",
   } satisfies AdvanceRoomIfReadyResult
 }
 
 export async function advanceRoomIfReady(params: {
   code: string
   allowRoundSummaryAdvance?: boolean
-  allowHeadsUpReviewAutoConfirm?: boolean
+  allowSpotlightReviewAutoConfirm?: boolean
 }) {
   const code = String(params.code ?? "").trim().toUpperCase()
   const allowRoundSummaryAdvance = Boolean(params.allowRoundSummaryAdvance)
-  const allowHeadsUpReviewAutoConfirm = Boolean(params.allowHeadsUpReviewAutoConfirm)
+  const allowSpotlightReviewAutoConfirm = Boolean(params.allowSpotlightReviewAutoConfirm)
 
   if (!code) {
     return {
@@ -206,13 +206,13 @@ export async function advanceRoomIfReady(params: {
   const ids = roundPlan.flatMap((round) => round.questionIds)
   const currentIndex = Math.max(0, Math.floor(Number(room.question_index ?? 0)) || 0)
   const currentRound = findRoundForQuestionIndex(currentIndex, roundPlan)
-  const isHeadsUp = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
+  const isSpotlight = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
 
   const nowMs = Date.now()
   const baseStage = stageFromTimes(room.phase, nowMs, room.open_at, room.close_at, room.reveal_at, room.next_at)
   let stage = baseStage
 
-  if (isHeadsUp) {
+  if (isSpotlight) {
     stage =
       deriveSpotlightStage({
         roomPhase: room.phase,
@@ -222,10 +222,10 @@ export async function advanceRoomIfReady(params: {
         closeAt: room.close_at,
       }) ?? baseStage
 
-    if (stage === "heads_up_review" && allowHeadsUpReviewAutoConfirm) {
+    if (stage === "spotlight_review" && allowSpotlightReviewAutoConfirm) {
       const reviewAutoAdvanceAtMs = room.close_at ? Date.parse(String(room.close_at)) + 4500 : Number.NaN
       if (Number.isFinite(reviewAutoAdvanceAtMs) && nowMs >= reviewAutoAdvanceAtMs) {
-        return autoConfirmHeadsUpReview({ room, currentRound, currentIndex, roundPlan })
+        return autoConfirmSpotlightReview({ room, currentRound, currentIndex, roundPlan })
       }
     }
 
@@ -263,7 +263,7 @@ export async function advanceRoomIfReady(params: {
     }
   }
 
-  const nextIndex = isHeadsUp && stage === "round_summary" ? currentRound.endIndex + 1 : currentIndex + 1
+  const nextIndex = isSpotlight && stage === "round_summary" ? currentRound.endIndex + 1 : currentIndex + 1
 
   if (nextIndex >= ids.length) {
     const finishRes = await supabaseAdmin
@@ -291,13 +291,13 @@ export async function advanceRoomIfReady(params: {
   }
 
   const nextRound = findRoundForQuestionIndex(nextIndex, roundPlan)
-  const nextIsHeadsUp = String(nextRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
+  const nextIsSpotlight = String(nextRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
 
   const updatePayload: Record<string, unknown> = {
     question_index: nextIndex,
   }
 
-  if (nextIsHeadsUp) {
+  if (nextIsSpotlight) {
     const playersRes = await supabaseAdmin
       .from("players")
       .select("id, name, team_name, joined_at")
@@ -357,6 +357,6 @@ export async function advanceRoomIfReady(params: {
     ok: true,
     advanced: Array.isArray(updateRes.data) && updateRes.data.length > 0,
     finished: false,
-    stage: nextIsHeadsUp ? "heads_up_ready" : "open",
+    stage: nextIsSpotlight ? "spotlight_ready" : "open",
   } satisfies AdvanceRoomIfReadyResult
 }

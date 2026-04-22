@@ -6,7 +6,7 @@ import SelectControl from "@/components/host/SelectControl"
 
 type LocalAudioMode = "display" | "phones" | "both"
 type SimplePresetOption = { value: string; label: string; description: string }
-type HeadsUpPackOption = { id: string; name: string }
+type SpotlightPackOption = { id: string; name: string }
 type PackOption = { id: string; display_name: string }
 type TemplateExplanation = { tone: string; summary: string; detail?: string | null }
 type UnavailableTemplate = { id: string; name: string; explanation: TemplateExplanation }
@@ -34,9 +34,9 @@ export default function SimpleSetup(props: any) {
     SIMPLE_PRESET_OPTIONS,
     simplePreset,
     setSimplePreset,
-    simpleHeadsUpPackId,
-    setSimpleHeadsUpPackId,
-    headsUpPacks,
+    simpleSpotlightPackId,
+    setSimpleSpotlightPackId,
+    spotlightPacks,
     simpleInfiniteQuestionLimitStr,
     setSimpleInfiniteQuestionLimitStr,
     audioMode,
@@ -183,9 +183,9 @@ export default function SimpleSetup(props: any) {
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div>
               <div className="text-sm font-medium text-foreground">Spotlight pack</div>
-              <SelectControl value={simpleHeadsUpPackId} onChange={(e) => setSimpleHeadsUpPackId(e.target.value)} className="mt-1" variant="soft">
+              <SelectControl value={simpleSpotlightPackId} onChange={(e) => setSimpleSpotlightPackId(e.target.value)} className="mt-1" variant="soft">
                 <option value="">Choose a Spotlight pack</option>
-                {headsUpPacks.map((pack: HeadsUpPackOption) => (
+                {spotlightPacks.map((pack: SpotlightPackOption) => (
                   <option key={pack.id} value={pack.id}>{pack.name}</option>
                 ))}
               </SelectControl>
@@ -316,7 +316,7 @@ export default function SimpleSetup(props: any) {
                 <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                   <div className="rounded-xl border border-border bg-card p-3">
                     <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Pack</div>
-                    <div className="mt-1 text-sm font-medium text-foreground">{headsUpPacks.find((pack: HeadsUpPackOption) => pack.id === simpleHeadsUpPackId)?.name ?? "Choose pack"}</div>
+                    <div className="mt-1 text-sm font-medium text-foreground">{spotlightPacks.find((pack: SpotlightPackOption) => pack.id === simpleSpotlightPackId)?.name ?? "Choose pack"}</div>
                   </div>
                   <div className="rounded-xl border border-border bg-card p-3">
                     <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Cards</div>

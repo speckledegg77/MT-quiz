@@ -57,9 +57,9 @@ export async function POST(req: Request) {
 
   const roundPlan = materialiseRoundPlan(getEffectiveRoomRoundPlan(room))
   const currentRound = findRoundForQuestionIndex(Number(room.question_index ?? 0), roundPlan)
-  const isHeadsUpRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
+  const isSpotlightRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
 
-  if (isHeadsUpRound) {
+  if (isSpotlightRound) {
     const currentState = normaliseSpotlightRoomState(room?.heads_up_state, currentRound.index)
     const { error } = await supabaseAdmin
       .from("rooms")

@@ -6,7 +6,7 @@ import { getQuestionById } from "../../../../lib/questionBank"
 import { shuffleMcqForRoom } from "../../../../lib/mcqShuffle"
 import { findRoundForQuestionIndex, getEffectiveRoomRoundPlan, materialiseRoundPlan } from "../../../../lib/roomRoundPlan"
 import { applyQuickfireFastestBonus } from "../../../../lib/quickfire"
-import { buildPostCloseTimes, getScoreDeltaForRound, isHeadsUpRound, isJokerActiveForRound, isQuickfireRound } from "../../../../lib/roundFlow"
+import { buildPostCloseTimes, getScoreDeltaForRound, isSpotlightRound, isJokerActiveForRound, isQuickfireRound } from "../../../../lib/roundFlow"
 import { isTextCorrect } from "../../../../lib/textAnswers"
 
 function addSeconds(date: Date, seconds: number) {
@@ -151,7 +151,7 @@ export async function POST(req: Request) {
 
   const effectiveRoundPlan = materialiseRoundPlan(getEffectiveRoomRoundPlan(room))
   const currentRound = findRoundForQuestionIndex(Number(room.question_index ?? 0), effectiveRoundPlan)
-  if (isHeadsUpRound(currentRound) || q.answerType === "none") {
+  if (isSpotlightRound(currentRound) || q.answerType === "none") {
     return NextResponse.json({ accepted: false, reason: "spotlight_round" })
   }
   const roundIdx = currentRound.index

@@ -27,7 +27,7 @@ function findQuestionIndex(questionIds: string[], questionId: string) {
   return questionIds.findIndex((value) => String(value ?? "") === String(questionId ?? ""))
 }
 
-function getCurrentHeadsUpState(room: any, currentRound: any, players: any[]) {
+function getCurrentSpotlightState(room: any, currentRound: any, players: any[]) {
   const base = normaliseSpotlightRoomState(room?.heads_up_state, currentRound.index)
   if (base.roundIndex !== currentRound.index || base.turnOrderPlayerIds.length === 0) {
     return createSpotlightReadyState({
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
 
   const questionIds = currentRound.questionIds.map(String)
   const currentQuestionId = String(questionIds[Math.max(0, currentIndex - currentRound.startIndex)] ?? room.question_ids?.[currentIndex] ?? "") || String((Array.isArray(room.question_ids) ? room.question_ids[currentIndex] : "") ?? "")
-  const currentState = getCurrentHeadsUpState(room, currentRound, players)
+  const currentState = getCurrentSpotlightState(room, currentRound, players)
   const derivedStage = deriveSpotlightStage({
     roomPhase: room.phase,
     round: currentRound,
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
   })
 
   if (action === "host_start_turn" || action === "guesser_start_turn") {
-    if (derivedStage !== "heads_up_ready") return NextResponse.json({ error: "The turn is not ready to start." }, { status: 400 })
+    if (derivedStage !== "spotlight_ready") return NextResponse.json({ error: "The turn is not ready to start." }, { status: 400 })
     if (currentState.currentTurnIndex >= currentState.turnOrderPlayerIds.length || currentIndex > currentRound.endIndex) {
       const nextState: SpotlightRoomState = { ...currentState, status: "round_summary" }
       const updateRes = await supabaseAdmin
@@ -141,11 +141,11 @@ export async function POST(req: Request) {
       .eq("id", room.id)
 
     if (updateRes.error) return NextResponse.json({ error: updateRes.error.message }, { status: 500 })
-    return NextResponse.json({ ok: true, stage: "heads_up_live" })
+    return NextResponse.json({ ok: true, stage: "spotlight_live" })
   }
 
   if (action === "guesser_correct" || action === "guesser_pass") {
-    if (derivedStage !== "heads_up_live") return NextResponse.json({ error: "The turn is not live." }, { status: 400 })
+    if (derivedStage !== "spotlight_live") return NextResponse.json({ error: "The turn is not live." }, { status: 400 })
     if (!playerId || playerId !== String(currentState.activeGuesserId ?? "")) {
       return NextResponse.json({ error: "Only the active guesser can do that." }, { status: 403 })
     }
@@ -181,11 +181,11 @@ export async function POST(req: Request) {
     const updateRes = await supabaseAdmin.from("rooms").update(updatePayload).eq("id", room.id)
     if (updateRes.error) return NextResponse.json({ error: updateRes.error.message }, { status: 500 })
 
-    return NextResponse.json({ ok: true, stage: reachedEndOfPool ? "heads_up_review" : "heads_up_live" })
+    return NextResponse.json({ ok: true, stage: reachedEndOfPool ? "spotlight_review" : "spotlight_live" })
   }
 
   if (action === "host_undo") {
-    if (derivedStage !== "heads_up_live") return NextResponse.json({ error: "Undo is only available during the live turn." }, { status: 400 })
+    if (derivedStage !== "spotlight_live") return NextResponse.json({ error: "Undo is only available during the live turn." }, { status: 400 })
     const lastAction = currentState.currentTurnActions[currentState.currentTurnActions.length - 1]
     if (!lastAction) return NextResponse.json({ error: "There is nothing to undo." }, { status: 400 })
 
@@ -208,11 +208,11 @@ export async function POST(req: Request) {
       .eq("id", room.id)
 
     if (updateRes.error) return NextResponse.json({ error: updateRes.error.message }, { status: 500 })
-    return NextResponse.json({ ok: true, stage: "heads_up_live" })
+    return NextResponse.json({ ok: true, stage: "spotlight_live" })
   }
 
   if (action === "host_end_turn") {
-    if (derivedStage !== "heads_up_live") return NextResponse.json({ error: "The turn is not live." }, { status: 400 })
+    if (derivedStage !== "spotlight_live") return NextResponse.json({ error: "The turn is not live." }, { status: 400 })
     const now = new Date().toISOString()
     const nextState: SpotlightRoomState = {
       ...currentState,
@@ -223,11 +223,11 @@ export async function POST(req: Request) {
       .update({ close_at: now, reveal_at: null, next_at: null, heads_up_state: serialiseSpotlightState(nextState) })
       .eq("id", room.id)
     if (updateRes.error) return NextResponse.json({ error: updateRes.error.message }, { status: 500 })
-    return NextResponse.json({ ok: true, stage: "heads_up_review" })
+    return NextResponse.json({ ok: true, stage: "spotlight_review" })
   }
 
   if (action === "host_review_set_action") {
-    if (derivedStage !== "heads_up_review") return NextResponse.json({ error: "The turn is not in review." }, { status: 400 })
+    if (derivedStage !== "spotlight_review") return NextResponse.json({ error: "The turn is not in review." }, { status: 400 })
     if (!questionId) return NextResponse.json({ error: "Missing questionId." }, { status: 400 })
     const actionIndex = currentState.currentTurnActions.findIndex((item) => String(item.questionId ?? "") === questionId)
     if (actionIndex < 0) return NextResponse.json({ error: "That card is not in the current turn log." }, { status: 400 })
@@ -246,14 +246,14 @@ export async function POST(req: Request) {
       .eq("id", room.id)
 
     if (updateRes.error) return NextResponse.json({ error: updateRes.error.message }, { status: 500 })
-    return NextResponse.json({ ok: true, stage: "heads_up_review" })
+    return NextResponse.json({ ok: true, stage: "spotlight_review" })
   }
 
   if (action === "host_confirm_turn") {
-    if (derivedStage === "heads_up_ready" || derivedStage === "round_summary") {
+    if (derivedStage === "spotlight_ready" || derivedStage === "round_summary") {
       return NextResponse.json({ ok: true, stage: derivedStage })
     }
-    if (derivedStage !== "heads_up_review") return NextResponse.json({ error: "The turn is not in review." }, { status: 400 })
+    if (derivedStage !== "spotlight_review") return NextResponse.json({ error: "The turn is not in review." }, { status: 400 })
 
     const completedTurn: SpotlightCompletedTurn = {
       turnIndex: currentState.currentTurnIndex,
@@ -312,7 +312,7 @@ export async function POST(req: Request) {
       .eq("id", room.id)
 
     if (updateRes.error) return NextResponse.json({ error: updateRes.error.message }, { status: 500 })
-    return NextResponse.json({ ok: true, stage: roundComplete ? "round_summary" : "heads_up_ready" })
+    return NextResponse.json({ ok: true, stage: roundComplete ? "round_summary" : "spotlight_ready" })
   }
 
   return NextResponse.json({ error: "Unsupported Spotlight action." }, { status: 400 })

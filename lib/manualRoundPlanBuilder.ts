@@ -24,7 +24,6 @@ export type ManualRoundDraftInput = {
   answerSeconds?: number
   roundReviewSeconds?: number
   spotlightTvDisplayMode?: "show_clue" | "timer_only"
-  headsUpTvDisplayMode?: "show_clue" | "timer_only"
 }
 
 export type QuestionCandidate = {
@@ -40,7 +39,6 @@ export type QuestionCandidate = {
   audioClipType: string | null
   packIds: string[]
   spotlightDifficulty?: string | null
-  headsUpDifficulty?: string | null
 }
 
 function cleanStringArray(raw: unknown) {
@@ -69,7 +67,7 @@ function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
     audioClipTypes: cleanStringArray(value.audioClipTypes),
-    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties ?? value.headsUpDifficulties),
+    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties ?? value.legacySpotlightDifficulties ?? (value as any).headsUpDifficulties),
   }
 }
 
@@ -121,7 +119,7 @@ function candidateMatchesRules(candidate: QuestionCandidate, rules: RoundSelecti
   if (rules.primaryShowKeys?.length && !rules.primaryShowKeys.includes(candidate.primaryShowKey ?? "")) return false
 
   if (behaviourType === "spotlight") {
-    if (rules.spotlightDifficulties?.length && !rules.spotlightDifficulties.includes(candidate.spotlightDifficulty ?? candidate.headsUpDifficulty ?? "")) return false
+    if (rules.spotlightDifficulties?.length && !rules.spotlightDifficulties.includes(candidate.spotlightDifficulty ?? "")) return false
     return candidate.kind === "spotlight"
   }
 
@@ -249,8 +247,12 @@ export function buildManualRoomRoundPlan(params: {
       selectionRules,
       answerSeconds,
       roundReviewSeconds,
-      spotlightTvDisplayMode: behaviourType === "spotlight" ? (String((roundRaw as any).spotlightTvDisplayMode ?? (roundRaw as any).headsUpTvDisplayMode ?? "timer_only").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only") : undefined,
-      headsUpTvDisplayMode: undefined,
+      spotlightTvDisplayMode:
+        behaviourType === "spotlight"
+          ? String((roundRaw as any).spotlightTvDisplayMode ?? "timer_only").trim().toLowerCase() === "show_clue"
+            ? "show_clue"
+            : "timer_only"
+          : undefined,
       questionIds: chosen.map((candidate) => candidate.id),
     })
   }

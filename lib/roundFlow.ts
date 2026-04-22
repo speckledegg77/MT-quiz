@@ -21,17 +21,17 @@ export function isQuickfireBehaviour(raw: unknown) {
   return String(raw ?? "").trim().toLowerCase() === "quickfire"
 }
 
-export function isHeadsUpBehaviour(raw: unknown) {
+export function isSpotlightBehaviour(raw: unknown) {
   const value = String(raw ?? "").trim().toLowerCase()
-  return value === "spotlight" || value === "heads_up"
+  return value === "spotlight"
 }
 
 export function isQuickfireRound(round: Pick<EffectiveRoundPlanItem, "behaviourType"> | { behaviourType?: unknown } | null | undefined) {
   return isQuickfireBehaviour(round?.behaviourType)
 }
 
-export function isHeadsUpRound(round: Pick<EffectiveRoundPlanItem, "behaviourType"> | { behaviourType?: unknown } | null | undefined) {
-  return isHeadsUpBehaviour(round?.behaviourType)
+export function isSpotlightRound(round: Pick<EffectiveRoundPlanItem, "behaviourType"> | { behaviourType?: unknown } | null | undefined) {
+  return isSpotlightBehaviour(round?.behaviourType)
 }
 
 export function getConfiguredAnswerSecondsForRound(room: any, round: { behaviourType?: unknown; answerSeconds?: unknown } | null | undefined) {
@@ -45,7 +45,7 @@ export function getConfiguredAnswerSecondsForRound(room: any, round: { behaviour
     return Math.floor(roomAnswerSeconds)
   }
 
-  return getDefaultAnswerSecondsForBehaviour(isQuickfireRound(round) ? "quickfire" : isHeadsUpRound(round) ? "spotlight" : "standard")
+  return getDefaultAnswerSecondsForBehaviour(isQuickfireRound(round) ? "quickfire" : isSpotlightRound(round) ? "spotlight" : "standard")
 }
 
 export function getEffectiveAnswerSeconds(room: any, round: { behaviourType?: unknown; answerSeconds?: unknown } | null | undefined) {
@@ -64,16 +64,16 @@ export function getEffectiveRoundReviewSecondsForRound(room: any, round: { behav
     return Math.floor(roomReviewSeconds)
   }
 
-  return getDefaultRoundReviewSecondsForBehaviour(isQuickfireRound(round) ? "quickfire" : isHeadsUpRound(round) ? "spotlight" : "standard")
+  return getDefaultRoundReviewSecondsForBehaviour(isQuickfireRound(round) ? "quickfire" : isSpotlightRound(round) ? "spotlight" : "standard")
 }
 
 export function getRevealDelaySecondsForRound(room: any, round: { behaviourType?: unknown } | null | undefined) {
-  if (isQuickfireRound(round) || isHeadsUpRound(round)) return 0
+  if (isQuickfireRound(round) || isSpotlightRound(round)) return 0
   return cleanNonNegativeInt(room?.reveal_delay_seconds, 0)
 }
 
 export function getRevealSecondsForRound(room: any, round: { behaviourType?: unknown } | null | undefined) {
-  if (isQuickfireRound(round) || isHeadsUpRound(round)) return 0
+  if (isQuickfireRound(round) || isSpotlightRound(round)) return 0
   return cleanNonNegativeInt(room?.reveal_seconds, 0)
 }
 
@@ -135,8 +135,8 @@ export function shouldSuppressQuestionBetweenRounds(params: {
   return Number(params.questionIndex ?? -1) === transitionIndex
 }
 
-export function getAnswerWindowLabel(params: { isUntimedAnswers: boolean; isQuickfire: boolean; isHeadsUp?: boolean }) {
-  if (params.isHeadsUp) {
+export function getAnswerWindowLabel(params: { isUntimedAnswers: boolean; isQuickfire: boolean; isSpotlight?: boolean }) {
+  if (params.isSpotlight) {
     return "Timer"
   }
 
@@ -192,7 +192,7 @@ export function isJokerActiveForRound(params: {
   if (!Number.isFinite(roundIndex) || !Number.isFinite(jokerRoundIndex)) return false
   if (params.round?.jokerEligible === false) return false
   if (params.round?.countsTowardsScore === false) return false
-  if (isQuickfireRound(params.round) || isHeadsUpRound(params.round)) return false
+  if (isQuickfireRound(params.round) || isSpotlightRound(params.round)) return false
 
   return roundIndex === jokerRoundIndex
 }

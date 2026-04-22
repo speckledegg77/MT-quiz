@@ -89,7 +89,7 @@ function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
     audioClipTypes: cleanStringArray(value.audioClipTypes),
-    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties ?? value.headsUpDifficulties),
+    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties ?? (value as any).legacySpotlightDifficulties ?? (value as any).headsUpDifficulties),
   }
 }
 
@@ -137,7 +137,7 @@ function candidateMatchesRules(candidate: QuestionCandidate, rules: RoundSelecti
 
   if (behaviourType === "spotlight") {
     if (candidate.kind !== "spotlight") return false
-    if (rules.spotlightDifficulties?.length && !rules.spotlightDifficulties.includes(candidate.spotlightDifficulty ?? candidate.headsUpDifficulty ?? "")) return false
+    if (rules.spotlightDifficulties?.length && !rules.spotlightDifficulties.includes(candidate.spotlightDifficulty ?? "")) return false
     return true
   }
 

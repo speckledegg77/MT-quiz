@@ -48,7 +48,7 @@ export async function POST(req: Request) {
 
   const roundPlan = materialiseRoundPlan(getEffectiveRoomRoundPlan(room))
   const firstRound = findRoundForQuestionIndex(0, roundPlan)
-  const isHeadsUp = String(firstRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
+  const isSpotlight = String(firstRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
 
   const updatePayload: Record<string, unknown> = {
     phase: "running",
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     team_score_mode: teamScoreMode,
   }
 
-  if (isHeadsUp) {
+  if (isSpotlight) {
     updatePayload.countdown_start_at = null
     updatePayload.open_at = null
     updatePayload.close_at = null

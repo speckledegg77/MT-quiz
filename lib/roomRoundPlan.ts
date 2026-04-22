@@ -10,11 +10,9 @@ export type RoundSelectionRules = {
   primaryShowKeys?: string[]
   audioClipTypes?: string[]
   spotlightDifficulties?: string[]
-  headsUpDifficulties?: string[]
 }
 
 export type SpotlightTvDisplayMode = "show_clue" | "timer_only"
-export type HeadsUpTvDisplayMode = SpotlightTvDisplayMode
 
 export type RoundPlanItem = {
   id: string
@@ -29,7 +27,6 @@ export type RoundPlanItem = {
   answerSeconds?: number
   roundReviewSeconds?: number
   spotlightTvDisplayMode?: SpotlightTvDisplayMode
-  headsUpTvDisplayMode?: SpotlightTvDisplayMode
   questionIds: string[]
 }
 
@@ -131,6 +128,11 @@ function normaliseBehaviourType(raw: unknown): RoundBehaviourType {
 
 function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
   const value = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {}
+  const legacyDifficultyValues =
+    (value as any).legacySpotlightDifficulties ??
+    (value as any).headsUpDifficulties ??
+    undefined
+
   return {
     mediaTypes: cleanStringArray(value.mediaTypes).filter(
       (item): item is "text" | "audio" | "image" => item === "text" || item === "audio" || item === "image"
@@ -142,7 +144,7 @@ function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
     audioClipTypes: cleanStringArray(value.audioClipTypes),
-    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties ?? value.headsUpDifficulties),
+    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties ?? legacyDifficultyValues),
   }
 }
 
@@ -181,7 +183,6 @@ export function buildLegacyRoomRoundPlan(
       answerSeconds: getDefaultAnswerSecondsForBehaviour("standard"),
       roundReviewSeconds: getDefaultRoundReviewSecondsForBehaviour("standard"),
       spotlightTvDisplayMode: undefined,
-      headsUpTvDisplayMode: undefined,
       questionIds: slice,
     })
 
@@ -206,6 +207,7 @@ function normaliseStoredRoundPlan(raw: unknown): RoomRoundPlan | null {
       const round = roundRaw && typeof roundRaw === "object" ? (roundRaw as Record<string, unknown>) : {}
       const questionIds = cleanQuestionIds(round.questionIds)
       const behaviourType = normaliseBehaviourType(round.behaviourType)
+      const legacyTvMode = (round as any).legacySpotlightTvDisplayMode ?? (round as any).headsUpTvDisplayMode
 
       return {
         id: String(round.id ?? `round_${index + 1}`).trim() || `round_${index + 1}`,
@@ -219,8 +221,10 @@ function normaliseStoredRoundPlan(raw: unknown): RoomRoundPlan | null {
         selectionRules: normaliseSelectionRules(round.selectionRules),
         answerSeconds: cleanOptionalNonNegativeInt(round.answerSeconds),
         roundReviewSeconds: cleanOptionalNonNegativeInt(round.roundReviewSeconds),
-        spotlightTvDisplayMode: behaviourType === "spotlight" ? normaliseSpotlightTvDisplayMode(round.spotlightTvDisplayMode ?? round.headsUpTvDisplayMode) : undefined,
-        headsUpTvDisplayMode: undefined,
+        spotlightTvDisplayMode:
+          behaviourType === "spotlight"
+            ? normaliseSpotlightTvDisplayMode(round.spotlightTvDisplayMode ?? legacyTvMode)
+            : undefined,
         questionIds,
       }
     })

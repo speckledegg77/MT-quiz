@@ -7,9 +7,9 @@ export default function HostLiveControls(props: any) {
   const {
     roomSummaryText, stagePill, startError, startOk, resetError, resetOk, forceCloseError, roomCode,
     roomIsInfinite, roomModeSummary, roomProgressLabel, roomJokerSummary, startGame, canStart, startLabel,
-    resetRoom, resetting, roomIsHeadsUp, sendHeadsUpAction, headsUpHostButtons, forcingClose, roomStage,
-    roomState, roomHeadsUp, headsUpReviewCountdownSeconds, headsUpRoundCompleteReason, continueGame,
-    canAdvanceHeadsUpSummary, canContinue, continueLabel, endGameNow, canEndGame, endingGame, clearRoom,
+    resetRoom, resetting, roomIsSpotlight, sendSpotlightAction, spotlightHostButtons, forcingClose, roomStage,
+    roomState, roomSpotlight, spotlightReviewCountdownSeconds, spotlightRoundCompleteReason, continueGame,
+    canAdvanceSpotlightSummary, canContinue, continueLabel, endGameNow, canEndGame, endingGame, clearRoom,
   } = props
   return (
 <Card>
@@ -38,66 +38,66 @@ export default function HostLiveControls(props: any) {
       <Button onClick={startGame} disabled={!canStart}>{startLabel}</Button>
       <Button variant="secondary" onClick={resetRoom} disabled={resetting}>{resetting ? "Resetting..." : "Reset room"}</Button>
     </div>
-    {roomIsHeadsUp ? (
+    {roomIsSpotlight ? (
       <div className="space-y-3">
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          <Button variant="secondary" onClick={() => sendHeadsUpAction("host_start_turn")} disabled={!headsUpHostButtons?.canStartTurn}>
-            {forcingClose && roomStage === "heads_up_ready" ? "Starting..." : "Force start turn"}
+          <Button variant="secondary" onClick={() => sendSpotlightAction("host_start_turn")} disabled={!spotlightHostButtons?.canStartTurn}>
+            {forcingClose && roomStage === "spotlight_ready" ? "Starting..." : "Force start turn"}
           </Button>
-          <Button variant="secondary" onClick={() => sendHeadsUpAction("host_undo")} disabled={!headsUpHostButtons?.canUndo}>
-            {forcingClose && roomStage === "heads_up_live" ? "Working..." : "Undo last action"}
+          <Button variant="secondary" onClick={() => sendSpotlightAction("host_undo")} disabled={!spotlightHostButtons?.canUndo}>
+            {forcingClose && roomStage === "spotlight_live" ? "Working..." : "Undo last action"}
           </Button>
-          <Button variant="secondary" onClick={() => sendHeadsUpAction("host_end_turn")} disabled={!headsUpHostButtons?.canEndTurn}>
-            {forcingClose && roomStage === "heads_up_live" ? "Ending..." : "End turn"}
+          <Button variant="secondary" onClick={() => sendSpotlightAction("host_end_turn")} disabled={!spotlightHostButtons?.canEndTurn}>
+            {forcingClose && roomStage === "spotlight_live" ? "Ending..." : "End turn"}
           </Button>
-          <Button onClick={() => sendHeadsUpAction("host_confirm_turn")} disabled={!headsUpHostButtons?.canConfirmTurn}>
-            {forcingClose && roomStage === "heads_up_review" ? "Moving..." : roomStage === "heads_up_review" ? "Move on now" : roomState?.flow?.isLastQuestionOverall ? "Finish round now" : "Move to next player now"}
+          <Button onClick={() => sendSpotlightAction("host_confirm_turn")} disabled={!spotlightHostButtons?.canConfirmTurn}>
+            {forcingClose && roomStage === "spotlight_review" ? "Moving..." : roomStage === "spotlight_review" ? "Move on now" : roomState?.flow?.isLastQuestionOverall ? "Finish round now" : "Move to next player now"}
           </Button>
         </div>
-        {roomStage === "heads_up_review" ? (
+        {roomStage === "spotlight_review" ? (
           <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-3 py-2 text-sm text-amber-100">
-            {roomHeadsUp?.willAdvanceToNextTurn
-              ? `Moving to ${String(roomHeadsUp?.nextGuesserName ?? "the next player")}${roomHeadsUp?.nextTeamName ? ` from Team ${String(roomHeadsUp.nextTeamName)}` : ""} in ${headsUpReviewCountdownSeconds}s unless you move on now or correct the turn log first.`
-              : `Finishing the Spotlight round in ${headsUpReviewCountdownSeconds}s unless you move on now or correct the turn log first.`}
+            {roomSpotlight?.willAdvanceToNextTurn
+              ? `Moving to ${String(roomSpotlight?.nextGuesserName ?? "the next player")}${roomSpotlight?.nextTeamName ? ` from Team ${String(roomSpotlight.nextTeamName)}` : ""} in ${spotlightReviewCountdownSeconds}s unless you move on now or correct the turn log first.`
+              : `Finishing the Spotlight round in ${spotlightReviewCountdownSeconds}s unless you move on now or correct the turn log first.`}
           </div>
         ) : null}
         {roomStage === "round_summary" ? (
-          <div className={`rounded-xl border px-3 py-2 text-sm ${headsUpRoundCompleteReason === "card_pool_exhausted" ? "border-amber-500/30 bg-amber-600/10 text-amber-100" : "border-border bg-card text-muted-foreground"}`}>
-            {headsUpRoundCompleteReason === "card_pool_exhausted"
-              ? `This Spotlight round used all ${Math.max(0, Number(roomHeadsUp?.cardPoolSize ?? 0))} active cards in its selected pack before another player turn could begin. Continue to the next round, or add more active cards to that pack for a longer Spotlight round.`
+          <div className={`rounded-xl border px-3 py-2 text-sm ${spotlightRoundCompleteReason === "card_pool_exhausted" ? "border-amber-500/30 bg-amber-600/10 text-amber-100" : "border-border bg-card text-muted-foreground"}`}>
+            {spotlightRoundCompleteReason === "card_pool_exhausted"
+              ? `This Spotlight round used all ${Math.max(0, Number(roomSpotlight?.cardPoolSize ?? 0))} active cards in its selected pack before another player turn could begin. Continue to the next round, or add more active cards to that pack for a longer Spotlight round.`
               : "This Spotlight round is complete. Continue when you are ready."}
           </div>
         ) : null}
         {roomStage === "round_summary" ? (
-          <Button onClick={continueGame} disabled={!canAdvanceHeadsUpSummary}>
+          <Button onClick={continueGame} disabled={!canAdvanceSpotlightSummary}>
             {forcingClose ? "Moving on..." : Boolean(roomState?.flow?.isLastQuestionOverall) ? (roomIsInfinite ? "Finish game" : "Finish now") : "Continue to next round"}
           </Button>
         ) : null}
         <div className="grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
           <div className="rounded-xl border border-border bg-card p-3">
             <div className="text-xs text-muted-foreground">Active turn</div>
-            <div className="mt-1 text-lg font-semibold text-foreground">{roomHeadsUp?.activeGuesserName || "No guesser selected"}</div>
+            <div className="mt-1 text-lg font-semibold text-foreground">{roomSpotlight?.activeGuesserName || "No guesser selected"}</div>
             <div className="mt-1 text-sm text-muted-foreground">
-              {roomHeadsUp?.activeTeamName ? `Team ${roomHeadsUp.activeTeamName}` : roomState?.gameMode === "solo" ? "Solo mode" : "No active team"}
+              {roomSpotlight?.activeTeamName ? `Team ${roomSpotlight.activeTeamName}` : roomState?.gameMode === "solo" ? "Solo mode" : "No active team"}
             </div>
             <div className="mt-2 text-xs text-muted-foreground">
-              Turn {Math.max(1, Number(roomHeadsUp?.currentTurnIndex ?? 0) + 1)} of {Math.max(0, Number(roomHeadsUp?.totalTurns ?? 0))}. TV: {roomHeadsUp?.tvDisplayMode === "show_clue" ? "show clue" : "timer only"}.
+              Turn {Math.max(1, Number(roomSpotlight?.currentTurnIndex ?? 0) + 1)} of {Math.max(0, Number(roomSpotlight?.totalTurns ?? 0))}. TV: {roomSpotlight?.tvDisplayMode === "show_clue" ? "show clue" : "timer only"}.
             </div>
           </div>
           <div className="rounded-xl border border-border bg-card p-3">
             <div className="text-xs text-muted-foreground">Current turn log</div>
-            {Array.isArray(roomHeadsUp?.currentTurnActions) && roomHeadsUp.currentTurnActions.length ? (
+            {Array.isArray(roomSpotlight?.currentTurnActions) && roomSpotlight.currentTurnActions.length ? (
               <div className="mt-2 space-y-2">
-                {roomHeadsUp.currentTurnActions.map((item: any) => (
+                {roomSpotlight.currentTurnActions.map((item: any) => (
                   <div key={item.questionId} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-3 py-2 text-sm">
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-foreground">{item.questionText}</div>
                       <div className="text-xs text-muted-foreground">{[item.itemType, item.difficulty].filter(Boolean).join(" · ") || "Spotlight card"}</div>
                     </div>
-                    {roomStage === "heads_up_review" ? (
+                    {roomStage === "spotlight_review" ? (
                       <select
                         value={item.action}
-                        onChange={(e) => sendHeadsUpAction("host_review_set_action", { questionId: item.questionId, reviewAction: e.target.value })}
+                        onChange={(e) => sendSpotlightAction("host_review_set_action", { questionId: item.questionId, reviewAction: e.target.value })}
                         className="rounded-lg border border-border bg-card px-2 py-1 text-xs"
                       >
                         <option value="correct">Correct</option>

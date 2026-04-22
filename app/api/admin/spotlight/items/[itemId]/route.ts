@@ -21,7 +21,7 @@ type RouteContext = {
   }>
 }
 
-const updateHeadsUpItemSchema = z
+const updateSpotlightItemSchema = z
   .object({
     answerText: z.string().trim().min(1, "Answer text is required.").optional(),
     itemType: z.enum(SPOTLIGHT_ITEM_TYPE_VALUES).optional(),
@@ -49,7 +49,7 @@ function cleanPackIds(value: string[] | undefined) {
   return [...new Set((value ?? []).map((item) => item.trim()).filter(Boolean))]
 }
 
-async function findDuplicateHeadsUpItem(params: {
+async function findDuplicateSpotlightItem(params: {
   answerText: string
   itemType: string
   primaryShowKey: string | null
@@ -105,7 +105,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 })
   }
 
-  const parsed = updateHeadsUpItemSchema.safeParse(body)
+  const parsed = updateSpotlightItemSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Invalid payload." },
@@ -138,7 +138,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     nextItemType
   )
 
-  const duplicateCheck = await findDuplicateHeadsUpItem({
+  const duplicateCheck = await findDuplicateSpotlightItem({
     answerText: nextAnswerText,
     itemType: nextItemType,
     primaryShowKey: nextPrimaryShowKey,

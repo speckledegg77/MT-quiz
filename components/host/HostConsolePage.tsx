@@ -30,7 +30,7 @@ type PackRow = {
   is_active: boolean | null
 }
 
-type HeadsUpPackRow = {
+type SpotlightPackRow = {
   id: string
   name: string
   description: string
@@ -125,9 +125,9 @@ type ManualRoundDraft = {
   clueSources: string[]
   primaryShowKeys: string[]
   audioClipTypes: string[]
-  headsUpDifficulty: "" | "easy" | "medium" | "hard"
-  headsUpTvDisplayMode: "show_clue" | "timer_only"
-  headsUpTurnSeconds: 60 | 90
+  spotlightDifficulty: "" | "easy" | "medium" | "hard"
+  spotlightTvDisplayMode: "show_clue" | "timer_only"
+  spotlightTurnSeconds: 60 | 90
   useTimingOverride: boolean
   answerSecondsStr: string
   roundReviewSecondsStr: string
@@ -309,8 +309,8 @@ function normaliseManualRoundDraft(draft: ManualRoundDraft): ManualRoundDraft {
     clueSources,
     primaryShowKeys,
     audioClipTypes,
-    headsUpTvDisplayMode: behaviourType === "spotlight" ? draft.headsUpTvDisplayMode : "timer_only",
-    headsUpTurnSeconds: behaviourType === "spotlight" ? draft.headsUpTurnSeconds : 60,
+    spotlightTvDisplayMode: behaviourType === "spotlight" ? draft.spotlightTvDisplayMode : "timer_only",
+    spotlightTurnSeconds: behaviourType === "spotlight" ? draft.spotlightTurnSeconds : 60,
   }
 }
 
@@ -330,9 +330,9 @@ function makeManualRound(index: number): ManualRoundDraft {
     clueSources: [],
     primaryShowKeys: [],
     audioClipTypes: [],
-    headsUpDifficulty: "",
-    headsUpTvDisplayMode: "timer_only",
-    headsUpTurnSeconds: 60,
+    spotlightDifficulty: "",
+    spotlightTvDisplayMode: "timer_only",
+    spotlightTurnSeconds: 60,
     useTimingOverride: false,
     answerSecondsStr: "",
     roundReviewSecondsStr: "",
@@ -362,7 +362,7 @@ function describeManualRoundPackSummary(round: ManualRoundDraft, packNameById: M
 function buildManualRoundFilterSummary(round: ManualRoundDraft, showNameByKey: Map<string, string>) {
   if (round.behaviourType === "spotlight") {
     const parts: string[] = []
-    if (round.headsUpDifficulty) parts.push(`Difficulty: ${formatMetadataToken(round.headsUpDifficulty)}`)
+    if (round.spotlightDifficulty) parts.push(`Difficulty: ${formatMetadataToken(round.spotlightDifficulty)}`)
     if (round.primaryShowKeys.length) parts.push(`Show: ${describeShowSelection(round.primaryShowKeys, showNameByKey)}`)
     return parts
   }
@@ -391,7 +391,7 @@ function buildSelectionRulesFromDraft(round: ManualRoundDraft) {
     clueSources: round.clueSources,
     primaryShowKeys: round.primaryShowKeys,
     audioClipTypes: round.audioClipTypes,
-    headsUpDifficulties: round.behaviourType === "spotlight" && round.headsUpDifficulty ? [round.headsUpDifficulty] : [],
+    spotlightDifficulties: round.behaviourType === "spotlight" && round.spotlightDifficulty ? [round.spotlightDifficulty] : [],
   }
 }
 
@@ -406,9 +406,9 @@ function serialiseManualRoundDraft(round: ManualRoundDraft, index: number) {
     sourceMode: round.sourceMode,
     packIds: round.packIds,
     selectionRules: buildSelectionRulesFromDraft(round),
-    answerSeconds: round.behaviourType === "spotlight" ? round.headsUpTurnSeconds : getManualRoundAnswerSeconds(round),
+    answerSeconds: round.behaviourType === "spotlight" ? round.spotlightTurnSeconds : getManualRoundAnswerSeconds(round),
     roundReviewSeconds: round.behaviourType === "spotlight" ? getManualRoundReviewSeconds(round) : getManualRoundReviewSeconds(round),
-    headsUpTvDisplayMode: round.behaviourType === "spotlight" ? round.headsUpTvDisplayMode : undefined,
+    spotlightTvDisplayMode: round.behaviourType === "spotlight" ? round.spotlightTvDisplayMode : undefined,
   }
 }
 
@@ -674,7 +674,7 @@ function roundBehaviourTimingText(behaviourType: RoundBehaviourType) {
 }
 
 function getManualRoundAnswerSeconds(round: ManualRoundDraft) {
-  if (round.behaviourType === "spotlight") return round.headsUpTurnSeconds
+  if (round.behaviourType === "spotlight") return round.spotlightTurnSeconds
   if (!round.useTimingOverride) return getDefaultAnswerSecondsForBehaviour(round.behaviourType)
   return clampInt(parseIntOr(round.answerSecondsStr, getDefaultAnswerSecondsForBehaviour(round.behaviourType)), 0, 120)
 }
@@ -694,7 +694,7 @@ function getManualRoundTimingSummary(round: ManualRoundDraft) {
 
 export default function HostConsolePage({ initialRoomCode = null }: { initialRoomCode?: string | null }) {
   const [packs, setPacks] = useState<PackRow[]>([])
-  const [headsUpPacks, setHeadsUpPacks] = useState<HeadsUpPackRow[]>([])
+  const [spotlightPacks, setSpotlightPacks] = useState<SpotlightPackRow[]>([])
   const [shows, setShows] = useState<ShowRow[]>([])
   const [templates, setTemplates] = useState<RoundTemplateRow[]>([])
   const [packsLoading, setPacksLoading] = useState(true)
@@ -703,7 +703,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
   const [setupMode, setSetupMode] = useState<SetupMode>("simple")
   const [advancedUnlocked, setAdvancedUnlocked] = useState(false)
   const [simpleGameType, setSimpleGameType] = useState<SimpleGameType>("recommended")
-  const [simpleHeadsUpPackId, setSimpleHeadsUpPackId] = useState("")
+  const [simpleSpotlightPackId, setSimpleSpotlightPackId] = useState("")
   const [simplePreset, setSimplePreset] = useState<SimplePresetId>("balanced")
   const [buildMode, setBuildMode] = useState<BuildMode>("manual_rounds")
   const [selectPacks, setSelectPacks] = useState(false)
@@ -789,12 +789,12 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
   const initialRequestedCode = useMemo(() => cleanRoomCode(initialRoomCode ?? ""), [initialRoomCode])
 
   useEffect(() => {
-    if (!headsUpPacks.length) return
-    setSimpleHeadsUpPackId((current) => {
-      if (current && headsUpPacks.some((pack) => pack.id === current)) return current
-      return headsUpPacks[0]?.id ?? ""
+    if (!spotlightPacks.length) return
+    setSimpleSpotlightPackId((current) => {
+      if (current && spotlightPacks.some((pack) => pack.id === current)) return current
+      return spotlightPacks[0]?.id ?? ""
     })
-  }, [headsUpPacks])
+  }, [spotlightPacks])
 
   useEffect(() => {
     const raw = clampInt(parseIntOr(roundCountStr, 4), 1, 20)
@@ -830,16 +830,16 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
       setPacksLoading(true)
       setPacksError(null)
 
-      const [packsRes, headsUpPacksRes, showsRes, templatesRes] = await Promise.all([
+      const [packsRes, spotlightPacksRes, showsRes, templatesRes] = await Promise.all([
         supabase
           .from("packs")
           .select("id, display_name, round_type, sort_order, is_active")
           .eq("is_active", true)
           .order("sort_order", { ascending: true }),
         fetch("/api/spotlight/packs", { cache: "no-store" }).then(async (res) => {
-          const json = (await res.json().catch(() => ({}))) as { packs?: HeadsUpPackRow[] }
+          const json = (await res.json().catch(() => ({}))) as { packs?: SpotlightPackRow[] }
           return res.ok ? (json.packs ?? []) : []
-        }).catch(() => [] as HeadsUpPackRow[]),
+        }).catch(() => [] as SpotlightPackRow[]),
         supabase.from("shows").select("show_key, display_name, is_active").eq("is_active", true).order("display_name"),
         fetch("/api/round-templates", { cache: "no-store" }).then(async (res) => {
           const json = (await res.json().catch(() => ({}))) as RoundTemplatesResponse
@@ -860,14 +860,14 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
         setPacksError(showsRes.error.message)
         setShows([])
         setPacks((packsRes.data ?? []) as PackRow[])
-        setHeadsUpPacks(headsUpPacksRes)
+        setSpotlightPacks(spotlightPacksRes)
         setTemplates(templatesRes)
         setPacksLoading(false)
         return
       }
 
       setPacks((packsRes.data ?? []) as PackRow[])
-      setHeadsUpPacks(headsUpPacksRes)
+      setSpotlightPacks(spotlightPacksRes)
       setShows((showsRes.data ?? []) as ShowRow[])
       setTemplates(templatesRes)
       setPacksLoading(false)
@@ -1141,9 +1141,9 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
           clueSources: selectionRules.clueSources ?? [],
           primaryShowKeys: selectionRules.primaryShowKeys ?? [],
           audioClipTypes: selectionRules.audioClipTypes ?? [],
-          headsUpDifficulty: "",
-          headsUpTvDisplayMode: "timer_only",
-          headsUpTurnSeconds: 60,
+          spotlightDifficulty: "",
+          spotlightTvDisplayMode: "timer_only",
+          spotlightTurnSeconds: 60,
           useTimingOverride: false,
           answerSecondsStr: "",
           roundReviewSecondsStr: "",
@@ -1184,9 +1184,9 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
         clueSources: selectionRules.clueSources ?? [],
         primaryShowKeys: selectionRules.primaryShowKeys ?? [],
         audioClipTypes: selectionRules.audioClipTypes ?? [],
-        headsUpDifficulty: "",
-        headsUpTvDisplayMode: "timer_only",
-        headsUpTurnSeconds: 60,
+        spotlightDifficulty: "",
+        spotlightTvDisplayMode: "timer_only",
+        spotlightTurnSeconds: 60,
         useTimingOverride: false,
         answerSecondsStr: "",
         roundReviewSecondsStr: "",
@@ -1277,7 +1277,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
             simpleGameType === "spotlight"
               ? {
                   selectedPackIds: [],
-                  manualRounds: simpleHeadsUpPackId
+                  manualRounds: simpleSpotlightPackId
                     ? [
                         {
                           id: "simple_spotlight_round",
@@ -1285,7 +1285,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
                           questionCount: 0,
                           behaviourType: "spotlight",
                           sourceMode: "specific_packs",
-                          packIds: [simpleHeadsUpPackId],
+                          packIds: [simpleSpotlightPackId],
                           selectionRules: {},
                         },
                       ]
@@ -1332,7 +1332,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [allTemplateRoundsPayload, headsUpPacks.length, packsLoading, roomCode, simpleGameType, simpleHeadsUpPackId, simpleSelectedPackIds, templates.length])
+  }, [allTemplateRoundsPayload, spotlightPacks.length, packsLoading, roomCode, simpleGameType, simpleSpotlightPackId, simpleSelectedPackIds, templates.length])
 
   useEffect(() => {
     if (setupMode !== "advanced") {
@@ -1537,7 +1537,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
     }
 
     if (simpleGameType === "spotlight") {
-      if (!simpleHeadsUpPackId) return "Choose a Spotlight pack first."
+      if (!simpleSpotlightPackId) return "Choose a Spotlight pack first."
       if (simpleFeasibilityBusy) return "Still checking the selected Spotlight pack."
       if (simpleCandidateCount <= 0) return "No active Spotlight cards are available in the selected pack."
       return null
@@ -1648,7 +1648,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
             ],
           }
         } else if (simpleGameType === "spotlight") {
-          if (!simpleHeadsUpPackId) {
+          if (!simpleSpotlightPackId) {
             setCreateError("Choose a Spotlight pack first.")
             setCreating(false)
             return
@@ -1660,24 +1660,24 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
             return
           }
 
-          const selectedHeadsUpPack = headsUpPacks.find((pack) => pack.id === simpleHeadsUpPackId)
+          const selectedSpotlightPack = spotlightPacks.find((pack) => pack.id === simpleSpotlightPackId)
           payload = {
             ...payload,
             selectedPacks: [],
             manualRounds: [
               {
                 id: "simple_spotlight_round",
-                name: selectedHeadsUpPack?.name?.trim() || "Spotlight",
+                name: selectedSpotlightPack?.name?.trim() || "Spotlight",
                 questionCount: 0,
                 behaviourType: "spotlight",
                 jokerEligible: false,
                 countsTowardsScore: false,
                 sourceMode: "specific_packs",
-                packIds: [simpleHeadsUpPackId],
+                packIds: [simpleSpotlightPackId],
                 selectionRules: {},
                 answerSeconds: 60,
                 roundReviewSeconds: getDefaultRoundReviewSecondsForBehaviour("spotlight"),
-                headsUpTvDisplayMode: "timer_only",
+                spotlightTvDisplayMode: "timer_only",
               },
             ],
           }
@@ -1987,7 +1987,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
     }
   }
 
-  async function sendHeadsUpAction(action: string, extra: Record<string, unknown> = {}) {
+  async function sendSpotlightAction(action: string, extra: Record<string, unknown> = {}) {
     if (!roomCode) return
     setForcingClose(true)
     setForceCloseError(null)
@@ -2049,8 +2049,8 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
   const roomProgressLabel = String(roomState?.progress?.label ?? "").trim()
   const roomJokerEnabled = Boolean(roomState?.rounds?.jokerEnabled)
   const roomJokerEligibleCount = Math.max(0, Number(roomState?.rounds?.jokerEligibleCount ?? 0) || 0)
-  const roomHeadsUp = roomState?.headsUp ?? null
-  const roomIsHeadsUp = String(roomState?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
+  const roomSpotlight = roomState?.spotlight ?? null
+  const roomIsSpotlight = String(roomState?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
 
   const stagePill = useMemo(() => {
     return getRoomStagePillLabel({
@@ -2085,30 +2085,30 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
   const canContinue =
     hasRoom &&
     roomPhase === "running" &&
-    !roomIsHeadsUp &&
+    !roomIsSpotlight &&
     ["open", "round_summary", "needs_advance"].includes(roomStage) &&
     !forcingClose
   const canEndGame = hasRoom && roomPhase === "running" && roomIsInfinite && !endingGame
-  const canAdvanceHeadsUpSummary = hasRoom && roomPhase === "running" && roomIsHeadsUp && roomStage === "round_summary" && !forcingClose
-  const headsUpRoundCompleteReason = String(roomHeadsUp?.roundCompleteReason ?? "").trim()
+  const canAdvanceSpotlightSummary = hasRoom && roomPhase === "running" && roomIsSpotlight && roomStage === "round_summary" && !forcingClose
+  const spotlightRoundCompleteReason = String(roomSpotlight?.roundCompleteReason ?? "").trim()
 
-  const headsUpHostButtons = roomIsHeadsUp
+  const spotlightHostButtons = roomIsSpotlight
     ? {
-        canStartTurn: roomStage === "heads_up_ready" && !forcingClose,
-        canEndTurn: roomStage === "heads_up_live" && !forcingClose,
-        canUndo: roomStage === "heads_up_live" && Array.isArray(roomHeadsUp?.currentTurnActions) && roomHeadsUp.currentTurnActions.length > 0 && !forcingClose,
-        canConfirmTurn: roomStage === "heads_up_review" && !forcingClose,
+        canStartTurn: roomStage === "spotlight_ready" && !forcingClose,
+        canEndTurn: roomStage === "spotlight_live" && !forcingClose,
+        canUndo: roomStage === "spotlight_live" && Array.isArray(roomSpotlight?.currentTurnActions) && roomSpotlight.currentTurnActions.length > 0 && !forcingClose,
+        canConfirmTurn: roomStage === "spotlight_review" && !forcingClose,
       }
     : null
 
-  const headsUpReviewSignature = useMemo(
+  const spotlightReviewSignature = useMemo(
     () =>
       JSON.stringify(
-        Array.isArray(roomHeadsUp?.currentTurnActions)
-          ? roomHeadsUp.currentTurnActions.map((item: any) => `${String(item.questionId ?? "")}:${String(item.action ?? "")}`)
+        Array.isArray(roomSpotlight?.currentTurnActions)
+          ? roomSpotlight.currentTurnActions.map((item: any) => `${String(item.questionId ?? "")}:${String(item.action ?? "")}`)
           : []
       ),
-    [roomHeadsUp?.currentTurnActions]
+    [roomSpotlight?.currentTurnActions]
   )
 
   const continueLabel =
@@ -2140,14 +2140,14 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
         : "Game finished"
 
   const roomSummaryText =
-    roomIsHeadsUp && roomPhase === "running"
-      ? roomStage === "heads_up_ready"
+    roomIsSpotlight && roomPhase === "running"
+      ? roomStage === "spotlight_ready"
         ? "The next guesser starts the turn from their phone when they are ready. Use Force start only as a fallback."
-        : roomStage === "heads_up_live"
+        : roomStage === "spotlight_live"
           ? "The turn is live. The active guesser controls Correct and Pass from their phone."
-          : roomStage === "heads_up_review"
+          : roomStage === "spotlight_review"
             ? "Review the turn log, correct any mistakes if needed, then confirm it. The round will continue automatically after a longer review pause unless you move on sooner."
-            : headsUpRoundCompleteReason === "card_pool_exhausted"
+            : spotlightRoundCompleteReason === "card_pool_exhausted"
               ? "This Spotlight round has run out of active cards before every player has taken a turn. Continue to the next round, then add more cards to this pack if you want longer Spotlight rounds."
               : "The Spotlight round is finished. Continue when you are ready."
       : roomPhase === "lobby"
@@ -2165,15 +2165,15 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
           : "The game is finished. Reset the room to play again with the same teams."
 
 
-  const headsUpReviewAutoAdvanceAtMs = roomHeadsUp?.reviewAutoAdvanceAt ? Date.parse(String(roomHeadsUp.reviewAutoAdvanceAt)) : Number.NaN
-  const headsUpReviewCountdownSeconds = Number.isFinite(headsUpReviewAutoAdvanceAtMs)
-    ? Math.max(0, Math.ceil((headsUpReviewAutoAdvanceAtMs - Date.now()) / 1000))
+  const spotlightReviewAutoAdvanceAtMs = roomSpotlight?.reviewAutoAdvanceAt ? Date.parse(String(roomSpotlight.reviewAutoAdvanceAt)) : Number.NaN
+  const spotlightReviewCountdownSeconds = Number.isFinite(spotlightReviewAutoAdvanceAtMs)
+    ? Math.max(0, Math.ceil((spotlightReviewAutoAdvanceAtMs - Date.now()) / 1000))
     : 0
 
   useEffect(() => {
-    if (!roomCode || !roomIsHeadsUp || roomStage !== "heads_up_review" || forcingClose) return
+    if (!roomCode || !roomIsSpotlight || roomStage !== "spotlight_review" || forcingClose) return
 
-    const reviewAtMs = roomHeadsUp?.reviewAutoAdvanceAt ? Date.parse(String(roomHeadsUp.reviewAutoAdvanceAt)) : Number.NaN
+    const reviewAtMs = roomSpotlight?.reviewAutoAdvanceAt ? Date.parse(String(roomSpotlight.reviewAutoAdvanceAt)) : Number.NaN
     const delayMs = Number.isFinite(reviewAtMs) ? Math.max(0, reviewAtMs - Date.now()) : 10000
 
     const timeoutId = window.setTimeout(() => {
@@ -2185,13 +2185,13 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
     }, delayMs)
 
     return () => window.clearTimeout(timeoutId)
-  }, [forcingClose, headsUpReviewSignature, roomCode, roomHeadsUp?.currentTurnIndex, roomHeadsUp?.reviewAutoAdvanceAt, roomIsHeadsUp, roomStage])
+  }, [forcingClose, spotlightReviewSignature, roomCode, roomSpotlight?.currentTurnIndex, roomSpotlight?.reviewAutoAdvanceAt, roomIsSpotlight, roomStage])
 
   const roomModeSummary = getRunModeSummaryLabel({
     isInfiniteMode: roomIsInfinite,
     behaviourType: roomState?.rounds?.current?.behaviourType,
   })
-  const roomJokerSummary = roomIsHeadsUp
+  const roomJokerSummary = roomIsSpotlight
     ? "Turn-based clue round."
     : roomIsInfinite
       ? "Joker hidden in Infinite mode."
@@ -2219,7 +2219,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
       ? "Ready to create"
       : "Needs changes"
     : simpleGameType === "spotlight"
-      ? simpleCandidateCount > 0 && simpleHeadsUpPackId
+      ? simpleCandidateCount > 0 && simpleSpotlightPackId
         ? "Ready to create"
         : "Needs changes"
       : simpleTemplatePlan.rounds.length > 0
@@ -2240,7 +2240,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
 
   const simpleGameSummaryText = simpleGameType === "spotlight"
     ? simpleCandidateCount > 0
-      ? `This game will start a quick Spotlight round using ${headsUpPacks.find((pack) => pack.id === simpleHeadsUpPackId)?.name ?? "the selected pack"}, with ${simpleCandidateCount} active card${simpleCandidateCount === 1 ? "" : "s"}, 60 second turns, and timer-only TV.`
+      ? `This game will start a quick Spotlight round using ${spotlightPacks.find((pack) => pack.id === simpleSpotlightPackId)?.name ?? "the selected pack"}, with ${simpleCandidateCount} active card${simpleCandidateCount === 1 ? "" : "s"}, 60 second turns, and timer-only TV.`
       : "Simple mode will start a quick Spotlight round as soon as the selected pack has active cards."
     : simpleTemplatePlan.rounds.length > 0
       ? `This game will create ${simpleRoundCount} round${simpleRoundCount === 1 ? "" : "s"}: ${simpleTemplatePlan.standardCount} Standard and ${simpleTemplatePlan.quickfireCount} Quickfire, using ${simplePackScopeText}, with ${audioModeLabel(audioMode)} audio and sensible default timings.`
@@ -2267,9 +2267,9 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
     SIMPLE_PRESET_OPTIONS,
     simplePreset,
     setSimplePreset,
-    simpleHeadsUpPackId,
-    setSimpleHeadsUpPackId,
-    headsUpPacks,
+    simpleSpotlightPackId,
+    setSimpleSpotlightPackId,
+    spotlightPacks,
     simpleInfiniteQuestionLimitStr,
     setSimpleInfiniteQuestionLimitStr,
     audioMode,
@@ -2337,7 +2337,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
     HEADS_UP_DIFFICULTY_OPTIONS,
     HEADS_UP_TURN_OPTIONS,
     HEADS_UP_TV_DISPLAY_OPTIONS,
-    headsUpPacks,
+    spotlightPacks,
     shows,
     PROMPT_TARGET_OPTIONS,
     CLUE_SOURCE_OPTIONS,
@@ -2406,17 +2406,17 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
     startLabel,
     resetRoom,
     resetting,
-    roomIsHeadsUp,
-    sendHeadsUpAction,
-    headsUpHostButtons,
+    roomIsSpotlight,
+    sendSpotlightAction,
+    spotlightHostButtons,
     forcingClose,
     roomStage,
     roomState,
-    roomHeadsUp,
-    headsUpReviewCountdownSeconds,
-    headsUpRoundCompleteReason,
+    roomSpotlight,
+    spotlightReviewCountdownSeconds,
+    spotlightRoundCompleteReason,
     continueGame,
-    canAdvanceHeadsUpSummary,
+    canAdvanceSpotlightSummary,
     canContinue,
     continueLabel,
     endGameNow,

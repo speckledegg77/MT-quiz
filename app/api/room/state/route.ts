@@ -15,7 +15,7 @@ import { getQuestionById } from "@/lib/questionBank"
 import { getGameProgressLabel, isInfiniteModeFromRound, isInfiniteModeFromRoundPlan } from "@/lib/gameMode"
 import { shuffleMcqForRoom } from "@/lib/mcqShuffle"
 import { applyQuickfireFastestBonus, buildQuickfireRoundReview } from "@/lib/quickfire"
-import { getConfiguredAnswerSecondsForRound, getEffectiveRoundReviewSecondsForRound, isHeadsUpRound, isQuickfireRound, stageFromTimes } from "@/lib/roundFlow"
+import { getConfiguredAnswerSecondsForRound, getEffectiveRoundReviewSecondsForRound, isSpotlightRound, isQuickfireRound, stageFromTimes } from "@/lib/roundFlow"
 import { deriveSpotlightStage, getSpotlightReadyTurnMeta, getSpotlightRole, getSpotlightTvDisplayMode, getSpotlightTurnSeconds, normaliseSpotlightRoomState } from "@/lib/spotlightGameplay"
 import { advanceRoomIfReady } from "@/lib/roomProgress"
 
@@ -452,7 +452,7 @@ export async function GET(req: Request) {
   const progressResult = await advanceRoomIfReady({
     code,
     allowRoundSummaryAdvance: false,
-    allowHeadsUpReviewAutoConfirm: true,
+    allowSpotlightReviewAutoConfirm: true,
   })
 
   if (!progressResult.ok && progressResult.status && progressResult.status !== 404) {
@@ -525,10 +525,10 @@ export async function GET(req: Request) {
   const roundReviewSeconds = getEffectiveRoundReviewSecondsForRound(room, currentRound)
   const roundSummaryEndsAt = buildRoundSummaryEndsAt(room.next_at, roundReviewSeconds)
 
-  const headsUpState = isHeadsUpRound(currentRound)
+  const spotlightState = isSpotlightRound(currentRound)
     ? normaliseSpotlightRoomState(room?.heads_up_state, currentRound.index)
     : null
-  const derivedHeadsUpStage = isHeadsUpRound(currentRound)
+  const derivedSpotlightStage = isSpotlightRound(currentRound)
     ? deriveSpotlightStage({
         roomPhase: room.phase,
         round: currentRound,
@@ -539,8 +539,8 @@ export async function GET(req: Request) {
     : null
 
   let stage = baseStage
-  if (derivedHeadsUpStage) {
-    stage = derivedHeadsUpStage
+  if (derivedSpotlightStage) {
+    stage = derivedSpotlightStage
   } else if (room.phase === "running" && baseStage === "needs_advance" && isLastQuestionInRound) {
     if (roundSummaryEndsAt && now.getTime() < Date.parse(roundSummaryEndsAt)) {
       stage = "round_summary"
@@ -624,7 +624,7 @@ export async function GET(req: Request) {
             : null,
       }
 
-      if (stage === "reveal" && !isHeadsUpRound(currentRound)) {
+      if (stage === "reveal" && !isSpotlightRound(currentRound)) {
         revealData = {
           answerType: question.answerType,
           answerIndex: question.answerType === "mcq" ? revealAnswerIndex : null,
@@ -688,9 +688,9 @@ export async function GET(req: Request) {
         })),
       }),
     }
-  } else if (stage === "round_summary" && isHeadsUpRound(currentRound)) {
+  } else if (stage === "round_summary" && isSpotlightRound(currentRound)) {
     const actionQuestionIds = [
-      ...new Set((headsUpState?.completedTurns ?? []).flatMap((turn) => (turn.actions ?? []).map((action) => String(action.questionId ?? "").trim()).filter(Boolean))),
+      ...new Set((spotlightState?.completedTurns ?? []).flatMap((turn) => (turn.actions ?? []).map((action) => String(action.questionId ?? "").trim()).filter(Boolean))),
     ]
 
     const questionMap = new Map<string, Awaited<ReturnType<typeof getQuestionById>>>()
@@ -698,7 +698,7 @@ export async function GET(req: Request) {
       questionMap.set(questionId, await getQuestionById(questionId))
     }
 
-    const items = (headsUpState?.completedTurns ?? []).flatMap((turn) =>
+    const items = (spotlightState?.completedTurns ?? []).flatMap((turn) =>
       (turn.actions ?? []).map((action, index) => {
         const question = questionMap.get(String(action.questionId ?? "").trim())
         return {
@@ -719,12 +719,12 @@ export async function GET(req: Request) {
     }
   }
 
-  let headsUp: any = null
-  if (isHeadsUpRound(currentRound) && headsUpState) {
+  let spotlight: any = null
+  if (isSpotlightRound(currentRound) && spotlightState) {
     const actionQuestionIds = [
       ...new Set([
-        ...(headsUpState.currentTurnActions ?? []).map((action) => String(action.questionId ?? "").trim()).filter(Boolean),
-        ...(headsUpState.completedTurns ?? []).flatMap((turn) => (turn.actions ?? []).map((action) => String(action.questionId ?? "").trim()).filter(Boolean)),
+        ...(spotlightState.currentTurnActions ?? []).map((action) => String(action.questionId ?? "").trim()).filter(Boolean),
+        ...(spotlightState.completedTurns ?? []).flatMap((turn) => (turn.actions ?? []).map((action) => String(action.questionId ?? "").trim()).filter(Boolean)),
       ]),
     ]
 
@@ -733,29 +733,29 @@ export async function GET(req: Request) {
       if (!questionMap.has(questionId)) questionMap.set(questionId, await getQuestionById(questionId))
     }
 
-    const activeGuesser = players.find((player: any) => String(player?.id ?? "") === String(headsUpState.activeGuesserId ?? "")) ?? null
+    const activeGuesser = players.find((player: any) => String(player?.id ?? "") === String(spotlightState.activeGuesserId ?? "")) ?? null
     const activeGuesserName = String(activeGuesser?.name ?? "").trim() || null
-    const activeTeamName = headsUpState.activeTeamName || (activeGuesser ? String(activeGuesser?.team_name ?? "").trim() || null : null)
+    const activeTeamName = spotlightState.activeTeamName || (activeGuesser ? String(activeGuesser?.team_name ?? "").trim() || null : null)
     const nextReadyTurn = getSpotlightReadyTurnMeta({
-      turnOrderPlayerIds: headsUpState.turnOrderPlayerIds,
-      currentTurnIndex: Math.max(0, Number(headsUpState.currentTurnIndex ?? 0) || 0) + 1,
+      turnOrderPlayerIds: spotlightState.turnOrderPlayerIds,
+      currentTurnIndex: Math.max(0, Number(spotlightState.currentTurnIndex ?? 0) || 0) + 1,
       players,
     })
     const nextGuesser = players.find((player: any) => String(player?.id ?? "") === String(nextReadyTurn.activeGuesserId ?? "")) ?? null
     const nextGuesserName = String(nextGuesser?.name ?? "").trim() || null
     const nextTeamName = nextReadyTurn.activeTeamName || (nextGuesser ? String(nextGuesser?.team_name ?? "").trim() || null : null)
-    const headsUpLastActionQuestionId = headsUpState.currentTurnActions[headsUpState.currentTurnActions.length - 1]?.questionId ?? null
-    const headsUpLastActionQuestionIndex = headsUpLastActionQuestionId
-      ? currentRound.questionIds.map(String).findIndex((value) => value === String(headsUpLastActionQuestionId)) + currentRound.startIndex
+    const spotlightLastActionQuestionId = spotlightState.currentTurnActions[spotlightState.currentTurnActions.length - 1]?.questionId ?? null
+    const spotlightLastActionQuestionIndex = spotlightLastActionQuestionId
+      ? currentRound.questionIds.map(String).findIndex((value) => value === String(spotlightLastActionQuestionId)) + currentRound.startIndex
       : -1
     const willAdvanceToNextTurn =
-      stage === "heads_up_review" &&
-      Math.max(0, Number(headsUpState.currentTurnIndex ?? 0) || 0) + 1 < headsUpState.turnOrderPlayerIds.length &&
-      headsUpLastActionQuestionIndex < currentRound.endIndex
-    const headsUpReviewAutoAdvanceAt = stage === "heads_up_review"
+      stage === "spotlight_review" &&
+      Math.max(0, Number(spotlightState.currentTurnIndex ?? 0) || 0) + 1 < spotlightState.turnOrderPlayerIds.length &&
+      spotlightLastActionQuestionIndex < currentRound.endIndex
+    const spotlightReviewAutoAdvanceAt = stage === "spotlight_review"
       ? new Date((room.close_at ? Date.parse(String(room.close_at)) : now.getTime()) + 4500).toISOString()
       : null
-    const turnOrder = headsUpState.turnOrderPlayerIds
+    const turnOrder = spotlightState.turnOrderPlayerIds
       .map((playerId) => players.find((player: any) => String(player?.id ?? "") === String(playerId ?? "")))
       .filter(Boolean)
       .map((player: any) => ({
@@ -763,24 +763,24 @@ export async function GET(req: Request) {
         name: String(player?.name ?? "").trim() || "Player",
         teamName: String(player?.team_name ?? "").trim() || null,
       }))
-    const headsUpRoundCompleteReason =
+    const spotlightRoundCompleteReason =
       stage === "round_summary"
-        ? Math.max(0, Number(headsUpState.currentTurnIndex ?? 0) || 0) >= headsUpState.turnOrderPlayerIds.length
+        ? Math.max(0, Number(spotlightState.currentTurnIndex ?? 0) || 0) >= spotlightState.turnOrderPlayerIds.length
           ? "all_turns_complete"
           : "card_pool_exhausted"
         : null
 
-    headsUp = {
+    spotlight = {
       stage,
       turnSeconds: getSpotlightTurnSeconds(currentRound),
       tvDisplayMode: getSpotlightTvDisplayMode(currentRound),
-      activeGuesserId: headsUpState.activeGuesserId,
+      activeGuesserId: spotlightState.activeGuesserId,
       activeGuesserName,
       activeTeamName,
-      currentTurnIndex: headsUpState.currentTurnIndex,
-      totalTurns: headsUpState.turnOrderPlayerIds.length,
+      currentTurnIndex: spotlightState.currentTurnIndex,
+      totalTurns: spotlightState.turnOrderPlayerIds.length,
       turnOrder,
-      currentTurnActions: (headsUpState.currentTurnActions ?? []).map((action) => {
+      currentTurnActions: (spotlightState.currentTurnActions ?? []).map((action) => {
         const question = questionMap.get(String(action.questionId ?? "").trim())
         return {
           questionId: String(action.questionId ?? ""),
@@ -791,7 +791,7 @@ export async function GET(req: Request) {
           difficulty: String(question?.meta?.difficulty ?? "").trim() || null,
         }
       }),
-      completedTurns: (headsUpState.completedTurns ?? []).map((turn) => {
+      completedTurns: (spotlightState.completedTurns ?? []).map((turn) => {
         const guesser = players.find((player: any) => String(player?.id ?? "") === String(turn.activeGuesserId ?? "")) ?? null
         return {
           ...turn,
@@ -809,12 +809,12 @@ export async function GET(req: Request) {
           }),
         }
       }),
-      reviewAutoAdvanceAt: headsUpReviewAutoAdvanceAt,
+      reviewAutoAdvanceAt: spotlightReviewAutoAdvanceAt,
       willAdvanceToNextTurn,
       nextGuesserId: nextReadyTurn.activeGuesserId,
       nextGuesserName,
       nextTeamName,
-      roundCompleteReason: headsUpRoundCompleteReason,
+      roundCompleteReason: spotlightRoundCompleteReason,
       cardPoolSize: currentRound.questionIds.length,
     }
   }
@@ -899,7 +899,7 @@ export async function GET(req: Request) {
     },
     question: questionPublic,
     reveal: revealData,
-    headsUp,
+    spotlight,
     questionStats,
     roundStats,
     roundReview,

@@ -33,8 +33,8 @@ export default function DisplayPage() {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const feedbackAudioContextRef = useRef<AudioContext | null>(null);
-  const lastHeadsUpCountdownSecondRef = useRef<number | null>(null);
-  const lastHeadsUpCountdownStageRef = useRef<string | null>(null);
+  const lastSpotlightCountdownSecondRef = useRef<number | null>(null);
+  const lastSpotlightCountdownStageRef = useRef<string | null>(null);
 
   async function unlockAudio() {
     setAudioEnabled(true);
@@ -68,7 +68,7 @@ export default function DisplayPage() {
   }
 
 
-  async function ensureHeadsUpAudioReady() {
+  async function ensureSpotlightAudioReady() {
     try {
       const anyWindow = window as typeof window & { webkitAudioContext?: typeof AudioContext };
       const Ctx = anyWindow.AudioContext || anyWindow.webkitAudioContext;
@@ -82,9 +82,9 @@ export default function DisplayPage() {
     }
   }
 
-  async function playHeadsUpTimerCue(kind: "tick" | "end") {
+  async function playSpotlightTimerCue(kind: "tick" | "end") {
     try {
-      const ctx = await ensureHeadsUpAudioReady();
+      const ctx = await ensureSpotlightAudioReady();
       if (!ctx) return;
 
       const pulse = (frequency: number, start: number, duration: number, type: OscillatorType, volume: number) => {
@@ -219,7 +219,7 @@ export default function DisplayPage() {
 
   useEffect(() => {
     const resumeAudio = () => {
-      void ensureHeadsUpAudioReady();
+      void ensureSpotlightAudioReady();
     };
     window.addEventListener("pointerdown", resumeAudio);
     window.addEventListener("keydown", resumeAudio);
@@ -233,11 +233,11 @@ export default function DisplayPage() {
     const currentStage = String(state?.stage ?? "");
     const shouldPlayCountdownCue =
       String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "spotlight" &&
-      currentStage === "heads_up_live";
+      currentStage === "spotlight_live";
 
     if (!shouldPlayCountdownCue) {
-      lastHeadsUpCountdownSecondRef.current = null;
-      lastHeadsUpCountdownStageRef.current = currentStage;
+      lastSpotlightCountdownSecondRef.current = null;
+      lastSpotlightCountdownStageRef.current = currentStage;
       return;
     }
 
@@ -249,21 +249,21 @@ export default function DisplayPage() {
     if (!Number.isFinite(currentSecondsRemaining)) return;
 
     const currentSecond = Math.max(0, Math.floor(currentSecondsRemaining));
-    const previousSecond = lastHeadsUpCountdownSecondRef.current;
-    const previousStage = lastHeadsUpCountdownStageRef.current;
-    lastHeadsUpCountdownSecondRef.current = currentSecond;
-    lastHeadsUpCountdownStageRef.current = currentStage;
+    const previousSecond = lastSpotlightCountdownSecondRef.current;
+    const previousStage = lastSpotlightCountdownStageRef.current;
+    lastSpotlightCountdownSecondRef.current = currentSecond;
+    lastSpotlightCountdownStageRef.current = currentStage;
 
-    if (previousStage !== "heads_up_live") return;
+    if (previousStage !== "spotlight_live") return;
     if (previousSecond === currentSecond) return;
 
     if (currentSecond > 0 && currentSecond <= 5) {
-      void playHeadsUpTimerCue("tick");
+      void playSpotlightTimerCue("tick");
       return;
     }
 
     if (currentSecond === 0 && previousSecond !== 0) {
-      void playHeadsUpTimerCue("end");
+      void playSpotlightTimerCue("end");
     }
   }, [state]);
 
@@ -296,22 +296,22 @@ export default function DisplayPage() {
   const finished = state.phase === "finished";
   const currentRound = state?.rounds?.current ?? null;
   const isQuickfireRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "quickfire";
-  const isHeadsUpRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight";
+  const isSpotlightRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight";
   const progressLabel = String(state?.progress?.label ?? "");
   const questionNumber = Number(state.questionIndex ?? 0) + 1;
   const questionCount = Number(state.questionCount ?? 0);
   const roundStats = state?.roundStats ?? null;
-  const headsUp = state?.headsUp ?? null;
+  const spotlight = state?.spotlight ?? null;
   const closeAtMs = state?.times?.closeAt ? Date.parse(String(state.times.closeAt)) : Number.NaN;
-  const headsUpTurnSeconds = Number(state?.headsUp?.turnSeconds ?? 0);
+  const spotlightTurnSeconds = Number(state?.spotlight?.turnSeconds ?? 0);
   const secondsRemaining = Number.isFinite(closeAtMs)
     ? Math.max(0, Math.ceil((closeAtMs - Date.now()) / 1000))
-    : stage === "heads_up_ready" && Number.isFinite(headsUpTurnSeconds) && headsUpTurnSeconds > 0
-      ? headsUpTurnSeconds
+    : stage === "spotlight_ready" && Number.isFinite(spotlightTurnSeconds) && spotlightTurnSeconds > 0
+      ? spotlightTurnSeconds
       : 0;
-  const headsUpReviewAutoAdvanceAtMs = state?.headsUp?.reviewAutoAdvanceAt ? Date.parse(String(state.headsUp.reviewAutoAdvanceAt)) : Number.NaN;
-  const headsUpReviewCountdownSeconds = Number.isFinite(headsUpReviewAutoAdvanceAtMs)
-    ? Math.max(0, Math.ceil((headsUpReviewAutoAdvanceAtMs - Date.now()) / 1000))
+  const spotlightReviewAutoAdvanceAtMs = state?.spotlight?.reviewAutoAdvanceAt ? Date.parse(String(state.spotlight.reviewAutoAdvanceAt)) : Number.NaN;
+  const spotlightReviewCountdownSeconds = Number.isFinite(spotlightReviewAutoAdvanceAtMs)
+    ? Math.max(0, Math.ceil((spotlightReviewAutoAdvanceAtMs - Date.now()) / 1000))
     : 0;
 
   const suppressStaleQuestionBetweenRounds = shouldSuppressQuestionBetweenRounds({
@@ -402,16 +402,16 @@ export default function DisplayPage() {
 
       {!showJoin && !finished && stage === "round_summary" ? (
         <div className="space-y-4">
-          {isHeadsUpRound ? (
+          {isSpotlightRound ? (
             <Card>
               <CardContent className="py-6">
                 <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-5 py-4 text-center">
                   <div className="text-xs uppercase tracking-[0.24em] text-amber-200">Spotlight round complete</div>
                   <div className="mt-2 text-2xl font-semibold text-foreground">
-                    {String(state?.headsUp?.roundCompleteReason ?? "") === "card_pool_exhausted" ? "No more cards left in this round" : "All turns complete"}
+                    {String(state?.spotlight?.roundCompleteReason ?? "") === "card_pool_exhausted" ? "No more cards left in this round" : "All turns complete"}
                   </div>
                   <div className="mt-2 text-sm text-muted-foreground">
-                    {String(state?.headsUp?.roundCompleteReason ?? "") === "card_pool_exhausted"
+                    {String(state?.spotlight?.roundCompleteReason ?? "") === "card_pool_exhausted"
                       ? "The host will need to continue to the next round. Add more active cards to the selected pack next time if you want more turns."
                       : "Waiting for the host to continue."}
                   </div>
@@ -445,13 +445,13 @@ export default function DisplayPage() {
             <Card>
               <CardHeader>
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <CardTitle>{isHeadsUpRound ? "Card" : "Question"}</CardTitle>
+                  <CardTitle>{isSpotlightRound ? "Card" : "Question"}</CardTitle>
                   {isQuickfireRound ? (
                     <span className="rounded-full border border-violet-500/40 bg-violet-600/10 px-3 py-1 text-sm text-violet-200">
                       Quickfire
                     </span>
                   ) : null}
-                  {isHeadsUpRound ? (
+                  {isSpotlightRound ? (
                     <span className="rounded-full border border-amber-500/40 bg-amber-600/10 px-3 py-1 text-sm text-amber-200">
                       Spotlight
                     </span>
@@ -477,64 +477,64 @@ export default function DisplayPage() {
                   </div>
                 ) : null}
 
-                {isHeadsUpRound ? (
+                {isSpotlightRound ? (
                   <div className="rounded-xl border border-amber-500/30 bg-amber-600/10 px-4 py-3 text-sm">
                     <div className="font-medium text-foreground">Spotlight turn</div>
                     <div className="mt-1 text-muted-foreground">
-                      {headsUp?.tvDisplayMode === "show_clue"
+                      {spotlight?.tvDisplayMode === "show_clue"
                         ? "The TV is showing the live clue for the active team or the room."
                         : "The TV is hidden to the clue while the turn is live."}
                     </div>
                   </div>
                 ) : null}
 
-                {isHeadsUpRound ? (
+                {isSpotlightRound ? (
                   <div className="rounded-2xl border border-border bg-card px-5 py-6">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Active player</div>
-                        <div className="mt-1 text-2xl font-semibold text-foreground">{headsUp?.activeGuesserName || "Waiting to start"}</div>
-                        {headsUp?.activeTeamName ? <div className="mt-1 text-sm text-muted-foreground">Team {headsUp.activeTeamName}</div> : null}
+                        <div className="mt-1 text-2xl font-semibold text-foreground">{spotlight?.activeGuesserName || "Waiting to start"}</div>
+                        {spotlight?.activeTeamName ? <div className="mt-1 text-sm text-muted-foreground">Team {spotlight.activeTeamName}</div> : null}
                       </div>
                       <div className="rounded-2xl border border-amber-500/40 bg-amber-600/10 px-4 py-3 text-right">
                         <div className="text-xs uppercase tracking-[0.2em] text-amber-200">Timer</div>
                         <div className="mt-1 text-3xl font-semibold tabular-nums text-foreground">{formatDuration(secondsRemaining)}</div>
                       </div>
                     </div>
-                    {stage === "heads_up_live" && headsUp?.tvDisplayMode === "show_clue" ? (
+                    {stage === "spotlight_live" && spotlight?.tvDisplayMode === "show_clue" ? (
                       <div className="mt-6 rounded-3xl border border-amber-500/30 bg-amber-600/10 px-6 py-10 text-center">
                         <div className="text-xs uppercase tracking-[0.24em] text-amber-200">Live clue</div>
                         <div className="mt-4 whitespace-pre-line text-4xl font-semibold leading-tight text-foreground">{q.text}</div>
                       </div>
                     ) : (
                       <div className="mt-6 rounded-3xl border border-border bg-muted px-6 py-10 text-center">
-                        <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">{stage === "heads_up_review" ? "Turn review" : "Timer only"}</div>
+                        <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">{stage === "spotlight_review" ? "Turn review" : "Timer only"}</div>
                         <div className="mt-4 text-2xl font-semibold leading-tight text-foreground">
-                          {stage === "heads_up_ready"
+                          {stage === "spotlight_ready"
                             ? "Start the turn when the guesser is ready"
-                            : stage === "heads_up_review"
+                            : stage === "spotlight_review"
                               ? "The host is reviewing this turn"
                               : "Keep the clue hidden from the guesser"}
                         </div>
                       </div>
                     )}
-                    {stage === "heads_up_review" ? (
+                    {stage === "spotlight_review" ? (
                       <div className="mt-6 rounded-2xl border border-amber-500/30 bg-amber-600/10 px-4 py-4 text-center text-sm">
                         <div className="font-medium text-foreground">
-                          {headsUp?.willAdvanceToNextTurn
-                            ? `Next player: ${String(headsUp?.nextGuesserName ?? "The next player")}${headsUp?.nextTeamName ? ` · Team ${String(headsUp.nextTeamName)}` : ""}`
+                          {spotlight?.willAdvanceToNextTurn
+                            ? `Next player: ${String(spotlight?.nextGuesserName ?? "The next player")}${spotlight?.nextTeamName ? ` · Team ${String(spotlight.nextTeamName)}` : ""}`
                             : "Ending Spotlight round"}
                         </div>
                         <div className="mt-1 text-muted-foreground">
-                          {headsUp?.willAdvanceToNextTurn
-                            ? `Moving on in ${headsUpReviewCountdownSeconds}s unless the host pauses to correct the turn.`
-                            : `Finishing the round in ${headsUpReviewCountdownSeconds}s.`}
+                          {spotlight?.willAdvanceToNextTurn
+                            ? `Moving on in ${spotlightReviewCountdownSeconds}s unless the host pauses to correct the turn.`
+                            : `Finishing the round in ${spotlightReviewCountdownSeconds}s.`}
                         </div>
                       </div>
                     ) : null}
-                    {stage === "heads_up_review" && Array.isArray(headsUp?.currentTurnActions) && headsUp.currentTurnActions.length ? (
+                    {stage === "spotlight_review" && Array.isArray(spotlight?.currentTurnActions) && spotlight.currentTurnActions.length ? (
                       <div className="mt-6 grid gap-2">
-                        {headsUp.currentTurnActions.map((item: any) => (
+                        {spotlight.currentTurnActions.map((item: any) => (
                           <div key={item.questionId} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3">
                             <div className="min-w-0 flex-1">
                               <div className="truncate text-base text-foreground">{item.questionText}</div>
@@ -600,7 +600,7 @@ export default function DisplayPage() {
                   </div>
                 ) : null}
 
-                {isHeadsUpRound ? null : isTextQ ? (
+                {isSpotlightRound ? null : isTextQ ? (
                   <div className="text-sm text-muted-foreground">Players type their answer on their phones.</div>
                 ) : null}
 

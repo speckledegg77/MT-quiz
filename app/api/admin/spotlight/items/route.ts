@@ -15,7 +15,7 @@ import {
 } from "@/lib/spotlight"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
-const createHeadsUpItemSchema = z.object({
+const createSpotlightItemSchema = z.object({
   answerText: z.string().trim().min(1, "Answer text is required."),
   itemType: z.enum(SPOTLIGHT_ITEM_TYPE_VALUES),
   personRoles: z.array(z.enum(SPOTLIGHT_PERSON_ROLE_VALUES)).optional(),
@@ -30,7 +30,7 @@ function cleanPackIds(value: string[] | undefined) {
   return [...new Set((value ?? []).map((item) => item.trim()).filter(Boolean))]
 }
 
-async function loadHeadsUpItems() {
+async function loadSpotlightItems() {
   const itemsRes = await supabaseAdmin
     .from("spotlight_items")
     .select(
@@ -76,7 +76,7 @@ async function loadHeadsUpItems() {
   return { items }
 }
 
-async function findDuplicateHeadsUpItem(params: {
+async function findDuplicateSpotlightItem(params: {
   answerText: string
   itemType: string
   primaryShowKey: string | null
@@ -122,7 +122,7 @@ async function findDuplicateHeadsUpItem(params: {
 export async function GET(req: Request) {
   if (!isAuthorisedAdminRequest(req)) return unauthorisedAdminResponse()
 
-  const result = await loadHeadsUpItems()
+  const result = await loadSpotlightItems()
 
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: 500 })
@@ -142,7 +142,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Request body must be valid JSON." }, { status: 400 })
   }
 
-  const parsed = createHeadsUpItemSchema.safeParse(body)
+  const parsed = createSpotlightItemSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Invalid payload." },
@@ -155,7 +155,7 @@ export async function POST(req: Request) {
   const personRoles = cleanSpotlightPersonRoles(parsed.data.personRoles, itemType)
   const packIds = cleanPackIds(parsed.data.packIds)
 
-  const duplicateCheck = await findDuplicateHeadsUpItem({
+  const duplicateCheck = await findDuplicateSpotlightItem({
     answerText: parsed.data.answerText.trim(),
     itemType,
     primaryShowKey,
@@ -209,7 +209,7 @@ export async function POST(req: Request) {
     }
   }
 
-  const result = await loadHeadsUpItems()
+  const result = await loadSpotlightItems()
 
   if ("error" in result) {
     return NextResponse.json({ ok: true, item: insertRes.data })
