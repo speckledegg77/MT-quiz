@@ -242,6 +242,10 @@ export default function HostWizardPage() {
     return SETUP_LENGTHS.find((option) => option.id === lengthId)?.roundCount ?? 4
   }, [lengthId])
 
+  const templateRoundCount = useMemo(() => {
+    return includeHeadsUpFinish ? Math.max(1, roundCount - 1) : roundCount
+  }, [includeHeadsUpFinish, roundCount])
+
   const selectedPackIds = useMemo(() => packs.map((pack) => pack.id), [packs])
 
   const screenExplanations = useMemo(() => {
@@ -260,10 +264,10 @@ export default function HostWizardPage() {
     return buildSimpleTemplatePlan({
       templates,
       feasibilityById,
-      roundCount,
+      roundCount: templateRoundCount,
       preset: quizFeel,
     })
-  }, [feasibilityById, quizFeel, roundCount, templates])
+  }, [feasibilityById, quizFeel, templateRoundCount, templates])
 
   const totalPlannedRounds = useMemo(() => {
     return templatePlan.rounds.length + (includeHeadsUpFinish ? 1 : 0)
@@ -278,8 +282,9 @@ export default function HostWizardPage() {
     if (feasibilityError) return feasibilityError
     if (teamValidationMessage) return teamValidationMessage
     if (includeHeadsUpFinish && !headsUpPacks.length) return "No active Heads Up packs are available right now."
+    if (includeHeadsUpFinish && roundCount < 2) return "Choose at least 2 rounds if you want a Heads Up finish."
     return templatePlan.error
-  }, [feasibilityBusy, feasibilityError, headsUpPacks.length, includeHeadsUpFinish, loadError, loading, teamValidationMessage, templatePlan.error])
+  }, [feasibilityBusy, feasibilityError, headsUpPacks.length, includeHeadsUpFinish, loadError, loading, roundCount, teamValidationMessage, templatePlan.error])
 
   useEffect(() => {
     let cancelled = false
@@ -820,8 +825,8 @@ export default function HostWizardPage() {
                     {includeHeadsUpFinish ? (
                       <div className="rounded-xl border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
                         {playSurface === "phones_only"
-                          ? "This final Heads Up round will follow the phones-only setup too."
-                          : "This final Heads Up round will use the normal room setup, with a random active pack and timer-only TV by default."}
+                          ? "This final Heads Up round will replace the last round and follow the phones-only setup too."
+                          : "This final Heads Up round will replace the last round and use the normal room setup, with a random active pack and timer-only TV by default."}
                       </div>
                     ) : null}
                   </div>
@@ -831,7 +836,7 @@ export default function HostWizardPage() {
                       ? "Checking which ready templates fit the current question pool..."
                       : createBlockReason
                         ? createBlockReason
-                        : `${roundCount} rounds can be built from all active packs with ${candidateCount} candidate questions in scope.`}
+                        : `${roundCount} total rounds can be built from all active packs with ${candidateCount} candidate questions in scope.`}
                   </div>
                 </div>
               ) : null}
@@ -859,7 +864,7 @@ export default function HostWizardPage() {
                           </div>
                           <div className="flex items-start justify-between gap-3">
                             <span className="text-muted-foreground">Heads Up finish</span>
-                            <span className="text-right font-medium text-foreground">{includeHeadsUpFinish ? "Yes, add one final random pack round" : "No"}</span>
+                            <span className="text-right font-medium text-foreground">{includeHeadsUpFinish ? "Yes, use the final round for a random pack" : "No"}</span>
                           </div>
                           <div className="flex items-start justify-between gap-3">
                             <span className="text-muted-foreground">Play format</span>
@@ -904,7 +909,7 @@ export default function HostWizardPage() {
                                 <div className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">Heads Up</div>
                               </div>
                               <div className="mt-1 text-xs text-muted-foreground">
-                                Final round · random active pack · 60s turns · 20s round review
+                                Replaces the final round · random active pack · 60s turns · 20s round review
                               </div>
                             </div>
                           ) : null}
@@ -969,7 +974,7 @@ export default function HostWizardPage() {
 
                   {createdHeadsUpPack ? (
                     <div className="rounded-2xl border border-border bg-muted p-4 text-sm text-muted-foreground">
-                      This game will finish with a Heads Up round using <span className="font-medium text-foreground">{createdHeadsUpPack.name}</span>.
+                      This game will use <span className="font-medium text-foreground">{createdHeadsUpPack.name}</span> for the final Heads Up round.
                     </div>
                   ) : null}
 
@@ -1066,7 +1071,7 @@ export default function HostWizardPage() {
                   </div>
                   <div className="flex items-start justify-between gap-3">
                     <span className="text-muted-foreground">Heads Up finish</span>
-                    <span className="text-right font-medium text-foreground">{createdHeadsUpPack ? createdHeadsUpPack.name : includeHeadsUpFinish ? "Random active pack" : "No"}</span>
+                    <span className="text-right font-medium text-foreground">{createdHeadsUpPack ? `${createdHeadsUpPack.name} in final round` : includeHeadsUpFinish ? "Random active pack in final round" : "No"}</span>
                   </div>
                   <div className="flex items-start justify-between gap-3">
                     <span className="text-muted-foreground">Rounds</span>
