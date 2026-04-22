@@ -11,8 +11,6 @@ export default function HostLiveControls(props: any) {
     roomState, roomHeadsUp, headsUpReviewCountdownSeconds, headsUpRoundCompleteReason, continueGame,
     canAdvanceHeadsUpSummary, canContinue, continueLabel, endGameNow, canEndGame, endingGame, clearRoom,
   } = props
-  const showBeforeStartGuide = Boolean(canStart)
-
   return (
 <Card>
   <CardHeader>
@@ -36,12 +34,6 @@ export default function HostLiveControls(props: any) {
       <div className="rounded-xl border border-border bg-card p-3"><div className="text-xs text-muted-foreground">Mode</div><div className={`mt-1 inline-flex rounded-full border px-3 py-1 text-sm ${roomIsInfinite ? "border-sky-500/40 bg-sky-600/10 text-sky-200" : "border-border bg-card text-foreground"}`}>{roomModeSummary}</div></div>
       <div className="rounded-xl border border-border bg-card p-3"><div className="text-xs text-muted-foreground">Progress</div><div className="mt-1 text-lg font-semibold text-foreground">{roomProgressLabel || "Waiting to start"}</div><div className="mt-1 text-xs text-muted-foreground">{roomJokerSummary}</div></div>
     </div>
-    {showBeforeStartGuide ? (
-      <div className="rounded-2xl border border-sky-500/30 bg-sky-600/10 p-3 text-sm text-sky-100">
-        <div className="font-medium">Before you start</div>
-        <div className="mt-1 text-sky-100/90">Keep this page on the host device, put the display screen on the shared TV, and make sure players have joined on their phones. Then start the game from here.</div>
-      </div>
-    ) : null}
     <div className="grid gap-2 sm:grid-cols-2">
       <Button onClick={startGame} disabled={!canStart}>{startLabel}</Button>
       <Button variant="secondary" onClick={resetRoom} disabled={resetting}>{resetting ? "Resetting..." : "Reset room"}</Button>
