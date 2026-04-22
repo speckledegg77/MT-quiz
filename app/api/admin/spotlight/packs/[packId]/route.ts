@@ -53,7 +53,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   if (parsed.data.isActive !== undefined) update.is_active = parsed.data.isActive
 
   const updateRes = await supabaseAdmin
-    .from("heads_up_packs")
+    .from("spotlight_packs")
     .update(update)
     .eq("id", packId)
     .select("id, name, description, is_active, created_at, updated_at")
@@ -68,7 +68,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   }
 
   const countRes = await supabaseAdmin
-    .from("heads_up_pack_items")
+    .from("spotlight_pack_items")
     .select("item_id", { count: "exact", head: true })
     .eq("pack_id", packId)
 

@@ -66,7 +66,7 @@ function buildHeadsUpCandidatesFromPackRows(rows: Array<Record<string, unknown>>
     const packId = String(row?.pack_id ?? "").trim()
     const itemId = String(row?.item_id ?? "").trim()
     if (!packId || !itemId) continue
-    const item = (row?.heads_up_items ?? {}) as Record<string, unknown>
+    const item = (row?.spotlight_items ?? {}) as Record<string, unknown>
     const existing = candidatesById.get(itemId)
     if (existing) {
       if (!existing.packIds.includes(packId)) existing.packIds.push(packId)
@@ -128,8 +128,8 @@ async function fetchAllHeadsUpPackItemRows(packIds: string[]) {
   for (let from = 0; ; from += pageSize) {
     const to = from + pageSize - 1
     const res = await supabaseAdmin
-      .from("heads_up_pack_items")
-      .select("pack_id, item_id, heads_up_items(id, difficulty, primary_show_key, is_active)")
+      .from("spotlight_pack_items")
+      .select("pack_id, item_id, spotlight_items(id, difficulty, primary_show_key, is_active)")
       .in("pack_id", cleanedPackIds)
       .range(from, to)
 
@@ -187,13 +187,13 @@ export async function POST(req: Request) {
       const headsUpLinks = await fetchAllHeadsUpPackItemRows(specificHeadsUpPackIds)
 
       const activeRows = (headsUpLinks as Array<Record<string, unknown>>).filter((row) => {
-        const item = row?.heads_up_items
+        const item = row?.spotlight_items
         const value = Array.isArray(item) ? item[0] : item
         return Boolean(value && (value as Record<string, unknown>).is_active !== false)
       }).map((row) => {
-        const item = row?.heads_up_items
+        const item = row?.spotlight_items
         const value = Array.isArray(item) ? item[0] : item
-        return { ...row, heads_up_items: value } as Record<string, unknown>
+        return { ...row, spotlight_items: value } as Record<string, unknown>
       })
 
       candidates = candidates.concat(buildHeadsUpCandidatesFromPackRows(activeRows))

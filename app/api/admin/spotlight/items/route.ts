@@ -32,7 +32,7 @@ function cleanPackIds(value: string[] | undefined) {
 
 async function loadHeadsUpItems() {
   const itemsRes = await supabaseAdmin
-    .from("heads_up_items")
+    .from("spotlight_items")
     .select(
       "id, answer_text, item_type, person_roles, difficulty, primary_show_key, notes, is_active, created_at, updated_at"
     )
@@ -43,8 +43,8 @@ async function loadHeadsUpItems() {
   }
 
   const linksRes = await supabaseAdmin
-    .from("heads_up_pack_items")
-    .select("item_id, pack_id, heads_up_packs(id, name, is_active)")
+    .from("spotlight_pack_items")
+    .select("item_id, pack_id, spotlight_packs(id, name, is_active)")
 
   if (linksRes.error) {
     return { error: linksRes.error.message }
@@ -53,9 +53,9 @@ async function loadHeadsUpItems() {
   const packsByItemId = new Map<string, Array<{ id: string; name: string; is_active: boolean }>>()
 
   for (const link of linksRes.data ?? []) {
-    const pack = Array.isArray(link.heads_up_packs)
-      ? link.heads_up_packs[0]
-      : link.heads_up_packs
+    const pack = Array.isArray(link.spotlight_packs)
+      ? link.spotlight_packs[0]
+      : link.spotlight_packs
 
     if (!pack || !link.item_id) continue
 
@@ -83,7 +83,7 @@ async function findDuplicateHeadsUpItem(params: {
   excludeId?: string
 }) {
   let query = supabaseAdmin
-    .from("heads_up_items")
+    .from("spotlight_items")
     .select("id, answer_text, item_type, primary_show_key")
     .eq("item_type", cleanSpotlightItemType(params.itemType))
 
@@ -176,7 +176,7 @@ export async function POST(req: Request) {
   }
 
   const insertRes = await supabaseAdmin
-    .from("heads_up_items")
+    .from("spotlight_items")
     .insert({
       answer_text: parsed.data.answerText.trim(),
       item_type: itemType,
@@ -201,10 +201,10 @@ export async function POST(req: Request) {
       item_id: insertRes.data.id,
     }))
 
-    const linksInsertRes = await supabaseAdmin.from("heads_up_pack_items").insert(linkRows)
+    const linksInsertRes = await supabaseAdmin.from("spotlight_pack_items").insert(linkRows)
 
     if (linksInsertRes.error) {
-      await supabaseAdmin.from("heads_up_items").delete().eq("id", insertRes.data.id)
+      await supabaseAdmin.from("spotlight_items").delete().eq("id", insertRes.data.id)
       return NextResponse.json({ error: linksInsertRes.error.message }, { status: 500 })
     }
   }

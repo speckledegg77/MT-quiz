@@ -76,13 +76,13 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - `/join?code=XXXX` join a room
 - `/play/[code]` player phone screen
 - `/display/[code]` TV screen
-- Spotlight migration status: routes and UI now use Spotlight, new room round plans now write `spotlight` behaviour values and `spotlight_item:` synthetic ids, and readers still accept legacy `heads_up` values during the migration window.
+- Spotlight migration status: routes, UI, round-plan values, and storage tables now use Spotlight naming. Readers still accept legacy `heads_up` values where needed, and legacy `heads_up_*` table names remain available as temporary compatibility views during the migration window.
 - `/admin/import` admin import and media upload tools for question CSVs, Spotlight CSVs, and media
 - `/admin/questions` question metadata dashboard
 - `/admin/shows` shows manager
 - `/admin/round-templates` round templates manager
 - `/admin/spotlight` Spotlight items and packs manager
-- Legacy `/admin/heads-up` and `heads-up` API paths stay alive as compatibility aliases during the full Spotlight rename.
+- Legacy `/admin/heads-up` and `heads-up` API paths stay alive as compatibility aliases during the full Spotlight rename. Legacy `heads_up_*` table names also stay available temporarily as compatibility views after the Stage 4D schema rename.
 
 ---
 
@@ -108,10 +108,10 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - TV display shows the join QR code before the game starts.
 
 ### Spotlight content model
-- Spotlight is the public name for this round and content model. Stage 4A has started, so shared app-layer helpers and components now use Spotlight naming. Internal routes, persisted values, and tables still use `heads_up` until later migration stages.
-- `heads_up_items` stores playable answers such as shows, songs, characters, people, and phrases.
-- `heads_up_packs` stores themed decks.
-- `heads_up_pack_items` lets one item belong to several packs.
+- Spotlight is now the public and internal app name for this round and content model. Routes, persisted round-plan values, and storage tables now use Spotlight naming, while only the remaining compatibility layer still accepts legacy `heads_up` values where needed.
+- `spotlight_items` stores playable answers such as shows, songs, characters, people, and phrases.
+- `spotlight_packs` stores themed decks.
+- `spotlight_pack_items` lets one item belong to several packs.
 - Person items can carry multiple roles such as performer, composer, and lyricist.
 - Spotlight gameplay appears as a manual round behaviour, using one Spotlight pack per round.
 - Spotlight turns now use role-based phone views. The guesser sees only the timer plus Correct and Pass. Clue-givers see the clue card plus timer.

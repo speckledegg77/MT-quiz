@@ -144,7 +144,7 @@ export async function POST(req: Request) {
     }
 
     const existingItemsRes = await supabaseAdmin
-      .from("heads_up_items")
+      .from("spotlight_items")
       .select("id, answer_text, item_type, primary_show_key")
       .order("created_at", { ascending: true })
 
@@ -184,7 +184,7 @@ export async function POST(req: Request) {
 
     if (packNamesInFile.length) {
       const packsRes = await supabaseAdmin
-        .from("heads_up_packs")
+        .from("spotlight_packs")
         .select("id, name")
         .order("name", { ascending: true })
 
@@ -377,7 +377,7 @@ export async function POST(req: Request) {
 
     for (const packName of missingPackNames) {
       const packInsertRes = await supabaseAdmin
-        .from("heads_up_packs")
+        .from("spotlight_packs")
         .insert({
           name: packName,
           description: "",
@@ -401,7 +401,7 @@ export async function POST(req: Request) {
 
       if (operation.action === "create") {
         const insertRes = await supabaseAdmin
-          .from("heads_up_items")
+          .from("spotlight_items")
           .insert({
             answer_text: operation.answerText,
             item_type: operation.itemType,
@@ -425,7 +425,7 @@ export async function POST(req: Request) {
         createdCount += 1
       } else {
         const updateRes = await supabaseAdmin
-          .from("heads_up_items")
+          .from("spotlight_items")
           .update({
             answer_text: operation.answerText,
             item_type: operation.itemType,
@@ -450,7 +450,7 @@ export async function POST(req: Request) {
         updatedCount += 1
       }
 
-      const deleteLinksRes = await supabaseAdmin.from("heads_up_pack_items").delete().eq("item_id", itemId!)
+      const deleteLinksRes = await supabaseAdmin.from("spotlight_pack_items").delete().eq("item_id", itemId!)
 
       if (deleteLinksRes.error) {
         return NextResponse.json(
@@ -465,7 +465,7 @@ export async function POST(req: Request) {
 
       if (packIds.length) {
         const insertLinksRes = await supabaseAdmin
-          .from("heads_up_pack_items")
+          .from("spotlight_pack_items")
           .insert(
             packIds.map((packId) => ({
               pack_id: packId,

@@ -68,6 +68,7 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 
 - Spotlight is the public name for this round. Stage 4A uses Spotlight naming in shared app-layer code.
 - Stage 4C changes new room round plans and synthetic Spotlight card ids to write `spotlight` values, while readers still accept legacy `heads_up` values for compatibility.
+- Stage 4D renames the database tables to `spotlight_items`, `spotlight_packs`, and `spotlight_pack_items`. Temporary compatibility views keep the legacy `heads_up_*` table names available during the migration window.
 - Spotlight items can belong to more than one Spotlight pack. Pack membership should stay many-to-many.
 - People-based Spotlight items should use `person_roles` as a multi-select field rather than one fixed role.
 - One logical Spotlight item is unique by normalised `answer_text`, `item_type`, and `primary_show_key`.
@@ -127,7 +128,7 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 
 - `docs/shows-reference.md` is the canonical source for `show_key` values.
 - New content-writing chats should use the current writing standards and CSV templates from the repo rather than inventing their own format.
-- During the full Spotlight rename, app routes and API paths should move to `spotlight` names first, while legacy `heads-up` paths stay alive only as temporary compatibility aliases.
+- During the full Spotlight rename, app routes and API paths should move to `spotlight` names first, while legacy `heads-up` paths stay alive only as temporary compatibility aliases. The same applies to legacy `heads_up_*` table names, which should exist only as temporary compatibility views after the schema rename.
 - Generated CSV rows should quote every text-like field, even when the current value does not contain a comma.
 - Question CSV generation should use the current full importer column order, including metadata fields after `image_path`.
 

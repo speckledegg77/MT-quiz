@@ -120,7 +120,7 @@ export async function getQuestionById(id: string): Promise<Question | null> {
   const headsUpItemId = parseSpotlightSyntheticQuestionId(key)
   if (headsUpItemId) {
     const res = await supabaseAdmin
-      .from("heads_up_items")
+      .from("spotlight_items")
       .select("id, answer_text, item_type, difficulty, primary_show_key, notes")
       .eq("id", headsUpItemId)
       .eq("is_active", true)

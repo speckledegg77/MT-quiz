@@ -14,7 +14,7 @@ const createHeadsUpPackSchema = z.object({
 
 async function loadHeadsUpPacks() {
   const packsRes = await supabaseAdmin
-    .from("heads_up_packs")
+    .from("spotlight_packs")
     .select("id, name, description, is_active, created_at, updated_at")
     .order("name", { ascending: true })
 
@@ -22,7 +22,7 @@ async function loadHeadsUpPacks() {
     return { error: packsRes.error.message }
   }
 
-  const linksRes = await supabaseAdmin.from("heads_up_pack_items").select("pack_id")
+  const linksRes = await supabaseAdmin.from("spotlight_pack_items").select("pack_id")
 
   if (linksRes.error) {
     return { error: linksRes.error.message }
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
   }
 
   const insertRes = await supabaseAdmin
-    .from("heads_up_packs")
+    .from("spotlight_packs")
     .insert({
       name: parsed.data.name.trim(),
       description: String(parsed.data.description ?? "").trim(),

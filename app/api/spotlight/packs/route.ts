@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 export async function GET() {
   const res = await supabaseAdmin
-    .from("heads_up_packs")
+    .from("spotlight_packs")
     .select("id, name, description, is_active")
     .eq("is_active", true)
     .order("name", { ascending: true })

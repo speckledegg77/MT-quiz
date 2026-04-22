@@ -78,8 +78,8 @@ async function fetchAllHeadsUpPackItemRows(packIds: string[]) {
   for (let from = 0; ; from += pageSize) {
     const to = from + pageSize - 1
     const res = await supabaseAdmin
-      .from("heads_up_pack_items")
-      .select("pack_id, item_id, heads_up_items(id, difficulty, primary_show_key, is_active)")
+      .from("spotlight_pack_items")
+      .select("pack_id, item_id, spotlight_items(id, difficulty, primary_show_key, is_active)")
       .in("pack_id", cleanedPackIds)
       .range(from, to)
 
@@ -325,7 +325,7 @@ async function loadCandidatePoolForManualRounds(params: {
     for (const row of headsUpLinks as any[]) {
       const packId = String(row.pack_id ?? "").trim()
       const itemId = String(row.item_id ?? "").trim()
-      const itemRaw = Array.isArray(row.heads_up_items) ? row.heads_up_items[0] : row.heads_up_items
+      const itemRaw = Array.isArray(row.spotlight_items) ? row.spotlight_items[0] : row.spotlight_items
       if (!packId || !itemId || !itemRaw || itemRaw.is_active === false) continue
 
       const syntheticId = buildSpotlightSyntheticQuestionId(itemId)

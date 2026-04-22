@@ -56,7 +56,7 @@ async function findDuplicateHeadsUpItem(params: {
   excludeId?: string
 }) {
   let query = supabaseAdmin
-    .from("heads_up_items")
+    .from("spotlight_items")
     .select("id, answer_text, item_type, primary_show_key")
     .eq("item_type", cleanSpotlightItemType(params.itemType))
 
@@ -114,7 +114,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   }
 
   const existingRes = await supabaseAdmin
-    .from("heads_up_items")
+    .from("spotlight_items")
     .select("id, answer_text, item_type, person_roles, primary_show_key")
     .eq("id", itemId)
     .maybeSingle()
@@ -172,7 +172,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   if (parsed.data.isActive !== undefined) update.is_active = parsed.data.isActive
 
   const updateRes = await supabaseAdmin
-    .from("heads_up_items")
+    .from("spotlight_items")
     .update(update)
     .eq("id", itemId)
     .select(
@@ -189,7 +189,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   }
 
   if (parsed.data.packIds !== undefined) {
-    const deleteRes = await supabaseAdmin.from("heads_up_pack_items").delete().eq("item_id", itemId)
+    const deleteRes = await supabaseAdmin.from("spotlight_pack_items").delete().eq("item_id", itemId)
 
     if (deleteRes.error) {
       return NextResponse.json({ error: deleteRes.error.message }, { status: 500 })
@@ -197,7 +197,7 @@ export async function PATCH(req: Request, context: RouteContext) {
 
     const packIds = cleanPackIds(parsed.data.packIds)
     if (packIds.length) {
-      const insertRes = await supabaseAdmin.from("heads_up_pack_items").insert(
+      const insertRes = await supabaseAdmin.from("spotlight_pack_items").insert(
         packIds.map((packId) => ({
           pack_id: packId,
           item_id: itemId,
@@ -211,8 +211,8 @@ export async function PATCH(req: Request, context: RouteContext) {
   }
 
   const linksRes = await supabaseAdmin
-    .from("heads_up_pack_items")
-    .select("pack_id, heads_up_packs(id, name, is_active)")
+    .from("spotlight_pack_items")
+    .select("pack_id, spotlight_packs(id, name, is_active)")
     .eq("item_id", itemId)
 
   if (linksRes.error) {
@@ -221,7 +221,7 @@ export async function PATCH(req: Request, context: RouteContext) {
 
   const packs = (linksRes.data ?? [])
     .map((link) => {
-      const pack = Array.isArray(link.heads_up_packs) ? link.heads_up_packs[0] : link.heads_up_packs
+      const pack = Array.isArray(link.spotlight_packs) ? link.spotlight_packs[0] : link.spotlight_packs
       if (!pack) return null
       return {
         id: String(pack.id),
