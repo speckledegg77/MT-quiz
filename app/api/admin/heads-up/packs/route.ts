@@ -1,1 +1,3 @@
-export { runtime, GET, POST } from "@/app/api/admin/spotlight/packs/route"
+export const runtime = "nodejs"
+
+export { GET, POST } from "@/app/api/admin/spotlight/packs/route"
