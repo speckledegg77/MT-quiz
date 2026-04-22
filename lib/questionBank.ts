@@ -1,4 +1,4 @@
-import { parseHeadsUpSyntheticQuestionId } from "./headsUp"
+import { parseSpotlightSyntheticQuestionId } from "./spotlight"
 import { supabaseAdmin } from "./supabaseAdmin"
 
 export type RoundType = "mcq" | "audio" | "picture" | "heads_up"
@@ -117,7 +117,7 @@ export async function getQuestionById(id: string): Promise<Question | null> {
   const now = Date.now()
   if (cached && now - cached.at < CACHE_TTL_MS) return cached.q
 
-  const headsUpItemId = parseHeadsUpSyntheticQuestionId(key)
+  const headsUpItemId = parseSpotlightSyntheticQuestionId(key)
   if (headsUpItemId) {
     const res = await supabaseAdmin
       .from("heads_up_items")

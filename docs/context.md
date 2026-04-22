@@ -106,7 +106,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - TV display shows the join QR code before the game starts.
 
 ### Spotlight content model
-- Spotlight is the public name for this round and content model. Internal routes and tables still use `heads_up`.
+- Spotlight is the public name for this round and content model. Stage 4A has started, so shared app-layer helpers and components now use Spotlight naming. Internal routes, persisted values, and tables still use `heads_up` until later migration stages.
 - `heads_up_items` stores playable answers such as shows, songs, characters, people, and phrases.
 - `heads_up_packs` stores themed decks.
 - `heads_up_pack_items` lets one item belong to several packs.

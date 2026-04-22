@@ -9,7 +9,7 @@ import {
 } from "@/lib/roundFeasibility"
 import type { QuestionCandidate } from "@/lib/manualRoundPlanBuilder"
 import type { RoundSelectionRules } from "@/lib/roomRoundPlan"
-import { buildHeadsUpSyntheticQuestionId, cleanHeadsUpDifficulty } from "@/lib/headsUp"
+import { buildSpotlightSyntheticQuestionId, cleanSpotlightDifficulty } from "@/lib/spotlight"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 function cleanStringArray(raw: unknown) {
@@ -73,7 +73,7 @@ function buildHeadsUpCandidatesFromPackRows(rows: Array<Record<string, unknown>>
       continue
     }
     candidatesById.set(itemId, {
-      id: buildHeadsUpSyntheticQuestionId(itemId),
+      id: buildSpotlightSyntheticQuestionId(itemId),
       kind: "heads_up",
       legacyRoundType: "general",
       answerType: "text",
@@ -84,7 +84,7 @@ function buildHeadsUpCandidatesFromPackRows(rows: Array<Record<string, unknown>>
       mediaDurationMs: null,
       audioClipType: null,
       packIds: [packId],
-      headsUpDifficulty: cleanHeadsUpDifficulty(String(item.difficulty ?? "medium")),
+      headsUpDifficulty: cleanSpotlightDifficulty(String(item.difficulty ?? "medium")),
     })
   }
   return [...candidatesById.values()]

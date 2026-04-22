@@ -1,7 +1,7 @@
 export const runtime = "nodejs"
 
 import { NextResponse } from "next/server"
-import { createHeadsUpReadyState, serialiseHeadsUpState } from "@/lib/headsUpGameplay"
+import { createSpotlightReadyState, serialiseSpotlightState } from "@/lib/spotlightGameplay"
 import { findRoundForQuestionIndex, getEffectiveRoomRoundPlan, materialiseRoundPlan } from "@/lib/roomRoundPlan"
 import { buildQuestionTimesForRound } from "@/lib/roundFlow"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
@@ -62,8 +62,8 @@ export async function POST(req: Request) {
     updatePayload.close_at = null
     updatePayload.reveal_at = null
     updatePayload.next_at = null
-    updatePayload.heads_up_state = serialiseHeadsUpState(
-      createHeadsUpReadyState({
+    updatePayload.heads_up_state = serialiseSpotlightState(
+      createSpotlightReadyState({
         roundIndex: firstRound.index,
         players,
         gameMode: room.game_mode,

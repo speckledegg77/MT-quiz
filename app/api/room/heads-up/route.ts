@@ -2,7 +2,7 @@ export const runtime = "nodejs"
 
 import { NextResponse } from "next/server"
 import { getQuestionById } from "@/lib/questionBank"
-import { createHeadsUpReadyState, deriveHeadsUpStage, getHeadsUpReadyTurnMeta, getHeadsUpTurnSeconds, normaliseHeadsUpRoomState, serialiseHeadsUpState, type HeadsUpActionKind, type HeadsUpCompletedTurn, type HeadsUpRoomState } from "@/lib/headsUpGameplay"
+import { createSpotlightReadyState, deriveSpotlightStage, getSpotlightReadyTurnMeta, getSpotlightTurnSeconds, normaliseSpotlightRoomState, serialiseSpotlightState, type SpotlightActionKind, type SpotlightCompletedTurn, type SpotlightRoomState } from "@/lib/spotlightGameplay"
 import { findRoundForQuestionIndex, getEffectiveRoomRoundPlan, materialiseRoundPlan } from "@/lib/roomRoundPlan"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
@@ -28,9 +28,9 @@ function findQuestionIndex(questionIds: string[], questionId: string) {
 }
 
 function getCurrentHeadsUpState(room: any, currentRound: any, players: any[]) {
-  const base = normaliseHeadsUpRoomState(room?.heads_up_state, currentRound.index)
+  const base = normaliseSpotlightRoomState(room?.heads_up_state, currentRound.index)
   if (base.roundIndex !== currentRound.index || base.turnOrderPlayerIds.length === 0) {
-    return createHeadsUpReadyState({
+    return createSpotlightReadyState({
       roundIndex: currentRound.index,
       players,
       gameMode: room?.game_mode,
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
   const questionIds = currentRound.questionIds.map(String)
   const currentQuestionId = String(questionIds[Math.max(0, currentIndex - currentRound.startIndex)] ?? room.question_ids?.[currentIndex] ?? "") || String((Array.isArray(room.question_ids) ? room.question_ids[currentIndex] : "") ?? "")
   const currentState = getCurrentHeadsUpState(room, currentRound, players)
-  const derivedStage = deriveHeadsUpStage({
+  const derivedStage = deriveSpotlightStage({
     roomPhase: room.phase,
     round: currentRound,
     rawState: currentState,
@@ -93,16 +93,16 @@ export async function POST(req: Request) {
   if (action === "host_start_turn" || action === "guesser_start_turn") {
     if (derivedStage !== "heads_up_ready") return NextResponse.json({ error: "The turn is not ready to start." }, { status: 400 })
     if (currentState.currentTurnIndex >= currentState.turnOrderPlayerIds.length || currentIndex > currentRound.endIndex) {
-      const nextState: HeadsUpRoomState = { ...currentState, status: "round_summary" }
+      const nextState: SpotlightRoomState = { ...currentState, status: "round_summary" }
       const updateRes = await supabaseAdmin
         .from("rooms")
-        .update({ heads_up_state: serialiseHeadsUpState(nextState), open_at: null, close_at: null, reveal_at: null, next_at: null })
+        .update({ heads_up_state: serialiseSpotlightState(nextState), open_at: null, close_at: null, reveal_at: null, next_at: null })
         .eq("id", room.id)
       if (updateRes.error) return NextResponse.json({ error: updateRes.error.message }, { status: 500 })
       return NextResponse.json({ ok: true, stage: "round_summary" })
     }
 
-    const readyTurn = getHeadsUpReadyTurnMeta({
+    const readyTurn = getSpotlightReadyTurnMeta({
       turnOrderPlayerIds: currentState.turnOrderPlayerIds,
       currentTurnIndex: currentState.currentTurnIndex,
       players,
@@ -117,8 +117,8 @@ export async function POST(req: Request) {
     }
 
     const now = new Date()
-    const closeAt = addSeconds(now, getHeadsUpTurnSeconds(currentRound))
-    const nextState: HeadsUpRoomState = {
+    const closeAt = addSeconds(now, getSpotlightTurnSeconds(currentRound))
+    const nextState: SpotlightRoomState = {
       ...currentState,
       status: "live",
       activeGuesserId: readyTurn.activeGuesserId,
@@ -136,7 +136,7 @@ export async function POST(req: Request) {
         close_at: closeAt.toISOString(),
         reveal_at: null,
         next_at: null,
-        heads_up_state: serialiseHeadsUpState(nextState),
+        heads_up_state: serialiseSpotlightState(nextState),
       })
       .eq("id", room.id)
 
@@ -152,7 +152,7 @@ export async function POST(req: Request) {
     if (!currentQuestionId) return NextResponse.json({ error: "No current card." }, { status: 400 })
 
     const now = new Date()
-    const actionValue: HeadsUpActionKind = action === "guesser_pass" ? "pass" : "correct"
+    const actionValue: SpotlightActionKind = action === "guesser_pass" ? "pass" : "correct"
     const nextActions = [...currentState.currentTurnActions, { questionId: currentQuestionId, action: actionValue, at: now.toISOString() }]
     const nextQuestionIndex = Math.min(currentIndex + 1, currentRound.endIndex + 1)
     const reachedEndOfPool = nextQuestionIndex > currentRound.endIndex
@@ -161,7 +161,7 @@ export async function POST(req: Request) {
       await applyScoreDelta(currentState.activeGuesserId, 1)
     }
 
-    const nextState: HeadsUpRoomState = {
+    const nextState: SpotlightRoomState = {
       ...currentState,
       currentTurnActions: nextActions,
       status: reachedEndOfPool ? "review" : "live",
@@ -169,7 +169,7 @@ export async function POST(req: Request) {
 
     const updatePayload: Record<string, unknown> = {
       question_index: reachedEndOfPool ? currentIndex : nextQuestionIndex,
-      heads_up_state: serialiseHeadsUpState(nextState),
+      heads_up_state: serialiseSpotlightState(nextState),
     }
 
     if (reachedEndOfPool) {
@@ -194,7 +194,7 @@ export async function POST(req: Request) {
     }
 
     const restoredQuestionIndex = findQuestionIndex(Array.isArray(room.question_ids) ? room.question_ids.map(String) : questionIds, lastAction.questionId)
-    const nextState: HeadsUpRoomState = {
+    const nextState: SpotlightRoomState = {
       ...currentState,
       currentTurnActions: currentState.currentTurnActions.slice(0, -1),
     }
@@ -203,7 +203,7 @@ export async function POST(req: Request) {
       .from("rooms")
       .update({
         question_index: restoredQuestionIndex >= 0 ? restoredQuestionIndex : currentIndex,
-        heads_up_state: serialiseHeadsUpState(nextState),
+        heads_up_state: serialiseSpotlightState(nextState),
       })
       .eq("id", room.id)
 
@@ -214,13 +214,13 @@ export async function POST(req: Request) {
   if (action === "host_end_turn") {
     if (derivedStage !== "heads_up_live") return NextResponse.json({ error: "The turn is not live." }, { status: 400 })
     const now = new Date().toISOString()
-    const nextState: HeadsUpRoomState = {
+    const nextState: SpotlightRoomState = {
       ...currentState,
       status: "review",
     }
     const updateRes = await supabaseAdmin
       .from("rooms")
-      .update({ close_at: now, reveal_at: null, next_at: null, heads_up_state: serialiseHeadsUpState(nextState) })
+      .update({ close_at: now, reveal_at: null, next_at: null, heads_up_state: serialiseSpotlightState(nextState) })
       .eq("id", room.id)
     if (updateRes.error) return NextResponse.json({ error: updateRes.error.message }, { status: 500 })
     return NextResponse.json({ ok: true, stage: "heads_up_review" })
@@ -242,7 +242,7 @@ export async function POST(req: Request) {
 
     const updateRes = await supabaseAdmin
       .from("rooms")
-      .update({ heads_up_state: serialiseHeadsUpState({ ...currentState, status: "review", currentTurnActions: nextActions }) })
+      .update({ heads_up_state: serialiseSpotlightState({ ...currentState, status: "review", currentTurnActions: nextActions }) })
       .eq("id", room.id)
 
     if (updateRes.error) return NextResponse.json({ error: updateRes.error.message }, { status: 500 })
@@ -255,7 +255,7 @@ export async function POST(req: Request) {
     }
     if (derivedStage !== "heads_up_review") return NextResponse.json({ error: "The turn is not in review." }, { status: 400 })
 
-    const completedTurn: HeadsUpCompletedTurn = {
+    const completedTurn: SpotlightCompletedTurn = {
       turnIndex: currentState.currentTurnIndex,
       activeGuesserId: String(currentState.activeGuesserId ?? "").trim(),
       activeTeamName: currentState.activeTeamName,
@@ -282,12 +282,12 @@ export async function POST(req: Request) {
     const roundComplete = nextTurnIndex >= currentState.turnOrderPlayerIds.length || nextQuestionIndex > currentRound.endIndex
     const nextReadyTurn = roundComplete
       ? { activeGuesserId: null, activeTeamName: null }
-      : getHeadsUpReadyTurnMeta({
+      : getSpotlightReadyTurnMeta({
           turnOrderPlayerIds: currentState.turnOrderPlayerIds,
           currentTurnIndex: nextTurnIndex,
           players,
         })
-    const nextState: HeadsUpRoomState = {
+    const nextState: SpotlightRoomState = {
       ...currentState,
       status: roundComplete ? "round_summary" : "ready",
       currentTurnIndex: nextTurnIndex,
@@ -307,7 +307,7 @@ export async function POST(req: Request) {
         close_at: null,
         reveal_at: null,
         next_at: null,
-        heads_up_state: serialiseHeadsUpState(nextState),
+        heads_up_state: serialiseSpotlightState(nextState),
       })
       .eq("id", room.id)
 

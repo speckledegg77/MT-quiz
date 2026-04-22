@@ -16,7 +16,7 @@ import { getGameProgressLabel, isInfiniteModeFromRound, isInfiniteModeFromRoundP
 import { shuffleMcqForRoom } from "@/lib/mcqShuffle"
 import { applyQuickfireFastestBonus, buildQuickfireRoundReview } from "@/lib/quickfire"
 import { getConfiguredAnswerSecondsForRound, getEffectiveRoundReviewSecondsForRound, isHeadsUpRound, isQuickfireRound, stageFromTimes } from "@/lib/roundFlow"
-import { deriveHeadsUpStage, getHeadsUpReadyTurnMeta, getHeadsUpRole, getHeadsUpTvDisplayMode, getHeadsUpTurnSeconds, normaliseHeadsUpRoomState } from "@/lib/headsUpGameplay"
+import { deriveSpotlightStage, getSpotlightReadyTurnMeta, getSpotlightRole, getSpotlightTvDisplayMode, getSpotlightTurnSeconds, normaliseSpotlightRoomState } from "@/lib/spotlightGameplay"
 import { advanceRoomIfReady } from "@/lib/roomProgress"
 
 type TeamPlayerRow = {
@@ -526,10 +526,10 @@ export async function GET(req: Request) {
   const roundSummaryEndsAt = buildRoundSummaryEndsAt(room.next_at, roundReviewSeconds)
 
   const headsUpState = isHeadsUpRound(currentRound)
-    ? normaliseHeadsUpRoomState(room?.heads_up_state, currentRound.index)
+    ? normaliseSpotlightRoomState(room?.heads_up_state, currentRound.index)
     : null
   const derivedHeadsUpStage = isHeadsUpRound(currentRound)
-    ? deriveHeadsUpStage({
+    ? deriveSpotlightStage({
         roomPhase: room.phase,
         round: currentRound,
         rawState: room?.heads_up_state,
@@ -736,7 +736,7 @@ export async function GET(req: Request) {
     const activeGuesser = players.find((player: any) => String(player?.id ?? "") === String(headsUpState.activeGuesserId ?? "")) ?? null
     const activeGuesserName = String(activeGuesser?.name ?? "").trim() || null
     const activeTeamName = headsUpState.activeTeamName || (activeGuesser ? String(activeGuesser?.team_name ?? "").trim() || null : null)
-    const nextReadyTurn = getHeadsUpReadyTurnMeta({
+    const nextReadyTurn = getSpotlightReadyTurnMeta({
       turnOrderPlayerIds: headsUpState.turnOrderPlayerIds,
       currentTurnIndex: Math.max(0, Number(headsUpState.currentTurnIndex ?? 0) || 0) + 1,
       players,
@@ -772,8 +772,8 @@ export async function GET(req: Request) {
 
     headsUp = {
       stage,
-      turnSeconds: getHeadsUpTurnSeconds(currentRound),
-      tvDisplayMode: getHeadsUpTvDisplayMode(currentRound),
+      turnSeconds: getSpotlightTurnSeconds(currentRound),
+      tvDisplayMode: getSpotlightTvDisplayMode(currentRound),
       activeGuesserId: headsUpState.activeGuesserId,
       activeGuesserName,
       activeTeamName,

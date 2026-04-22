@@ -3,7 +3,7 @@ export const runtime = "nodejs"
 import { NextResponse } from "next/server"
 import { findRoundForQuestionIndex, getEffectiveRoomRoundPlan, materialiseRoundPlan } from "@/lib/roomRoundPlan"
 import { applyQuickfireFastestBonus } from "@/lib/quickfire"
-import { normaliseHeadsUpRoomState, serialiseHeadsUpState } from "@/lib/headsUpGameplay"
+import { normaliseSpotlightRoomState, serialiseSpotlightState } from "@/lib/spotlightGameplay"
 import { buildPostCloseTimes } from "@/lib/roundFlow"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
@@ -60,14 +60,14 @@ export async function POST(req: Request) {
   const isHeadsUpRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
 
   if (isHeadsUpRound) {
-    const currentState = normaliseHeadsUpRoomState(room?.heads_up_state, currentRound.index)
+    const currentState = normaliseSpotlightRoomState(room?.heads_up_state, currentRound.index)
     const { error } = await supabaseAdmin
       .from("rooms")
       .update({
         close_at: now.toISOString(),
         reveal_at: null,
         next_at: null,
-        heads_up_state: serialiseHeadsUpState({ ...currentState, status: "review" }),
+        heads_up_state: serialiseSpotlightState({ ...currentState, status: "review" }),
       })
       .eq("id", room.id)
 

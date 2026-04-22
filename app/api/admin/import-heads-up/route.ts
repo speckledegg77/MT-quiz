@@ -5,16 +5,16 @@ import { parse } from "csv-parse/sync"
 
 import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/adminAuth"
 import {
-  buildHeadsUpNaturalKey,
-  cleanHeadsUpDifficulty,
-  cleanHeadsUpItemType,
-  HEADS_UP_DIFFICULTY_VALUES,
-  HEADS_UP_ITEM_TYPE_VALUES,
-  HEADS_UP_PERSON_ROLE_VALUES,
-  type HeadsUpDifficulty,
-  type HeadsUpItemType,
-  type HeadsUpPersonRole,
-} from "@/lib/headsUp"
+  buildSpotlightNaturalKey,
+  cleanSpotlightDifficulty,
+  cleanSpotlightItemType,
+  SPOTLIGHT_DIFFICULTY_VALUES,
+  SPOTLIGHT_ITEM_TYPE_VALUES,
+  SPOTLIGHT_PERSON_ROLE_VALUES,
+  type SpotlightDifficulty,
+  type SpotlightItemType,
+  type SpotlightPersonRole,
+} from "@/lib/spotlight"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 type CsvRow = {
@@ -41,9 +41,9 @@ type PlannedOperation = {
   resolvedItemId: string | null
   action: "create" | "update"
   answerText: string
-  itemType: HeadsUpItemType
-  personRoles: HeadsUpPersonRole[] | null
-  difficulty: HeadsUpDifficulty
+  itemType: SpotlightItemType
+  personRoles: SpotlightPersonRole[] | null
+  difficulty: SpotlightDifficulty
   primaryShowKey: string | null
   notes: string
   isActive: boolean
@@ -75,7 +75,7 @@ function buildExistingNaturalKeyMap(items: ExistingItem[]) {
   const map = new Map<string, ExistingItem[]>()
 
   for (const item of items) {
-    const key = buildHeadsUpNaturalKey({
+    const key = buildSpotlightNaturalKey({
       answerText: item.answer_text,
       itemType: item.item_type,
       primaryShowKey: item.primary_show_key,
@@ -208,10 +208,10 @@ export async function POST(req: Request) {
       const itemId = String(row.item_id ?? "").trim()
       const answerText = String(row.answer_text ?? "").trim()
       const itemTypeRaw = String(row.item_type ?? "").trim().toLowerCase()
-      const itemType = cleanHeadsUpItemType(itemTypeRaw)
+      const itemType = cleanSpotlightItemType(itemTypeRaw)
       const personRolesRaw = parsePipeList(row.person_roles)
       const difficultyRaw = String(row.difficulty ?? "").trim().toLowerCase()
-      const difficulty = cleanHeadsUpDifficulty(difficultyRaw)
+      const difficulty = cleanSpotlightDifficulty(difficultyRaw)
       const primaryShowKey = String(row.primary_show_key ?? "").trim() || null
       const notes = String(row.notes ?? "").trim()
       const isActive = parseBoolean(row.is_active)
@@ -222,21 +222,21 @@ export async function POST(req: Request) {
         continue
       }
 
-      if (!HEADS_UP_ITEM_TYPE_VALUES.includes(itemTypeRaw as HeadsUpItemType)) {
+      if (!SPOTLIGHT_ITEM_TYPE_VALUES.includes(itemTypeRaw as SpotlightItemType)) {
         rowErrors.push(
           formatRowError(
             rowNumber,
-            `item_type must be one of: ${HEADS_UP_ITEM_TYPE_VALUES.join(", ")}.`
+            `item_type must be one of: ${SPOTLIGHT_ITEM_TYPE_VALUES.join(", ")}.`
           )
         )
         continue
       }
 
-      if (!HEADS_UP_DIFFICULTY_VALUES.includes(difficultyRaw as HeadsUpDifficulty)) {
+      if (!SPOTLIGHT_DIFFICULTY_VALUES.includes(difficultyRaw as SpotlightDifficulty)) {
         rowErrors.push(
           formatRowError(
             rowNumber,
-            `difficulty must be one of: ${HEADS_UP_DIFFICULTY_VALUES.join(", ")}.`
+            `difficulty must be one of: ${SPOTLIGHT_DIFFICULTY_VALUES.join(", ")}.`
           )
         )
         continue
@@ -252,7 +252,7 @@ export async function POST(req: Request) {
         continue
       }
 
-      let personRoles: HeadsUpPersonRole[] | null = null
+      let personRoles: SpotlightPersonRole[] | null = null
 
       if (itemType === "person") {
         if (!personRolesRaw.length) {
@@ -261,7 +261,7 @@ export async function POST(req: Request) {
         }
 
         const invalidRoles = personRolesRaw.filter(
-          (role) => !HEADS_UP_PERSON_ROLE_VALUES.includes(role as HeadsUpPersonRole)
+          (role) => !SPOTLIGHT_PERSON_ROLE_VALUES.includes(role as SpotlightPersonRole)
         )
 
         if (invalidRoles.length) {
@@ -274,13 +274,13 @@ export async function POST(req: Request) {
           continue
         }
 
-        personRoles = personRolesRaw as HeadsUpPersonRole[]
+        personRoles = personRolesRaw as SpotlightPersonRole[]
       } else if (personRolesRaw.length) {
         rowErrors.push(formatRowError(rowNumber, "person_roles can only be used when item_type is person."))
         continue
       }
 
-      const naturalKey = buildHeadsUpNaturalKey({
+      const naturalKey = buildSpotlightNaturalKey({
         answerText,
         itemType,
         primaryShowKey,

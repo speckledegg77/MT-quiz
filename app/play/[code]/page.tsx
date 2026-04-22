@@ -11,7 +11,7 @@ import RoundSummaryCard from "@/components/RoundSummaryCard"
 import PageShell from "@/components/PageShell"
 import { getGameProgressLabel, getRoundBehaviourBadgeClass, getRoundBehaviourLabel, getRunBadgeLabel, getStagePillClass, getStageStatusText, isInfiniteFinalStage, isInfiniteModeFromState } from "@/lib/gameMode"
 import { deriveClientStageFromTimes, getAnswerWindowLabel, shouldSuppressQuestionBetweenRounds } from "@/lib/roundFlow"
-import { getHeadsUpRole } from "@/lib/headsUpGameplay"
+import { getSpotlightRole } from "@/lib/spotlightGameplay"
 
 type RoomState = any
 
@@ -230,7 +230,7 @@ export default function PlayerPage() {
 
   const headsUpRole = useMemo(() => {
     if (!isHeadsUpRound) return "spectator" as const
-    return getHeadsUpRole({
+    return getSpotlightRole({
       playerId,
       playerTeamName: String(myPlayer?.team_name ?? teamName ?? "").trim() || null,
       activeGuesserId: String(headsUp?.activeGuesserId ?? "").trim() || null,
@@ -805,7 +805,7 @@ export default function PlayerPage() {
     const currentStage = String(state?.stage ?? "")
     const isHeadsUpBehaviour = String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
     const currentRole = isHeadsUpBehaviour
-      ? getHeadsUpRole({
+      ? getSpotlightRole({
           playerId,
           playerTeamName: String(myPlayer?.team_name ?? teamName ?? "").trim() || null,
           activeGuesserId: String(state?.headsUp?.activeGuesserId ?? "").trim() || null,

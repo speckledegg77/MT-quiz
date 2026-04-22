@@ -26,7 +26,7 @@ import {
   type ManualRoundDraftInput,
   type QuestionCandidate,
 } from "../../../../lib/manualRoundPlanBuilder"
-import { buildHeadsUpSyntheticQuestionId, cleanHeadsUpDifficulty } from "../../../../lib/headsUp"
+import { buildSpotlightSyntheticQuestionId, cleanSpotlightDifficulty } from "../../../../lib/spotlight"
 import { normaliseMediaDurationMs } from "../../../../lib/quickfireEligibility"
 import { chooseDistinctRoundTemplatesRandomised, countDistinctRoundTemplateFamilies } from "../../../../lib/roundTemplateFamilies"
 
@@ -328,7 +328,7 @@ async function loadCandidatePoolForManualRounds(params: {
       const itemRaw = Array.isArray(row.heads_up_items) ? row.heads_up_items[0] : row.heads_up_items
       if (!packId || !itemId || !itemRaw || itemRaw.is_active === false) continue
 
-      const syntheticId = buildHeadsUpSyntheticQuestionId(itemId)
+      const syntheticId = buildSpotlightSyntheticQuestionId(itemId)
       const existing = candidatesById.get(syntheticId)
       if (existing) {
         if (!existing.packIds.includes(packId)) existing.packIds.push(packId)
@@ -347,7 +347,7 @@ async function loadCandidatePoolForManualRounds(params: {
         mediaDurationMs: null,
         audioClipType: null,
         packIds: [packId],
-        headsUpDifficulty: cleanHeadsUpDifficulty(String(itemRaw.difficulty ?? "medium")),
+        headsUpDifficulty: cleanSpotlightDifficulty(String(itemRaw.difficulty ?? "medium")),
       })
     }
   }

@@ -5,14 +5,14 @@ import { z } from "zod"
 
 import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/adminAuth"
 import {
-  buildHeadsUpNaturalKey,
-  cleanHeadsUpDifficulty,
-  cleanHeadsUpItemType,
-  cleanHeadsUpPersonRoles,
-  HEADS_UP_DIFFICULTY_VALUES,
-  HEADS_UP_ITEM_TYPE_VALUES,
-  HEADS_UP_PERSON_ROLE_VALUES,
-} from "@/lib/headsUp"
+  buildSpotlightNaturalKey,
+  cleanSpotlightDifficulty,
+  cleanSpotlightItemType,
+  cleanSpotlightPersonRoles,
+  SPOTLIGHT_DIFFICULTY_VALUES,
+  SPOTLIGHT_ITEM_TYPE_VALUES,
+  SPOTLIGHT_PERSON_ROLE_VALUES,
+} from "@/lib/spotlight"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 type RouteContext = {
@@ -24,9 +24,9 @@ type RouteContext = {
 const updateHeadsUpItemSchema = z
   .object({
     answerText: z.string().trim().min(1, "Answer text is required.").optional(),
-    itemType: z.enum(HEADS_UP_ITEM_TYPE_VALUES).optional(),
-    personRoles: z.array(z.enum(HEADS_UP_PERSON_ROLE_VALUES)).optional(),
-    difficulty: z.enum(HEADS_UP_DIFFICULTY_VALUES).optional(),
+    itemType: z.enum(SPOTLIGHT_ITEM_TYPE_VALUES).optional(),
+    personRoles: z.array(z.enum(SPOTLIGHT_PERSON_ROLE_VALUES)).optional(),
+    difficulty: z.enum(SPOTLIGHT_DIFFICULTY_VALUES).optional(),
     primaryShowKey: z.string().trim().nullable().optional(),
     notes: z.string().optional(),
     isActive: z.boolean().optional(),
@@ -58,7 +58,7 @@ async function findDuplicateHeadsUpItem(params: {
   let query = supabaseAdmin
     .from("heads_up_items")
     .select("id, answer_text, item_type, primary_show_key")
-    .eq("item_type", cleanHeadsUpItemType(params.itemType))
+    .eq("item_type", cleanSpotlightItemType(params.itemType))
 
   if (params.primaryShowKey) {
     query = query.eq("primary_show_key", params.primaryShowKey)
@@ -72,7 +72,7 @@ async function findDuplicateHeadsUpItem(params: {
     return { error: result.error.message, duplicateId: null as string | null }
   }
 
-  const targetKey = buildHeadsUpNaturalKey({
+  const targetKey = buildSpotlightNaturalKey({
     answerText: params.answerText,
     itemType: params.itemType,
     primaryShowKey: params.primaryShowKey,
@@ -81,7 +81,7 @@ async function findDuplicateHeadsUpItem(params: {
   const match = (result.data ?? []).find((item) => {
     if (params.excludeId && item.id === params.excludeId) return false
     return (
-      buildHeadsUpNaturalKey({
+      buildSpotlightNaturalKey({
         answerText: item.answer_text,
         itemType: item.item_type,
         primaryShowKey: item.primary_show_key,
@@ -128,12 +128,12 @@ export async function PATCH(req: Request, context: RouteContext) {
   }
 
   const nextAnswerText = parsed.data.answerText?.trim() || existingRes.data.answer_text
-  const nextItemType = cleanHeadsUpItemType(parsed.data.itemType ?? existingRes.data.item_type)
+  const nextItemType = cleanSpotlightItemType(parsed.data.itemType ?? existingRes.data.item_type)
   const nextPrimaryShowKey =
     parsed.data.primaryShowKey !== undefined
       ? parsed.data.primaryShowKey?.trim() || null
       : existingRes.data.primary_show_key
-  const nextPersonRoles = cleanHeadsUpPersonRoles(
+  const nextPersonRoles = cleanSpotlightPersonRoles(
     parsed.data.personRoles ?? (Array.isArray(existingRes.data.person_roles) ? existingRes.data.person_roles : undefined),
     nextItemType
   )
@@ -166,7 +166,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   if (parsed.data.answerText !== undefined) update.answer_text = nextAnswerText
   if (parsed.data.itemType !== undefined) update.item_type = nextItemType
   if (parsed.data.personRoles !== undefined || parsed.data.itemType !== undefined) update.person_roles = nextPersonRoles
-  if (parsed.data.difficulty !== undefined) update.difficulty = cleanHeadsUpDifficulty(parsed.data.difficulty)
+  if (parsed.data.difficulty !== undefined) update.difficulty = cleanSpotlightDifficulty(parsed.data.difficulty)
   if (parsed.data.primaryShowKey !== undefined) update.primary_show_key = nextPrimaryShowKey
   if (parsed.data.notes !== undefined) update.notes = String(parsed.data.notes).trim()
   if (parsed.data.isActive !== undefined) update.is_active = parsed.data.isActive

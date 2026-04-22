@@ -1,4 +1,4 @@
-import { createHeadsUpReadyState, deriveHeadsUpStage, getHeadsUpReadyTurnMeta, normaliseHeadsUpRoomState, serialiseHeadsUpState, type HeadsUpCompletedTurn, type HeadsUpRoomState } from "@/lib/headsUpGameplay"
+import { createSpotlightReadyState, deriveSpotlightStage, getSpotlightReadyTurnMeta, normaliseSpotlightRoomState, serialiseSpotlightState, type SpotlightCompletedTurn, type SpotlightRoomState } from "@/lib/spotlightGameplay"
 import { findRoundForQuestionIndex, getEffectiveRoomRoundPlan, materialiseRoundPlan } from "@/lib/roomRoundPlan"
 import { buildQuestionTimesForRound, getEffectiveRoundReviewSecondsForRound } from "@/lib/roundFlow"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
@@ -45,9 +45,9 @@ function buildRoundSummaryEndsAt(nextAt: string | null | undefined, roundReviewS
 }
 
 function getCurrentHeadsUpState(room: any, currentRound: any, players: any[]) {
-  const base = normaliseHeadsUpRoomState(room?.heads_up_state, currentRound.index)
+  const base = normaliseSpotlightRoomState(room?.heads_up_state, currentRound.index)
   if (base.roundIndex !== currentRound.index || base.turnOrderPlayerIds.length === 0) {
-    return createHeadsUpReadyState({
+    return createSpotlightReadyState({
       roundIndex: currentRound.index,
       players,
       gameMode: room?.game_mode,
@@ -89,7 +89,7 @@ async function autoConfirmHeadsUpReview(params: {
   const fullQuestionIds = roundPlan.flatMap((round) => round.questionIds).map(String)
   const currentVisibleQuestionId = String(fullQuestionIds[currentIndex] ?? "").trim()
 
-  const completedTurn: HeadsUpCompletedTurn = {
+  const completedTurn: SpotlightCompletedTurn = {
     turnIndex: currentState.currentTurnIndex,
     activeGuesserId: String(currentState.activeGuesserId ?? "").trim(),
     activeTeamName: currentState.activeTeamName,
@@ -114,13 +114,13 @@ async function autoConfirmHeadsUpReview(params: {
   const roundComplete = nextTurnIndex >= currentState.turnOrderPlayerIds.length || nextQuestionIndex > currentRound.endIndex
   const nextReadyTurn = roundComplete
     ? { activeGuesserId: null, activeTeamName: null }
-    : getHeadsUpReadyTurnMeta({
+    : getSpotlightReadyTurnMeta({
         turnOrderPlayerIds: currentState.turnOrderPlayerIds,
         currentTurnIndex: nextTurnIndex,
         players,
       })
 
-  const nextState: HeadsUpRoomState = {
+  const nextState: SpotlightRoomState = {
     ...currentState,
     status: roundComplete ? "round_summary" : "ready",
     currentTurnIndex: nextTurnIndex,
@@ -140,7 +140,7 @@ async function autoConfirmHeadsUpReview(params: {
       close_at: null,
       reveal_at: null,
       next_at: null,
-      heads_up_state: serialiseHeadsUpState(nextState),
+      heads_up_state: serialiseSpotlightState(nextState),
     })
     .eq("id", room.id)
     .eq("phase", "running")
@@ -214,7 +214,7 @@ export async function advanceRoomIfReady(params: {
 
   if (isHeadsUp) {
     stage =
-      deriveHeadsUpStage({
+      deriveSpotlightStage({
         roomPhase: room.phase,
         round: currentRound,
         rawState: room.heads_up_state,
@@ -318,8 +318,8 @@ export async function advanceRoomIfReady(params: {
     updatePayload.close_at = null
     updatePayload.reveal_at = null
     updatePayload.next_at = null
-    updatePayload.heads_up_state = serialiseHeadsUpState(
-      createHeadsUpReadyState({
+    updatePayload.heads_up_state = serialiseSpotlightState(
+      createSpotlightReadyState({
         roundIndex: nextRound.index,
         players: playersRes.data ?? [],
         gameMode: room.game_mode,

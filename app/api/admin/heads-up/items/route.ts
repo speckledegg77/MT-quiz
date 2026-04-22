@@ -5,21 +5,21 @@ import { z } from "zod"
 
 import { isAuthorisedAdminRequest, unauthorisedAdminResponse } from "@/lib/adminAuth"
 import {
-  buildHeadsUpNaturalKey,
-  cleanHeadsUpDifficulty,
-  cleanHeadsUpItemType,
-  cleanHeadsUpPersonRoles,
-  HEADS_UP_DIFFICULTY_VALUES,
-  HEADS_UP_ITEM_TYPE_VALUES,
-  HEADS_UP_PERSON_ROLE_VALUES,
-} from "@/lib/headsUp"
+  buildSpotlightNaturalKey,
+  cleanSpotlightDifficulty,
+  cleanSpotlightItemType,
+  cleanSpotlightPersonRoles,
+  SPOTLIGHT_DIFFICULTY_VALUES,
+  SPOTLIGHT_ITEM_TYPE_VALUES,
+  SPOTLIGHT_PERSON_ROLE_VALUES,
+} from "@/lib/spotlight"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 
 const createHeadsUpItemSchema = z.object({
   answerText: z.string().trim().min(1, "Answer text is required."),
-  itemType: z.enum(HEADS_UP_ITEM_TYPE_VALUES),
-  personRoles: z.array(z.enum(HEADS_UP_PERSON_ROLE_VALUES)).optional(),
-  difficulty: z.enum(HEADS_UP_DIFFICULTY_VALUES).default("medium"),
+  itemType: z.enum(SPOTLIGHT_ITEM_TYPE_VALUES),
+  personRoles: z.array(z.enum(SPOTLIGHT_PERSON_ROLE_VALUES)).optional(),
+  difficulty: z.enum(SPOTLIGHT_DIFFICULTY_VALUES).default("medium"),
   primaryShowKey: z.string().trim().nullable().optional(),
   notes: z.string().optional(),
   isActive: z.boolean().optional(),
@@ -85,7 +85,7 @@ async function findDuplicateHeadsUpItem(params: {
   let query = supabaseAdmin
     .from("heads_up_items")
     .select("id, answer_text, item_type, primary_show_key")
-    .eq("item_type", cleanHeadsUpItemType(params.itemType))
+    .eq("item_type", cleanSpotlightItemType(params.itemType))
 
   if (params.primaryShowKey) {
     query = query.eq("primary_show_key", params.primaryShowKey)
@@ -99,7 +99,7 @@ async function findDuplicateHeadsUpItem(params: {
     return { error: result.error.message, duplicateId: null as string | null }
   }
 
-  const targetKey = buildHeadsUpNaturalKey({
+  const targetKey = buildSpotlightNaturalKey({
     answerText: params.answerText,
     itemType: params.itemType,
     primaryShowKey: params.primaryShowKey,
@@ -108,7 +108,7 @@ async function findDuplicateHeadsUpItem(params: {
   const match = (result.data ?? []).find((item) => {
     if (params.excludeId && item.id === params.excludeId) return false
     return (
-      buildHeadsUpNaturalKey({
+      buildSpotlightNaturalKey({
         answerText: item.answer_text,
         itemType: item.item_type,
         primaryShowKey: item.primary_show_key,
@@ -150,9 +150,9 @@ export async function POST(req: Request) {
     )
   }
 
-  const itemType = cleanHeadsUpItemType(parsed.data.itemType)
+  const itemType = cleanSpotlightItemType(parsed.data.itemType)
   const primaryShowKey = parsed.data.primaryShowKey?.trim() || null
-  const personRoles = cleanHeadsUpPersonRoles(parsed.data.personRoles, itemType)
+  const personRoles = cleanSpotlightPersonRoles(parsed.data.personRoles, itemType)
   const packIds = cleanPackIds(parsed.data.packIds)
 
   const duplicateCheck = await findDuplicateHeadsUpItem({
@@ -181,7 +181,7 @@ export async function POST(req: Request) {
       answer_text: parsed.data.answerText.trim(),
       item_type: itemType,
       person_roles: personRoles,
-      difficulty: cleanHeadsUpDifficulty(parsed.data.difficulty),
+      difficulty: cleanSpotlightDifficulty(parsed.data.difficulty),
       primary_show_key: primaryShowKey,
       notes: String(parsed.data.notes ?? "").trim(),
       is_active: parsed.data.isActive ?? true,
