@@ -82,6 +82,8 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 ## UI and code conventions
 
 - Host setup should default to a Simple path for quick game creation, with Advanced setup hidden behind an explicit button.
+- `/host` should now act as a landing page that helps hosts choose between the easy setup wizard and the existing direct host controls.
+- The easy setup wizard is quiz-first and novice-friendly. It should create a normal room on the existing round-plan model, not a separate setup engine.
 - Simple host setup is a UI layer only. It still builds a real `round_plan` under the hood, rather than creating a separate game engine.
 - Advanced setup keeps the full round builder, template tools, metadata filters, timing overrides, and legacy compatibility options.
 - For standard show-based rounds, metadata-led selection should be preferred over keeping one visible host pack per show.

@@ -263,6 +263,9 @@ Rules:
 ## Host page
 
 Rules:
+- `/host` should now work as a path-chooser first, not as the full power-tool screen.
+- the landing page should explain the host screen, TV display, and player phones in plain language before asking the user to choose a path.
+- the easy wizard should keep the next step obvious and hand off cleanly into the existing host controls once the room is created.
 - clear game-building workflow
 - strong hierarchy between round setup and supporting panels
 - sticky or fixed secondary panels are fine when they aid setup
@@ -322,6 +325,7 @@ Update this guide when:
 - a new form or list style becomes the preferred approach
 - a new helper-text or tooltip rule is agreed
 - a substantial UI pass changes the direction of a screen
-- host setup should open in a simple, low-friction mode by default
+- host setup should open from a simple, low-friction landing page by default
+- the landing page should make the difference between easy setup and existing host controls obvious at a glance
 - advanced host controls should stay hidden behind an explicit button or reveal
 - quick-start flows should use sensible recommended defaults and preview the resulting plan when possible

@@ -70,7 +70,9 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 ## Main routes
 
 - `/` home
-- `/host` host setup and live host controls
+- `/host` host landing page that routes into easy setup or direct host controls
+- `/host/wizard` easy setup wizard for first-time or casual hosts
+- `/host/direct` existing host setup and live host controls
 - `/join?code=XXXX` join a room
 - `/play/[code]` player phone screen
 - `/display/[code]` TV screen
@@ -89,6 +91,9 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - Solo mode
 
 ### Lobby
+- `/host` is now a landing page that helps the user choose between the easy setup wizard and the existing direct host controls.
+- The easy setup wizard is quiz-first and guides the host through room creation, TV launch, player joining, and start.
+- The direct host page keeps the current Simple and Advanced setup tools plus the live control centre.
 - Host setup now has a Simple path for quick game creation and an Advanced path for the full round builder.
 - Simple mode uses ready round templates to assemble a recommended game plan, while Advanced keeps the existing manual, quick-random, and legacy controls.
 - Host creates a room and can choose timing, rounds, audio mode, and round-plan setup.

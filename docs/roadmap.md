@@ -4,6 +4,7 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Current priority
 
+- [ ] Finish polishing the new host landing page and easy setup wizard after first live testing, especially the handoff into the full host controls.
 - [ ] Add host-side answer adjudication so disputed text answers can be reviewed and corrected safely during a live room.
 - [ ] Build better answer-audit tools into the admin questions page so text-answer cleanup is faster and safer.
 - [ ] Keep consolidating the round-plan model so packs stay content sources and rounds stay gameplay definitions.
@@ -69,6 +70,7 @@ This file tracks the live plan. Keep it short and practical.
 - [x] Heads Up v1 data model and admin workflow with separate items and pack management.
 - [x] Heads Up v2 turn-based gameplay with role-based player views, TV clue toggle, and 60s or 90s turn options.
 - [x] Shared round-flow cleanup for stage labels, mode badges, and stale-question suppression across Host, Player, and Display.
+- [x] Add a dedicated `/host` landing page plus a quiz-first easy setup wizard, while keeping the existing host page available as the direct control path.
 - [x] Simple vs Advanced host creation split started, with Simple mode driven by ready round templates and Advanced kept as the power-tool path.
 - [x] Quickfire v1 as a real round behaviour.
 - [x] Quickfire fastest-correct bonus scoring.

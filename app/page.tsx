@@ -1,6 +1,6 @@
-import Link from "next/link";
+import Link from "next/link"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card"
 
 export default function HomePage() {
   return (
@@ -8,7 +8,7 @@ export default function HomePage() {
       <div className="mb-8">
         <h1 className="text-3xl font-semibold">Musical Theatre Quiz</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Host creates a room, teams join on their phones, and the TV display runs the questions.
+          Host creates a room, the TV display shows the quiz, and players answer on their phones.
         </p>
       </div>
 
@@ -20,7 +20,7 @@ export default function HomePage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Create a room, choose packs and settings, then start the game.
+                Start with the easy setup wizard, or open the existing host controls if you already know the flow.
               </p>
               <div className="text-sm font-medium">Go to Host →</div>
             </CardContent>
@@ -43,8 +43,8 @@ export default function HomePage() {
       </div>
 
       <div className="mt-8 rounded-xl border border-border bg-muted p-4 text-sm text-muted-foreground">
-        Tip: after you create a room, the host screen shows a join link and QR code.
+        Tip: after you create a room, open the TV display on the room screen and let players join from their phones.
       </div>
     </main>
-  );
+  )
 }
