@@ -55,13 +55,15 @@ export function cleanSpotlightTvDisplayMode(raw: unknown): SpotlightTvDisplayMod
 }
 
 export function getSpotlightTurnSeconds(round: { behaviourType?: unknown; answerSeconds?: unknown } | null | undefined) {
-  if (String(round?.behaviourType ?? "").trim().toLowerCase() !== "heads_up") return 60
+  const behaviourType = String(round?.behaviourType ?? "").trim().toLowerCase()
+  if (behaviourType !== "spotlight" && behaviourType !== "heads_up") return 60
   const value = Math.floor(Number(round?.answerSeconds ?? 60))
   return value === 90 ? 90 : 60
 }
 
 export function getSpotlightTvDisplayMode(round: { behaviourType?: unknown; headsUpTvDisplayMode?: unknown; spotlightTvDisplayMode?: unknown } | null | undefined) {
-  if (String(round?.behaviourType ?? "").trim().toLowerCase() !== "heads_up") return "show_clue" as SpotlightTvDisplayMode
+  const behaviourType = String(round?.behaviourType ?? "").trim().toLowerCase()
+  if (behaviourType !== "spotlight" && behaviourType !== "heads_up") return "show_clue" as SpotlightTvDisplayMode
   return cleanSpotlightTvDisplayMode(round?.spotlightTvDisplayMode ?? round?.headsUpTvDisplayMode)
 }
 
@@ -235,7 +237,8 @@ export function deriveSpotlightStage(params: {
   closeAt?: unknown
 }) {
   if (String(params.roomPhase ?? "").trim().toLowerCase() !== "running") return null
-  if (String(params.round?.behaviourType ?? "").trim().toLowerCase() !== "heads_up") return null
+  const behaviourType = String(params.round?.behaviourType ?? "").trim().toLowerCase()
+  if (behaviourType !== "spotlight" && behaviourType !== "heads_up") return null
 
   const state = normaliseSpotlightRoomState(params.rawState, params.round?.index ?? 0)
   const closeAtMs = params.closeAt ? Date.parse(String(params.closeAt)) : Number.NaN

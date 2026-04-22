@@ -232,7 +232,7 @@ export default function DisplayPage() {
   useEffect(() => {
     const currentStage = String(state?.stage ?? "");
     const shouldPlayCountdownCue =
-      String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "heads_up" &&
+      String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "spotlight" &&
       currentStage === "heads_up_live";
 
     if (!shouldPlayCountdownCue) {
@@ -296,7 +296,7 @@ export default function DisplayPage() {
   const finished = state.phase === "finished";
   const currentRound = state?.rounds?.current ?? null;
   const isQuickfireRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "quickfire";
-  const isHeadsUpRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "heads_up";
+  const isHeadsUpRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight";
   const progressLabel = String(state?.progress?.label ?? "");
   const questionNumber = Number(state.questionIndex ?? 0) + 1;
   const questionCount = Number(state.questionCount ?? 0);

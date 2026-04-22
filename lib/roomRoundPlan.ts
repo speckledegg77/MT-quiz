@@ -1,5 +1,5 @@
 export type RoomBuildMode = "legacy_pack_mode" | "manual_rounds" | "auto_rounds" | "quick_random"
-export type RoundBehaviourType = "standard" | "quickfire" | "heads_up"
+export type RoundBehaviourType = "standard" | "quickfire" | "spotlight"
 export type RoundSourceMode = "selected_packs" | "specific_packs" | "all_questions"
 
 export type RoundSelectionRules = {
@@ -9,10 +9,12 @@ export type RoundSelectionRules = {
   clueSources?: string[]
   primaryShowKeys?: string[]
   audioClipTypes?: string[]
+  spotlightDifficulties?: string[]
   headsUpDifficulties?: string[]
 }
 
-export type HeadsUpTvDisplayMode = "show_clue" | "timer_only"
+export type SpotlightTvDisplayMode = "show_clue" | "timer_only"
+export type HeadsUpTvDisplayMode = SpotlightTvDisplayMode
 
 export type RoundPlanItem = {
   id: string
@@ -26,7 +28,8 @@ export type RoundPlanItem = {
   selectionRules: RoundSelectionRules
   answerSeconds?: number
   roundReviewSeconds?: number
-  headsUpTvDisplayMode?: HeadsUpTvDisplayMode
+  spotlightTvDisplayMode?: SpotlightTvDisplayMode
+  headsUpTvDisplayMode?: SpotlightTvDisplayMode
   questionIds: string[]
 }
 
@@ -47,13 +50,13 @@ export type EffectiveRoundPlanItem = RoundPlanItem & {
 
 export function getDefaultAnswerSecondsForBehaviour(behaviourType: RoundBehaviourType) {
   if (behaviourType === "quickfire") return 10
-  if (behaviourType === "heads_up") return 60
+  if (behaviourType === "spotlight") return 60
   return 20
 }
 
 export function getDefaultRoundReviewSecondsForBehaviour(behaviourType: RoundBehaviourType) {
   if (behaviourType === "quickfire") return 45
-  if (behaviourType === "heads_up") return 20
+  if (behaviourType === "spotlight") return 20
   return 30
 }
 
@@ -115,14 +118,14 @@ function normaliseSourceMode(raw: unknown): RoundSourceMode {
   return "selected_packs"
 }
 
-function normaliseHeadsUpTvDisplayMode(raw: unknown): HeadsUpTvDisplayMode {
+function normaliseSpotlightTvDisplayMode(raw: unknown): SpotlightTvDisplayMode {
   return String(raw ?? "").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only"
 }
 
 function normaliseBehaviourType(raw: unknown): RoundBehaviourType {
   const value = String(raw ?? "").trim().toLowerCase()
   if (value === "quickfire") return "quickfire"
-  if (value === "heads_up") return "heads_up"
+  if (value === "spotlight" || value === "heads_up") return "spotlight"
   return "standard"
 }
 
@@ -139,7 +142,7 @@ function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
     audioClipTypes: cleanStringArray(value.audioClipTypes),
-    headsUpDifficulties: cleanStringArray(value.headsUpDifficulties),
+    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties ?? value.headsUpDifficulties),
   }
 }
 
@@ -177,6 +180,7 @@ export function buildLegacyRoomRoundPlan(
       selectionRules: {},
       answerSeconds: getDefaultAnswerSecondsForBehaviour("standard"),
       roundReviewSeconds: getDefaultRoundReviewSecondsForBehaviour("standard"),
+      spotlightTvDisplayMode: undefined,
       headsUpTvDisplayMode: undefined,
       questionIds: slice,
     })
@@ -208,14 +212,15 @@ function normaliseStoredRoundPlan(raw: unknown): RoomRoundPlan | null {
         name: String(round.name ?? "").trim() || defaultRoundName(index),
         behaviourType,
         questionCount: Math.max(0, Math.floor(Number(round.questionCount ?? questionIds.length ?? 0)) || questionIds.length),
-        jokerEligible: behaviourType === "heads_up" ? false : Boolean(round.jokerEligible ?? true),
-        countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(round.countsTowardsScore ?? true),
+        jokerEligible: behaviourType === "spotlight" ? false : Boolean(round.jokerEligible ?? true),
+        countsTowardsScore: behaviourType === "spotlight" ? false : Boolean(round.countsTowardsScore ?? true),
         sourceMode: normaliseSourceMode(round.sourceMode),
         packIds: cleanStringArray(round.packIds),
         selectionRules: normaliseSelectionRules(round.selectionRules),
         answerSeconds: cleanOptionalNonNegativeInt(round.answerSeconds),
         roundReviewSeconds: cleanOptionalNonNegativeInt(round.roundReviewSeconds),
-        headsUpTvDisplayMode: behaviourType === "heads_up" ? normaliseHeadsUpTvDisplayMode(round.headsUpTvDisplayMode) : undefined,
+        spotlightTvDisplayMode: behaviourType === "spotlight" ? normaliseSpotlightTvDisplayMode(round.spotlightTvDisplayMode ?? round.headsUpTvDisplayMode) : undefined,
+        headsUpTvDisplayMode: undefined,
         questionIds,
       }
     })

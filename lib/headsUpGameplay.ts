@@ -55,13 +55,13 @@ export function cleanHeadsUpTvDisplayMode(raw: unknown): HeadsUpTvDisplayMode {
 }
 
 export function getHeadsUpTurnSeconds(round: { behaviourType?: unknown; answerSeconds?: unknown } | null | undefined) {
-  if (String(round?.behaviourType ?? "").trim().toLowerCase() !== "heads_up") return 60
+  if (String(round?.behaviourType ?? "").trim().toLowerCase() !== "spotlight") return 60
   const value = Math.floor(Number(round?.answerSeconds ?? 60))
   return value === 90 ? 90 : 60
 }
 
 export function getHeadsUpTvDisplayMode(round: { behaviourType?: unknown; headsUpTvDisplayMode?: unknown } | null | undefined) {
-  if (String(round?.behaviourType ?? "").trim().toLowerCase() !== "heads_up") return "show_clue" as HeadsUpTvDisplayMode
+  if (String(round?.behaviourType ?? "").trim().toLowerCase() !== "spotlight") return "show_clue" as HeadsUpTvDisplayMode
   return cleanHeadsUpTvDisplayMode(round?.headsUpTvDisplayMode)
 }
 
@@ -235,7 +235,7 @@ export function deriveHeadsUpStage(params: {
   closeAt?: unknown
 }) {
   if (String(params.roomPhase ?? "").trim().toLowerCase() !== "running") return null
-  if (String(params.round?.behaviourType ?? "").trim().toLowerCase() !== "heads_up") return null
+  if (String(params.round?.behaviourType ?? "").trim().toLowerCase() !== "spotlight") return null
 
   const state = normaliseHeadsUpRoomState(params.rawState, params.round?.index ?? 0)
   const closeAtMs = params.closeAt ? Date.parse(String(params.closeAt)) : Number.NaN

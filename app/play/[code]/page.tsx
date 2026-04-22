@@ -193,7 +193,7 @@ export default function PlayerPage() {
   }, [correctIndex, inReveal, isTextQ, submittedIndex, typedIsCorrect, typedSubmitted])
   const currentRound = state?.rounds?.current ?? null
   const isQuickfireRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "quickfire"
-  const isHeadsUpRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
+  const isHeadsUpRound = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
   const headsUp = state?.headsUp ?? null
   const headsUpShowLabel = useMemo(() => {
     const explicitLabel = String(q?.meta?.primaryShowDisplayName ?? "").trim()
@@ -803,7 +803,7 @@ export default function PlayerPage() {
 
   useEffect(() => {
     const currentStage = String(state?.stage ?? "")
-    const isHeadsUpBehaviour = String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
+    const isHeadsUpBehaviour = String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
     const currentRole = isHeadsUpBehaviour
       ? getSpotlightRole({
           playerId,
@@ -869,7 +869,7 @@ export default function PlayerPage() {
 
   useEffect(() => {
     const isReviewStage = String(state?.stage ?? "") === "heads_up_review"
-    const isHeadsUpBehaviour = String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
+    const isHeadsUpBehaviour = String(state?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
     if (!code || !state || !isHeadsUpBehaviour || !isReviewStage) return
 
     const reviewAtMs = state?.headsUp?.reviewAutoAdvanceAt ? Date.parse(String(state.headsUp.reviewAutoAdvanceAt)) : Number.NaN
@@ -1214,7 +1214,7 @@ export default function PlayerPage() {
               <div className="flex items-center justify-between gap-3">
                 <CardTitle>{isHeadsUpRound ? "Card" : "Question"}</CardTitle>
                 <div className="text-sm text-muted-foreground">
-                  {q.roundType === "audio" ? "Audio" : q.roundType === "picture" ? "Picture" : q.roundType === "heads_up" ? "Spotlight" : "General"}
+                  {q.roundType === "audio" ? "Audio" : q.roundType === "picture" ? "Picture" : q.roundType === "spotlight" ? "Spotlight" : "General"}
                 </div>
               </div>
             </CardHeader>

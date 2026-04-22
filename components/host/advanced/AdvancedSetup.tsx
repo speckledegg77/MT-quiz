@@ -49,7 +49,7 @@ function describeShowSelection(showKeys: string[], showNameByKey: Map<string, st
 }
 
 function buildManualRoundFilterSummary(round: any, showNameByKey: Map<string, string>) {
-  if (round.behaviourType === "heads_up") {
+  if (round.behaviourType === "spotlight") {
     const parts: string[] = []
     if (round.headsUpDifficulty) parts.push(`Difficulty: ${formatMetadataToken(round.headsUpDifficulty)}`)
     if (round.primaryShowKeys?.length) parts.push(`Show: ${describeShowSelection(round.primaryShowKeys, showNameByKey)}`)
@@ -83,7 +83,7 @@ function countManualRoundFilters(round: any) {
   if (round.clueSources?.length) count += 1
   if (round.primaryShowKeys?.length) count += 1
   if (round.audioClipTypes?.length) count += 1
-  if (round.behaviourType === "heads_up" && round.headsUpDifficulty) count += 1
+  if (round.behaviourType === "spotlight" && round.headsUpDifficulty) count += 1
   return count
 }
 
@@ -371,8 +371,8 @@ export default function AdvancedSetup(props: any) {
                       <Input value={round.name} onChange={(e) => updateManualRound(round.id, { name: e.target.value })} placeholder={defaultRoundName(index)} />
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-foreground">{round.behaviourType === "heads_up" ? "Cards" : "Questions"}</div>
-                      {round.behaviourType === "heads_up" ? (
+                      <div className="text-sm font-medium text-foreground">{round.behaviourType === "spotlight" ? "Cards" : "Questions"}</div>
+                      {round.behaviourType === "spotlight" ? (
                         <div className="mt-1 rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">Uses all active cards from the selected pack.</div>
                       ) : (
                         <Input value={round.questionCountStr} onChange={(e) => updateManualRound(round.id, { questionCountStr: e.target.value })} inputMode="numeric" />
@@ -380,14 +380,14 @@ export default function AdvancedSetup(props: any) {
                     </div>
                     <div>
                       <div className="text-sm font-medium text-foreground">Behaviour</div>
-                      <SelectControl variant="advanced" compact value={round.behaviourType} onChange={(e) => updateManualRound(round.id, { behaviourType: e.target.value as "standard" | "quickfire" | "heads_up" })} className="mt-1">
+                      <SelectControl variant="advanced" compact value={round.behaviourType} onChange={(e) => updateManualRound(round.id, { behaviourType: e.target.value as "standard" | "quickfire" | "spotlight" })} className="mt-1">
                         {ROUND_BEHAVIOUR_OPTIONS.map((option: { value: string; label: string }) => <option key={option.value} value={option.value}>{option.label}</option>)}
                       </SelectControl>
                       <div className="mt-1 text-xs text-muted-foreground">{getManualRoundTimingSummary(round)}</div>
                     </div>
                   </div>
 
-                  {round.behaviourType === "heads_up" ? (
+                  {round.behaviourType === "spotlight" ? (
                     <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       <div>
                         <div className="text-sm font-medium text-foreground">Spotlight pack</div>
@@ -455,7 +455,7 @@ export default function AdvancedSetup(props: any) {
                     </div>
                   )}
 
-                  {round.behaviourType !== "heads_up" ? (
+                  {round.behaviourType !== "spotlight" ? (
                     <details className="mt-3 rounded-xl border border-border bg-background">
                       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-left">
                         <div>
@@ -535,7 +535,7 @@ export default function AdvancedSetup(props: any) {
                     </details>
                   ) : null}
 
-                  {round.behaviourType !== "heads_up" ? (
+                  {round.behaviourType !== "spotlight" ? (
                     <details className="mt-3 rounded-xl border border-border bg-background">
                       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-left">
                         <div>

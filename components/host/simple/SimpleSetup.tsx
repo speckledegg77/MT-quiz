@@ -87,7 +87,7 @@ export default function SimpleSetup(props: any) {
                     ? `${simpleCandidateCount} available`
                     : "Question pool"
                   : `${simpleInfiniteResolvedQuestionCount} questions`
-              : simpleGameType === "heads_up"
+              : simpleGameType === "spotlight"
                 ? simpleFeasibilityBusy
                   ? "Checking..."
                   : simpleCandidateCount > 0
@@ -108,9 +108,9 @@ export default function SimpleSetup(props: any) {
             </div>
           </label>
 
-          <label className={`rounded-2xl border p-4 text-sm shadow-sm transition-colors ${simpleGameType === "heads_up" ? "border-foreground bg-muted" : "border-border bg-card hover:bg-muted"}`}>
+          <label className={`rounded-2xl border p-4 text-sm shadow-sm transition-colors ${simpleGameType === "spotlight" ? "border-foreground bg-muted" : "border-border bg-card hover:bg-muted"}`}>
             <div className="flex items-start gap-3">
-              <input type="radio" name="simple-game-type" checked={simpleGameType === "heads_up"} onChange={() => setSimpleGameType("heads_up")} className="mt-0.5" />
+              <input type="radio" name="simple-game-type" checked={simpleGameType === "spotlight"} onChange={() => setSimpleGameType("spotlight")} className="mt-0.5" />
               <div>
                 <div className="font-medium text-foreground">Spotlight</div>
                 <div className="mt-1 text-xs text-muted-foreground">Quick host flow for one themed clueing pack with default settings.</div>
@@ -179,7 +179,7 @@ export default function SimpleSetup(props: any) {
               </div>
             </div>
           </div>
-        ) : simpleGameType === "heads_up" ? (
+        ) : simpleGameType === "spotlight" ? (
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div>
               <div className="text-sm font-medium text-foreground">Spotlight pack</div>
@@ -268,7 +268,7 @@ export default function SimpleSetup(props: any) {
             <div className="mt-1 text-xs text-muted-foreground">
               {simpleGameType === "infinite"
                 ? "Open to preview the question pool and continuous-run behaviour."
-                : simpleGameType === "heads_up"
+                : simpleGameType === "spotlight"
                   ? "Open to preview the quick Spotlight setup."
                   : "Open to preview the game that Simple mode will create."}
             </div>
@@ -310,7 +310,7 @@ export default function SimpleSetup(props: any) {
                 </div>
                 <div className="rounded-xl border border-border bg-card p-3 text-xs text-muted-foreground">Standard timing stays in place, with 20 second answers, 30 second reveals, and a single end-of-game summary when the continuous run finishes.</div>
               </div>
-            ) : simpleGameType === "heads_up" ? (
+            ) : simpleGameType === "spotlight" ? (
               <div className="space-y-3">
                 <div className="rounded-xl border border-border bg-card p-3 text-sm text-foreground">{simpleGameSummaryText}</div>
                 <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
@@ -414,7 +414,7 @@ export default function SimpleSetup(props: any) {
                           {round.jokerEligible ? <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">Joker eligible</span> : null}
                         </div>
                         <div className="mt-1 text-xs text-muted-foreground">
-                          {round.behaviourType === "heads_up" ? "All active cards from the selected pack." : `${round.questionCount} question${round.questionCount === 1 ? "" : "s"}.`} {round.answerSeconds}s {round.behaviourType === "heads_up" ? "turn" : "answer window"}, {round.roundReviewSeconds}s round review.
+                          {round.behaviourType === "spotlight" ? "All active cards from the selected pack." : `${round.questionCount} question${round.questionCount === 1 ? "" : "s"}.`} {round.answerSeconds}s {round.behaviourType === "spotlight" ? "turn" : "answer window"}, {round.roundReviewSeconds}s round review.
                         </div>
                       </div>
                     ))}

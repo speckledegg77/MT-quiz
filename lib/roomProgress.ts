@@ -206,7 +206,7 @@ export async function advanceRoomIfReady(params: {
   const ids = roundPlan.flatMap((round) => round.questionIds)
   const currentIndex = Math.max(0, Math.floor(Number(room.question_index ?? 0)) || 0)
   const currentRound = findRoundForQuestionIndex(currentIndex, roundPlan)
-  const isHeadsUp = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
+  const isHeadsUp = String(currentRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
 
   const nowMs = Date.now()
   const baseStage = stageFromTimes(room.phase, nowMs, room.open_at, room.close_at, room.reveal_at, room.next_at)
@@ -291,7 +291,7 @@ export async function advanceRoomIfReady(params: {
   }
 
   const nextRound = findRoundForQuestionIndex(nextIndex, roundPlan)
-  const nextIsHeadsUp = String(nextRound?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
+  const nextIsHeadsUp = String(nextRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
 
   const updatePayload: Record<string, unknown> = {
     question_index: nextIndex,

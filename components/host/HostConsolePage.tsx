@@ -56,9 +56,9 @@ type AudioMode = "display" | "phones" | "both"
 type GameMode = "teams" | "solo"
 type BuildMode = "manual_rounds" | "quick_random" | "legacy_pack_mode" | "infinite"
 type SetupMode = "simple" | "advanced"
-type SimpleGameType = "recommended" | "infinite" | "heads_up"
+type SimpleGameType = "recommended" | "infinite" | "spotlight"
 type SimplePresetId = "classic" | "balanced" | "quickfire_mix"
-type RoundBehaviourType = "standard" | "quickfire" | "heads_up"
+type RoundBehaviourType = "standard" | "quickfire" | "spotlight"
 type RoundSourceMode = "selected_packs" | "specific_packs" | "all_questions"
 type RoomState = any
 
@@ -148,7 +148,7 @@ const PROMPT_TARGET_OPTIONS = [
 const ROUND_BEHAVIOUR_OPTIONS: Array<{ value: RoundBehaviourType; label: string }> = [
   { value: "standard", label: "Standard" },
   { value: "quickfire", label: "Quickfire" },
-  { value: "heads_up", label: "Spotlight" },
+  { value: "spotlight", label: "Spotlight" },
 ]
 
 const AUDIO_CLIP_TYPE_OPTIONS = [
@@ -280,25 +280,25 @@ function describeShowSelection(showKeys: string[], showNameByKey: Map<string, st
 
 function normaliseManualRoundDraft(draft: ManualRoundDraft): ManualRoundDraft {
   const behaviourType: RoundBehaviourType =
-    draft.behaviourType === "quickfire" ? "quickfire" : draft.behaviourType === "heads_up" ? "heads_up" : "standard"
-  const mediaTypes: ManualRoundDraft["mediaTypes"] = behaviourType === "heads_up" ? [] : cleanManualMediaTypes(draft.mediaTypes)
-  const answerTypes: ManualRoundDraft["answerTypes"] = behaviourType === "heads_up"
+    draft.behaviourType === "quickfire" ? "quickfire" : draft.behaviourType === "spotlight" ? "spotlight" : "standard"
+  const mediaTypes: ManualRoundDraft["mediaTypes"] = behaviourType === "spotlight" ? [] : cleanManualMediaTypes(draft.mediaTypes)
+  const answerTypes: ManualRoundDraft["answerTypes"] = behaviourType === "spotlight"
     ? []
     : behaviourType === "quickfire"
       ? ["mcq"]
       : cleanManualAnswerTypes(draft.answerTypes)
-  const promptTargets = behaviourType === "heads_up" ? [] : cleanManualStringArray(draft.promptTargets)
-  const clueSources = behaviourType === "heads_up" ? [] : cleanManualStringArray(draft.clueSources)
+  const promptTargets = behaviourType === "spotlight" ? [] : cleanManualStringArray(draft.promptTargets)
+  const clueSources = behaviourType === "spotlight" ? [] : cleanManualStringArray(draft.clueSources)
   const primaryShowKeys = cleanManualStringArray(draft.primaryShowKeys)
-  const audioClipTypes = behaviourType === "heads_up" || !mediaTypes.includes("audio") ? [] : cleanManualStringArray(draft.audioClipTypes)
+  const audioClipTypes = behaviourType === "spotlight" || !mediaTypes.includes("audio") ? [] : cleanManualStringArray(draft.audioClipTypes)
 
   return {
     ...draft,
     behaviourType,
-    jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : draft.jokerEligible,
-    countsTowardsScore: behaviourType === "heads_up" ? false : draft.countsTowardsScore,
+    jokerEligible: behaviourType === "quickfire" || behaviourType === "spotlight" ? false : draft.jokerEligible,
+    countsTowardsScore: behaviourType === "spotlight" ? false : draft.countsTowardsScore,
     sourceMode:
-      behaviourType === "heads_up"
+      behaviourType === "spotlight"
         ? "specific_packs"
         : draft.sourceMode === "all_questions"
           ? "all_questions"
@@ -309,8 +309,8 @@ function normaliseManualRoundDraft(draft: ManualRoundDraft): ManualRoundDraft {
     clueSources,
     primaryShowKeys,
     audioClipTypes,
-    headsUpTvDisplayMode: behaviourType === "heads_up" ? draft.headsUpTvDisplayMode : "timer_only",
-    headsUpTurnSeconds: behaviourType === "heads_up" ? draft.headsUpTurnSeconds : 60,
+    headsUpTvDisplayMode: behaviourType === "spotlight" ? draft.headsUpTvDisplayMode : "timer_only",
+    headsUpTurnSeconds: behaviourType === "spotlight" ? draft.headsUpTurnSeconds : 60,
   }
 }
 
@@ -349,7 +349,7 @@ function formatMetadataToken(value: string) {
 }
 
 function describeManualRoundPackSummary(round: ManualRoundDraft, packNameById: Map<string, string>) {
-  if (round.behaviourType === "heads_up") return "1 Spotlight pack"
+  if (round.behaviourType === "spotlight") return "1 Spotlight pack"
   if (round.sourceMode === "all_questions") return "All active packs"
   if (round.packIds.length === 0) return "No packs chosen"
   if (round.packIds.length === 1) return packNameById.get(round.packIds[0]) ?? "1 pack selected"
@@ -360,7 +360,7 @@ function describeManualRoundPackSummary(round: ManualRoundDraft, packNameById: M
 }
 
 function buildManualRoundFilterSummary(round: ManualRoundDraft, showNameByKey: Map<string, string>) {
-  if (round.behaviourType === "heads_up") {
+  if (round.behaviourType === "spotlight") {
     const parts: string[] = []
     if (round.headsUpDifficulty) parts.push(`Difficulty: ${formatMetadataToken(round.headsUpDifficulty)}`)
     if (round.primaryShowKeys.length) parts.push(`Show: ${describeShowSelection(round.primaryShowKeys, showNameByKey)}`)
@@ -391,7 +391,7 @@ function buildSelectionRulesFromDraft(round: ManualRoundDraft) {
     clueSources: round.clueSources,
     primaryShowKeys: round.primaryShowKeys,
     audioClipTypes: round.audioClipTypes,
-    headsUpDifficulties: round.behaviourType === "heads_up" && round.headsUpDifficulty ? [round.headsUpDifficulty] : [],
+    headsUpDifficulties: round.behaviourType === "spotlight" && round.headsUpDifficulty ? [round.headsUpDifficulty] : [],
   }
 }
 
@@ -399,16 +399,16 @@ function serialiseManualRoundDraft(round: ManualRoundDraft, index: number) {
   return {
     id: round.id,
     name: round.name.trim() || defaultRoundName(index),
-    questionCount: round.behaviourType === "heads_up" ? 0 : clampInt(parseIntOr(round.questionCountStr, 0), 1, 200),
+    questionCount: round.behaviourType === "spotlight" ? 0 : clampInt(parseIntOr(round.questionCountStr, 0), 1, 200),
     behaviourType: round.behaviourType,
-    jokerEligible: round.behaviourType === "quickfire" || round.behaviourType === "heads_up" ? false : round.jokerEligible,
-    countsTowardsScore: round.behaviourType === "heads_up" ? false : round.countsTowardsScore,
+    jokerEligible: round.behaviourType === "quickfire" || round.behaviourType === "spotlight" ? false : round.jokerEligible,
+    countsTowardsScore: round.behaviourType === "spotlight" ? false : round.countsTowardsScore,
     sourceMode: round.sourceMode,
     packIds: round.packIds,
     selectionRules: buildSelectionRulesFromDraft(round),
-    answerSeconds: round.behaviourType === "heads_up" ? round.headsUpTurnSeconds : getManualRoundAnswerSeconds(round),
-    roundReviewSeconds: round.behaviourType === "heads_up" ? getManualRoundReviewSeconds(round) : getManualRoundReviewSeconds(round),
-    headsUpTvDisplayMode: round.behaviourType === "heads_up" ? round.headsUpTvDisplayMode : undefined,
+    answerSeconds: round.behaviourType === "spotlight" ? round.headsUpTurnSeconds : getManualRoundAnswerSeconds(round),
+    roundReviewSeconds: round.behaviourType === "spotlight" ? getManualRoundReviewSeconds(round) : getManualRoundReviewSeconds(round),
+    headsUpTvDisplayMode: round.behaviourType === "spotlight" ? round.headsUpTvDisplayMode : undefined,
   }
 }
 
@@ -421,7 +421,7 @@ function normaliseTemplateTiming(raw: unknown, fallback: number) {
 function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
   const selectionRules = normaliseSelectionRules(template.selection_rules)
   const defaultPackIds = normaliseDefaultPackIds(template.default_pack_ids)
-  const behaviourType: RoundBehaviourType = String(template.behaviour_type ?? "standard") === "quickfire" ? "quickfire" : String(template.behaviour_type ?? "standard") === "heads_up" ? "heads_up" : "standard"
+  const behaviourType: RoundBehaviourType = String(template.behaviour_type ?? "standard") === "quickfire" ? "quickfire" : String(template.behaviour_type ?? "standard") === "spotlight" ? "spotlight" : "standard"
   const sourceMode: RoundSourceMode =
     String(template.source_mode ?? "selected_packs") === "specific_packs"
       ? "specific_packs"
@@ -434,8 +434,8 @@ function serialiseTemplateAsRound(template: RoundTemplateRow, index: number) {
     name: String(template.name ?? "").trim() || defaultRoundName(index),
     questionCount: Math.max(1, Number(template.default_question_count ?? 5) || 5),
     behaviourType,
-    jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : Boolean(template.joker_eligible ?? true),
-    countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(template.counts_towards_score ?? true),
+    jokerEligible: behaviourType === "quickfire" || behaviourType === "spotlight" ? false : Boolean(template.joker_eligible ?? true),
+    countsTowardsScore: behaviourType === "spotlight" ? false : Boolean(template.counts_towards_score ?? true),
     sourceMode,
     packIds: sourceMode === "specific_packs" ? defaultPackIds : [],
     selectionRules: {
@@ -645,13 +645,13 @@ function feasibilityTone(result: FeasibilityRoundResult) {
 }
 
 function roundBehaviourLabel(behaviourType: RoundBehaviourType) {
-  return behaviourType === "quickfire" ? "Quickfire" : behaviourType === "heads_up" ? "Spotlight" : "Standard"
+  return behaviourType === "quickfire" ? "Quickfire" : behaviourType === "spotlight" ? "Spotlight" : "Standard"
 }
 
 function roundBehaviourBadgeClass(behaviourType: RoundBehaviourType) {
   return behaviourType === "quickfire"
     ? "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-500/40 dark:bg-violet-600/10 dark:text-violet-200"
-    : behaviourType === "heads_up"
+    : behaviourType === "spotlight"
       ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-600/10 dark:text-amber-200"
       : "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-600/10 dark:text-emerald-200"
 }
@@ -660,7 +660,7 @@ function roundBehaviourSummary(behaviourType: RoundBehaviourType) {
   if (behaviourType === "quickfire") {
     return "Fast answers, no Joker, no reveal after each question, and the fastest correct player gets a bonus point. Quickfire audio is allowed when the clip is 7 seconds or shorter, but the clip should still start on recognisable material."
   }
-  if (behaviourType === "heads_up") {
+  if (behaviourType === "spotlight") {
     return "Timed turn-based clueing. The guesser scores one point for each correct card, and the host can review mistakes before the turn is locked."
   }
 
@@ -668,13 +668,13 @@ function roundBehaviourSummary(behaviourType: RoundBehaviourType) {
 }
 
 function roundBehaviourTimingText(behaviourType: RoundBehaviourType) {
-  return behaviourType === "heads_up"
+  return behaviourType === "spotlight"
     ? "60s or 90s turn, plus round review"
     : `${getDefaultAnswerSecondsForBehaviour(behaviourType)}s answer window, ${getDefaultRoundReviewSecondsForBehaviour(behaviourType)}s round review`
 }
 
 function getManualRoundAnswerSeconds(round: ManualRoundDraft) {
-  if (round.behaviourType === "heads_up") return round.headsUpTurnSeconds
+  if (round.behaviourType === "spotlight") return round.headsUpTurnSeconds
   if (!round.useTimingOverride) return getDefaultAnswerSecondsForBehaviour(round.behaviourType)
   return clampInt(parseIntOr(round.answerSecondsStr, getDefaultAnswerSecondsForBehaviour(round.behaviourType)), 0, 120)
 }
@@ -687,7 +687,7 @@ function getManualRoundReviewSeconds(round: ManualRoundDraft) {
 function getManualRoundTimingSummary(round: ManualRoundDraft) {
   const answerSeconds = getManualRoundAnswerSeconds(round)
   const roundReviewSeconds = getManualRoundReviewSeconds(round)
-  return round.behaviourType === "heads_up"
+  return round.behaviourType === "spotlight"
     ? `${answerSeconds}s turn, ${roundReviewSeconds}s round review`
     : `${answerSeconds}s answer window, ${roundReviewSeconds}s round review`
 }
@@ -1112,15 +1112,15 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
     const behaviourType: RoundBehaviourType =
       String(template.behaviour_type ?? "standard") === "quickfire"
         ? "quickfire"
-        : String(template.behaviour_type ?? "standard") === "heads_up"
-          ? "heads_up"
+        : String(template.behaviour_type ?? "standard") === "spotlight"
+          ? "spotlight"
           : "standard"
 
     setManualRounds((prev) =>
       prev.map((round) => {
         if (round.id !== roundId) return round
         const nextSourceMode: RoundSourceMode =
-          behaviourType === "heads_up"
+          behaviourType === "spotlight"
             ? "specific_packs"
             : String(template.source_mode ?? "selected_packs") === "all_questions"
               ? "all_questions"
@@ -1129,10 +1129,10 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
         return normaliseManualRoundDraft({
           ...round,
           name: String(template.name ?? "").trim() || round.name,
-          questionCountStr: behaviourType === "heads_up" ? round.questionCountStr : String(Math.max(1, Number(template.default_question_count ?? 5) || 5)),
+          questionCountStr: behaviourType === "spotlight" ? round.questionCountStr : String(Math.max(1, Number(template.default_question_count ?? 5) || 5)),
           behaviourType,
-          jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : Boolean(template.joker_eligible ?? true),
-          countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(template.counts_towards_score ?? true),
+          jokerEligible: behaviourType === "quickfire" || behaviourType === "spotlight" ? false : Boolean(template.joker_eligible ?? true),
+          countsTowardsScore: behaviourType === "spotlight" ? false : Boolean(template.counts_towards_score ?? true),
           sourceMode: nextSourceMode,
           packIds: nextSourceMode === "specific_packs" ? (defaultPackIds.length ? defaultPackIds : round.packIds) : [],
           mediaTypes: selectionRules.mediaTypes ?? [],
@@ -1157,9 +1157,9 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
     const defaultPackIds = normaliseDefaultPackIds(template.default_pack_ids)
 
     const rawSourceMode = String(template.source_mode ?? "selected_packs") as RoundSourceMode
-    const behaviourType: RoundBehaviourType = String(template.behaviour_type ?? "standard") === "quickfire" ? "quickfire" : String(template.behaviour_type ?? "standard") === "heads_up" ? "heads_up" : "standard"
+    const behaviourType: RoundBehaviourType = String(template.behaviour_type ?? "standard") === "quickfire" ? "quickfire" : String(template.behaviour_type ?? "standard") === "spotlight" ? "spotlight" : "standard"
     const sourceMode: RoundSourceMode =
-      behaviourType === "heads_up"
+      behaviourType === "spotlight"
         ? "specific_packs"
         : rawSourceMode === "all_questions"
           ? "all_questions"
@@ -1174,8 +1174,8 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
         name: String(template.name ?? "").trim() || defaultRoundName(prev.length),
         questionCountStr: String(Math.max(1, Number(template.default_question_count ?? 5))),
         behaviourType,
-        jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : Boolean(template.joker_eligible ?? true),
-        countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(template.counts_towards_score ?? true),
+        jokerEligible: behaviourType === "quickfire" || behaviourType === "spotlight" ? false : Boolean(template.joker_eligible ?? true),
+        countsTowardsScore: behaviourType === "spotlight" ? false : Boolean(template.counts_towards_score ?? true),
         sourceMode,
         packIds: sourceMode === "specific_packs" ? defaultPackIds : [],
         mediaTypes: selectionRules.mediaTypes ?? [],
@@ -1274,16 +1274,16 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
-            simpleGameType === "heads_up"
+            simpleGameType === "spotlight"
               ? {
                   selectedPackIds: [],
                   manualRounds: simpleHeadsUpPackId
                     ? [
                         {
-                          id: "simple_heads_up_round",
+                          id: "simple_spotlight_round",
                           name: "Spotlight",
                           questionCount: 0,
-                          behaviourType: "heads_up",
+                          behaviourType: "spotlight",
                           sourceMode: "specific_packs",
                           packIds: [simpleHeadsUpPackId],
                           selectionRules: {},
@@ -1312,9 +1312,9 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
           return
         }
 
-        setSimpleTemplateFeasibility(simpleGameType === "heads_up" ? json.manual ?? null : json.templates ?? null)
+        setSimpleTemplateFeasibility(simpleGameType === "spotlight" ? json.manual ?? null : json.templates ?? null)
         setSimpleCandidateCount(
-          simpleGameType === "heads_up"
+          simpleGameType === "spotlight"
             ? Math.max(0, Number(json.manual?.rounds?.[0]?.eligibleCount ?? 0) || 0)
             : Math.max(0, Number(json.candidateCount ?? 0) || 0)
         )
@@ -1536,7 +1536,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
       return null
     }
 
-    if (simpleGameType === "heads_up") {
+    if (simpleGameType === "spotlight") {
       if (!simpleHeadsUpPackId) return "Choose a Spotlight pack first."
       if (simpleFeasibilityBusy) return "Still checking the selected Spotlight pack."
       if (simpleCandidateCount <= 0) return "No active Spotlight cards are available in the selected pack."
@@ -1606,7 +1606,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
           setCreateError(
             simpleGameType === "infinite"
               ? "Still checking how many questions are available for this pack choice."
-              : simpleGameType === "heads_up"
+              : simpleGameType === "spotlight"
                 ? "Still checking the selected Spotlight pack."
                 : "Still checking which round templates are ready for this pack choice."
           )
@@ -1647,7 +1647,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
               },
             ],
           }
-        } else if (simpleGameType === "heads_up") {
+        } else if (simpleGameType === "spotlight") {
           if (!simpleHeadsUpPackId) {
             setCreateError("Choose a Spotlight pack first.")
             setCreating(false)
@@ -1666,17 +1666,17 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
             selectedPacks: [],
             manualRounds: [
               {
-                id: "simple_heads_up_round",
+                id: "simple_spotlight_round",
                 name: selectedHeadsUpPack?.name?.trim() || "Spotlight",
                 questionCount: 0,
-                behaviourType: "heads_up",
+                behaviourType: "spotlight",
                 jokerEligible: false,
                 countsTowardsScore: false,
                 sourceMode: "specific_packs",
                 packIds: [simpleHeadsUpPackId],
                 selectionRules: {},
                 answerSeconds: 60,
-                roundReviewSeconds: getDefaultRoundReviewSecondsForBehaviour("heads_up"),
+                roundReviewSeconds: getDefaultRoundReviewSecondsForBehaviour("spotlight"),
                 headsUpTvDisplayMode: "timer_only",
               },
             ],
@@ -2050,7 +2050,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
   const roomJokerEnabled = Boolean(roomState?.rounds?.jokerEnabled)
   const roomJokerEligibleCount = Math.max(0, Number(roomState?.rounds?.jokerEligibleCount ?? 0) || 0)
   const roomHeadsUp = roomState?.headsUp ?? null
-  const roomIsHeadsUp = String(roomState?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
+  const roomIsHeadsUp = String(roomState?.rounds?.current?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
 
   const stagePill = useMemo(() => {
     return getRoomStagePillLabel({
@@ -2072,11 +2072,11 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
     return packs.filter((pack) => pack.display_name.toLowerCase().includes(query))
   }, [packPickerSearch, packs])
   const manualRoundsUsingAllQuestionsCount = useMemo(
-    () => manualRounds.filter((round) => round.behaviourType !== "heads_up" && round.sourceMode === "all_questions").length,
+    () => manualRounds.filter((round) => round.behaviourType !== "spotlight" && round.sourceMode === "all_questions").length,
     [manualRounds]
   )
   const manualRoundsWithChosenPacksCount = useMemo(
-    () => manualRounds.filter((round) => round.behaviourType !== "heads_up" && round.sourceMode === "specific_packs").length,
+    () => manualRounds.filter((round) => round.behaviourType !== "spotlight" && round.sourceMode === "specific_packs").length,
     [manualRounds]
   )
   const joinedPlayerCount = Array.isArray(roomState?.players) ? roomState.players.length : 0
@@ -2218,7 +2218,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
     ? simpleCandidateCount > 0
       ? "Ready to create"
       : "Needs changes"
-    : simpleGameType === "heads_up"
+    : simpleGameType === "spotlight"
       ? simpleCandidateCount > 0 && simpleHeadsUpPackId
         ? "Ready to create"
         : "Needs changes"
@@ -2226,19 +2226,19 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
         ? "Ready to create"
         : "Needs changes"
 
-  const simpleJokerSummary = simpleGameType === "heads_up"
+  const simpleJokerSummary = simpleGameType === "spotlight"
     ? "Joker hidden in Spotlight"
     : simpleTemplatePlan.jokerEligibleCount >= 2
       ? `Joker available in ${simpleTemplatePlan.jokerEligibleCount} round${simpleTemplatePlan.jokerEligibleCount === 1 ? "" : "s"}`
       : "Joker hidden for this game"
 
-  const simpleTimingSummary = simpleGameType === "heads_up"
+  const simpleTimingSummary = simpleGameType === "spotlight"
     ? "Spotlight quick play uses 60 second turns, timer-only TV, and the normal Spotlight end-of-turn review."
     : simpleTemplatePlan.quickfireCount > 0
       ? "Standard rounds use 20 second answers and 30 second reviews. Quickfire uses 10 second answers and 45 second round reviews."
       : "Standard rounds use 20 second answers and 30 second round reviews."
 
-  const simpleGameSummaryText = simpleGameType === "heads_up"
+  const simpleGameSummaryText = simpleGameType === "spotlight"
     ? simpleCandidateCount > 0
       ? `This game will start a quick Spotlight round using ${headsUpPacks.find((pack) => pack.id === simpleHeadsUpPackId)?.name ?? "the selected pack"}, with ${simpleCandidateCount} active card${simpleCandidateCount === 1 ? "" : "s"}, 60 second turns, and timer-only TV.`
       : "Simple mode will start a quick Spotlight round as soon as the selected pack has active cards."

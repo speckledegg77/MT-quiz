@@ -89,7 +89,7 @@ function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
     audioClipTypes: cleanStringArray(value.audioClipTypes),
-    headsUpDifficulties: cleanStringArray(value.headsUpDifficulties),
+    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties ?? value.headsUpDifficulties),
   }
 }
 
@@ -103,7 +103,7 @@ function normaliseSourceMode(raw: unknown): RoundSourceMode {
 function normaliseBehaviourType(raw: unknown): RoundBehaviourType {
   const value = String(raw ?? "").trim().toLowerCase()
   if (value === "quickfire") return "quickfire"
-  if (value === "heads_up") return "heads_up"
+  if (value === "spotlight" || value === "heads_up") return "spotlight"
   return "standard"
 }
 
@@ -135,9 +135,9 @@ function getSourcePackIds(args: {
 function candidateMatchesRules(candidate: QuestionCandidate, rules: RoundSelectionRules, behaviourType: RoundBehaviourType) {
   if (rules.primaryShowKeys?.length && !rules.primaryShowKeys.includes(candidate.primaryShowKey ?? "")) return false
 
-  if (behaviourType === "heads_up") {
-    if (candidate.kind !== "heads_up") return false
-    if (rules.headsUpDifficulties?.length && !rules.headsUpDifficulties.includes(candidate.headsUpDifficulty ?? "")) return false
+  if (behaviourType === "spotlight") {
+    if (candidate.kind !== "spotlight") return false
+    if (rules.spotlightDifficulties?.length && !rules.spotlightDifficulties.includes(candidate.spotlightDifficulty ?? candidate.headsUpDifficulty ?? "")) return false
     return true
   }
 
@@ -164,8 +164,8 @@ function describeSourceScope(sourceMode: RoundSourceMode, sourcePackIds: string[
 
 function describeSelectionFilters(rules: RoundSelectionRules, behaviourType: RoundBehaviourType) {
   const parts: string[] = []
-  if (behaviourType === "heads_up") {
-    if (rules.headsUpDifficulties?.length) parts.push(`difficulty: ${rules.headsUpDifficulties.join(", ")}`)
+  if (behaviourType === "spotlight") {
+    if (rules.spotlightDifficulties?.length) parts.push(`difficulty: ${rules.spotlightDifficulties.join(", ")}`)
   } else {
     if (rules.mediaTypes?.length) parts.push(`media: ${rules.mediaTypes.join(", ")}`)
     if (rules.answerTypes?.length) parts.push(`answer: ${rules.answerTypes.join(", ")}`)
@@ -273,7 +273,7 @@ function buildExplanation(round: InternalRoundEvaluation, assignedCount: number)
   if (eligibleCount <= 0) {
     return {
       tone: "error",
-      summary: round.behaviourType === "heads_up" ? "No eligible Spotlight items match this round right now." : "No eligible questions match this round right now.",
+      summary: round.behaviourType === "spotlight" ? "No eligible Spotlight items match this round right now." : "No eligible questions match this round right now.",
       detail: [round.scopeDescription, round.filtersDescription].filter(Boolean).join(" "),
       fallback: null,
     }
@@ -348,7 +348,7 @@ export function evaluateRoundsFeasibility(params: {
         ? "No selected packs are available for this round."
         : sourceMode === "specific_packs" && sourcePackIds.length === 0
           ? "This round needs at least one specific pack."
-          : behaviourType === "heads_up" && sourceMode !== "specific_packs"
+          : behaviourType === "spotlight" && sourceMode !== "specific_packs"
             ? "Spotlight rounds must use a specific Spotlight pack."
             : null
     const eligibleCandidateIds = setupError
@@ -361,7 +361,7 @@ export function evaluateRoundsFeasibility(params: {
           })
           .map((candidate) => candidate.id)
 
-    const requestedCount = behaviourType === "heads_up" ? [...new Set(eligibleCandidateIds)].length : rawRequestedCount
+    const requestedCount = behaviourType === "spotlight" ? [...new Set(eligibleCandidateIds)].length : rawRequestedCount
 
     return {
       id: String(roundRaw.id ?? `round_${index + 1}`).trim() || `round_${index + 1}`,
@@ -371,7 +371,7 @@ export function evaluateRoundsFeasibility(params: {
       sourceMode,
       eligibleCandidateIds: [...new Set(eligibleCandidateIds)],
       setupError,
-      notes: behaviourType === "quickfire" ? ["Quickfire pool excludes typed answers and long audio clips."] : behaviourType === "heads_up" ? ["Spotlight uses separate themed packs and does not use phone answers in v1."] : [],
+      notes: behaviourType === "quickfire" ? ["Quickfire pool excludes typed answers and long audio clips."] : behaviourType === "spotlight" ? ["Spotlight uses separate themed packs and does not use phone answers in v1."] : [],
       scopeDescription: describeSourceScope(sourceMode, sourcePackIds),
       filtersDescription: describeSelectionFilters(rules, behaviourType),
     }

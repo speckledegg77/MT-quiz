@@ -76,6 +76,7 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - `/join?code=XXXX` join a room
 - `/play/[code]` player phone screen
 - `/display/[code]` TV screen
+- Spotlight migration status: routes and UI now use Spotlight, new room round plans now write `spotlight` behaviour values and `spotlight_item:` synthetic ids, and readers still accept legacy `heads_up` values during the migration window.
 - `/admin/import` admin import and media upload tools for question CSVs, Spotlight CSVs, and media
 - `/admin/questions` question metadata dashboard
 - `/admin/shows` shows manager

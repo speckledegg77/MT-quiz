@@ -174,7 +174,7 @@ function cleanSelectionRules(raw: unknown): RoundSelectionRules {
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
     audioClipTypes: cleanStringArray(value.audioClipTypes),
-    headsUpDifficulties: cleanStringArray(value.headsUpDifficulties),
+    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties ?? value.headsUpDifficulties),
   }
 }
 
@@ -188,7 +188,7 @@ function cleanSourceMode(raw: unknown): RoundSourceMode {
 function cleanBehaviourType(raw: unknown): RoundBehaviourType {
   const value = String(raw ?? "").trim().toLowerCase()
   if (value === "quickfire") return "quickfire"
-  if (value === "heads_up") return "heads_up"
+  if (value === "spotlight" || value === "heads_up") return "spotlight"
   return "standard"
 }
 
@@ -208,7 +208,7 @@ function cleanManualRounds(raw: unknown): ManualRoundDraftInput[] {
       selectionRules: cleanSelectionRules(value.selectionRules),
       answerSeconds: cleanOptionalNonNegativeNumber(value.answerSeconds),
       roundReviewSeconds: cleanOptionalNonNegativeNumber(value.roundReviewSeconds),
-      headsUpTvDisplayMode: String(value.headsUpTvDisplayMode ?? "").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only",
+      spotlightTvDisplayMode: String(value.spotlightTvDisplayMode ?? value.headsUpTvDisplayMode ?? "").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only",
     }
   })
 }
@@ -246,8 +246,8 @@ function mapTemplateToManualRound(template: any, index: number): ManualRoundDraf
     name: String(template?.name ?? "").trim() || `Round ${index + 1}`,
     questionCount: Math.max(1, cleanNumber(template?.default_question_count, 5)),
     behaviourType,
-    jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : cleanBoolean(template?.joker_eligible, true),
-    countsTowardsScore: behaviourType === "heads_up" ? false : cleanBoolean(template?.counts_towards_score, true),
+    jokerEligible: behaviourType === "quickfire" || behaviourType === "spotlight" ? false : cleanBoolean(template?.joker_eligible, true),
+    countsTowardsScore: behaviourType === "spotlight" ? false : cleanBoolean(template?.counts_towards_score, true),
     sourceMode: cleanSourceMode(template?.source_mode),
     packIds: cleanSourceMode(template?.source_mode) === "specific_packs" ? defaultPackIds : [],
     selectionRules: cleanSelectionRules(template?.selection_rules),
@@ -255,7 +255,7 @@ function mapTemplateToManualRound(template: any, index: number): ManualRoundDraf
     roundReviewSeconds:
       cleanOptionalNonNegativeNumber(template?.default_round_review_seconds) ??
       getDefaultRoundReviewSecondsForBehaviour(behaviourType),
-    headsUpTvDisplayMode: String(template?.heads_up_tv_display_mode ?? "").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only",
+    spotlightTvDisplayMode: String(template?.heads_up_tv_display_mode ?? "").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only",
   }
 }
 
@@ -263,8 +263,8 @@ async function loadCandidatePoolForManualRounds(params: {
   selectedPackIds: string[]
   manualRounds: ManualRoundDraftInput[]
 }) {
-  const questionRounds = params.manualRounds.filter((round) => round.behaviourType !== "heads_up")
-  const headsUpRounds = params.manualRounds.filter((round) => round.behaviourType === "heads_up")
+  const questionRounds = params.manualRounds.filter((round) => round.behaviourType !== "spotlight")
+  const headsUpRounds = params.manualRounds.filter((round) => round.behaviourType === "spotlight")
 
   const needsAllQuestions = questionRounds.some((round) => round.sourceMode === "all_questions")
   let allActivePackIds: string[] = []
@@ -337,7 +337,7 @@ async function loadCandidatePoolForManualRounds(params: {
 
       candidatesById.set(syntheticId, {
         id: syntheticId,
-        kind: "heads_up",
+        kind: "spotlight",
         legacyRoundType: "general",
         answerType: "text",
         mediaType: "text",
@@ -347,7 +347,7 @@ async function loadCandidatePoolForManualRounds(params: {
         mediaDurationMs: null,
         audioClipType: null,
         packIds: [packId],
-        headsUpDifficulty: cleanSpotlightDifficulty(String(itemRaw.difficulty ?? "medium")),
+        spotlightDifficulty: cleanSpotlightDifficulty(String(itemRaw.difficulty ?? "medium")),
       })
     }
   }

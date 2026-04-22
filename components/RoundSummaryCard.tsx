@@ -63,7 +63,7 @@ type Props = {
         index: number
         number: number
         name: string
-        behaviourType?: "standard" | "quickfire" | "heads_up"
+        behaviourType?: "standard" | "quickfire" | "spotlight"
       }
     | null
     | undefined
@@ -79,7 +79,7 @@ type Props = {
     | undefined
   roundReview?:
     | {
-        behaviourType?: "standard" | "quickfire" | "heads_up"
+        behaviourType?: "standard" | "quickfire" | "spotlight"
         questions?: QuickfireReviewQuestion[]
         items?: HeadsUpReviewItem[]
         players?: HeadsUpReviewPlayer[]
@@ -176,7 +176,7 @@ export default function RoundSummaryCard({
 
   const teamRows = Array.isArray(roundStats?.byTeam) ? roundStats.byTeam : []
   const isQuickfire = round?.behaviourType === "quickfire" || roundReview?.behaviourType === "quickfire"
-  const isHeadsUp = round?.behaviourType === "heads_up" || roundReview?.behaviourType === "heads_up"
+  const isHeadsUp = round?.behaviourType === "spotlight" || roundReview?.behaviourType === "spotlight"
   const quickfireQuestions = Array.isArray(roundReview?.questions) ? roundReview.questions : []
   const headsUpItems = Array.isArray(roundReview?.items) ? roundReview.items : []
   const headsUpPlayers = Array.isArray(roundReview?.players) ? roundReview.players : []
@@ -193,10 +193,10 @@ export default function RoundSummaryCard({
               <CardTitle>{isInfiniteMode ? "Infinite run" : `Round ${Number(round?.number ?? 0)}`}</CardTitle>
               <span
                 className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${
-                  getRoundBehaviourBadgeClass(isQuickfire ? "quickfire" : isHeadsUp ? "heads_up" : "standard", { isInfiniteMode })
+                  getRoundBehaviourBadgeClass(isQuickfire ? "quickfire" : isHeadsUp ? "spotlight" : "standard", { isInfiniteMode })
                 }`}
               >
-                {getRoundBehaviourLabel(isQuickfire ? "quickfire" : isHeadsUp ? "heads_up" : "standard", { isInfiniteMode })}
+                {getRoundBehaviourLabel(isQuickfire ? "quickfire" : isHeadsUp ? "spotlight" : "standard", { isInfiniteMode })}
               </span>
             </div>
             <div className="mt-1 text-sm text-muted-foreground">

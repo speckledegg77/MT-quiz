@@ -75,7 +75,7 @@ export async function POST(req: Request) {
   const roundPlan = materialiseRoundPlan(getEffectiveRoomRoundPlan(room))
   const currentIndex = Math.max(0, Math.floor(Number(room.question_index ?? 0)) || 0)
   const currentRound = findRoundForQuestionIndex(currentIndex, roundPlan)
-  if (String(currentRound?.behaviourType ?? "").trim().toLowerCase() !== "heads_up") {
+  if (String(currentRound?.behaviourType ?? "").trim().toLowerCase() !== "spotlight") {
     return NextResponse.json({ error: "Spotlight controls are only available in a Spotlight round." }, { status: 400 })
   }
 

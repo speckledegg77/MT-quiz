@@ -468,10 +468,10 @@ export default function HostWizardPage() {
         ...templatePlan.rounds,
         ...(chosenHeadsUpPack
           ? [{
-              id: `wizard_heads_up_${chosenHeadsUpPack.id}`,
+              id: `wizard_spotlight_${chosenHeadsUpPack.id}`,
               name: "Spotlight",
               questionCount: 1,
-              behaviourType: "heads_up" as const,
+              behaviourType: "spotlight" as const,
               jokerEligible: false,
               countsTowardsScore: false,
               sourceMode: "specific_packs" as const,

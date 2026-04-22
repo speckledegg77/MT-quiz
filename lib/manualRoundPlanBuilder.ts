@@ -23,12 +23,13 @@ export type ManualRoundDraftInput = {
   selectionRules?: RoundSelectionRules
   answerSeconds?: number
   roundReviewSeconds?: number
+  spotlightTvDisplayMode?: "show_clue" | "timer_only"
   headsUpTvDisplayMode?: "show_clue" | "timer_only"
 }
 
 export type QuestionCandidate = {
   id: string
-  kind: "question" | "heads_up"
+  kind: "question" | "spotlight"
   legacyRoundType: "general" | "audio" | "picture"
   answerType: "mcq" | "text"
   mediaType: "text" | "audio" | "image"
@@ -38,6 +39,7 @@ export type QuestionCandidate = {
   mediaDurationMs: number | null
   audioClipType: string | null
   packIds: string[]
+  spotlightDifficulty?: string | null
   headsUpDifficulty?: string | null
 }
 
@@ -67,7 +69,7 @@ function normaliseSelectionRules(raw: unknown): RoundSelectionRules {
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
     audioClipTypes: cleanStringArray(value.audioClipTypes),
-    headsUpDifficulties: cleanStringArray(value.headsUpDifficulties),
+    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties ?? value.headsUpDifficulties),
   }
 }
 
@@ -80,7 +82,7 @@ function normaliseSourceMode(raw: unknown): RoundSourceMode {
 
 function normaliseBehaviourType(raw: unknown): RoundBehaviourType {
   const value = String(raw ?? "").trim().toLowerCase()
-  if (value === "heads_up") return "heads_up"
+  if (value === "spotlight" || value === "heads_up") return "spotlight"
   return isQuickfireBehaviour(raw) ? "quickfire" : "standard"
 }
 
@@ -118,9 +120,9 @@ function getSourcePackIds(args: {
 function candidateMatchesRules(candidate: QuestionCandidate, rules: RoundSelectionRules, behaviourType: RoundBehaviourType) {
   if (rules.primaryShowKeys?.length && !rules.primaryShowKeys.includes(candidate.primaryShowKey ?? "")) return false
 
-  if (behaviourType === "heads_up") {
-    if (rules.headsUpDifficulties?.length && !rules.headsUpDifficulties.includes(candidate.headsUpDifficulty ?? "")) return false
-    return candidate.kind === "heads_up"
+  if (behaviourType === "spotlight") {
+    if (rules.spotlightDifficulties?.length && !rules.spotlightDifficulties.includes(candidate.spotlightDifficulty ?? candidate.headsUpDifficulty ?? "")) return false
+    return candidate.kind === "spotlight"
   }
 
   if (candidate.kind !== "question") return false
@@ -171,7 +173,7 @@ export function buildManualRoomRoundPlan(params: {
     const sourceMode = normaliseSourceMode(roundRaw.sourceMode)
     const behaviourType = normaliseBehaviourType(roundRaw.behaviourType)
     const questionCount = normaliseCount(roundRaw.questionCount)
-    if (behaviourType !== "heads_up" && questionCount <= 0) {
+    if (behaviourType !== "spotlight" && questionCount <= 0) {
       throw new Error(`Round ${index + 1} needs a question count greater than 0.`)
     }
     const packIds = cleanPackIds(roundRaw.packIds)
@@ -190,7 +192,7 @@ export function buildManualRoomRoundPlan(params: {
       throw new Error(`Round "${name}" needs at least one specific pack.`)
     }
 
-    if (behaviourType === "heads_up" && sourceMode !== "specific_packs") {
+    if (behaviourType === "spotlight" && sourceMode !== "specific_packs") {
       throw new Error(`Round "${name}" must use a specific Spotlight pack.`)
     }
 
@@ -213,14 +215,14 @@ export function buildManualRoomRoundPlan(params: {
       if (behaviourType === "quickfire" && !isQuickfireEligibleItem(candidate)) return false
       if (behaviourType === "quickfire" && candidate.kind !== "question") return false
       if (behaviourType === "standard" && candidate.kind !== "question") return false
-      if (behaviourType === "heads_up" && candidate.kind !== "heads_up") return false
+      if (behaviourType === "spotlight" && candidate.kind !== "spotlight") return false
       return candidateMatchesRules(candidate, selectionRules, behaviourType)
     })
 
-    const requestedCount = behaviourType === "heads_up" ? available.length : questionCount
+    const requestedCount = behaviourType === "spotlight" ? available.length : questionCount
     if (requestedCount <= 0) {
       throw new Error(
-        behaviourType === "heads_up"
+        behaviourType === "spotlight"
           ? `Round "${name}" needs at least one active Spotlight card in the selected pack.`
           : `Round "${name}" needs a question count greater than 0.`
       )
@@ -240,14 +242,15 @@ export function buildManualRoomRoundPlan(params: {
       name,
       behaviourType,
       questionCount: chosen.length,
-      jokerEligible: behaviourType === "quickfire" || behaviourType === "heads_up" ? false : Boolean(roundRaw.jokerEligible ?? true),
-      countsTowardsScore: behaviourType === "heads_up" ? false : Boolean(roundRaw.countsTowardsScore ?? true),
+      jokerEligible: behaviourType === "quickfire" || behaviourType === "spotlight" ? false : Boolean(roundRaw.jokerEligible ?? true),
+      countsTowardsScore: behaviourType === "spotlight" ? false : Boolean(roundRaw.countsTowardsScore ?? true),
       sourceMode,
       packIds: sourceMode === "specific_packs" ? sourcePackIds : [],
       selectionRules,
       answerSeconds,
       roundReviewSeconds,
-      headsUpTvDisplayMode: behaviourType === "heads_up" ? (String((roundRaw as any).headsUpTvDisplayMode ?? "timer_only").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only") : undefined,
+      spotlightTvDisplayMode: behaviourType === "spotlight" ? (String((roundRaw as any).spotlightTvDisplayMode ?? (roundRaw as any).headsUpTvDisplayMode ?? "timer_only").trim().toLowerCase() === "show_clue" ? "show_clue" : "timer_only") : undefined,
+      headsUpTvDisplayMode: undefined,
       questionIds: chosen.map((candidate) => candidate.id),
     })
   }

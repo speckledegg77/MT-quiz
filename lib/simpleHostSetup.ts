@@ -3,7 +3,7 @@ import { getDefaultAnswerSecondsForBehaviour, getDefaultRoundReviewSecondsForBeh
 import { countDistinctRoundTemplateFamilies, getRoundTemplateFamilyKey } from "@/lib/roundTemplateFamilies"
 
 export type SimplePresetId = "classic" | "balanced" | "quickfire_mix"
-export type RoundBehaviourType = "standard" | "quickfire" | "heads_up"
+export type RoundBehaviourType = "standard" | "quickfire" | "spotlight"
 export type RoundSourceMode = "selected_packs" | "specific_packs" | "all_questions"
 
 export type FeasibilityExplanation = {
@@ -78,8 +78,8 @@ export function serialiseTemplateAsRound(template: RoundTemplateRow, index: numb
   const behaviourType: RoundBehaviourType =
     String(template.behaviour_type ?? "standard") === "quickfire"
       ? "quickfire"
-      : String(template.behaviour_type ?? "standard") === "heads_up"
-        ? "heads_up"
+      : String(template.behaviour_type ?? "standard") === "spotlight"
+        ? "spotlight"
         : "standard"
   const sourceMode: RoundSourceMode =
     String(template.source_mode ?? "selected_packs") === "specific_packs"
@@ -94,11 +94,11 @@ export function serialiseTemplateAsRound(template: RoundTemplateRow, index: numb
     questionCount: Math.max(1, Number(template.default_question_count ?? 5) || 5),
     behaviourType,
     jokerEligible:
-      behaviourType === "quickfire" || behaviourType === "heads_up"
+      behaviourType === "quickfire" || behaviourType === "spotlight"
         ? false
         : Boolean(template.joker_eligible ?? true),
     countsTowardsScore:
-      behaviourType === "heads_up" ? false : Boolean(template.counts_towards_score ?? true),
+      behaviourType === "spotlight" ? false : Boolean(template.counts_towards_score ?? true),
     sourceMode,
     packIds: sourceMode === "specific_packs" ? defaultPackIds : [],
     selectionRules: {

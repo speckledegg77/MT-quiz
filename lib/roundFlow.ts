@@ -22,7 +22,8 @@ export function isQuickfireBehaviour(raw: unknown) {
 }
 
 export function isHeadsUpBehaviour(raw: unknown) {
-  return String(raw ?? "").trim().toLowerCase() === "heads_up"
+  const value = String(raw ?? "").trim().toLowerCase()
+  return value === "spotlight" || value === "heads_up"
 }
 
 export function isQuickfireRound(round: Pick<EffectiveRoundPlanItem, "behaviourType"> | { behaviourType?: unknown } | null | undefined) {
@@ -44,7 +45,7 @@ export function getConfiguredAnswerSecondsForRound(room: any, round: { behaviour
     return Math.floor(roomAnswerSeconds)
   }
 
-  return getDefaultAnswerSecondsForBehaviour(isQuickfireRound(round) ? "quickfire" : isHeadsUpRound(round) ? "heads_up" : "standard")
+  return getDefaultAnswerSecondsForBehaviour(isQuickfireRound(round) ? "quickfire" : isHeadsUpRound(round) ? "spotlight" : "standard")
 }
 
 export function getEffectiveAnswerSeconds(room: any, round: { behaviourType?: unknown; answerSeconds?: unknown } | null | undefined) {
@@ -63,7 +64,7 @@ export function getEffectiveRoundReviewSecondsForRound(room: any, round: { behav
     return Math.floor(roomReviewSeconds)
   }
 
-  return getDefaultRoundReviewSecondsForBehaviour(isQuickfireRound(round) ? "quickfire" : isHeadsUpRound(round) ? "heads_up" : "standard")
+  return getDefaultRoundReviewSecondsForBehaviour(isQuickfireRound(round) ? "quickfire" : isHeadsUpRound(round) ? "spotlight" : "standard")
 }
 
 export function getRevealDelaySecondsForRound(room: any, round: { behaviourType?: unknown } | null | undefined) {

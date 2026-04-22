@@ -18,7 +18,8 @@ export const SPOTLIGHT_PERSON_ROLE_VALUES = [
 ] as const
 
 export const SPOTLIGHT_DIFFICULTY_VALUES = ["easy", "medium", "hard"] as const
-export const SPOTLIGHT_SYNTHETIC_ID_PREFIX = "heads_up_item:"
+export const SPOTLIGHT_SYNTHETIC_ID_PREFIX = "spotlight_item:"
+export const LEGACY_SPOTLIGHT_SYNTHETIC_ID_PREFIX = "heads_up_item:"
 
 export type SpotlightItemType = (typeof SPOTLIGHT_ITEM_TYPE_VALUES)[number]
 export type SpotlightPersonRole = (typeof SPOTLIGHT_PERSON_ROLE_VALUES)[number]
@@ -75,9 +76,15 @@ export function buildSpotlightSyntheticQuestionId(itemId: string | null | undefi
 
 export function parseSpotlightSyntheticQuestionId(questionId: string | null | undefined) {
   const value = String(questionId ?? "").trim()
-  if (!value.startsWith(SPOTLIGHT_SYNTHETIC_ID_PREFIX)) return null
-  const itemId = value.slice(SPOTLIGHT_SYNTHETIC_ID_PREFIX.length).trim()
-  return itemId || null
+  if (value.startsWith(SPOTLIGHT_SYNTHETIC_ID_PREFIX)) {
+    const itemId = value.slice(SPOTLIGHT_SYNTHETIC_ID_PREFIX.length).trim()
+    return itemId || null
+  }
+  if (value.startsWith(LEGACY_SPOTLIGHT_SYNTHETIC_ID_PREFIX)) {
+    const itemId = value.slice(LEGACY_SPOTLIGHT_SYNTHETIC_ID_PREFIX.length).trim()
+    return itemId || null
+  }
+  return null
 }
 
 export function isSpotlightSyntheticQuestionId(questionId: string | null | undefined) {

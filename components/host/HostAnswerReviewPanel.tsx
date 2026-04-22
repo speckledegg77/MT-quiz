@@ -55,7 +55,7 @@ type ReviewRoundRow = {
   roundIndex: number
   roundNumber: number
   roundName: string
-  behaviourType: "standard" | "quickfire" | "heads_up"
+  behaviourType: "standard" | "quickfire" | "spotlight"
   isCurrentRound: boolean
   questions: ReviewQuestionRow[]
 }

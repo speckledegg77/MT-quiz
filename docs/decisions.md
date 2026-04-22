@@ -66,7 +66,8 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 
 ## Spotlight content model
 
-- Spotlight is the public name for this round. Stage 4A uses Spotlight naming in shared app-layer code. Internal routes, persisted values, and tables can stay as `heads_up` until the later migration stages.
+- Spotlight is the public name for this round. Stage 4A uses Spotlight naming in shared app-layer code.
+- Stage 4C changes new room round plans and synthetic Spotlight card ids to write `spotlight` values, while readers still accept legacy `heads_up` values for compatibility.
 - Spotlight items can belong to more than one Spotlight pack. Pack membership should stay many-to-many.
 - People-based Spotlight items should use `person_roles` as a multi-select field rather than one fixed role.
 - One logical Spotlight item is unique by normalised `answer_text`, `item_type`, and `primary_show_key`.

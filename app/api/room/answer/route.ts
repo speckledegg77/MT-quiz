@@ -152,7 +152,7 @@ export async function POST(req: Request) {
   const effectiveRoundPlan = materialiseRoundPlan(getEffectiveRoomRoundPlan(room))
   const currentRound = findRoundForQuestionIndex(Number(room.question_index ?? 0), effectiveRoundPlan)
   if (isHeadsUpRound(currentRound) || q.answerType === "none") {
-    return NextResponse.json({ accepted: false, reason: "heads_up_round" })
+    return NextResponse.json({ accepted: false, reason: "spotlight_round" })
   }
   const roundIdx = currentRound.index
   const jokerActive = isJokerActiveForRound({

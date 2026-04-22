@@ -48,7 +48,7 @@ export async function POST(req: Request) {
 
   const roundPlan = materialiseRoundPlan(getEffectiveRoomRoundPlan(room))
   const firstRound = findRoundForQuestionIndex(0, roundPlan)
-  const isHeadsUp = String(firstRound?.behaviourType ?? "").trim().toLowerCase() === "heads_up"
+  const isHeadsUp = String(firstRound?.behaviourType ?? "").trim().toLowerCase() === "spotlight"
 
   const updatePayload: Record<string, unknown> = {
     phase: "running",

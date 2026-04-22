@@ -34,7 +34,7 @@ function cleanSelectionRules(raw: unknown): RoundSelectionRules {
     clueSources: cleanStringArray(value.clueSources),
     primaryShowKeys: cleanStringArray(value.primaryShowKeys),
     audioClipTypes: cleanStringArray(value.audioClipTypes),
-    headsUpDifficulties: cleanStringArray(value.headsUpDifficulties),
+    spotlightDifficulties: cleanStringArray(value.spotlightDifficulties ?? value.headsUpDifficulties),
   }
 }
 
@@ -47,7 +47,7 @@ function cleanRounds(raw: unknown): RoundFeasibilityInput[] {
       id: String(item.id ?? `round_${index + 1}`).trim() || `round_${index + 1}`,
       name: String(item.name ?? "").trim(),
       questionCount: Math.max(0, Math.floor(Number(item.questionCount ?? 0)) || 0),
-      behaviourType: behaviourRaw === "quickfire" ? "quickfire" : behaviourRaw === "heads_up" ? "heads_up" : "standard",
+      behaviourType: behaviourRaw === "quickfire" ? "quickfire" : behaviourRaw === "spotlight" || behaviourRaw === "heads_up" ? "spotlight" : "standard",
       sourceMode:
         String(item.sourceMode ?? "selected_packs").trim().toLowerCase() === "specific_packs"
           ? "specific_packs"
@@ -74,7 +74,7 @@ function buildHeadsUpCandidatesFromPackRows(rows: Array<Record<string, unknown>>
     }
     candidatesById.set(itemId, {
       id: buildSpotlightSyntheticQuestionId(itemId),
-      kind: "heads_up",
+      kind: "spotlight",
       legacyRoundType: "general",
       answerType: "text",
       mediaType: "text",
@@ -84,7 +84,7 @@ function buildHeadsUpCandidatesFromPackRows(rows: Array<Record<string, unknown>>
       mediaDurationMs: null,
       audioClipType: null,
       packIds: [packId],
-      headsUpDifficulty: cleanSpotlightDifficulty(String(item.difficulty ?? "medium")),
+      spotlightDifficulty: cleanSpotlightDifficulty(String(item.difficulty ?? "medium")),
     })
   }
   return [...candidatesById.values()]
@@ -153,8 +153,8 @@ export async function POST(req: Request) {
     const templateRounds = cleanRounds(body.templateRounds)
     const allRounds = [...manualRounds, ...templateRounds]
 
-    const questionRounds = allRounds.filter((round) => round.behaviourType !== "heads_up")
-    const headsUpRounds = allRounds.filter((round) => round.behaviourType === "heads_up")
+    const questionRounds = allRounds.filter((round) => round.behaviourType !== "spotlight")
+    const headsUpRounds = allRounds.filter((round) => round.behaviourType === "spotlight")
 
     const needsAllQuestions = questionRounds.some((round) => round.sourceMode === "all_questions")
     let allActivePackIds: string[] = []

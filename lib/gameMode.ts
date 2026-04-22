@@ -5,7 +5,7 @@ export type GameStage = "countdown" | "open" | "wait" | "reveal" | "round_summar
 function normaliseBehaviourType(raw: unknown) {
   const value = String(raw ?? "").trim().toLowerCase()
   if (value === "quickfire") return "quickfire"
-  if (value === "heads_up") return "heads_up"
+  if (value === "spotlight" || value === "heads_up") return "spotlight"
   return "standard"
 }
 
@@ -117,7 +117,7 @@ export function getRoundBehaviourLabel(behaviourType: unknown, options: { isInfi
   if (options.isInfiniteMode) return "Infinite"
   const value = normaliseBehaviourType(behaviourType)
   if (value === "quickfire") return "Quickfire"
-  if (value === "heads_up") return "Spotlight"
+  if (value === "spotlight") return "Spotlight"
   return "Standard"
 }
 
@@ -125,7 +125,7 @@ export function getRoundBehaviourBadgeClass(behaviourType: unknown, options: { i
   if (options.isInfiniteMode) return "border-sky-500/40 bg-sky-600/10 text-sky-200"
   const value = normaliseBehaviourType(behaviourType)
   if (value === "quickfire") return "border-violet-500/40 bg-violet-600/10 text-violet-200"
-  if (value === "heads_up") return "border-amber-500/40 bg-amber-600/10 text-amber-200"
+  if (value === "spotlight") return "border-amber-500/40 bg-amber-600/10 text-amber-200"
   return "border-emerald-500/40 bg-emerald-600/10 text-emerald-200"
 }
 

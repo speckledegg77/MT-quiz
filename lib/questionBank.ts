@@ -1,7 +1,7 @@
 import { parseSpotlightSyntheticQuestionId } from "./spotlight"
 import { supabaseAdmin } from "./supabaseAdmin"
 
-export type RoundType = "mcq" | "audio" | "picture" | "heads_up"
+export type RoundType = "mcq" | "audio" | "picture" | "spotlight"
 export type AnswerType = "mcq" | "text" | "none"
 
 export type Question = {
@@ -93,7 +93,7 @@ function mapDbRow(row: DbQuestionRow): Question {
 function mapHeadsUpRow(questionId: string, row: DbHeadsUpRow): Question {
   return {
     id: questionId,
-    roundType: "heads_up",
+    roundType: "spotlight",
     answerType: "none",
     text: String(row.answer_text ?? "").trim() || "Spotlight card",
     options: [],

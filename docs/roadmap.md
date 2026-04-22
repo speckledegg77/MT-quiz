@@ -5,6 +5,7 @@ This file tracks the live plan. Keep it short and practical.
 ## Current priority
 
 - [ ] Finish the staged internal Spotlight rename so app-layer code stops introducing fresh `heads_up` naming outside the compatibility layer.
+- [ ] Complete the later Spotlight migration stages, especially schema rename and compatibility cleanup after the persisted-value transition.
 - [ ] Finish polishing the new host landing page and easy setup wizard after first live testing, especially the handoff into the full host controls.
 - [ ] Add host-side answer adjudication so disputed text answers can be reviewed and corrected safely during a live room.
 - [ ] Build better answer-audit tools into the admin questions page so text-answer cleanup is faster and safer.
@@ -63,6 +64,7 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Recently completed
 
+- [x] Stage 4C Spotlight persisted-value transition so new room round plans and synthetic card ids write `spotlight` while readers still accept legacy `heads_up`.
 - [x] Start Stage 4A of the Spotlight migration by renaming shared app-layer helpers and the admin Spotlight dashboard component.
 - [x] Rebuild and rebalance the live Spotlight packs so every live pack reaches at least 100 clues.
 - [x] Tidy the visible host pack and round library so core items stay visible first and single-show source packs are tucked behind an explicit reveal.
