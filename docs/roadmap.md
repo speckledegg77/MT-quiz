@@ -63,11 +63,7 @@ This file tracks the live plan. Keep it short and practical.
 
 ## Recently completed
 
-- [x] Stage 4D Spotlight schema rename so storage tables now use `spotlight_*`, with temporary `heads_up_*` compatibility views left in place during the migration window.
-- [x] Stage 4E-A app-layer Spotlight cleanup so old `heads-up` routes, wrappers, and duplicate helper files are no longer part of the live app.
-- [x] Stage 4E-B final Spotlight persistence cleanup so room state uses `spotlight_state`, the old `heads_up_*` compatibility views are dropped, and legacy Spotlight fallbacks are removed.
-- [x] Stage 4C Spotlight persisted-value transition so new room round plans and synthetic card ids write `spotlight` while readers still accept legacy `heads_up`.
-- [x] Start Stage 4A of the Spotlight migration by renaming shared app-layer helpers and the admin Spotlight dashboard component.
+- [x] Complete the full Spotlight migration across app code, routes, persisted room values, room state, and storage tables.
 - [x] Rebuild and rebalance the live Spotlight packs so every live pack reaches at least 100 clues.
 - [x] Tidy the visible host pack and round library so core items stay visible first and single-show source packs are tucked behind an explicit reveal.
 - [x] Make Add round template and Edit selected template collapsible on the admin round-templates page.

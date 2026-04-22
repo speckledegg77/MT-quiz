@@ -2,12 +2,10 @@
 
 Use this when you want to bulk import Spotlight items and themed pack assignments.
 
-Public name note: the file path and internal import route still use `heads-up` for compatibility, but the public product name is Spotlight.
-
 Use this together with:
 
 - `docs/shows-reference.md`
-- `docs/heads_up_csv/heads-up-import-template.csv`
+- the current Spotlight CSV format used by the admin import page
 - `docs/import-regression-checklist.md`
 
 ## One row equals one item

@@ -82,7 +82,6 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - `/admin/shows` shows manager
 - `/admin/round-templates` round templates manager
 - `/admin/spotlight` Spotlight items and packs manager
-- Old `/admin/heads-up` and `heads-up` API compatibility aliases have now been removed from the app layer.
 
 ---
 
