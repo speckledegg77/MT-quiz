@@ -30,6 +30,13 @@ type PackRow = {
   is_active: boolean | null
 }
 
+type HeadsUpPackRow = {
+  id: string
+  name: string
+  description?: string
+  is_active?: boolean
+}
+
 type FeasibilityResponse = {
   ok?: boolean
   candidateCount?: number
@@ -159,6 +166,11 @@ function buildInitialTeams() {
   return [first, second]
 }
 
+function chooseRandomItem<T>(items: T[]) {
+  if (!items.length) return null
+  return items[Math.floor(Math.random() * items.length)] ?? null
+}
+
 function openInNewWindow(url: string) {
   if (!url) return
   const win = window.open(url, "_blank", "noopener,noreferrer")
@@ -194,6 +206,7 @@ export default function HostWizardPage() {
 
   const [currentStep, setCurrentStep] = useState(1)
   const [packs, setPacks] = useState<PackRow[]>([])
+  const [headsUpPacks, setHeadsUpPacks] = useState<HeadsUpPackRow[]>([])
   const [templates, setTemplates] = useState<RoundTemplateRow[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -204,6 +217,7 @@ export default function HostWizardPage() {
   const [teamNames, setTeamNames] = useState<string[]>(() => buildInitialTeams())
   const [lengthId, setLengthId] = useState<string>("standard")
   const [audioMode, setAudioMode] = useState<AudioMode>("display")
+  const [includeHeadsUpFinish, setIncludeHeadsUpFinish] = useState(false)
 
   const [feasibilityBusy, setFeasibilityBusy] = useState(false)
   const [feasibilityError, setFeasibilityError] = useState<string | null>(null)
@@ -213,6 +227,7 @@ export default function HostWizardPage() {
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const [roomCode, setRoomCode] = useState<string | null>(null)
+  const [createdHeadsUpPack, setCreatedHeadsUpPack] = useState<HeadsUpPackRow | null>(null)
   const [joinedPlayerCount, setJoinedPlayerCount] = useState(0)
 
   const [startBusy, setStartBusy] = useState(false)
@@ -250,6 +265,10 @@ export default function HostWizardPage() {
     })
   }, [feasibilityById, quizFeel, roundCount, templates])
 
+  const totalPlannedRounds = useMemo(() => {
+    return templatePlan.rounds.length + (includeHeadsUpFinish ? 1 : 0)
+  }, [includeHeadsUpFinish, templatePlan.rounds.length])
+
   const teamValidationMessage = useMemo(() => createTeamValidationMessage(gameMode, teamNames), [gameMode, teamNames])
 
   const createBlockReason = useMemo(() => {
@@ -258,8 +277,9 @@ export default function HostWizardPage() {
     if (feasibilityBusy) return "Still checking which ready templates fit the current question pool."
     if (feasibilityError) return feasibilityError
     if (teamValidationMessage) return teamValidationMessage
+    if (includeHeadsUpFinish && !headsUpPacks.length) return "No active Heads Up packs are available right now."
     return templatePlan.error
-  }, [feasibilityBusy, feasibilityError, loadError, loading, teamValidationMessage, templatePlan.error])
+  }, [feasibilityBusy, feasibilityError, headsUpPacks.length, includeHeadsUpFinish, loadError, loading, teamValidationMessage, templatePlan.error])
 
   useEffect(() => {
     let cancelled = false
@@ -268,12 +288,18 @@ export default function HostWizardPage() {
       setLoading(true)
       setLoadError(null)
 
-      const [packsRes, templatesRes] = await Promise.all([
+      const [packsRes, headsUpPacksRes, templatesRes] = await Promise.all([
         supabase
           .from("packs")
           .select("id, display_name, round_type, sort_order, is_active")
           .eq("is_active", true)
           .order("sort_order", { ascending: true }),
+        fetch("/api/heads-up/packs", { cache: "no-store" })
+          .then(async (res) => {
+            const json = (await res.json().catch(() => ({}))) as { packs?: HeadsUpPackRow[]; error?: string }
+            if (!res.ok) throw new Error(json.error ?? "Could not load Heads Up packs.")
+            return json.packs ?? []
+          }),
         fetch("/api/round-templates", { cache: "no-store" })
           .then(async (res) => {
             const json = (await res.json().catch(() => ({}))) as { templates?: RoundTemplateRow[]; error?: string }
@@ -291,6 +317,7 @@ export default function HostWizardPage() {
       }
 
       setPacks((packsRes.data ?? []) as PackRow[])
+      setHeadsUpPacks(headsUpPacksRes)
       setTemplates(templatesRes)
       setLoading(false)
     }
@@ -424,6 +451,40 @@ export default function HostWizardPage() {
       }
 
       const cleanTeamNames = teamNames.map((name) => name.trim()).filter(Boolean)
+      const chosenHeadsUpPack = includeHeadsUpFinish ? chooseRandomItem(headsUpPacks) : null
+
+      if (includeHeadsUpFinish && !chosenHeadsUpPack) {
+        setCreateError("No active Heads Up packs are available right now.")
+        setCreating(false)
+        return
+      }
+
+      const manualRounds = [
+        ...templatePlan.rounds,
+        ...(chosenHeadsUpPack
+          ? [{
+              id: `wizard_heads_up_${chosenHeadsUpPack.id}`,
+              name: "Heads Up",
+              questionCount: 1,
+              behaviourType: "heads_up" as const,
+              jokerEligible: false,
+              countsTowardsScore: false,
+              sourceMode: "specific_packs" as const,
+              packIds: [chosenHeadsUpPack.id],
+              selectionRules: {
+                mediaTypes: [],
+                answerTypes: [],
+                promptTargets: [],
+                clueSources: [],
+                primaryShowKeys: [],
+                audioClipTypes: [],
+              },
+              answerSeconds: 60,
+              roundReviewSeconds: 20,
+              headsUpTvDisplayMode: "timer_only" as const,
+            }]
+          : []),
+      ]
 
       const response = await fetch("/api/room/create", {
         method: "POST",
@@ -436,7 +497,7 @@ export default function HostWizardPage() {
           answerSeconds: 20,
           audioMode,
           selectedPacks: selectedPackIds,
-          manualRounds: templatePlan.rounds,
+          manualRounds,
         }),
       })
 
@@ -455,6 +516,7 @@ export default function HostWizardPage() {
       }
 
       rememberHostCode(code)
+      setCreatedHeadsUpPack(chosenHeadsUpPack)
       setRoomCode(code)
       setCurrentStep(5)
     } catch (error: unknown) {
@@ -738,6 +800,32 @@ export default function HostWizardPage() {
                     </div>
                   )}
 
+                  <div className="space-y-3 rounded-2xl border border-border bg-card p-4 text-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-medium text-foreground">Finish with Heads Up</div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          Add one final Heads Up round using a random active pack. You do not need to choose the pack here.
+                        </div>
+                      </div>
+                      <label className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
+                        <input
+                          type="checkbox"
+                          checked={includeHeadsUpFinish}
+                          onChange={(event) => setIncludeHeadsUpFinish(event.target.checked)}
+                        />
+                        Include it
+                      </label>
+                    </div>
+                    {includeHeadsUpFinish ? (
+                      <div className="rounded-xl border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
+                        {playSurface === "phones_only"
+                          ? "This final Heads Up round will follow the phones-only setup too."
+                          : "This final Heads Up round will use the normal room setup, with a random active pack and timer-only TV by default."}
+                      </div>
+                    ) : null}
+                  </div>
+
                   <div className="rounded-2xl border border-border bg-muted p-4 text-sm text-muted-foreground">
                     {feasibilityBusy
                       ? "Checking which ready templates fit the current question pool..."
@@ -768,6 +856,10 @@ export default function HostWizardPage() {
                           <div className="flex items-start justify-between gap-3">
                             <span className="text-muted-foreground">Recommended setup</span>
                             <span className="text-right font-medium text-foreground">{SETUP_LENGTHS.find((option) => option.id === lengthId)?.title ?? "Standard game"}</span>
+                          </div>
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="text-muted-foreground">Heads Up finish</span>
+                            <span className="text-right font-medium text-foreground">{includeHeadsUpFinish ? "Yes, add one final random pack round" : "No"}</span>
                           </div>
                           <div className="flex items-start justify-between gap-3">
                             <span className="text-muted-foreground">Play format</span>
@@ -804,6 +896,18 @@ export default function HostWizardPage() {
                           ) : (
                             <div className="text-sm text-muted-foreground">No ready plan yet.</div>
                           )}
+
+                          {includeHeadsUpFinish ? (
+                            <div className="rounded-xl border border-border bg-card px-3 py-3 text-sm">
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="font-medium text-foreground">{templatePlan.rounds.length + 1}. Heads Up</div>
+                                <div className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">Heads Up</div>
+                              </div>
+                              <div className="mt-1 text-xs text-muted-foreground">
+                                Final round · random active pack · 60s turns · 20s round review
+                              </div>
+                            </div>
+                          ) : null}
 
                           {templatePlan.notes.length ? (
                             <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
@@ -862,6 +966,12 @@ export default function HostWizardPage() {
                       <QRTile value={joinUrl} size={140} />
                     </div>
                   </div>
+
+                  {createdHeadsUpPack ? (
+                    <div className="rounded-2xl border border-border bg-muted p-4 text-sm text-muted-foreground">
+                      This game will finish with a Heads Up round using <span className="font-medium text-foreground">{createdHeadsUpPack.name}</span>.
+                    </div>
+                  ) : null}
 
                   <div className={`grid gap-3 ${playSurface === "phones_only" ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
                     <div className="rounded-2xl border border-border bg-card p-4 text-sm">
@@ -955,8 +1065,12 @@ export default function HostWizardPage() {
                     <span className="text-right font-medium text-foreground">{SETUP_LENGTHS.find((option) => option.id === lengthId)?.title ?? "Standard game"}</span>
                   </div>
                   <div className="flex items-start justify-between gap-3">
+                    <span className="text-muted-foreground">Heads Up finish</span>
+                    <span className="text-right font-medium text-foreground">{createdHeadsUpPack ? createdHeadsUpPack.name : includeHeadsUpFinish ? "Random active pack" : "No"}</span>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
                     <span className="text-muted-foreground">Rounds</span>
-                    <span className="text-right font-medium text-foreground">{templatePlan.rounds.length}</span>
+                    <span className="text-right font-medium text-foreground">{totalPlannedRounds}</span>
                   </div>
                   <div className="flex items-start justify-between gap-3">
                     <span className="text-muted-foreground">Play format</span>
