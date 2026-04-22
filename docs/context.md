@@ -80,7 +80,8 @@ A musical theatre quiz for private games. One host controls the flow. A TV shows
 - `/admin/questions` question metadata dashboard
 - `/admin/shows` shows manager
 - `/admin/round-templates` round templates manager
-- `/admin/heads-up` Spotlight items and packs manager
+- `/admin/spotlight` Spotlight items and packs manager
+- Legacy `/admin/heads-up` and `heads-up` API paths stay alive as compatibility aliases during the full Spotlight rename.
 
 ---
 

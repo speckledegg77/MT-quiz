@@ -299,7 +299,7 @@ export default function HostWizardPage() {
           .select("id, display_name, round_type, sort_order, is_active")
           .eq("is_active", true)
           .order("sort_order", { ascending: true }),
-        fetch("/api/heads-up/packs", { cache: "no-store" })
+        fetch("/api/spotlight/packs", { cache: "no-store" })
           .then(async (res) => {
             const json = (await res.json().catch(() => ({}))) as { packs?: HeadsUpPackRow[]; error?: string }
             if (!res.ok) throw new Error(json.error ?? "Could not load Spotlight packs.")

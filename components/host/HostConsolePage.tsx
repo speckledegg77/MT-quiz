@@ -836,7 +836,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
           .select("id, display_name, round_type, sort_order, is_active")
           .eq("is_active", true)
           .order("sort_order", { ascending: true }),
-        fetch("/api/heads-up/packs", { cache: "no-store" }).then(async (res) => {
+        fetch("/api/spotlight/packs", { cache: "no-store" }).then(async (res) => {
           const json = (await res.json().catch(() => ({}))) as { packs?: HeadsUpPackRow[] }
           return res.ok ? (json.packs ?? []) : []
         }).catch(() => [] as HeadsUpPackRow[]),
@@ -1992,7 +1992,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
     setForcingClose(true)
     setForceCloseError(null)
     try {
-      const res = await fetch("/api/room/heads-up", {
+      const res = await fetch("/api/room/spotlight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: roomCode, action, ...extra }),
@@ -2177,7 +2177,7 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
     const delayMs = Number.isFinite(reviewAtMs) ? Math.max(0, reviewAtMs - Date.now()) : 10000
 
     const timeoutId = window.setTimeout(() => {
-      fetch("/api/room/heads-up", {
+      fetch("/api/room/spotlight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: roomCode, action: "host_confirm_turn" }),

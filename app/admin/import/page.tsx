@@ -461,7 +461,7 @@ export default function AdminImportPage() {
                   disabled={!canUploadHeadsUp}
                   onClick={() =>
                     void uploadCsv({
-                      endpoint: "/api/admin/import-heads-up",
+                      endpoint: "/api/admin/import-spotlight",
                       file: headsUpFile,
                       text: headsUpText,
                       setBusy: setHeadsUpBusy,
@@ -477,7 +477,7 @@ export default function AdminImportPage() {
                   disabled={!canUploadHeadsUp}
                   onClick={() =>
                     void uploadCsv({
-                      endpoint: "/api/admin/import-heads-up",
+                      endpoint: "/api/admin/import-spotlight",
                       file: headsUpFile,
                       text: headsUpText,
                       setBusy: setHeadsUpBusy,

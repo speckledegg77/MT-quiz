@@ -126,6 +126,7 @@ Keep this as a log of decisions we have already made so we do not keep reopening
 
 - `docs/shows-reference.md` is the canonical source for `show_key` values.
 - New content-writing chats should use the current writing standards and CSV templates from the repo rather than inventing their own format.
+- During the full Spotlight rename, app routes and API paths should move to `spotlight` names first, while legacy `heads-up` paths stay alive only as temporary compatibility aliases.
 - Generated CSV rows should quote every text-like field, even when the current value does not contain a comma.
 - Question CSV generation should use the current full importer column order, including metadata fields after `image_path`.
 

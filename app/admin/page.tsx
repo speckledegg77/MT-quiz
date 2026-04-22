@@ -72,7 +72,7 @@ export default function AdminHomePage() {
             <div className="text-sm text-muted-foreground">
               Create Spotlight items and themed packs without forcing them into the normal quiz question model.
             </div>
-            <Link href="/admin/heads-up" className={linkButtonClass("secondary")}>
+            <Link href="/admin/spotlight" className={linkButtonClass("secondary")}>
               Open Spotlight
             </Link>
           </CardContent>

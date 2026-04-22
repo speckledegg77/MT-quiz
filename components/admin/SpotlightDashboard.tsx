@@ -248,11 +248,11 @@ export function SpotlightDashboard() {
       }
 
       const [itemsRes, packsRes, showsRes] = await Promise.all([
-        fetch("/api/admin/heads-up/items", {
+        fetch("/api/admin/spotlight/items", {
           headers: buildAdminHeaders(cleanToken),
           cache: "no-store",
         }),
-        fetch("/api/admin/heads-up/packs", {
+        fetch("/api/admin/spotlight/packs", {
           headers: buildAdminHeaders(cleanToken),
           cache: "no-store",
         }),
@@ -450,7 +450,7 @@ export function SpotlightDashboard() {
     setSaveItemResult("")
 
     try {
-      const res = await fetch("/api/admin/heads-up/items", {
+      const res = await fetch("/api/admin/spotlight/items", {
         method: "POST",
         headers: {
           ...buildAdminHeaders(cleanToken),
@@ -511,7 +511,7 @@ export function SpotlightDashboard() {
     setCreateItemResult("")
 
     try {
-      const res = await fetch(`/api/admin/heads-up/items/${encodeURIComponent(selectedItemId)}`, {
+      const res = await fetch(`/api/admin/spotlight/items/${encodeURIComponent(selectedItemId)}`, {
         method: "PATCH",
         headers: {
           ...buildAdminHeaders(cleanToken),
@@ -561,7 +561,7 @@ export function SpotlightDashboard() {
     setSavePackResult("")
 
     try {
-      const res = await fetch("/api/admin/heads-up/packs", {
+      const res = await fetch("/api/admin/spotlight/packs", {
         method: "POST",
         headers: {
           ...buildAdminHeaders(cleanToken),
@@ -612,7 +612,7 @@ export function SpotlightDashboard() {
     setCreatePackResult("")
 
     try {
-      const res = await fetch(`/api/admin/heads-up/packs/${encodeURIComponent(selectedPackId)}`, {
+      const res = await fetch(`/api/admin/spotlight/packs/${encodeURIComponent(selectedPackId)}`, {
         method: "PATCH",
         headers: {
           ...buildAdminHeaders(cleanToken),

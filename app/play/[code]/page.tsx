@@ -627,7 +627,7 @@ export default function PlayerPage() {
     setHeadsUpSubmittingAction(pendingAction)
     setAnswerError(null)
     try {
-      const res = await fetch("/api/room/heads-up", {
+      const res = await fetch("/api/room/spotlight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, playerId, action }),
@@ -876,7 +876,7 @@ export default function PlayerPage() {
     const delayMs = Number.isFinite(reviewAtMs) ? Math.max(0, reviewAtMs - adjustedNowMs) : 4500
 
     const timeoutId = window.setTimeout(() => {
-      fetch("/api/room/heads-up", {
+      fetch("/api/room/spotlight", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, action: "host_confirm_turn" }),
