@@ -1901,6 +1901,17 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
 
   async function startGame() {
     if (!roomCode) return
+
+    if (joinedPlayerCount <= 0) {
+      setStartError("At least one player must join before you can start the game.")
+      setStartOk(null)
+      return
+    }
+
+    if (typeof window !== "undefined" && !window.confirm("Have all your players joined?")) {
+      return
+    }
+
     setStarting(true)
     setStartError(null)
     setStartOk(null)
@@ -2068,7 +2079,9 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
     () => manualRounds.filter((round) => round.behaviourType !== "heads_up" && round.sourceMode === "specific_packs").length,
     [manualRounds]
   )
-  const canStart = hasRoom && roomPhase === "lobby" && !starting
+  const joinedPlayerCount = Array.isArray(roomState?.players) ? roomState.players.length : 0
+
+  const canStart = hasRoom && roomPhase === "lobby" && !starting && joinedPlayerCount > 0
   const canContinue =
     hasRoom &&
     roomPhase === "running" &&
@@ -2119,7 +2132,9 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
     roomPhase === "lobby"
       ? starting
         ? "Starting..."
-        : "Start game"
+        : joinedPlayerCount <= 0
+          ? "Waiting for players"
+          : "Start game"
       : roomPhase === "running"
         ? "Game running"
         : "Game finished"
@@ -2136,9 +2151,11 @@ export default function HostConsolePage({ initialRoomCode = null }: { initialRoo
               ? "This Heads Up round has run out of active cards before every player has taken a turn. Continue to the next round, then add more cards to this pack if you want longer Heads Up rounds."
               : "The Heads Up round is finished. Continue when you are ready."
       : roomPhase === "lobby"
-      ? roomIsInfinite
-        ? "Players can still join. When you are ready, start the infinite run from the host controls."
-        : "Players can still join. When you are ready, start the game from the host controls."
+      ? joinedPlayerCount <= 0
+        ? "Players can still join. At least one player must join before you can start the game."
+        : roomIsInfinite
+          ? "Players can still join. When you are ready, start the infinite run from the host controls."
+          : "Players can still join. When you are ready, start the game from the host controls."
       : roomPhase === "running"
         ? roomIsInfinite
           ? "Infinite mode runs as one continuous stream of questions. End the game whenever you want, or let it finish when the question pool runs out."

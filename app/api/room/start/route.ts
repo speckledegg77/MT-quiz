@@ -27,6 +27,10 @@ export async function POST(req: Request) {
   if (playersRes.error) return NextResponse.json({ error: playersRes.error.message }, { status: 500 })
   const players = playersRes.data ?? []
 
+  if (players.length === 0) {
+    return NextResponse.json({ error: "At least one player must join before you can start the game." }, { status: 409 })
+  }
+
   let teamScoreMode: "total" | "average" = "total"
   if (gameMode === "teams") {
     const counts = new Map<string, number>()

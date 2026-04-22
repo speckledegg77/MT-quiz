@@ -195,6 +195,7 @@ export default function HostWizardPage() {
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const [roomCode, setRoomCode] = useState<string | null>(null)
+  const [joinedPlayerCount, setJoinedPlayerCount] = useState(0)
 
   const [startBusy, setStartBusy] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
@@ -337,6 +338,36 @@ export default function HostWizardPage() {
     }
   }, [loading, selectedPackIds, templateRounds, templates.length])
 
+  useEffect(() => {
+    if (!roomCode) {
+      setJoinedPlayerCount(0)
+      return
+    }
+
+    let cancelled = false
+
+    async function tick() {
+      try {
+        const response = await fetch(`/api/room/state?code=${roomCode}`, { cache: "no-store" })
+        const json = await response.json().catch(() => ({}))
+        if (cancelled) return
+        const players = Array.isArray(json?.players) ? json.players : []
+        setJoinedPlayerCount(players.length)
+      } catch {
+        if (cancelled) return
+        setJoinedPlayerCount(0)
+      }
+    }
+
+    tick()
+    const id = window.setInterval(tick, 1000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+  }, [roomCode])
+
   function addTeam() {
     setTeamNames((current) => {
       const used = new Set(current.map((name) => name.trim()).filter(Boolean))
@@ -407,6 +438,15 @@ export default function HostWizardPage() {
 
   async function startGame() {
     if (!roomCode) return
+
+    if (joinedPlayerCount <= 0) {
+      setStartError("At least one player must join before you can start the game.")
+      return
+    }
+
+    if (typeof window !== "undefined" && !window.confirm("Have all your players joined?")) {
+      return
+    }
 
     setStartBusy(true)
     setStartError(null)
@@ -804,6 +844,15 @@ export default function HostWizardPage() {
                     Wait for your players to join, then start the game. When you press Start game, the app moves you into the existing host controls for live running.
                   </div>
 
+                  <div className="rounded-2xl border border-border bg-card p-4 text-sm">
+                    <div className="font-medium text-foreground">Players joined</div>
+                    <div className="mt-1 text-muted-foreground">
+                      {joinedPlayerCount <= 0
+                        ? "No players have joined yet. At least one player must join before you can start."
+                        : `${joinedPlayerCount} player${joinedPlayerCount === 1 ? " has" : "s have"} joined. You will be asked to confirm before the game starts.`}
+                    </div>
+                  </div>
+
                   {startError ? (
                     <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
                       {startError}
@@ -811,8 +860,8 @@ export default function HostWizardPage() {
                   ) : null}
 
                   <div className="flex flex-wrap gap-2">
-                    <Button onClick={startGame} disabled={startBusy}>
-                      {startBusy ? "Starting..." : "Start game"}
+                    <Button onClick={startGame} disabled={startBusy || joinedPlayerCount <= 0}>
+                      {startBusy ? "Starting..." : joinedPlayerCount <= 0 ? "Waiting for players" : "Start game"}
                     </Button>
                     <Link href={directHostUrl} className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-card px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted">
                       Go to existing host setup
