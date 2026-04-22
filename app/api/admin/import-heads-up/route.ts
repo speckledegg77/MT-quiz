@@ -304,7 +304,7 @@ export async function POST(req: Request) {
           rowErrors.push(
             formatRowError(
               rowNumber,
-              "This row would duplicate another existing Heads Up item with the same answer text, item type, and primary show."
+              "This row would duplicate another existing Spotlight item with the same answer text, item type, and primary show."
             )
           )
           continue
@@ -316,7 +316,7 @@ export async function POST(req: Request) {
         rowErrors.push(
           formatRowError(
             rowNumber,
-            "More than one existing Heads Up item already matches this answer text, item type, and primary show. Clean those duplicates first."
+            "More than one existing Spotlight item already matches this answer text, item type, and primary show. Clean those duplicates first."
           )
         )
         continue
@@ -355,7 +355,7 @@ export async function POST(req: Request) {
 
     if (rowErrors.length) {
       return NextResponse.json(
-        { error: "Heads Up CSV validation failed.", errors: rowErrors },
+        { error: "Spotlight CSV validation failed.", errors: rowErrors },
         { status: 400 }
       )
     }

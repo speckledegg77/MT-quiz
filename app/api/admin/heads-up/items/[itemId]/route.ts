@@ -124,7 +124,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   }
 
   if (!existingRes.data) {
-    return NextResponse.json({ error: "Heads Up item not found." }, { status: 404 })
+    return NextResponse.json({ error: "Spotlight item not found." }, { status: 404 })
   }
 
   const nextAnswerText = parsed.data.answerText?.trim() || existingRes.data.answer_text
@@ -153,7 +153,7 @@ export async function PATCH(req: Request, context: RouteContext) {
     return NextResponse.json(
       {
         error:
-          "A Heads Up item with the same answer text, item type, and primary show already exists.",
+          "A Spotlight item with the same answer text, item type, and primary show already exists.",
       },
       { status: 409 }
     )
@@ -185,7 +185,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   }
 
   if (!updateRes.data) {
-    return NextResponse.json({ error: "Heads Up item not found." }, { status: 404 })
+    return NextResponse.json({ error: "Spotlight item not found." }, { status: 404 })
   }
 
   if (parsed.data.packIds !== undefined) {

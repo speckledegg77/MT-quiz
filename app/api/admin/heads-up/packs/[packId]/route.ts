@@ -64,7 +64,7 @@ export async function PATCH(req: Request, context: RouteContext) {
   }
 
   if (!updateRes.data) {
-    return NextResponse.json({ error: "Heads Up pack not found." }, { status: 404 })
+    return NextResponse.json({ error: "Spotlight pack not found." }, { status: 404 })
   }
 
   const countRes = await supabaseAdmin

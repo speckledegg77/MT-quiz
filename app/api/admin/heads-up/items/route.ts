@@ -169,7 +169,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         error:
-          "A Heads Up item with the same answer text, item type, and primary show already exists.",
+          "A Spotlight item with the same answer text, item type, and primary show already exists.",
       },
       { status: 409 }
     )
