@@ -20,54 +20,49 @@ export async function GET(request: NextRequest) {
     return jsonResponse(
       {
         ok: false,
-        error: "CRON_SECRET is not set.",
+        error: "CRON_SECRET is missing from the environment.",
       },
       500,
     )
   }
 
   const authHeader = request.headers.get("authorization")
+  const expectedHeader = `Bearer ${cronSecret}`
 
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  if (authHeader !== expectedHeader) {
     return jsonResponse(
       {
         ok: false,
-        error: "Unauthorised.",
+        error: "Unauthorised. The Authorization header does not match CRON_SECRET.",
       },
       401,
     )
   }
 
-  const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL
-
-  const supabaseSecretKey =
-    process.env.SUPABASE_SECRET_KEY ??
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.SUPABASE_SERVICE_ROLE
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl) {
     return jsonResponse(
       {
         ok: false,
-        error: "Supabase URL is not set.",
+        error: "NEXT_PUBLIC_SUPABASE_URL is missing from the environment.",
       },
       500,
     )
   }
 
-  if (!supabaseSecretKey) {
+  if (!supabaseServiceRoleKey) {
     return jsonResponse(
       {
         ok: false,
-        error:
-          "No server-side Supabase secret key found. Set SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY.",
+        error: "SUPABASE_SERVICE_ROLE_KEY is missing from the environment.",
       },
       500,
     )
   }
 
-  const supabase = createClient(supabaseUrl, supabaseSecretKey, {
+  const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
