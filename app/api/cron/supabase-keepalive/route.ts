@@ -27,9 +27,8 @@ export async function GET(request: NextRequest) {
   }
 
   const authHeader = request.headers.get("authorization")
-  const expectedHeader = `Bearer ${cronSecret}`
 
-  if (authHeader !== expectedHeader) {
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return jsonResponse(
       {
         ok: false,
@@ -70,18 +69,46 @@ export async function GET(request: NextRequest) {
     },
   })
 
-  const { data, error, count } = await supabase
+  const checkedAt = new Date().toISOString()
+
+  const { error: writeError } = await supabase
+    .from("app_keepalive")
+    .upsert(
+      {
+        id: "vercel-cron",
+        last_seen_at: checkedAt,
+        source: "vercel-cron",
+        note: "Daily keepalive for hobby project.",
+      },
+      {
+        onConflict: "id",
+      },
+    )
+
+  if (writeError) {
+    return jsonResponse(
+      {
+        ok: false,
+        checkedAt,
+        step: "write_keepalive",
+        error: writeError.message,
+      },
+      500,
+    )
+  }
+
+  const { data, error: readError, count } = await supabase
     .from("shows")
     .select("show_key", { count: "exact" })
     .limit(1)
 
-  if (error) {
+  if (readError) {
     return jsonResponse(
       {
         ok: false,
-        checkedAt: new Date().toISOString(),
-        table: "shows",
-        error: error.message,
+        checkedAt,
+        step: "read_shows",
+        error: readError.message,
       },
       500,
     )
@@ -89,8 +116,9 @@ export async function GET(request: NextRequest) {
 
   return jsonResponse({
     ok: true,
-    checkedAt: new Date().toISOString(),
-    table: "shows",
+    checkedAt,
+    keepalive: "updated",
+    tableChecked: "shows",
     rowsReturned: data?.length ?? 0,
     totalRows: count ?? null,
   })
